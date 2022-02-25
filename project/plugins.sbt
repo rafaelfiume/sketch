@@ -1,0 +1,7 @@
+addSbtPlugin(Plugin.Assembly)
+addSbtPlugin(Plugin.DependencyGraph)
+addSbtPlugin(Plugin.DotEnv)
+addSbtPlugin(Plugin.Git)
+addSbtPlugin(Plugin.Scalafix)
+addSbtPlugin(Plugin.ScalaFmt)
+addSbtPlugin(Plugin.Tpolecat)
