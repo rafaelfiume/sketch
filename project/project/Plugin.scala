@@ -3,7 +3,7 @@ import sbt._
 // format: off
 object Plugin {
   private object Version {
-    val Assembly        = "0.14.10"
+    val Assembly        = "0.15.0"
     val DependencyGraph = "0.9.2"
     val DotEnv          = "2.1.233"
     val Git             = "1.0.2"
