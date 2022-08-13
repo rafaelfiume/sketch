@@ -23,7 +23,7 @@ object ServiceConfig:
       environment <- env("ENV")
       jdbcUrl <- env("DB_URL")
       dbUser <- env("DB_USER")
-      dbPassword <- env("DB_PASSWORD").secret
+      dbPassword <- env("DB_PASS").secret
     yield ServiceConfig(
       environment,
       db = DatabaseConfig(

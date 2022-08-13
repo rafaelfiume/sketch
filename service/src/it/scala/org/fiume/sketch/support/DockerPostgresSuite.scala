@@ -6,10 +6,11 @@ import com.dimafeng.testcontainers.PostgreSQLContainer
 import doobie.Transactor
 import doobie.hikari.HikariTransactor
 import munit.CatsEffectSuite
-import org.testcontainers.containers.PostgreSQLContainer as JavaPostgreSQLContainer
-import org.testcontainers.utility.DockerImageName
 import org.fiume.sketch.app.ServiceConfig.DatabaseConfig
 import org.fiume.sketch.postgres.SchemaMigration
+import org.testcontainers.containers.PostgreSQLContainer as JavaPostgreSQLContainer
+import org.testcontainers.utility.DockerImageName
+import org.typelevel.log4cats.slf4j.Slf4jLogger
 
 import java.util.concurrent.Executors
 import scala.concurrent.ExecutionContext
@@ -46,7 +47,7 @@ trait DockerPostgresSuite extends CatsEffectSuite:
       )
       dbConfig = DatabaseConfig(
         DockerDatabaseConfig.driver,
-        s"jdbc:postgresql://${container.host}:${container.mappedPort(JavaPostgreSQLContainer.POSTGRESQL_PORT)}/${DockerDatabaseConfig.database}",
+        jdbcUrl,
         DockerDatabaseConfig.user,
         Secret[String](DockerDatabaseConfig.password)
       )

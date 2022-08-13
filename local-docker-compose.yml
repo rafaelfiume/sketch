@@ -8,4 +8,4 @@ services:
     environment:
       - POSTGRES_DB=sketch
       - POSTGRES_USER=$DB_USER
-      - POSTGRES_PASSWORD=$DB_PASSWORD
+      - POSTGRES_PASSWORD=$DB_PASS
