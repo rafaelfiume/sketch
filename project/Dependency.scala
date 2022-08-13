@@ -6,7 +6,7 @@ object Dependency {
     val cats                  = "2.6.1"
     val catsEffect            = "3.1.1"
     val circe                 = "0.14.1"
-    val ciris                 = "2.3.3"
+    val ciris                 = "2.0.1"
     val doobie                = "1.0.0-RC1"
     val flyway                = "7.5.2"
     val http4s                = "1.0.0-M30"
