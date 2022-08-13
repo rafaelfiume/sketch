@@ -4,12 +4,12 @@ import sbt._
 object Plugin {
   private object Version {
     val Assembly        = "0.14.6"
-    val DependencyGraph = "0.9.0"
+    val DependencyGraph = "0.9.2"
     val DotEnv          = "2.1.204"
     val Git             = "1.0.2"
-    val Scalafix        = "0.9.34"
+    val Scalafix        = "0.10.1"
     val ScalaFmt        = "2.4.6"
-    val Tpolecat        = "0.1.22"
+    val Tpolecat        = "0.4.1"
   }
 
   val Assembly        = "com.eed3si9n"              %  "sbt-assembly"         % Version.Assembly
