@@ -9,7 +9,7 @@ object Plugin {
     val Git             = "1.0.2"
     val Scalafix        = "0.10.1"
     val ScalaFmt        = "2.4.6"
-    val Tpolecat        = "0.1.22"
+    val Tpolecat        = "0.4.1"
   }
 
   val Assembly        = "com.eed3si9n"              %  "sbt-assembly"         % Version.Assembly
