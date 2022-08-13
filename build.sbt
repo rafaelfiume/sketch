@@ -1,7 +1,7 @@
 import sbt.{enablePlugins, IO}
 import scala.util.Properties
 
-val ScalaVersion = "3.1.1"
+val ScalaVersion = "3.1.3"
 
 lazy val buildNumber: String =
   Properties
