@@ -5,7 +5,7 @@ object Plugin {
   private object Version {
     val Assembly        = "0.14.6"
     val DependencyGraph = "0.9.2"
-    val DotEnv          = "2.1.204"
+    val DotEnv          = "2.1.233"
     val Git             = "1.0.2"
     val Scalafix        = "0.10.1"
     val ScalaFmt        = "2.4.6"
