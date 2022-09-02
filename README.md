@@ -7,16 +7,17 @@ Most commonly used ones:
 Sbt:
 `$ sbt scalafmtAll`
 `$ sbt service/run`
-`$ sbt service/assembly`
+
+CI/Pipeline:
+`$ sbt docker:publishLocal`
 
 Docker:
 `$ docker stop $(docker ps -a -q)`
 `$ docker rm $(docker ps -a -q)`
-
-You might also use:
-
-Docker:
-`$ docker rmi $(docker images -a -q)`
+`$ docker rmi <image>`
+`$ docker ps -a`
+`$ docker logs <container-id>`
+`$ docker exec -it <container-id> /bin/bash`
+`$ docker build -t sketch:dev .`
+`$ docker run --rm -p8080:8080 sketch:dev`
 `$ docker network prune`
-`$ `
-`$ `

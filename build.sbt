@@ -1,7 +1,14 @@
+import com.typesafe.sbt.packager.docker._
 import sbt.{enablePlugins, IO}
 import scala.util.Properties
 
 val ScalaVersion = "3.1.3"
+
+enablePlugins(GitVersioning)
+
+ThisBuild / envFileName := "service/environments/dev.env"
+
+ThisBuild / parallelExecution := false
 
 lazy val buildNumber: String =
   Properties
@@ -21,6 +28,7 @@ val IntegrationTests = config("it").extend(Test)
 
 lazy val service =
   (project in file("service"))
+    .enablePlugins(JavaAppPackaging)
     .settings(commonSettings: _*)
     .configs(IntegrationTests)
     .settings(
@@ -66,23 +74,13 @@ lazy val service =
         IO.writeLines(file, lines)
         Seq(file)
       },
-      assembly / mainClass := Some("org.fiume.sketch.app.Main"),
-      assembly / assemblyMergeStrategy := {
-        case file if Assembly.isConfigFile(file)     => MergeStrategy.concat
-        case PathList("buildinfo", _*)               => MergeStrategy.discard
-        case PathList("META-INF", "versions", _ @_*) => MergeStrategy.deduplicate
-        case PathList("META-INF", "services", _ @_*) => MergeStrategy.deduplicate
-        case PathList("META-INF", _*)                => MergeStrategy.discard
-        case f if f.endsWith("LICENSE")              => MergeStrategy.discard
-        case f if f.endsWith("NOTICE")               => MergeStrategy.discard
-        case f if f.endsWith("io.netty.versions.properties") =>
-          MergeStrategy.discard
-        case f if f.endsWith("module-info.class") => MergeStrategy.discard
-        case _                                    => MergeStrategy.deduplicate
-      },
-      assembly / test := Def
-        .sequential(Test / test, IntegrationTest / test)
-        .value
+      Compile / mainClass := Some("org.fiume.sketch.app.Main"),
+      dockerBaseImage := "openjdk:17-jdk-slim",
+      dockerCommands += Cmd("USER", "root"),
+      dockerCommands ++= Seq(
+        Cmd("RUN", "apt-get update -y && apt-get install -y curl")
+      ),
+      dockerCommands += Cmd("USER", "1001:0")
     )
 
 lazy val sketch =
