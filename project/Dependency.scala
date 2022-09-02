@@ -11,7 +11,7 @@ object Dependency {
     val flyway                = "9.1.6"
     val http4s                = "1.0.0-M35"
     val log4cats              = "2.4.0"
-    val slf4j                 = "1.7.36"
+    val slf4j                 = "2.0.0"
 
     val munit                 = "0.7.29"
     val munitCatsEffect       = "1.0.7"
