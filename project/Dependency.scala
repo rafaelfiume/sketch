@@ -8,10 +8,10 @@ object Dependency {
     val circe                 = "0.14.2"
     val ciris                 = "2.3.3"
     val doobie                = "1.0.0-RC2"
-    val flyway                = "9.1.3"
+    val flyway                = "9.1.6"
     val http4s                = "1.0.0-M35"
     val log4cats              = "2.4.0"
-    val slf4j                 = "1.7.36"
+    val slf4j                 = "2.0.0"
 
     val munit                 = "0.7.29"
     val munitCatsEffect       = "1.0.7"
