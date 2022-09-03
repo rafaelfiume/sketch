@@ -20,8 +20,7 @@ lazy val commonSettings = Seq(
   scalaVersion := ScalaVersion,
   organization := "org.fiume",
   version := buildNumber,
-  run / fork := true,
-  scalacOptions := scalacOptions.value.filterNot(_ == "-source:3.0-migration") :+ "-source:future"
+  run / fork := true
 )
 
 val IntegrationTests = config("it").extend(Test)
