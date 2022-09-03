@@ -8,7 +8,16 @@ enablePlugins(GitVersioning)
 
 ThisBuild / envFileName := "service/environments/dev.env"
 
-ThisBuild / parallelExecution := false
+// scala fix organise imports config
+ThisBuild / scalafixDependencies += "com.github.liancheng" %% "organize-imports" % "0.6.0"
+// scalafix semantic db config
+inThisBuild(
+  List(
+    scalaVersion := "3.1.3",
+    semanticdbEnabled := true,
+    semanticdbVersion := scalafixSemanticdb.revision
+  )
+)
 
 lazy val buildNumber: String =
   Properties
@@ -86,18 +95,3 @@ lazy val sketch =
   (project in file("."))
     .settings(commonSettings: _*)
     .aggregate(service)
-
-ThisBuild / envFileName := "service/environments/dev.env"
-
-ThisBuild / parallelExecution := false
-
-// scalafix semantic db config
-inThisBuild(
-  List(
-    scalaVersion := "3.1.3",
-    semanticdbEnabled := true,
-    semanticdbVersion := scalafixSemanticdb.revision
-  )
-)
-// scala fix organise imports config
-ThisBuild / scalafixDependencies += "com.github.liancheng" %% "organize-imports" % "0.6.0"
