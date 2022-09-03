@@ -2,9 +2,9 @@ package org.fiume.sketch.postgres
 
 import cats.effect.Sync
 import cats.implicits.*
+import org.fiume.sketch.app.ServiceConfig.DatabaseConfig
 import org.flywaydb.core.Flyway
 import org.typelevel.log4cats.slf4j.Slf4jLogger
-import org.fiume.sketch.app.ServiceConfig.DatabaseConfig
 
 import scala.util.control.NonFatal
 

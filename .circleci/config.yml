@@ -31,8 +31,8 @@ jobs:
             - v1-dependencies-
 
       - run:
-          name: Compile
-          command: cat /dev/null | sbt test:compile
+          name: Compile and Run Linter
+          command: cat /dev/null | sbt "scalafixAll --check"
 
       - save_cache:
           paths:

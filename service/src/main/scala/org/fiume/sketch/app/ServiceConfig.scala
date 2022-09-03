@@ -3,8 +3,8 @@ package org.fiume.sketch.app
 import cats.effect.Async
 import cats.implicits.*
 import ciris.*
-import org.http4s.Uri
 import org.fiume.sketch.app.ServiceConfig.*
+import org.http4s.Uri
 
 import scala.concurrent.duration.*
 

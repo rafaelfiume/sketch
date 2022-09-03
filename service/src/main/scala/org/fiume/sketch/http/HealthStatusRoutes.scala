@@ -3,13 +3,13 @@ package org.fiume.sketch.http
 import cats.effect.Async
 import cats.implicits.*
 import io.circe.{Encoder, Json}
+import org.fiume.sketch.algebras.HealthCheck
+import org.fiume.sketch.app.{Version, Versions}
+import org.fiume.sketch.http.HealthStatusRoutes.AppStatus
 import org.http4s.HttpRoutes
 import org.http4s.circe.CirceEntityEncoder.*
 import org.http4s.dsl.Http4sDsl
 import org.http4s.server.Router
-import org.fiume.sketch.algebras.HealthCheck
-import org.fiume.sketch.app.{Version, Versions}
-import org.fiume.sketch.http.HealthStatusRoutes.AppStatus
 
 class HealthStatusRoutes[F[_]: Async](versions: Versions[F], healthCheck: HealthCheck[F]) extends Http4sDsl[F]:
 

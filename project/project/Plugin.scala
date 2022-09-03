@@ -16,7 +16,7 @@ object Plugin {
   val DependencyGraph   = "net.virtual-void"           %  "sbt-dependency-graph"  % Version.DependencyGraph
   val DotEnv            = "nl.gn0s1s"                  %% "sbt-dotenv"            % Version.DotEnv
   val Git               = "com.github.sbt"             %  "sbt-git"               % Version.Git
-  val SbtNativePackager = "com.github.sbt"           %% "sbt-native-packager"   % Version.SbtNativePackager
+  val SbtNativePackager = "com.github.sbt"             %% "sbt-native-packager"   % Version.SbtNativePackager
   val Scalafix          = "ch.epfl.scala"              %  "sbt-scalafix"          % Version.Scalafix
   val ScalaFmt          = "org.scalameta"              %  "sbt-scalafmt"          % Version.ScalaFmt
   val Tpolecat          = "io.github.davidgregory084"  %  "sbt-tpolecat"          % Version.Tpolecat

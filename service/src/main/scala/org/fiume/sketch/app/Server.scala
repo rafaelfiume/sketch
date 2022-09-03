@@ -5,14 +5,14 @@ import cats.effect.{Async, Concurrent, ExitCode, Resource}
 import cats.implicits.*
 import com.comcast.ip4s.*
 import fs2.Stream
+import org.fiume.sketch.algebras.*
+import org.fiume.sketch.http.*
+import org.fiume.sketch.postgres.PostgresStore
 import org.http4s.HttpRoutes
 import org.http4s.blaze.server.BlazeServerBuilder
 import org.http4s.implicits.*
 import org.typelevel.log4cats.Logger
 import org.typelevel.log4cats.slf4j.Slf4jLogger
-import org.fiume.sketch.algebras.*
-import org.fiume.sketch.http.*
-import org.fiume.sketch.postgres.PostgresStore
 
 import scala.concurrent.ExecutionContext
 

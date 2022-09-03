@@ -3,23 +3,23 @@ package org.fiume.sketch.http
 import cats.Applicative
 import cats.effect.IO
 import cats.implicits.*
+import io.circe.{Decoder, HCursor}
 import io.circe.Decoder.Result
 import io.circe.parser.decode
 import io.circe.syntax.*
-import io.circe.{Decoder, HCursor}
 import munit.{Assertions, CatsEffectSuite, ScalaCheckEffectSuite}
-import org.http4s.*
-import org.http4s.Method.*
-import org.http4s.circe.jsonOf
-import org.http4s.client.dsl.io.*
-import org.http4s.implicits.*
-import org.scalacheck.effect.PropF.forAllF
 import org.fiume.sketch.algebras.HealthCheck
 import org.fiume.sketch.app.{Version, Versions}
 import org.fiume.sketch.http.HealthStatusRoutes.AppStatus
 import org.fiume.sketch.support.ContractContext
 import org.fiume.sketch.support.EitherSyntax.*
 import org.fiume.sketch.support.Gens.*
+import org.http4s.*
+import org.http4s.Method.*
+import org.http4s.circe.jsonOf
+import org.http4s.client.dsl.io.*
+import org.http4s.implicits.*
+import org.scalacheck.effect.PropF.forAllF
 
 import scala.language.reflectiveCalls
 

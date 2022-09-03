@@ -1,10 +1,10 @@
 package org.fiume.sketch.support
 
-import org.scalacheck.{Arbitrary, Gen}
 import org.fiume.sketch.app.Version
+import org.scalacheck.{Arbitrary, Gen}
 
-import java.time.temporal.ChronoUnit.MILLIS
 import java.time.{ZoneId, ZoneOffset, ZonedDateTime}
+import java.time.temporal.ChronoUnit.MILLIS
 
 object Gens:
 

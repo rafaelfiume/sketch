@@ -5,9 +5,9 @@ import cats.implicits.*
 import cats.~>
 import doobie.*
 import doobie.implicits.*
+import org.fiume.sketch.algebras.*
 import org.typelevel.log4cats.Logger
 import org.typelevel.log4cats.slf4j.Slf4jLogger
-import org.fiume.sketch.algebras.*
 
 object PostgresStore:
   def make[F[_]: Async](clock: Clock[F], tx: Transactor[F]): Resource[F, PostgresStore[F]] =

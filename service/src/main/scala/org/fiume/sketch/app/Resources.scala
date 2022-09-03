@@ -8,8 +8,8 @@ import org.fiume.sketch.algebras.*
 import org.fiume.sketch.app.ServiceConfig.DatabaseConfig
 import org.fiume.sketch.postgres.{PostgresStore, SchemaMigration}
 
-import java.util.concurrent.atomic.AtomicLong
 import java.util.concurrent.{Executors, ThreadFactory}
+import java.util.concurrent.atomic.AtomicLong
 import scala.concurrent.ExecutionContext
 
 trait Resources[F[_]]:

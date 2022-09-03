@@ -4,10 +4,10 @@ import cats.effect.*
 import cats.effect.std.Random
 import cats.syntax.all.*
 import munit.ScalaCheckEffectSuite
+import org.fiume.sketch.support.{ClockContext, DockerPostgresSuite}
 import org.scalacheck.Gen.choose
 import org.scalacheck.Shrink
 import org.scalacheck.effect.PropF.forAllF
-import org.fiume.sketch.support.{ClockContext, DockerPostgresSuite}
 
 import java.time.{ZoneOffset, ZonedDateTime}
 import scala.concurrent.duration.*
