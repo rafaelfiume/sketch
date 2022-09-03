@@ -17,7 +17,7 @@ class PostgresStore[F[_]: Async] private (clock: Clock[F], l: F ~> ConnectionIO,
     extends Store[F, ConnectionIO]
     with HealthCheck[F]:
 
-  val logger = Slf4jLogger.getLogger[F]
+  private val logger = Slf4jLogger.getLogger[F]
 
   override val lift: [A] => F[A] => ConnectionIO[A] = [A] => (fa: F[A]) => l(fa)
 

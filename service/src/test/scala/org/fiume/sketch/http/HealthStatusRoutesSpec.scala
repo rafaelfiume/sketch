@@ -73,8 +73,8 @@ class HealthStatusRoutesSpec
 
 trait OperationRoutesSpecContext extends VersionsContext with HealthcheckStoreContext with Http4sTestingRoutesDsl {
 
-  implicit def entityDecoder: EntityDecoder[IO, AppStatus] = jsonOf[IO, AppStatus]
-  implicit val decoder: Decoder[AppStatus] = new Decoder[AppStatus] {
+  given EntityDecoder[IO, AppStatus] = jsonOf[IO, AppStatus]
+  given Decoder[AppStatus] = new Decoder[AppStatus] {
     override def apply(c: HCursor): Result[AppStatus] =
       for
         healthy <- c.downField("healthy").as[Boolean]
@@ -96,4 +96,4 @@ trait HealthcheckStoreContext:
     override def healthCheck: F[Unit] = dbHealthcheck
   }
 
-  def makeStore[F[_]](implicit F: Applicative[F]): HealthCheck[F] = makeStore(F.unit)
+  def makeStore[F[_]](using F: Applicative[F]): HealthCheck[F] = makeStore(F.unit)

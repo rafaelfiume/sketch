@@ -15,7 +15,7 @@ import scala.concurrent.duration.*
 class PostgresStoreHealthCheckSpec extends DockerPostgresSuite with ScalaCheckEffectSuite with ClockContext:
 
   // shrinking just make failing tests messages more obscure
-  implicit def noShrink[T]: Shrink[T] = Shrink.shrinkAny
+  given noShrink[T]: Shrink[T] = Shrink.shrinkAny
 
   override def scalaCheckTestParameters = super.scalaCheckTestParameters.withMinSuccessfulTests(5)
 

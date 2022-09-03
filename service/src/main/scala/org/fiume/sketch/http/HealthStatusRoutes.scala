@@ -30,16 +30,13 @@ class HealthStatusRoutes[F[_]: Async](versions: Versions[F], healthCheck: Health
 
   val routes: HttpRoutes[F] = Router(prefix -> httpRoutes)
 
-object HealthStatusRoutes {
+object HealthStatusRoutes:
 
   case class AppStatus(healthy: Boolean, version: Version)
 
-  given Encoder[AppStatus] = new Encoder[AppStatus] {
+  given Encoder[AppStatus] = new Encoder[AppStatus]:
     override def apply(a: AppStatus): Json =
       Json.obj(
         "healthy" -> Json.fromBoolean(a.healthy),
         "appVersion" -> Json.fromString(a.version.value)
       )
-  }
-
-}

@@ -10,8 +10,8 @@ object Main extends IOApp.Simple:
   Thread.setDefaultUncaughtExceptionHandler(
     new Thread.UncaughtExceptionHandler():
       def uncaughtException(t: Thread, e: Throwable): Unit =
-        log.error(s"Unexpected unhandled exception in a pure functional code likely to be caused by a bug: ${e.getMessage}", e)
-        System.exit(13)
+        log.error("Unexpected exception: service is crashing", e)
+        System.exit(1)
   )
 
   override def run: IO[Unit] = Server.run[IO]
