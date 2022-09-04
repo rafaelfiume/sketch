@@ -31,7 +31,7 @@ jobs:
             - v1-dependencies-
 
       - run:
-          name: Compile and Run Linter
+          name: Compile and run linter
           command: cat /dev/null | sbt "scalafixAll --check"
 
       - save_cache:
@@ -46,3 +46,11 @@ jobs:
       - run:
           name: Integration tests
           command: cat /dev/null | sbt it:test
+
+      - run:
+          name: Push service docker image
+          command: |
+            if [ "${CIRCLE_BRANCH}" == "main" ]; then
+              echo $DOCKER_PWD | docker login -u $DOCKER_LOGIN --password-stdin
+              sbt "service/docker:publish"
+            fi

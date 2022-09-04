@@ -21,9 +21,9 @@ inThisBuild(
 
 lazy val buildNumber: String =
   Properties
-    .envOrNone("BUILD_NUMBER")
-    .map(buildNumber => s".${System.currentTimeMillis()}.$buildNumber")
-    .getOrElse("dev")
+    .envOrNone("CIRCLE_BUILD_NUM")
+    .map(buildNumber => s"0.1.${System.currentTimeMillis()}.$buildNumber")
+    .getOrElse("snapshot")
 
 lazy val commonSettings = Seq(
   scalaVersion := ScalaVersion,
@@ -88,7 +88,9 @@ lazy val service =
       dockerCommands ++= Seq(
         Cmd("RUN", "apt-get update -y && apt-get install -y curl")
       ),
-      dockerCommands += Cmd("USER", "1001:0")
+      dockerCommands += Cmd("USER", "1001:0"),
+      dockerUsername := Some("rafaelfiume"),
+      dockerRepository := Some("docker.io")
     )
 
 lazy val sketch =
