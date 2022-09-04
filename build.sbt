@@ -19,17 +19,16 @@ inThisBuild(
   )
 )
 
-lazy val branchVersion: String =
+lazy val branchVersion: Option[String] =
   Properties
     .envOrNone("CIRCLE_BRANCH")
     .map(name => if (name == "main") "" else s"$name.")
-    .getOrElse("unknown_branch")
 
-// e.g. version 105 (main) or branch.105 (branch)
+// e.g. version 105 (main) or branch.105 (branch) or snapshot (workstation)
 lazy val buildNumber: String =
   Properties
     .envOrNone("CIRCLE_BUILD_NUM")
-    .map(number => s"$branchVersion$number")
+    .flatMap(number => branchVersion.map(branch => s"$branch$number"))
     .getOrElse("snapshot")
 
 lazy val commonSettings = Seq(
@@ -96,6 +95,7 @@ lazy val service =
         Cmd("RUN", "apt-get update -y && apt-get install -y curl")
       ),
       dockerCommands += Cmd("USER", "1001:0"),
+      dockerUpdateLatest := true,
       dockerUsername := Some("rafaelfiume"),
       dockerRepository := Some("docker.io")
     )

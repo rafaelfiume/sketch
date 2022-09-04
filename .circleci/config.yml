@@ -50,7 +50,5 @@ jobs:
       - run:
           name: Push service docker image
           command: |
-            if [ "${CIRCLE_BRANCH}" == "main" ]; then
-              echo $DOCKER_PWD | docker login -u $DOCKER_LOGIN --password-stdin
-              sbt "service/docker:publish"
-            fi
+            echo $DOCKER_PWD | docker login -u $DOCKER_LOGIN --password-stdin
+            sbt "service/docker:publish"
