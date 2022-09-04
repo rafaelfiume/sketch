@@ -19,10 +19,17 @@ inThisBuild(
   )
 )
 
+lazy val branchVersion: String =
+  Properties
+    .envOrNone("CIRCLE_BRANCH")
+    .map(name => if (name == "main") "" else s"$name.")
+    .getOrElse("unknown_branch")
+
+// e.g. version 105 (main) or branch.105 (branch)
 lazy val buildNumber: String =
   Properties
     .envOrNone("CIRCLE_BUILD_NUM")
-    .map(buildNumber => s"0.1.${System.currentTimeMillis()}.$buildNumber")
+    .map(number => s"$branchVersion$number")
     .getOrElse("snapshot")
 
 lazy val commonSettings = Seq(
