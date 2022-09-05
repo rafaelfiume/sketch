@@ -1,4 +1,4 @@
-package org.fiume.sketch.support
+package org.fiume.sketch.datastore.support
 
 import cats.effect.{IO, Resource}
 import ciris.Secret
@@ -7,7 +7,7 @@ import doobie.Transactor
 import doobie.hikari.HikariTransactor
 import munit.CatsEffectSuite
 import org.fiume.sketch.app.ServiceConfig.DatabaseConfig
-import org.fiume.sketch.postgres.SchemaMigration
+import org.fiume.sketch.datastore.postgres.SchemaMigration
 import org.testcontainers.containers.PostgreSQLContainer as JavaPostgreSQLContainer
 import org.testcontainers.utility.DockerImageName
 import org.typelevel.log4cats.slf4j.Slf4jLogger

@@ -1,10 +1,9 @@
-package org.fiume.sketch.postgres
+package org.fiume.sketch.datastore.postgres
 
 import cats.data.NonEmptyList
 import cats.implicits.*
 import doobie.*
 import doobie.implicits.*
-import org.fiume.sketch.postgres.*
 
 import java.time.ZonedDateTime
 

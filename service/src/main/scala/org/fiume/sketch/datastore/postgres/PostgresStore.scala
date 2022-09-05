@@ -1,4 +1,4 @@
-package org.fiume.sketch.postgres
+package org.fiume.sketch.datastore.postgres
 
 import cats.effect.{Async, Clock, Resource}
 import cats.implicits.*
@@ -6,6 +6,7 @@ import cats.~>
 import doobie.*
 import doobie.implicits.*
 import org.fiume.sketch.algebras.*
+import org.fiume.sketch.datastore.algebras.Store
 import org.typelevel.log4cats.Logger
 import org.typelevel.log4cats.slf4j.Slf4jLogger
 

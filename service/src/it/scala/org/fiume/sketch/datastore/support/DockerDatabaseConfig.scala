@@ -1,4 +1,4 @@
-package org.fiume.sketch.support
+package org.fiume.sketch.datastore.support
 
 object DockerDatabaseConfig:
   val postgreSQLVersion = "13.6"

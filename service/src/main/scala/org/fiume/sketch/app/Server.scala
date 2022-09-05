@@ -6,8 +6,8 @@ import cats.implicits.*
 import com.comcast.ip4s.*
 import fs2.Stream
 import org.fiume.sketch.algebras.*
+import org.fiume.sketch.datastore.postgres.PostgresStore
 import org.fiume.sketch.http.*
-import org.fiume.sketch.postgres.PostgresStore
 import org.http4s.HttpRoutes
 import org.http4s.blaze.server.BlazeServerBuilder
 import org.http4s.implicits.*

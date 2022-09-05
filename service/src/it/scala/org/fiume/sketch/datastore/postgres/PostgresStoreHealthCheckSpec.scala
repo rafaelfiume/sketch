@@ -4,7 +4,9 @@ import cats.effect.*
 import cats.effect.std.Random
 import cats.syntax.all.*
 import munit.ScalaCheckEffectSuite
-import org.fiume.sketch.support.{ClockContext, DockerPostgresSuite}
+import org.fiume.sketch.datastore.postgres.PostgresStore
+import org.fiume.sketch.datastore.support.DockerPostgresSuite
+import org.fiume.sketch.support.ClockContext
 import org.scalacheck.Gen.choose
 import org.scalacheck.Shrink
 import org.scalacheck.effect.PropF.forAllF
