@@ -12,8 +12,7 @@ import org.fiume.sketch.domain.Document
 import org.fiume.sketch.support.ClockContext
 import org.fiume.sketch.support.Gens.Bytes.*
 import org.fiume.sketch.support.Gens.Strings.*
-import org.scalacheck.Gen
-import org.scalacheck.Shrink
+import org.scalacheck.{Gen, Shrink}
 import org.scalacheck.effect.PropF.forAllF
 
 import java.time.{ZoneOffset, ZonedDateTime}

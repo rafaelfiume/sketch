@@ -4,8 +4,8 @@ import cats.data.NonEmptyList
 import cats.implicits.*
 import doobie.*
 import doobie.implicits.*
-import org.fiume.sketch.domain.Document
 import org.fiume.sketch.datastore.postgres.DoobieMappings.given
+import org.fiume.sketch.domain.Document
 
 import java.time.ZonedDateTime
 

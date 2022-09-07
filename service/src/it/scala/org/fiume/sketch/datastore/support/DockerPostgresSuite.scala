@@ -3,10 +3,9 @@ package org.fiume.sketch.datastore.support
 import cats.effect.{IO, Resource}
 import ciris.Secret
 import com.dimafeng.testcontainers.PostgreSQLContainer
-import doobie.ConnectionIO
-import doobie.Transactor
-import doobie.implicits.*
+import doobie.{ConnectionIO, Transactor}
 import doobie.hikari.HikariTransactor
+import doobie.implicits.*
 import munit.CatsEffectSuite
 import org.fiume.sketch.app.ServiceConfig.DatabaseConfig
 import org.fiume.sketch.datastore.postgres.SchemaMigration
