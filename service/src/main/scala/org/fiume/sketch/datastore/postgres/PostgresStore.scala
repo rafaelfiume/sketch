@@ -14,10 +14,10 @@ import org.typelevel.log4cats.Logger
 import org.typelevel.log4cats.slf4j.Slf4jLogger
 
 object PostgresStore:
-  def make[F[_]: Async](clock: Clock[F], tx: Transactor[F]): Resource[F, PostgresStore[F]] =
-    WeakAsync.liftK[F, ConnectionIO].map(l => new PostgresStore[F](clock, l, tx))
+  def make[F[_]: Async](tx: Transactor[F]): Resource[F, PostgresStore[F]] =
+    WeakAsync.liftK[F, ConnectionIO].map(l => new PostgresStore[F](l, tx))
 
-private class PostgresStore[F[_]: Async] private (clock: Clock[F], l: F ~> ConnectionIO, tx: Transactor[F])
+private class PostgresStore[F[_]: Async] private (l: F ~> ConnectionIO, tx: Transactor[F])
     extends Store[F, ConnectionIO]
     with DocumentStore[F, ConnectionIO]
     with HealthCheck[F]:

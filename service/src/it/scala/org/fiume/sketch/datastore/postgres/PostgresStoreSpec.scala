@@ -11,13 +11,12 @@ import org.fiume.sketch.datastore.postgres.DoobieMappings.given
 import org.fiume.sketch.datastore.postgres.PostgresStore
 import org.fiume.sketch.datastore.support.DockerPostgresSuite
 import org.fiume.sketch.domain.Document
-import org.fiume.sketch.support.ClockContext
 import org.fiume.sketch.support.Gens.Bytes.*
 import org.fiume.sketch.support.Gens.Strings.*
 import org.scalacheck.{Gen, Shrink}
 import org.scalacheck.effect.PropF.forAllF
 
-import java.time.{Instant, ZoneOffset, ZonedDateTime}
+import java.time.Instant
 import scala.concurrent.duration.*
 
 class PostgresStoreSpec extends DockerPostgresSuite with ScalaCheckEffectSuite with PostgresStoreSpecContext:
@@ -28,7 +27,7 @@ class PostgresStoreSpec extends DockerPostgresSuite with ScalaCheckEffectSuite w
   test("store and fetch document metadata") {
     forAllF(documents) { document =>
       will(cleanDocuments) {
-        PostgresStore.make[IO](clock, transactor()).use { store =>
+        PostgresStore.make[IO](transactor()).use { store =>
           for
             _ <- store.commit { store.store(document) }
 
@@ -46,7 +45,7 @@ class PostgresStoreSpec extends DockerPostgresSuite with ScalaCheckEffectSuite w
   test("store and fetch document bytes") {
     forAllF(documents) { document =>
       will(cleanDocuments) {
-        PostgresStore.make[IO](clock, transactor()).use { store =>
+        PostgresStore.make[IO](transactor()).use { store =>
           for
             _ <- store.commit { store.store(document) }
 
@@ -63,7 +62,7 @@ class PostgresStoreSpec extends DockerPostgresSuite with ScalaCheckEffectSuite w
 
   test("update document") {
     forAllF(documents, descriptions, bytesG) { (document, updatedDescription, updatedBytes) =>
-      PostgresStore.make[IO](clock, transactor()).use { store =>
+      PostgresStore.make[IO](transactor()).use { store =>
         for
           _ <- store.commit { store.store(document) }
 
@@ -86,7 +85,7 @@ class PostgresStoreSpec extends DockerPostgresSuite with ScalaCheckEffectSuite w
 
   test("updated document -> more recent updated_at_utc") {
     forAllF(documents, descriptions, bytesG) { (document, updatedDescription, updatedBytes) =>
-      PostgresStore.make[IO](clock, transactor()).use { store =>
+      PostgresStore.make[IO](transactor()).use { store =>
         for
           _ <- store.commit { store.store(document) }
           updatedAt1 <- store.commit { fetchUpdatedAt(document.metadata.name) }
@@ -104,12 +103,7 @@ class PostgresStoreSpec extends DockerPostgresSuite with ScalaCheckEffectSuite w
     }
   }
 
-trait PostgresStoreSpecContext extends ClockContext:
-
-  val clock = {
-    val frozen = ZonedDateTime.of(2021, 12, 3, 10, 11, 12, 0, ZoneOffset.UTC)
-    makeFrozenTime(frozen)
-  }
+trait PostgresStoreSpecContext:
 
   def descriptions: Gen[Document.Metadata.Description] = alphaNumString.map(Document.Metadata.Description.apply)
 

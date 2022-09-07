@@ -19,7 +19,7 @@ object Resources:
   def make[F[_]](config: ServiceConfig)(using F: Async[F]): Resource[F, Resources[F]] =
     for
       transactor <- makeDoobieTransactor(config.db)
-      store0 <- PostgresStore.make[F](F, transactor)
+      store0 <- PostgresStore.make[F](transactor)
     yield new Resources[F] {
       override val store: HealthCheck[F] = store0
     }
