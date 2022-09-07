@@ -3,7 +3,9 @@ package org.fiume.sketch.datastore.support
 import cats.effect.{IO, Resource}
 import ciris.Secret
 import com.dimafeng.testcontainers.PostgreSQLContainer
+import doobie.ConnectionIO
 import doobie.Transactor
+import doobie.implicits.*
 import doobie.hikari.HikariTransactor
 import munit.CatsEffectSuite
 import org.fiume.sketch.app.ServiceConfig.DatabaseConfig
@@ -18,6 +20,12 @@ import scala.concurrent.ExecutionContext
 trait DockerPostgresSuite extends CatsEffectSuite:
 
   override def munitFixtures = List(transactor)
+
+  /*
+   * Mostly used to clean tables after running test.
+   */
+  def will[A](dbOps: ConnectionIO[Unit])(program: IO[A]): IO[A] =
+    program.guarantee(dbOps.transact(transactor()))
 
   val transactor: Fixture[Transactor[IO]] = ResourceSuiteLocalFixture(
     "db-session",
