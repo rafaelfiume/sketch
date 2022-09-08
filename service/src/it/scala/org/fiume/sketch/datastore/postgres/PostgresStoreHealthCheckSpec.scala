@@ -19,7 +19,3 @@ class PostgresStoreHealthCheckSpec extends DockerPostgresSuite with ScalaCheckEf
       yield ()
     }
   }
-
-  test("healthcheck when db is not healthy".ignore) {
-    // TODO when we figure out how to interrupt the JDBC connection
-  }
