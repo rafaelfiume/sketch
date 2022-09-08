@@ -6,6 +6,7 @@ import cats.syntax.all.*
 import doobie.ConnectionIO
 import doobie.implicits.*
 import doobie.postgres.implicits.*
+import monocle.syntax.all.*
 import munit.ScalaCheckEffectSuite
 import org.fiume.sketch.datastore.postgres.DoobieMappings.given
 import org.fiume.sketch.datastore.postgres.PostgresStore
@@ -49,9 +50,11 @@ class PostgresStoreSpec extends DockerPostgresSuite with ScalaCheckEffectSuite w
           for
             _ <- store.commit { store.store(document) }
 
-            result <- store.commit {
-              store.fetchBytes(document.metadata.name)
-            }.flatMap(_.compile.toList)
+            result <- store
+              .commit {
+                store.fetchBytes(document.metadata.name)
+              }
+              .flatMap(_.compile.toList)
 
             _ <- IO { assertEquals(result, document.bytes.toList) }
           yield ()
@@ -66,8 +69,7 @@ class PostgresStoreSpec extends DockerPostgresSuite with ScalaCheckEffectSuite w
         for
           _ <- store.commit { store.store(document) }
 
-          // TODO Replace copy by lenses
-          updatedDoc = document.copy(metadata = document.metadata.copy(description = updatedDescription), bytes = updatedBytes)
+          updatedDoc = document.withDescription(updatedDescription).withBytes(updatedBytes)
           _ <- store.commit { store.store(updatedDoc) }
 
           metadata <- store.commit { store.fetchMetadata(document.metadata.name) }
@@ -90,8 +92,7 @@ class PostgresStoreSpec extends DockerPostgresSuite with ScalaCheckEffectSuite w
           _ <- store.commit { store.store(document) }
           updatedAt1 <- store.commit { fetchUpdatedAt(document.metadata.name) }
 
-          // TODO Replace copy by lenses
-          updatedDoc = document.copy(metadata = document.metadata.copy(description = updatedDescription), bytes = updatedBytes)
+          updatedDoc = document.withDescription(updatedDescription).withBytes(updatedBytes)
           _ <- store.commit { store.store(updatedDoc) }
 
           updatedAt2 <- store.commit { fetchUpdatedAt(document.metadata.name) }
@@ -127,3 +128,10 @@ trait PostgresStoreSpecContext:
     sql"SELECT updated_at_utc FROM documents WHERE name = ${name}"
       .query[Instant]
       .unique
+
+  extension (doc: Document)
+     def withDescription(description: Document.Metadata.Description): Document =
+        doc.focus(_.metadata.description).replace(description)
+
+     def withBytes(bytes: Array[Byte]): Document =
+       doc.focus(_.bytes).replace(bytes)
