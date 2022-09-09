@@ -11,6 +11,7 @@ object Dependency {
     val flyway                = "9.2.2"
     val http4s                = "1.0.0-M36"
     val log4cats              = "2.4.0"
+    val monocle               = "3.1.0"
     val slf4j                 = "2.0.0"
 
     val munit                 = "0.7.29"
@@ -36,6 +37,8 @@ object Dependency {
   val http4sCirce                 = "org.http4s"                 %% "http4s-circe"                        % Version.http4s
   val log4catsCore                = "org.typelevel"              %% "log4cats-core"                       % Version.log4cats
   val log4catsSlf4j               = "org.typelevel"              %% "log4cats-slf4j"                      % Version.log4cats
+  val monocleCore                 = "dev.optics"                 %% "monocle-core"                        % Version.monocle
+  val monocleMacro                = "dev.optics"                 %% "monocle-macro"                       % Version.monocle
   val slf4jSimple                 = "org.slf4j"                  %  "slf4j-simple"                        % Version.slf4j
 
   //// Test Dependencies

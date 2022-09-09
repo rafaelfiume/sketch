@@ -73,6 +73,8 @@ lazy val service =
         Dependency.log4catsCore,
         Dependency.log4catsSlf4j,
         Dependency.slf4jSimple,
+        Dependency.monocleCore,
+        Dependency.monocleMacro,
         Dependency.munit % "test,it",
         Dependency.munitCatsEffect % "test,it",
         Dependency.munitScalaCheckEffect % "test,it",

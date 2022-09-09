@@ -6,22 +6,23 @@ import doobie.hikari.HikariTransactor
 import doobie.util.transactor.Transactor
 import org.fiume.sketch.algebras.*
 import org.fiume.sketch.app.ServiceConfig.DatabaseConfig
-import org.fiume.sketch.postgres.{PostgresStore, SchemaMigration}
+import org.fiume.sketch.datastore.algebras.DocumentStore
+import org.fiume.sketch.datastore.postgres.{PostgresStore, SchemaMigration}
 
 import java.util.concurrent.{Executors, ThreadFactory}
 import java.util.concurrent.atomic.AtomicLong
 import scala.concurrent.ExecutionContext
 
 trait Resources[F[_]]:
-  val store: HealthCheck[F]
+  val store: DocumentStore[F, ConnectionIO] & HealthCheck[F]
 
 object Resources:
   def make[F[_]](config: ServiceConfig)(using F: Async[F]): Resource[F, Resources[F]] =
     for
       transactor <- makeDoobieTransactor(config.db)
-      store0 <- PostgresStore.make[F](F, transactor)
+      store0 <- PostgresStore.make[F](transactor)
     yield new Resources[F] {
-      override val store: HealthCheck[F] = store0
+      override val store: DocumentStore[F, ConnectionIO] & HealthCheck[F] = store0
     }
 
   private def makeDoobieTransactor[F[_]: Async](config: DatabaseConfig): Resource[F, Transactor[F]] = for {

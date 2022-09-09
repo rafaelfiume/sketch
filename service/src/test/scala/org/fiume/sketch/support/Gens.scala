@@ -1,6 +1,7 @@
 package org.fiume.sketch.support
 
 import cats.Applicative
+import cats.data.NonEmptyList
 import org.fiume.sketch.app.Version
 import org.scalacheck.{Arbitrary, Gen}
 
@@ -33,3 +34,36 @@ object Gens:
       second <- Gen.choose(0, 59)
       nanoOfSecond = 0
     yield ZonedDateTime.of(year, month, day, hour, minute, second, nanoOfSecond, ZoneOffset.UTC)
+
+  object Strings:
+    def alphaNumString(min: Int, max: Int): Gen[String] =
+      for
+        size <- Gen.chooseNum(min, max)
+        list <- Gen.listOfN(size, Gen.alphaNumChar)
+      yield list.mkString
+
+    def alphaNumStringFixedSize(size: Int): Gen[String] = alphaNumString(size, size)
+
+    def alphaNumString(max: Int): Gen[String] = Gen.resize(max, alphaNumString)
+
+    def alphaNumString: Gen[String] =
+      Gen.nonEmptyListOf(Gen.alphaNumChar).retryUntil(_.nonEmpty, maxTries = 100000).map(_.mkString)
+
+  object Booleans:
+    def booleans: Gen[Boolean] = Arbitrary.arbitrary[Boolean]
+
+  object Bytes:
+    def bytes: Gen[Byte] = Arbitrary.arbitrary[Byte]
+
+  object Lists:
+    def nnonEmptyListOf[T](gen: Gen[T]): Gen[NonEmptyList[T]] =
+      for
+        head <- gen
+        tail <- Gen.listOf(gen)
+      yield NonEmptyList.ofInitLast(tail, head)
+
+    def smallListOf[T](gen: Gen[T]): Gen[List[T]] =
+      for
+        n <- Gen.choose(2, 5)
+        list <- Gen.containerOfN[Set, T](n, gen).map(_.toList)
+      yield list

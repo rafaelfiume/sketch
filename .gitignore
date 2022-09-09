@@ -1,8 +1,14 @@
 *.class
 **/target/
 
+# Build tools
 .bsp
+.bloop
 
+# IDE's
 .idea
+.vscode
+*metals.sbt
+.metals
 
 .DS_Store

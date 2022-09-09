@@ -1,4 +1,4 @@
-package org.fiume.sketch.postgres
+package org.fiume.sketch.datastore.postgres
 
 import cats.effect.Sync
 import cats.implicits.*
