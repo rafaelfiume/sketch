@@ -30,18 +30,23 @@ class PostgresStoreSpec
   // shrinking just make failing tests messages more obscure
   given noShrink[T]: Shrink[T] = Shrink.shrinkAny
 
-  test("store and fetch document metadata") {
-    forAllF(documents) { document =>
+  test("store and fetch documents metadata") {
+    forAllF(documents, documents) { (fst, snd) =>
       will(cleanDocuments) {
         PostgresStore.make[IO](transactor()).use { store =>
           for
-            _ <- store.commit { store.store(document) }
+            _ <- store.commit { store.store(fst) }
+            _ <- store.commit { store.store(snd) }
 
-            result <- store.commit {
-              store.fetchMetadata(document.metadata.name)
+            fstResult <- store.commit {
+              store.fetchMetadata(fst.metadata.name)
+            }
+            sndResult <- store.commit {
+              store.fetchMetadata(snd.metadata.name)
             }
 
-            _ <- IO { assertEquals(result, document.metadata) }
+            _ <- IO { assertEquals(fstResult, fst.metadata) }
+            _ <- IO { assertEquals(sndResult, snd.metadata) }
           yield ()
         }
       }
