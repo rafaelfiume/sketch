@@ -11,8 +11,8 @@ import munit.{Assertions, CatsEffectSuite, ScalaCheckEffectSuite}
 import org.fiume.sketch.algebras.HealthCheck
 import org.fiume.sketch.app.{Version, Versions}
 import org.fiume.sketch.http.HealthStatusRoutes.AppStatus
-import org.fiume.sketch.support.ContractContext
 import org.fiume.sketch.support.EitherSyntax.*
+import org.fiume.sketch.support.FileContentContext
 import org.fiume.sketch.support.Gens.*
 import org.http4s.*
 import org.http4s.Method.*
@@ -27,7 +27,7 @@ class HealthStatusRoutesSpec
     extends CatsEffectSuite
     with ScalaCheckEffectSuite
     with OperationRoutesSpecContext
-    with ContractContext:
+    with FileContentContext:
 
   test("ping returns pong") {
     whenSending(GET(uri"/ping"))

@@ -12,6 +12,7 @@ import org.fiume.sketch.datastore.postgres.DoobieMappings.given
 import org.fiume.sketch.datastore.postgres.PostgresStore
 import org.fiume.sketch.datastore.support.DockerPostgresSuite
 import org.fiume.sketch.domain.Document
+import org.fiume.sketch.support.FileContentContext
 import org.fiume.sketch.support.Gens.Bytes.*
 import org.fiume.sketch.support.Gens.Strings.*
 import org.scalacheck.{Gen, Shrink}
@@ -20,7 +21,11 @@ import org.scalacheck.effect.PropF.forAllF
 import java.time.Instant
 import scala.concurrent.duration.*
 
-class PostgresStoreSpec extends DockerPostgresSuite with ScalaCheckEffectSuite with PostgresStoreSpecContext:
+class PostgresStoreSpec
+    extends ScalaCheckEffectSuite
+    with DockerPostgresSuite
+    with FileContentContext
+    with PostgresStoreSpecContext:
 
   // shrinking just make failing tests messages more obscure
   given noShrink[T]: Shrink[T] = Shrink.shrinkAny
@@ -83,8 +88,6 @@ class PostgresStoreSpec extends DockerPostgresSuite with ScalaCheckEffectSuite w
     }
   }
 
-  // TODO Check with a real document (e.g. pdf)
-
   test("updated document -> more recent updated_at_utc") {
     forAllF(documents, descriptions, bytesG) { (document, updatedDescription, updatedBytes) =>
       PostgresStore.make[IO](transactor()).use { store =>
@@ -104,7 +107,51 @@ class PostgresStoreSpec extends DockerPostgresSuite with ScalaCheckEffectSuite w
     }
   }
 
+  test("store jpg image") {
+    bytesFrom[IO]("mountain-bike-liguria-ponent.jpg").compile.toVector.map(_.toArray).flatMap { bytes =>
+      will(cleanDocuments) {
+        PostgresStore.make[IO](transactor()).use { store =>
+          val document = documents.sample.get.withBytes(bytes)
+          for
+            _ <- store.commit { store.store(document) }
+
+            result <- store
+              .commit {
+                store.fetchBytes(document.metadata.name)
+              }
+              .flatMap(_.compile.toList)
+
+            _ <- IO { assertEquals(result, document.bytes.toList) }
+          yield ()
+        }
+      }
+    }
+  }
+
+  test("play it".ignore) { // good to see it in action
+    val filename = "mountain-bike-liguria-ponent.jpg"
+    bytesFrom[IO](filename).compile.toVector.map(_.toArray).flatMap { bytes =>
+      will(cleanDocuments) {
+        PostgresStore.make[IO](transactor()).use { store =>
+          val document = documents.sample.get.withBytes(bytes)
+          for
+            _ <- store.commit { store.store(document) }
+            result <- store
+              .commit {
+                store.fetchBytes(document.metadata.name)
+              }
+              .flatMap { _.through(fs2.io.file.Files[IO].writeAll(fs2.io.file.Path(filename))).compile.drain }
+          yield ()
+        }
+      }
+    }
+  }
+
 trait PostgresStoreSpecContext:
+
+  /*
+   * Gens
+   */
 
   def descriptions: Gen[Document.Metadata.Description] = alphaNumString.map(Document.Metadata.Description.apply)
 
@@ -122,6 +169,10 @@ trait PostgresStoreSpecContext:
       bytes <- bytesG
     yield Document(metadata, bytes)
 
+  /*
+   * Queries
+   */
+
   def cleanDocuments: ConnectionIO[Unit] = sql"DELETE FROM documents".update.run.void
 
   def fetchUpdatedAt(name: Document.Metadata.Name): ConnectionIO[Instant] =
@@ -129,9 +180,12 @@ trait PostgresStoreSpecContext:
       .query[Instant]
       .unique
 
+  /*
+   * Lenses
+   */
   extension (doc: Document)
-     def withDescription(description: Document.Metadata.Description): Document =
-        doc.focus(_.metadata.description).replace(description)
+    def withDescription(description: Document.Metadata.Description): Document =
+      doc.focus(_.metadata.description).replace(description)
 
-     def withBytes(bytes: Array[Byte]): Document =
-       doc.focus(_.bytes).replace(bytes)
+    def withBytes(bytes: Array[Byte]): Document =
+      doc.focus(_.bytes).replace(bytes)
