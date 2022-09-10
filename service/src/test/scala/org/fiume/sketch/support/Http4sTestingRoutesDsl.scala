@@ -1,4 +1,4 @@
-package org.fiume.sketch.http
+package org.fiume.sketch.support
 
 import cats.effect.IO
 import munit.Assertions

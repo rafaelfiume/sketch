@@ -7,12 +7,12 @@ import io.circe.{Decoder, HCursor}
 import io.circe.Decoder.Result
 import io.circe.parser.decode
 import io.circe.syntax.*
-import munit.{Assertions, CatsEffectSuite, ScalaCheckEffectSuite}
+import munit.{CatsEffectSuite, ScalaCheckEffectSuite}
 import org.fiume.sketch.algebras.HealthCheck
 import org.fiume.sketch.app.{Version, Versions}
 import org.fiume.sketch.http.HealthStatusRoutes.AppStatus
+import org.fiume.sketch.support.{FileContentContext, Http4sTestingRoutesDsl}
 import org.fiume.sketch.support.EitherSyntax.*
-import org.fiume.sketch.support.FileContentContext
 import org.fiume.sketch.support.Gens.*
 import org.http4s.*
 import org.http4s.Method.*
@@ -24,15 +24,16 @@ import org.scalacheck.effect.PropF.forAllF
 import scala.language.reflectiveCalls
 
 class HealthStatusRoutesSpec
-    extends CatsEffectSuite
+    extends CatsEffectSuite // needed, otherwise non-property-based tests will always pass (i.e. won't be executed)
     with ScalaCheckEffectSuite
+    with Http4sTestingRoutesDsl
     with OperationRoutesSpecContext
     with FileContentContext:
 
   test("ping returns pong") {
     whenSending(GET(uri"/ping"))
       .to(new HealthStatusRoutes[IO](makeVersions(Version("")), makeStore).routes)
-      .thenItReturns[String](Status.Ok, withPayload = "\"pong\"")
+      .thenItReturns[String](Status.Ok, withPayload = "\"pong\"") // json string
   }
 
   test("return the status of the app when db is healthy") {
@@ -71,7 +72,7 @@ class HealthStatusRoutesSpec
 
 // </editor-fold>
 
-trait OperationRoutesSpecContext extends VersionsContext with HealthcheckStoreContext with Http4sTestingRoutesDsl {
+trait OperationRoutesSpecContext extends VersionsContext with HealthcheckStoreContext:
 
   given EntityDecoder[IO, AppStatus] = jsonOf[IO, AppStatus]
   given Decoder[AppStatus] = new Decoder[AppStatus] {
@@ -81,9 +82,9 @@ trait OperationRoutesSpecContext extends VersionsContext with HealthcheckStoreCo
         appVersion <- c.downField("appVersion").as[String]
       yield AppStatus(healthy, Version(appVersion))
   }
-}
 
 trait VersionsContext:
+
   def makeVersions[F[_]: Applicative](returning: Version) = new Versions[F] {
     override def currentVersion: F[Version] = returning.pure[F]
   }

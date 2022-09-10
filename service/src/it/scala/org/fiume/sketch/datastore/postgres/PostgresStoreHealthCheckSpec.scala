@@ -1,12 +1,12 @@
 package org.fiume.sketch.postgres
 
 import cats.effect.IO
-import munit.ScalaCheckEffectSuite
+import munit.CatsEffectSuite
 import org.fiume.sketch.datastore.postgres.PostgresStore
 import org.fiume.sketch.datastore.support.DockerPostgresSuite
 import org.scalacheck.Shrink
 
-class PostgresStoreHealthCheckSpec extends ScalaCheckEffectSuite with DockerPostgresSuite:
+class PostgresStoreHealthCheckSpec extends CatsEffectSuite with DockerPostgresSuite:
 
   // shrinking just make failing tests messages more obscure
   given noShrink[T]: Shrink[T] = Shrink.shrinkAny
