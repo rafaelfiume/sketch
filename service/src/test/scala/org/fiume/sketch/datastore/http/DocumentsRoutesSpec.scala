@@ -3,11 +3,14 @@ package org.fiume.sketch.datastore.http
 import cats.effect.IO
 import io.circe.{Encoder, Json}
 import io.circe.syntax.*
+import io.circe.parser.{decode, parse}
 import munit.{CatsEffectSuite, ScalaCheckSuite}
 import org.fiume.sketch.datastore.http.DocumentsRoutes
 import org.fiume.sketch.datastore.http.JsonCodecs.Documents.given
 import org.fiume.sketch.domain.Document
 import org.fiume.sketch.support.Http4sTestingRoutesDsl
+import org.fiume.sketch.support.FileContentContext
+import org.fiume.sketch.support.EitherSyntax.*
 import org.fiume.sketch.support.gens.SketchGens.Documents.*
 import org.http4s.{MediaType, _}
 import org.http4s.Method.*
@@ -18,7 +21,11 @@ import org.http4s.implicits.*
 import org.http4s.multipart.{Boundary, Multipart, Part}
 import org.scalacheck.effect.PropF.forAllF
 
-class DocumentsRoutesSpec extends CatsEffectSuite with Http4sTestingRoutesDsl with DocumentsRoutesSpecContext:
+class DocumentsRoutesSpec
+    extends CatsEffectSuite
+    with Http4sTestingRoutesDsl
+    with FileContentContext
+    with DocumentsRoutesSpecContext:
 
   test("upload documents") {
     val metadata = metadataG.sample.get
@@ -34,7 +41,17 @@ class DocumentsRoutesSpec extends CatsEffectSuite with Http4sTestingRoutesDsl wi
     whenSending(request)
       .to(new DocumentsRoutes[IO].routes)
       .thenItReturns(Status.Created, withPayload = metadata)
+  }
 
+  test("decode . encode <-> document metadata payload") {
+    jsonFrom[IO]("contract/datasources/http/document.metadata.json").use { raw =>
+      IO {
+        val original = parse(raw).rightValue
+        val metadata = decode[Document.Metadata](original.noSpaces).rightValue
+        val roundTrip = metadata.asJson
+        assertEquals(roundTrip.spaces2SortKeys, original.spaces2SortKeys)
+      }
+    }
   }
 
 trait DocumentsRoutesSpecContext:

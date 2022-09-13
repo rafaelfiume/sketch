@@ -10,5 +10,5 @@ object Document:
   case class Metadata(name: Name, description: Description)
 
   object Metadata:
-    case class Name(value: String) extends AnyVal
+    case class Name(value: String) extends AnyVal // TODO Check invariants: minimum size, supported extensions, etc.
     case class Description(value: String) extends AnyVal
