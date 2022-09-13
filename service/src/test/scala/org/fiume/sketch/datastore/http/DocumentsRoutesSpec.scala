@@ -2,14 +2,13 @@ package org.fiume.sketch.datastore.http
 
 import cats.effect.IO
 import io.circe.{Encoder, Json}
-import io.circe.syntax.*
 import io.circe.parser.{decode, parse}
+import io.circe.syntax.*
 import munit.{CatsEffectSuite, ScalaCheckSuite}
 import org.fiume.sketch.datastore.http.DocumentsRoutes
 import org.fiume.sketch.datastore.http.JsonCodecs.Documents.given
 import org.fiume.sketch.domain.Document
-import org.fiume.sketch.support.Http4sTestingRoutesDsl
-import org.fiume.sketch.support.FileContentContext
+import org.fiume.sketch.support.{FileContentContext, Http4sTestingRoutesDsl}
 import org.fiume.sketch.support.EitherSyntax.*
 import org.fiume.sketch.support.gens.SketchGens.Documents.*
 import org.http4s.{MediaType, _}

@@ -1,7 +1,8 @@
 package org.fiume.sketch.datastore.http
 
 import cats.MonadThrow
-import cats.effect.Concurrent
+import cats.effect.{Concurrent, Sync}
+import cats.effect.kernel.Async
 import cats.implicits.*
 import org.fiume.sketch.datastore.http.JsonCodecs.Documents.given
 import org.fiume.sketch.domain.Document
@@ -13,8 +14,6 @@ import org.http4s.multipart.{Multipart, Part, _}
 import org.http4s.server.Router
 import org.typelevel.log4cats.Logger
 import org.typelevel.log4cats.slf4j.Slf4jLogger
-import cats.effect.Sync
-import cats.effect.kernel.Async
 
 class DocumentsRoutes[F[_]: Async] extends Http4sDsl[F]:
 
