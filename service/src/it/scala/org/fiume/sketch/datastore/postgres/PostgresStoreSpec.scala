@@ -13,9 +13,8 @@ import org.fiume.sketch.datastore.postgres.PostgresStore
 import org.fiume.sketch.datastore.support.DockerPostgresSuite
 import org.fiume.sketch.domain.Document
 import org.fiume.sketch.support.FileContentContext
-import org.fiume.sketch.support.Gens.Bytes.*
-import org.fiume.sketch.support.Gens.Strings.*
-import org.scalacheck.{Gen, Shrink}
+import org.fiume.sketch.support.gens.SketchGens.Documents.*
+import org.scalacheck.Shrink
 import org.scalacheck.effect.PropF.forAllF
 
 import java.time.Instant
@@ -153,26 +152,6 @@ class PostgresStoreSpec
   }
 
 trait PostgresStoreSpecContext:
-
-  /*
-   * Gens
-   */
-
-  def descriptions: Gen[Document.Metadata.Description] = alphaNumString.map(Document.Metadata.Description.apply)
-
-  def bytesG: Gen[Array[Byte]] = Gen.nonEmptyListOf(bytes).map(_.toArray)
-
-  def documents: Gen[Document] =
-    def metadataG: Gen[Document.Metadata] =
-      for
-        name <- alphaNumString.map(Document.Metadata.Name.apply)
-        description <- descriptions
-      yield Document.Metadata(name, description)
-
-    for
-      metadata <- metadataG
-      bytes <- bytesG
-    yield Document(metadata, bytes)
 
   /*
    * Queries

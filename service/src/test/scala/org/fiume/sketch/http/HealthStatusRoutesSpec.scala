@@ -13,7 +13,7 @@ import org.fiume.sketch.app.{Version, Versions}
 import org.fiume.sketch.http.HealthStatusRoutes.AppStatus
 import org.fiume.sketch.support.{FileContentContext, Http4sTestingRoutesDsl}
 import org.fiume.sketch.support.EitherSyntax.*
-import org.fiume.sketch.support.Gens.*
+import org.fiume.sketch.support.gens.Gens.*
 import org.http4s.*
 import org.http4s.Method.*
 import org.http4s.circe.jsonOf
