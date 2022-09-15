@@ -6,9 +6,9 @@ import cats.implicits.*
 import io.circe.{Encoder, Json}
 import io.circe.parser.{decode, parse}
 import io.circe.syntax.*
-import munit.{CatsEffectSuite}
-import org.fiume.sketch.datastore.http.DocumentsRoutes
+import munit.CatsEffectSuite
 import org.fiume.sketch.datastore.algebras.DocumentStore
+import org.fiume.sketch.datastore.http.DocumentsRoutes
 import org.fiume.sketch.datastore.http.JsonCodecs.Documents.given
 import org.fiume.sketch.domain.Document
 import org.fiume.sketch.support.{FileContentContext, Http4sTestingRoutesDsl}
@@ -21,6 +21,7 @@ import org.http4s.client.dsl.io.*
 import org.http4s.headers.`Content-Type`
 import org.http4s.implicits.*
 import org.http4s.multipart.{Boundary, Multipart, Part}
+
 import java.net.URL
 
 class DocumentsRoutesSpec

@@ -155,7 +155,6 @@ class PostgresStoreSpec
       will(cleanDocuments) {
         PostgresStore.make[IO](transactor()).use { store =>
           for
-
             metadata <- store.commit { store.fetchMetadata(name) }
             bytes <- store.commit { store.fetchBytes(name) }
 
