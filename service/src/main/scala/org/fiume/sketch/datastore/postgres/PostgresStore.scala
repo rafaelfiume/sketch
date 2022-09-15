@@ -1,5 +1,6 @@
 package org.fiume.sketch.datastore.postgres
 
+import cats.data.OptionT
 import cats.effect.{Async, Clock, Resource}
 import cats.implicits.*
 import cats.~>
@@ -31,13 +32,15 @@ private class PostgresStore[F[_]: Async] private (l: F ~> ConnectionIO, tx: Tran
   override def store(doc: Document): ConnectionIO[Unit] =
     Statements.insertDocument(doc).run.void
 
-  override def fetchMetadata(name: Document.Metadata.Name): ConnectionIO[Document.Metadata] =
-    Statements.selectDocumentMetadata(name).unique
+  override def fetchMetadata(name: Document.Metadata.Name): ConnectionIO[Option[Document.Metadata]] =
+    Statements.selectDocumentMetadata(name).option
 
-  override def fetchBytes(name: Document.Metadata.Name): ConnectionIO[Stream[F, Byte]] =
+  override def fetchBytes(name: Document.Metadata.Name): ConnectionIO[Option[Stream[F, Byte]]] =
     // not the greatest implementation, since it will require bytes to be fully read from the db before the stream can start emiting bytes
     // this can be better optimised later (perhaps by storing/reading documents using a file sytem? or large objects?)
     // API is the most important part here.
-    Statements.selectDocumentBytes(name).unique.map(Stream.emits)
+    OptionT { Statements.selectDocumentBytes(name).option }
+      .map(Stream.emits)
+      .value
 
   override def healthCheck: F[Unit] = Statements.healthCheck.transact(tx).void

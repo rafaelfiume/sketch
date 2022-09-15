@@ -8,15 +8,17 @@ import org.scalacheck.Gen
 object SketchGens:
 
   object Documents:
-    def descriptions: Gen[Document.Metadata.Description] = alphaNumString.map(Document.Metadata.Description.apply)
+    def names: Gen[Document.Metadata.Name] = alphaNumString.map(Document.Metadata.Name.apply)
 
-    def bytesG: Gen[Array[Byte]] = Gen.nonEmptyListOf(bytes).map(_.toArray)
+    def descriptions: Gen[Document.Metadata.Description] = alphaNumString.map(Document.Metadata.Description.apply)
 
     def metadataG: Gen[Document.Metadata] =
       for
-        name <- alphaNumString.map(Document.Metadata.Name.apply)
+        name <- names
         description <- descriptions
       yield Document.Metadata(name, description)
+
+    def bytesG: Gen[Array[Byte]] = Gen.nonEmptyListOf(bytes).map(_.toArray)
 
     def documents: Gen[Document] =
       for

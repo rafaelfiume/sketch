@@ -5,6 +5,7 @@ object Dependency {
   private object Version {
     val cats                  = "2.8.0"
     val catsEffect            = "3.3.14"
+    val catsMtl               = "1.2.0"
     val circe                 = "0.14.3"
     val ciris                 = "2.3.3"
     val doobie                = "1.0.0-RC2"
@@ -22,6 +23,7 @@ object Dependency {
 
   val cats                        = "org.typelevel"              %% "cats-free"                           % Version.cats
   val catsEffect                  = "org.typelevel"              %% "cats-effect"                         % Version.catsEffect
+  val catsMtl                     = "org.typelevel"              %% "cats-mtl"                            % Version.catsMtl
   val circeCore                   = "io.circe"                   %% "circe-core"                          % Version.circe
   val circeGeneric                = "io.circe"                   %% "circe-generic"                       % Version.circe
   val circeParser                 = "io.circe"                   %% "circe-parser"                        % Version.circe

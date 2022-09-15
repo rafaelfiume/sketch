@@ -1,5 +1,6 @@
 package org.fiume.sketch.datastore.postgres
 
+import cats.data.OptionT
 import cats.effect.*
 import cats.effect.std.Random
 import cats.syntax.all.*
@@ -44,8 +45,8 @@ class PostgresStoreSpec
               store.fetchMetadata(snd.metadata.name)
             }
 
-            _ <- IO { assertEquals(fstResult, fst.metadata) }
-            _ <- IO { assertEquals(sndResult, snd.metadata) }
+            _ <- IO { assertEquals(fstResult, fst.metadata.some) }
+            _ <- IO { assertEquals(sndResult, snd.metadata.some) }
           yield ()
         }
       }
@@ -59,33 +60,53 @@ class PostgresStoreSpec
           for
             _ <- store.commit { store.store(document) }
 
-            result <- store
-              .commit {
+            result <- OptionT(
+              store.commit {
                 store.fetchBytes(document.metadata.name)
               }
-              .flatMap(_.compile.toList)
+            ).semiflatMap(_.compile.toList).value
 
-            _ <- IO { assertEquals(result, document.bytes.toList) }
+            _ <- IO { assertEquals(result, document.bytes.toList.some) }
           yield ()
         }
       }
     }
   }
 
-  test("update document") {
-    forAllF(documents, descriptions, bytesG) { (document, updatedDescription, updatedBytes) =>
+  test("update document metadata") {
+    forAllF(documents, descriptions) { (document, updatedDescription) =>
       PostgresStore.make[IO](transactor()).use { store =>
         for
           _ <- store.commit { store.store(document) }
 
-          updatedDoc = document.withDescription(updatedDescription).withBytes(updatedBytes)
+          updatedDoc = document.withDescription(updatedDescription)
           _ <- store.commit { store.store(updatedDoc) }
 
-          metadata <- store.commit { store.fetchMetadata(document.metadata.name) }
-          bytes <- store.commit { store.fetchBytes(document.metadata.name) }.flatMap(_.compile.toList)
+          result <- store.commit { store.fetchMetadata(document.metadata.name) }
           _ <- IO {
-            assertEquals(metadata, updatedDoc.metadata)
-            assertEquals(bytes, updatedDoc.bytes.toList)
+            assertEquals(result, updatedDoc.metadata.some)
+          }
+        yield ()
+      }
+    }
+  }
+
+  test("update document bytes") {
+    forAllF(documents, bytesG) { (document, updatedBytes) =>
+      PostgresStore.make[IO](transactor()).use { store =>
+        for
+          _ <- store.commit { store.store(document) }
+
+          updatedDoc = document.withBytes(updatedBytes)
+          _ <- store.commit { store.store(updatedDoc) }
+
+          result <- OptionT(
+            store.commit {
+              store.fetchBytes(document.metadata.name)
+            }
+          ).semiflatMap(_.compile.toList).value
+          _ <- IO {
+            assertEquals(result, updatedDoc.bytes.toList.some)
           }
         yield ()
       }
@@ -119,13 +140,30 @@ class PostgresStoreSpec
           for
             _ <- store.commit { store.store(document) }
 
-            result <- store
-              .commit {
+            result <- OptionT(
+              store.commit {
                 store.fetchBytes(document.metadata.name)
               }
-              .flatMap(_.compile.toList)
+            ).semiflatMap(_.compile.toList).value
 
-            _ <- IO { assertEquals(result, document.bytes.toList) }
+            _ <- IO { assertEquals(result, document.bytes.toList.some) }
+          yield ()
+        }
+      }
+    }
+  }
+
+  test("no documents") {
+    forAllF(names) { (name) =>
+      will(cleanDocuments) {
+        PostgresStore.make[IO](transactor()).use { store =>
+          for
+
+            metadata <- store.commit { store.fetchMetadata(name) }
+            bytes <- store.commit { store.fetchBytes(name) }
+
+            _ <- IO { assertEquals(metadata, none) }
+            _ <- IO { assertEquals(bytes, none) }
           yield ()
         }
       }
@@ -140,11 +178,11 @@ class PostgresStoreSpec
           val document = documents.sample.get.withBytes(bytes)
           for
             _ <- store.commit { store.store(document) }
-            result <- store
-              .commit {
+            result <- OptionT(
+              store.commit {
                 store.fetchBytes(document.metadata.name)
               }
-              .flatMap { _.through(fs2.io.file.Files[IO].writeAll(fs2.io.file.Path(filename))).compile.drain }
+            ).semiflatMap { _.through(fs2.io.file.Files[IO].writeAll(fs2.io.file.Path(filename))).compile.drain }.value
           yield ()
         }
       }
