@@ -30,20 +30,17 @@ class PostgresStoreSpec
   // shrinking just make failing tests messages more obscure
   given noShrink[T]: Shrink[T] = Shrink.shrinkAny
 
+  //override def scalaCheckInitialSeed = "DCHaHgKmD4XmEOKVUE1Grw8K2uWlohHvD-5gMuoh2pE="
+
   test("store and fetch documents metadata") {
     forAllF(documents, documents) { (fst, snd) =>
       will(cleanDocuments) {
         PostgresStore.make[IO](transactor()).use { store =>
           for
             _ <- store.commit { store.store(fst) }
+            fstResult <- store.commit { store.fetchMetadata(fst.metadata.name) }
             _ <- store.commit { store.store(snd) }
-
-            fstResult <- store.commit {
-              store.fetchMetadata(fst.metadata.name)
-            }
-            sndResult <- store.commit {
-              store.fetchMetadata(snd.metadata.name)
-            }
+            sndResult <- store.commit { store.fetchMetadata(snd.metadata.name) }
 
             _ <- IO { assertEquals(fstResult, fst.metadata.some) }
             _ <- IO { assertEquals(sndResult, snd.metadata.some) }
