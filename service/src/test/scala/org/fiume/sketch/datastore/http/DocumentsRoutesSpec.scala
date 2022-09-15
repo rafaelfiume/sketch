@@ -55,6 +55,28 @@ class DocumentsRoutesSpec
     yield ()
   }
 
+  test("get document metadata") {
+    val document = documents.sample.get
+    val request = GET(Uri.unsafeFromString(s"/documents/metadata?name=${document.metadata.name.value}"))
+    for
+      store <- makeDocumentStore(state = document)
+      _ <- whenSending(request)
+        .to(new DocumentsRoutes[IO, IO](store).routes)
+        .thenItReturns(Status.Ok, withPayload = document.metadata)
+    yield ()
+  }
+
+  test("no document metadata") {
+    val document = documents.sample.get
+    val request = GET(Uri.unsafeFromString(s"/documents/metadata?name=${document.metadata.name.value}"))
+    for
+      store <- makeDocumentStore()
+      _ <- whenSending(request)
+        .to(new DocumentsRoutes[IO, IO](store).routes)
+        .thenItReturns(Status.NotFound)
+    yield ()
+  }
+
   test("decode . encode <-> document metadata payload") {
     jsonFrom[IO]("contract/datasources/http/document.metadata.json").use { raw =>
       IO {
@@ -79,8 +101,12 @@ trait DocumentsRoutesSpecContext extends FileContentContext:
       )
 
 trait DocumentStoreContext:
-  def makeDocumentStore(): IO[DocumentStore[IO, IO]] =
-    Ref.of[IO, Map[Document.Metadata.Name, Document]](Map.empty).map { storage =>
+  def makeDocumentStore(): IO[DocumentStore[IO, IO]] = makeDocumentStore(state = Map.empty)
+
+  def makeDocumentStore(state: Document): IO[DocumentStore[IO, IO]] = makeDocumentStore(Map(state.metadata.name -> state))
+
+  private def makeDocumentStore(state: Map[Document.Metadata.Name, Document]): IO[DocumentStore[IO, IO]] =
+    Ref.of[IO, Map[Document.Metadata.Name, Document]](state).map { storage =>
       new DocumentStore[IO, IO]:
         def store(doc: Document): IO[Unit] = storage.update { state =>
           state.updated(doc.metadata.name, doc)
