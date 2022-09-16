@@ -7,17 +7,16 @@ import cats.implicits.*
 import org.fiume.sketch.datastore.algebras.DocumentStore
 import org.fiume.sketch.datastore.http.JsonCodecs.Documents.given
 import org.fiume.sketch.domain.Document
-import org.http4s.{HttpRoutes, _}
+import org.http4s.{HttpRoutes, QueryParamDecoder, _}
 import org.http4s.circe.CirceEntityDecoder.*
 import org.http4s.circe.CirceEntityEncoder.*
 import org.http4s.dsl.Http4sDsl
+import org.http4s.dsl.io.QueryParamDecoderMatcher
 import org.http4s.multipart.{Multipart, Part, _}
 import org.http4s.server.Router
 import org.typelevel.log4cats.Logger
 import org.typelevel.log4cats.slf4j.Slf4jLogger
 
-import org.http4s.{QueryParamDecoder}
-import org.http4s.dsl.io.QueryParamDecoderMatcher
 import DocumentsRoutes.*
 
 class DocumentsRoutes[F[_]: Async, Txn[_]](store: DocumentStore[F, Txn]) extends Http4sDsl[F]:
@@ -53,6 +52,15 @@ class DocumentsRoutes[F[_]: Async, Txn[_]](store: DocumentStore[F, Txn]) extends
           res <- result match
             case None           => NotFound()
             case Some(metadata) => Ok(metadata)
+        yield res
+
+      case GET -> Root / "documents" :? NameQParam(name) =>
+        for
+          _ <- logger.info(s"Received request to download doc $name")
+          result <- store.commit { store.fetchBytes(name) }
+          res <- result match
+            case None         => NotFound()
+            case Some(stream) => Ok(stream)
         yield res
     }
 

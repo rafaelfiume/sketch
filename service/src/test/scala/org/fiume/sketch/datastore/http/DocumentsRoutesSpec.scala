@@ -77,6 +77,28 @@ class DocumentsRoutesSpec
     yield ()
   }
 
+  test("get document bytes") {
+    val document = documents.sample.get
+    val request = GET(Uri.unsafeFromString(s"/documents?name=${document.metadata.name.value}"))
+    for
+      store <- makeDocumentStore(state = document)
+      _ <- whenSending(request)
+        .to(new DocumentsRoutes[IO, IO](store).routes)
+        .thenItReturns(Status.Ok, withPayload = fs2.Stream.emits(document.bytes))
+    yield ()
+  }
+
+  test("no document bytes") {
+    val document = documents.sample.get
+    val request = GET(Uri.unsafeFromString(s"/documents?name=${document.metadata.name.value}"))
+    for
+      store <- makeDocumentStore()
+      _ <- whenSending(request)
+        .to(new DocumentsRoutes[IO, IO](store).routes)
+        .thenItReturns(Status.NotFound)
+    yield ()
+  }
+
   test("decode . encode <-> document metadata payload") {
     jsonFrom[IO]("contract/datasources/http/document.metadata.json").use { raw =>
       IO {

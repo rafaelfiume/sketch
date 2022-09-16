@@ -42,3 +42,13 @@ trait Http4sTestingRoutesDsl extends Assertions:
                 .onError { error => fail(s"$error\n$breakingContractWarningMessage") }
                 .map { assertEquals(withJsonPayload, _, clue = breakingContractWarningMessage) }
           }
+
+      def thenItReturns[A](httpStatus: Status, withPayload: fs2.Stream[IO, Byte]): IO[Unit] =
+        routes.orNotFound
+          .run(request)
+          .flatMap { res =>
+            IO { assertEquals(res.status, httpStatus) } *>
+              IO.both(res.body.compile.toList, withPayload.compile.toList).map { case (obtained, expected) =>
+                assertEquals(obtained, expected)
+              }
+          }
