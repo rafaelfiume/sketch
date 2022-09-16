@@ -20,6 +20,8 @@ trait DockerPostgresSuite extends CatsEffectSuite:
 
   override def munitFixtures = List(transactor)
 
+  extension [A](ops: ConnectionIO[A]) def ccommit: IO[A] = ops.transact(transactor())
+
   /*
    * Mostly used to clean tables after running test.
    */

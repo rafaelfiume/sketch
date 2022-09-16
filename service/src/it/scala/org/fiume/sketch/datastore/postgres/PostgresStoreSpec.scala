@@ -10,6 +10,7 @@ import doobie.postgres.implicits.*
 import fs2.Stream
 import monocle.syntax.all.*
 import munit.ScalaCheckEffectSuite
+import org.fiume.sketch.datastore.algebras.Store
 import org.fiume.sketch.datastore.postgres.DoobieMappings.given
 import org.fiume.sketch.datastore.postgres.PostgresStore
 import org.fiume.sketch.datastore.support.DockerPostgresSuite
@@ -32,17 +33,16 @@ class PostgresStoreSpec
   given noShrink[T]: Shrink[T] = Shrink.shrinkAny
 
   // override def scalaCheckInitialSeed = "DCHaHgKmD4XmEOKVUE1Grw8K2uWlohHvD-5gMuoh2pE="
-
   test("store and fetch documents metadata") {
     forAllF(documents[IO], documents[IO]) { (fst, snd) =>
       // TODO Wait till PropF.forAllF supports '==>' (scalacheck implication)
       will(cleanDocuments) {
         PostgresStore.make[IO](transactor()).use { store =>
           for
-            _ <- store.commit { store.store(fst) }
-            fstResult <- store.commit { store.fetchMetadata(fst.metadata.name) }
-            _ <- store.commit { store.store(snd) }
-            sndResult <- store.commit { store.fetchMetadata(snd.metadata.name) }
+            _ <- store.store(fst).ccommit
+            fstResult <- store.fetchMetadata(fst.metadata.name).ccommit
+            _ <- store.store(snd).ccommit
+            sndResult <- store.fetchMetadata(snd.metadata.name).ccommit
 
             _ <- IO {
               assertEquals(fstResult, fst.metadata.some)
@@ -59,12 +59,10 @@ class PostgresStoreSpec
       will(cleanDocuments) {
         PostgresStore.make[IO](transactor()).use { store =>
           for
-            _ <- store.commit { store.store(document) }
+            _ <- store.store(document).ccommit
 
             result <- OptionT(
-              store.commit {
-                store.fetchBytes(document.metadata.name)
-              }
+              store.fetchBytes(document.metadata.name).ccommit
             ).semiflatMap(_.compile.toList).value
 
             originalBytes <- document.bytes.compile.toList
@@ -81,12 +79,12 @@ class PostgresStoreSpec
     forAllF(documents[IO], descriptions) { (original, updatedDescription) =>
       PostgresStore.make[IO](transactor()).use { store =>
         for
-          _ <- store.commit { store.store(original) }
+          _ <- store.store(original).ccommit
 
           updated = original.withDescription(updatedDescription)
-          _ <- store.commit { store.store(updated) }
+          _ <- store.store(updated).ccommit
 
-          result <- store.commit { store.fetchMetadata(original.metadata.name) }
+          result <- store.fetchMetadata(original.metadata.name).ccommit
           _ <- IO {
             assertEquals(result, updated.metadata.some)
           }
@@ -99,15 +97,13 @@ class PostgresStoreSpec
     forAllF(documents[IO], bytesG[IO]) { (original, updatedBytes) =>
       PostgresStore.make[IO](transactor()).use { store =>
         for
-          _ <- store.commit { store.store(original) }
+          _ <- store.store(original).ccommit
 
           updated = original.withBytes(updatedBytes)
-          _ <- store.commit { store.store(updated) }
+          _ <- store.store(updated).ccommit
 
           result <- OptionT(
-            store.commit {
-              store.fetchBytes(original.metadata.name)
-            }
+            store.fetchBytes(original.metadata.name).ccommit
           ).semiflatMap(_.compile.toList).value
           originalBytes <- updated.bytes.compile.toList
           _ <- IO {
@@ -122,13 +118,13 @@ class PostgresStoreSpec
     forAllF(documents[IO], descriptions, bytesG[IO]) { (original, updatedDescription, updatedBytes) =>
       PostgresStore.make[IO](transactor()).use { store =>
         for
-          _ <- store.commit { store.store(original) }
-          updatedAt1 <- store.commit { fetchUpdatedAt(original.metadata.name) }
+          _ <- store.store(original).ccommit
+          updatedAt1 <- store.fetchUpdatedAt(original.metadata.name).ccommit
 
           updated = original.withDescription(updatedDescription).withBytes(updatedBytes)
-          _ <- store.commit { store.store(updated) }
+          _ <- store.store(updated).ccommit
 
-          updatedAt2 <- store.commit { fetchUpdatedAt(original.metadata.name) }
+          updatedAt2 <- store.fetchUpdatedAt(original.metadata.name).ccommit
           _ <- IO {
             assert(updatedAt2.isAfter(updatedAt1), "updatedAt should be updated")
           }
@@ -143,12 +139,10 @@ class PostgresStoreSpec
         PostgresStore.make[IO](transactor()).use { store =>
           val document = documents[IO].sample.get.withBytes(bytes)
           for
-            _ <- store.commit { store.store(document) }
+            _ <- store.store(document).ccommit
 
             result <- OptionT(
-              store.commit {
-                store.fetchBytes(document.metadata.name)
-              }
+              store.fetchBytes(document.metadata.name).ccommit
             ).semiflatMap(_.compile.toList).value
 
             originalBytes <- document.bytes.compile.toList
@@ -166,8 +160,8 @@ class PostgresStoreSpec
       will(cleanDocuments) {
         PostgresStore.make[IO](transactor()).use { store =>
           for
-            metadata <- store.commit { store.fetchMetadata(name) }
-            bytes <- store.commit { store.fetchBytes(name) }
+            metadata <- store.fetchMetadata(name).ccommit
+            bytes <- store.fetchBytes(name).ccommit
 
             _ <- IO {
               assertEquals(metadata, none)
@@ -186,11 +180,9 @@ class PostgresStoreSpec
         PostgresStore.make[IO](transactor()).use { store =>
           val document = documents[IO].sample.get.withBytes(bytes)
           for
-            _ <- store.commit { store.store(document) }
+            _ <- store.store(document).ccommit
             _ <- OptionT(
-              store.commit {
-                store.fetchBytes(document.metadata.name)
-              }
+              store.fetchBytes(document.metadata.name).ccommit
             ).semiflatMap {
               _.through(fs2.io.file.Files[IO].writeAll(fs2.io.file.Path(filename))).compile.drain
             }.value
@@ -208,10 +200,11 @@ trait PostgresStoreSpecContext:
 
   def cleanDocuments: ConnectionIO[Unit] = sql"DELETE FROM documents".update.run.void
 
-  def fetchUpdatedAt(name: Document.Metadata.Name): ConnectionIO[Instant] =
-    sql"SELECT updated_at_utc FROM documents WHERE name = ${name}"
-      .query[Instant]
-      .unique
+  extension (store: PostgresStore[IO])
+    def fetchUpdatedAt(name: Document.Metadata.Name): ConnectionIO[Instant] =
+      sql"SELECT updated_at_utc FROM documents WHERE name = ${name}"
+        .query[Instant]
+        .unique
 
   /*
    * Lenses
