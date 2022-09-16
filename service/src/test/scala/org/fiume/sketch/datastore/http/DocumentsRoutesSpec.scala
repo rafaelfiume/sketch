@@ -56,7 +56,7 @@ class DocumentsRoutesSpec
   }
 
   test("get document metadata") {
-    val document = documents.sample.get
+    val document = documents[IO].sample.get
     val request = GET(Uri.unsafeFromString(s"/documents/metadata?name=${document.metadata.name.value}"))
     for
       store <- makeDocumentStore(state = document)
@@ -78,18 +78,18 @@ class DocumentsRoutesSpec
   }
 
   test("get document bytes") {
-    val document = documents.sample.get
+    val document = documents[IO].sample.get
     val request = GET(Uri.unsafeFromString(s"/documents?name=${document.metadata.name.value}"))
     for
       store <- makeDocumentStore(state = document)
       _ <- whenSending(request)
         .to(new DocumentsRoutes[IO, IO](store).routes)
-        .thenItReturns(Status.Ok, withPayload = fs2.Stream.emits(document.bytes))
+        .thenItReturns(Status.Ok, withPayload = document.bytes)
     yield ()
   }
 
   test("no document bytes") {
-    val document = documents.sample.get
+    val document = documents[IO].sample.get
     val request = GET(Uri.unsafeFromString(s"/documents?name=${document.metadata.name.value}"))
     for
       store <- makeDocumentStore()
@@ -125,12 +125,12 @@ trait DocumentsRoutesSpecContext extends FileContentContext:
 trait DocumentStoreContext:
   def makeDocumentStore(): IO[DocumentStore[IO, IO]] = makeDocumentStore(state = Map.empty)
 
-  def makeDocumentStore(state: Document): IO[DocumentStore[IO, IO]] = makeDocumentStore(Map(state.metadata.name -> state))
+  def makeDocumentStore(state: Document[IO]): IO[DocumentStore[IO, IO]] = makeDocumentStore(Map(state.metadata.name -> state))
 
-  private def makeDocumentStore(state: Map[Document.Metadata.Name, Document]): IO[DocumentStore[IO, IO]] =
-    Ref.of[IO, Map[Document.Metadata.Name, Document]](state).map { storage =>
+  private def makeDocumentStore(state: Map[Document.Metadata.Name, Document[IO]]): IO[DocumentStore[IO, IO]] =
+    Ref.of[IO, Map[Document.Metadata.Name, Document[IO]]](state).map { storage =>
       new DocumentStore[IO, IO]:
-        def store(doc: Document): IO[Unit] = storage.update { state =>
+        def store(doc: Document[IO]): IO[Unit] = storage.update { state =>
           state.updated(doc.metadata.name, doc)
         }
 
@@ -139,7 +139,7 @@ trait DocumentStoreContext:
         }
 
         def fetchBytes(name: Document.Metadata.Name): IO[Option[fs2.Stream[IO, Byte]]] = storage.get.map { state =>
-          state.find(s => s._1 === name).map(_._2.bytes).map(fs2.Stream.emits)
+          state.find(s => s._1 === name).map(_._2.bytes)
         }
 
         val commit: [A] => IO[A] => IO[A] = [A] => (action: IO[A]) => action

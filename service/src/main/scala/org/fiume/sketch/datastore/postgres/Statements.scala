@@ -12,8 +12,7 @@ import java.time.ZonedDateTime
 private[postgres] object Statements:
   val healthCheck: ConnectionIO[Int] = sql"select 42".query[Int].unique
 
-  def insertDocument(document: Document): Update0 =
-    import document.*
+  def insertDocument[F[_]](metadata: Document.Metadata, bytes: Array[Byte]): Update0 =
     sql"""
       |INSERT INTO documents(
       |  name,

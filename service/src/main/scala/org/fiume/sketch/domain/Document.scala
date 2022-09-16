@@ -1,10 +1,11 @@
 package org.fiume.sketch.domain
 
 import cats.Eq
+import fs2.Stream
 import org.fiume.sketch.domain.Document.Metadata
 import org.fiume.sketch.domain.Document.Metadata.*
 
-case class Document(metadata: Metadata, bytes: Array[Byte])
+case class Document[F[_]](metadata: Metadata, bytes: Stream[F, Byte])
 
 object Document:
 

@@ -29,8 +29,13 @@ private class PostgresStore[F[_]: Async] private (l: F ~> ConnectionIO, tx: Tran
 
   override val commit: [A] => ConnectionIO[A] => F[A] = [A] => (txn: ConnectionIO[A]) => txn.transact(tx)
 
-  override def store(doc: Document): ConnectionIO[Unit] =
-    Statements.insertDocument(doc).run.void
+  override def store(doc: Document[F]): ConnectionIO[Unit] =
+    for
+      // it's a shame current implementation ends up loading all the bytes in memory here
+      // maybe one day that will change?
+      array <- lift { doc.bytes.compile.toVector.map(_.toArray) }
+      _ <- Statements.insertDocument(doc.metadata, array).run.void
+    yield ()
 
   override def fetchMetadata(name: Document.Metadata.Name): ConnectionIO[Option[Document.Metadata]] =
     Statements.selectDocumentMetadata(name).option

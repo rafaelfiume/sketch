@@ -7,6 +7,7 @@ import cats.syntax.all.*
 import doobie.ConnectionIO
 import doobie.implicits.*
 import doobie.postgres.implicits.*
+import fs2.Stream
 import monocle.syntax.all.*
 import munit.ScalaCheckEffectSuite
 import org.fiume.sketch.datastore.postgres.DoobieMappings.given
@@ -33,7 +34,7 @@ class PostgresStoreSpec
   // override def scalaCheckInitialSeed = "DCHaHgKmD4XmEOKVUE1Grw8K2uWlohHvD-5gMuoh2pE="
 
   test("store and fetch documents metadata") {
-    forAllF(documents, documents) { (fst, snd) =>
+    forAllF(documents[IO], documents[IO]) { (fst, snd) =>
       // TODO Wait till PropF.forAllF supports '==>' (scalacheck implication)
       will(cleanDocuments) {
         PostgresStore.make[IO](transactor()).use { store =>
@@ -43,8 +44,10 @@ class PostgresStoreSpec
             _ <- store.commit { store.store(snd) }
             sndResult <- store.commit { store.fetchMetadata(snd.metadata.name) }
 
-            _ <- IO { assertEquals(fstResult, fst.metadata.some) }
-            _ <- IO { assertEquals(sndResult, snd.metadata.some) }
+            _ <- IO {
+              assertEquals(fstResult, fst.metadata.some)
+              assertEquals(sndResult, snd.metadata.some)
+            }
           yield ()
         }
       }
@@ -52,7 +55,7 @@ class PostgresStoreSpec
   }
 
   test("store and fetch document bytes") {
-    forAllF(documents) { document =>
+    forAllF(documents[IO]) { document =>
       will(cleanDocuments) {
         PostgresStore.make[IO](transactor()).use { store =>
           for
@@ -64,7 +67,10 @@ class PostgresStoreSpec
               }
             ).semiflatMap(_.compile.toList).value
 
-            _ <- IO { assertEquals(result, document.bytes.toList.some) }
+            originalBytes <- document.bytes.compile.toList
+            _ <- IO {
+              assertEquals(result, originalBytes.some)
+            }
           yield ()
         }
       }
@@ -72,17 +78,17 @@ class PostgresStoreSpec
   }
 
   test("update document metadata") {
-    forAllF(documents, descriptions) { (document, updatedDescription) =>
+    forAllF(documents[IO], descriptions) { (original, updatedDescription) =>
       PostgresStore.make[IO](transactor()).use { store =>
         for
-          _ <- store.commit { store.store(document) }
+          _ <- store.commit { store.store(original) }
 
-          updatedDoc = document.withDescription(updatedDescription)
-          _ <- store.commit { store.store(updatedDoc) }
+          updated = original.withDescription(updatedDescription)
+          _ <- store.commit { store.store(updated) }
 
-          result <- store.commit { store.fetchMetadata(document.metadata.name) }
+          result <- store.commit { store.fetchMetadata(original.metadata.name) }
           _ <- IO {
-            assertEquals(result, updatedDoc.metadata.some)
+            assertEquals(result, updated.metadata.some)
           }
         yield ()
       }
@@ -90,21 +96,22 @@ class PostgresStoreSpec
   }
 
   test("update document bytes") {
-    forAllF(documents, bytesG) { (document, updatedBytes) =>
+    forAllF(documents[IO], bytesG[IO]) { (original, updatedBytes) =>
       PostgresStore.make[IO](transactor()).use { store =>
         for
-          _ <- store.commit { store.store(document) }
+          _ <- store.commit { store.store(original) }
 
-          updatedDoc = document.withBytes(updatedBytes)
-          _ <- store.commit { store.store(updatedDoc) }
+          updated = original.withBytes(updatedBytes)
+          _ <- store.commit { store.store(updated) }
 
           result <- OptionT(
             store.commit {
-              store.fetchBytes(document.metadata.name)
+              store.fetchBytes(original.metadata.name)
             }
           ).semiflatMap(_.compile.toList).value
+          originalBytes <- updated.bytes.compile.toList
           _ <- IO {
-            assertEquals(result, updatedDoc.bytes.toList.some)
+            assertEquals(result, originalBytes.some)
           }
         yield ()
       }
@@ -112,16 +119,16 @@ class PostgresStoreSpec
   }
 
   test("updated document -> more recent updated_at_utc") {
-    forAllF(documents, descriptions, bytesG) { (document, updatedDescription, updatedBytes) =>
+    forAllF(documents[IO], descriptions, bytesG[IO]) { (original, updatedDescription, updatedBytes) =>
       PostgresStore.make[IO](transactor()).use { store =>
         for
-          _ <- store.commit { store.store(document) }
-          updatedAt1 <- store.commit { fetchUpdatedAt(document.metadata.name) }
+          _ <- store.commit { store.store(original) }
+          updatedAt1 <- store.commit { fetchUpdatedAt(original.metadata.name) }
 
-          updatedDoc = document.withDescription(updatedDescription).withBytes(updatedBytes)
-          _ <- store.commit { store.store(updatedDoc) }
+          updated = original.withDescription(updatedDescription).withBytes(updatedBytes)
+          _ <- store.commit { store.store(updated) }
 
-          updatedAt2 <- store.commit { fetchUpdatedAt(document.metadata.name) }
+          updatedAt2 <- store.commit { fetchUpdatedAt(original.metadata.name) }
           _ <- IO {
             assert(updatedAt2.isAfter(updatedAt1), "updatedAt should be updated")
           }
@@ -131,10 +138,10 @@ class PostgresStoreSpec
   }
 
   test("store jpg image") {
-    bytesFrom[IO]("mountain-bike-liguria-ponent.jpg").compile.toVector.map(_.toArray).flatMap { bytes =>
+    IO { bytesFrom[IO]("mountain-bike-liguria-ponent.jpg") }.flatMap { bytes =>
       will(cleanDocuments) {
         PostgresStore.make[IO](transactor()).use { store =>
-          val document = documents.sample.get.withBytes(bytes)
+          val document = documents[IO].sample.get.withBytes(bytes)
           for
             _ <- store.commit { store.store(document) }
 
@@ -144,7 +151,10 @@ class PostgresStoreSpec
               }
             ).semiflatMap(_.compile.toList).value
 
-            _ <- IO { assertEquals(result, document.bytes.toList.some) }
+            originalBytes <- document.bytes.compile.toList
+            _ <- IO {
+              assertEquals(result, originalBytes.some)
+            }
           yield ()
         }
       }
@@ -159,8 +169,10 @@ class PostgresStoreSpec
             metadata <- store.commit { store.fetchMetadata(name) }
             bytes <- store.commit { store.fetchBytes(name) }
 
-            _ <- IO { assertEquals(metadata, none) }
-            _ <- IO { assertEquals(bytes, none) }
+            _ <- IO {
+              assertEquals(metadata, none)
+              assertEquals(bytes, none)
+            }
           yield ()
         }
       }
@@ -169,17 +181,19 @@ class PostgresStoreSpec
 
   test("play it".ignore) { // good to see it in action
     val filename = "mountain-bike-liguria-ponent.jpg"
-    bytesFrom[IO](filename).compile.toVector.map(_.toArray).flatMap { bytes =>
+    IO { bytesFrom[IO](filename) }.flatMap { bytes =>
       will(cleanDocuments) {
         PostgresStore.make[IO](transactor()).use { store =>
-          val document = documents.sample.get.withBytes(bytes)
+          val document = documents[IO].sample.get.withBytes(bytes)
           for
             _ <- store.commit { store.store(document) }
-            result <- OptionT(
+            _ <- OptionT(
               store.commit {
                 store.fetchBytes(document.metadata.name)
               }
-            ).semiflatMap { _.through(fs2.io.file.Files[IO].writeAll(fs2.io.file.Path(filename))).compile.drain }.value
+            ).semiflatMap {
+              _.through(fs2.io.file.Files[IO].writeAll(fs2.io.file.Path(filename))).compile.drain
+            }.value
           yield ()
         }
       }
@@ -202,9 +216,9 @@ trait PostgresStoreSpecContext:
   /*
    * Lenses
    */
-  extension (doc: Document)
-    def withDescription(description: Document.Metadata.Description): Document =
+  extension [F[_]](doc: Document[F])
+    def withDescription(description: Document.Metadata.Description): Document[F] =
       doc.focus(_.metadata.description).replace(description)
 
-    def withBytes(bytes: Array[Byte]): Document =
+    def withBytes(bytes: Stream[F, Byte]): Document[F] =
       doc.focus(_.bytes).replace(bytes)

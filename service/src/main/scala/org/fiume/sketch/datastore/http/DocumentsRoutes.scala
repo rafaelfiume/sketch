@@ -35,12 +35,11 @@ class DocumentsRoutes[F[_]: Async, Txn[_]](store: DocumentStore[F, Txn]) extends
               .find(_.name == Some("metadata"))
               .getOrElse(throw new RuntimeException("sad path coming soon"))
               .as[Document.Metadata]
-            documentStream = m.parts
+            documentBytes = m.parts
               .find(_.name == Some("document"))
               .fold(ifEmpty = fs2.Stream.empty)(part => part.body)
-            documentBytes <- documentStream.compile.toVector.map(_.toArray)
             _ <- logger.info(s"Received request to upload document ${metadata.name}")
-            _ <- store.commit { store.store(Document(metadata, documentBytes)) }
+            _ <- store.commit { store.store(Document[F](metadata, documentBytes)) }
             res <- Created(metadata)
           yield res
         }
