@@ -12,7 +12,7 @@ object Dependency {
     val http4s                = "1.0.0-M36"
     val log4cats              = "2.4.0"
     val monocle               = "3.1.0"
-    val slf4j                 = "2.0.0"
+    val slf4j                 = "2.0.1"
 
     val munit                 = "0.7.29"
     val munitCatsEffect       = "1.0.7"
