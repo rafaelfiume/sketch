@@ -33,7 +33,7 @@ class HealthStatusRoutesSpec
   test("ping returns pong") {
     whenSending(GET(uri"/ping"))
       .to(new HealthStatusRoutes[IO](makeVersions(Version("")), makeStore).routes)
-      .thenItReturns[String](Status.Ok, withPayload = "\"pong\"") // json string
+      .thenItReturns[String](Status.Ok, withJsonPayload = "\"pong\"")
   }
 
   test("return the status of the app when db is healthy") {
@@ -44,7 +44,7 @@ class HealthStatusRoutesSpec
         )
         .thenItReturns(
           Status.Ok,
-          withPayload = AppStatus(healthy = true, version)
+          withJsonPayload = AppStatus(healthy = true, version)
         )
     }
   }
@@ -55,7 +55,7 @@ class HealthStatusRoutesSpec
         .to(
           new HealthStatusRoutes[IO](makeVersions(returning = version), makeStore(IO.raiseError[Unit](DatabaseFailure))).routes
         )
-        .thenItReturns(Status.Ok, withPayload = AppStatus(healthy = false, version))
+        .thenItReturns(Status.Ok, withJsonPayload = AppStatus(healthy = false, version))
     }
   }
 

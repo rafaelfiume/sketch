@@ -46,7 +46,7 @@ class DocumentsRoutesSpec
       store <- makeDocumentStore()
       _ <- whenSending(request)
         .to(new DocumentsRoutes[IO, IO](store).routes)
-        .thenItReturns(Status.Created, withPayload = metadata)
+        .thenItReturns(Status.Created, withJsonPayload = metadata)
       storedMetadata <- store.fetchMetadata(metadata.name)
       uploadedBytes <- bytesFrom[IO]("mountain-bike-liguria-ponent.jpg").compile.toList
       storedBytes <- OptionT(store.fetchBytes(metadata.name)).semiflatMap(_.compile.toList).value
@@ -62,7 +62,7 @@ class DocumentsRoutesSpec
       store <- makeDocumentStore(state = document)
       _ <- whenSending(request)
         .to(new DocumentsRoutes[IO, IO](store).routes)
-        .thenItReturns(Status.Ok, withPayload = document.metadata)
+        .thenItReturns(Status.Ok, withJsonPayload = document.metadata)
     yield ()
   }
 

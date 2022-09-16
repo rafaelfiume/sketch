@@ -32,7 +32,7 @@ trait Http4sTestingRoutesDsl extends Assertions:
           .run(request)
           .flatMap { res => IO(assertEquals(res.status, httpStatus)) }
 
-      def thenItReturns[A](httpStatus: Status, withPayload: A)(implicit ec: EntityDecoder[IO, A]): IO[Unit] =
+      def thenItReturns[A](httpStatus: Status, withJsonPayload: A)(implicit ec: EntityDecoder[IO, A]): IO[Unit] =
         routes.orNotFound
           .run(request)
           .flatMap { res =>
@@ -40,5 +40,5 @@ trait Http4sTestingRoutesDsl extends Assertions:
               res
                 .as[A]
                 .onError { error => fail(s"$error\n$breakingContractWarningMessage") }
-                .map { assertEquals(withPayload, _, clue = breakingContractWarningMessage) }
+                .map { assertEquals(withJsonPayload, _, clue = breakingContractWarningMessage) }
           }

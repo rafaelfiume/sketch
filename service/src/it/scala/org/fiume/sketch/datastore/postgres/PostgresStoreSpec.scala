@@ -30,10 +30,11 @@ class PostgresStoreSpec
   // shrinking just make failing tests messages more obscure
   given noShrink[T]: Shrink[T] = Shrink.shrinkAny
 
-  //override def scalaCheckInitialSeed = "DCHaHgKmD4XmEOKVUE1Grw8K2uWlohHvD-5gMuoh2pE="
+  // override def scalaCheckInitialSeed = "DCHaHgKmD4XmEOKVUE1Grw8K2uWlohHvD-5gMuoh2pE="
 
   test("store and fetch documents metadata") {
     forAllF(documents, documents) { (fst, snd) =>
+      // TODO Wait till PropF.forAllF supports '==>' (scalacheck implication)
       will(cleanDocuments) {
         PostgresStore.make[IO](transactor()).use { store =>
           for

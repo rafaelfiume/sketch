@@ -49,9 +49,7 @@ class DocumentsRoutes[F[_]: Async, Txn[_]](store: DocumentStore[F, Txn]) extends
       case GET -> Root / "documents" / "metadata" :? NameQParam(name) =>
         for
           _ <- logger.info(s"Received request to fetch metadata for doc $name")
-          result <- store.commit {
-            store.fetchMetadata(name)
-          }
+          result <- store.commit { store.fetchMetadata(name) }
           res <- result match
             case None           => NotFound()
             case Some(metadata) => Ok(metadata)
