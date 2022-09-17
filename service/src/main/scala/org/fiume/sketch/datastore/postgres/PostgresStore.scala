@@ -48,4 +48,7 @@ private class PostgresStore[F[_]: Async] private (l: F ~> ConnectionIO, tx: Tran
       .map(Stream.emits)
       .value
 
+  override def delete(name: Document.Metadata.Name): ConnectionIO[Unit] =
+    Statements.delete(name).run.void
+
   override def healthCheck: F[Unit] = Statements.healthCheck.transact(tx).void

@@ -142,6 +142,8 @@ trait DocumentStoreContext:
           state.find(s => s._1 === name).map(_._2.bytes)
         }
 
+        def delete(name: Document.Metadata.Name): IO[Unit] = ???
+
         val commit: [A] => IO[A] => IO[A] = [A] => (action: IO[A]) => action
 
         val lift: [A] => IO[A] => IO[A] = [A] => (action: IO[A]) => action

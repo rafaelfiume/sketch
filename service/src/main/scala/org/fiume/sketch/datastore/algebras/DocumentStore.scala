@@ -8,3 +8,4 @@ trait DocumentStore[F[_], Txn[_]] extends Store[F, Txn]:
   def store(doc: Document[F]): Txn[Unit]
   def fetchMetadata(name: Document.Metadata.Name): Txn[Option[Document.Metadata]]
   def fetchBytes(name: Document.Metadata.Name): Txn[Option[Stream[F, Byte]]]
+  def delete(name: Document.Metadata.Name): Txn[Unit]

@@ -33,20 +33,18 @@ class PostgresStoreSpec
   given noShrink[T]: Shrink[T] = Shrink.shrinkAny
 
   // override def scalaCheckInitialSeed = "DCHaHgKmD4XmEOKVUE1Grw8K2uWlohHvD-5gMuoh2pE="
+
   test("store and fetch documents metadata") {
     forAllF(documents[IO], documents[IO]) { (fst, snd) =>
-      // TODO Wait till PropF.forAllF supports '==>' (scalacheck implication)
       will(cleanDocuments) {
         PostgresStore.make[IO](transactor()).use { store =>
           for
             _ <- store.store(fst).ccommit
-            fstResult <- store.fetchMetadata(fst.metadata.name).ccommit
-            _ <- store.store(snd).ccommit
-            sndResult <- store.fetchMetadata(snd.metadata.name).ccommit
+
+            result <- store.fetchMetadata(fst.metadata.name).ccommit
 
             _ <- IO {
-              assertEquals(fstResult, fst.metadata.some)
-              assertEquals(sndResult, snd.metadata.some)
+              assertEquals(result, fst.metadata.some)
             }
           yield ()
         }
@@ -133,39 +131,30 @@ class PostgresStoreSpec
     }
   }
 
-  test("store jpg image") {
-    IO { bytesFrom[IO]("mountain-bike-liguria-ponent.jpg") }.flatMap { bytes =>
-      will(cleanDocuments) {
-        PostgresStore.make[IO](transactor()).use { store =>
-          val document = documents[IO].sample.get.withBytes(bytes)
-          for
-            _ <- store.store(document).ccommit
-
-            result <- OptionT(
-              store.fetchBytes(document.metadata.name).ccommit
-            ).semiflatMap(_.compile.toList).value
-
-            originalBytes <- document.bytes.compile.toList
-            _ <- IO {
-              assertEquals(result, originalBytes.some)
-            }
-          yield ()
-        }
-      }
-    }
-  }
-
-  test("no documents") {
-    forAllF(names) { (name) =>
+  test("delete document") {
+    forAllF(documents[IO], documents[IO]) { (fst, snd) =>
+      // TODO Wait till PropF.forAllF supports '==>' (scalacheck implication)
       will(cleanDocuments) {
         PostgresStore.make[IO](transactor()).use { store =>
           for
-            metadata <- store.fetchMetadata(name).ccommit
-            bytes <- store.fetchBytes(name).ccommit
+            _ <- store.store(fst).ccommit
+            _ <- store.store(snd).ccommit
 
+            _ <- store.delete(fst.metadata.name).ccommit
+
+            fstResult <- IO.both(
+              store.fetchMetadata(fst.metadata.name).ccommit,
+              store.fetchBytes(fst.metadata.name).ccommit
+            )
+            sndResult <- IO.both(
+              store.fetchMetadata(snd.metadata.name).ccommit,
+              store.fetchBytes(snd.metadata.name).ccommit
+            )
             _ <- IO {
-              assertEquals(metadata, none)
-              assertEquals(bytes, none)
+              assertEquals(fstResult._1, none)
+              assertEquals(fstResult._2, none)
+              assert(sndResult._1.isDefined)
+              assert(sndResult._2.isDefined)
             }
           yield ()
         }
