@@ -1,5 +1,6 @@
 package org.fiume.sketch.datastore.postgres
 
+import cats.data.OptionT
 import cats.effect.{Async, Clock, Resource}
 import cats.implicits.*
 import cats.~>
@@ -7,7 +8,7 @@ import doobie.*
 import doobie.implicits.*
 import fs2.Stream
 import org.fiume.sketch.algebras.*
-import org.fiume.sketch.datastore.algebras.{DocumentStore, Store}
+import org.fiume.sketch.datastore.algebras.{DocumentsStore, Store}
 import org.fiume.sketch.datastore.postgres.Statements.*
 import org.fiume.sketch.domain.Document
 import org.typelevel.log4cats.Logger
@@ -19,7 +20,7 @@ object PostgresStore:
 
 private class PostgresStore[F[_]: Async] private (l: F ~> ConnectionIO, tx: Transactor[F])
     extends Store[F, ConnectionIO]
-    with DocumentStore[F, ConnectionIO]
+    with DocumentsStore[F, ConnectionIO]
     with HealthCheck[F]:
 
   private val logger = Slf4jLogger.getLogger[F]
@@ -28,16 +29,26 @@ private class PostgresStore[F[_]: Async] private (l: F ~> ConnectionIO, tx: Tran
 
   override val commit: [A] => ConnectionIO[A] => F[A] = [A] => (txn: ConnectionIO[A]) => txn.transact(tx)
 
-  override def store(doc: Document): ConnectionIO[Unit] =
-    Statements.insertDocument(doc).run.void
+  override def store(doc: Document[F]): ConnectionIO[Unit] =
+    for
+      // it's a shame current implementation ends up loading all the bytes in memory here
+      // maybe one day that will change?
+      array <- lift { doc.bytes.compile.toVector.map(_.toArray) }
+      _ <- Statements.insertDocument(doc.metadata, array).run.void
+    yield ()
 
-  override def fetchMetadata(name: Document.Metadata.Name): ConnectionIO[Document.Metadata] =
-    Statements.selectDocumentMetadata(name).unique
+  override def fetchMetadata(name: Document.Metadata.Name): ConnectionIO[Option[Document.Metadata]] =
+    Statements.selectDocumentMetadata(name).option
 
-  override def fetchBytes(name: Document.Metadata.Name): ConnectionIO[Stream[F, Byte]] =
+  override def fetchBytes(name: Document.Metadata.Name): ConnectionIO[Option[Stream[F, Byte]]] =
     // not the greatest implementation, since it will require bytes to be fully read from the db before the stream can start emiting bytes
     // this can be better optimised later (perhaps by storing/reading documents using a file sytem? or large objects?)
     // API is the most important part here.
-    Statements.selectDocumentBytes(name).unique.map(Stream.emits)
+    OptionT { Statements.selectDocumentBytes(name).option }
+      .map(Stream.emits)
+      .value
+
+  override def delete(name: Document.Metadata.Name): ConnectionIO[Unit] =
+    Statements.delete(name).run.void
 
   override def healthCheck: F[Unit] = Statements.healthCheck.transact(tx).void

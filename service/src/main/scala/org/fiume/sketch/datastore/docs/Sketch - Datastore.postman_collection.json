@@ -1,0 +1,93 @@
+{
+	"info": {
+		"_postman_id": "d9a541f7-fc69-4383-934c-18713bc564d4",
+		"name": "Sketch - Datastore",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"item": [
+		{
+			"name": "Upload doc",
+			"request": {
+				"method": "POST",
+				"header": [],
+				"body": {
+					"mode": "formdata",
+					"formdata": [
+						{
+							"key": "document",
+							"type": "file",
+							"src": "/Users/rafafium/rf-workspace/sketch/service/src/test/resources/mountain-bike-liguria-ponent.jpg"
+						},
+						{
+							"key": "metadata",
+							"value": "{\n    \"name\": \"mountain-bike-liguria-ponent.jpg\",\n    \"description\": \"Mountain bike in liguria ponent.jpg\"\n}",
+							"type": "default"
+						}
+					]
+				},
+				"url": {
+					"raw": "localhost:8080/documents",
+					"host": [
+						"localhost"
+					],
+					"port": "8080",
+					"path": [
+						"documents"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Fetch doc metadata",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "http://localhost:8080/documents/metadata?name=mountain-bike-liguria-ponent.jpg",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "8080",
+					"path": [
+						"documents",
+						"metadata"
+					],
+					"query": [
+						{
+							"key": "name",
+							"value": "mountain-bike-liguria-ponent.jpg"
+						}
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Download doc",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "http://localhost:8080/documents?name=mountain-bike-liguria-ponent.jpg",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "8080",
+					"path": [
+						"documents"
+					],
+					"query": [
+						{
+							"key": "name",
+							"value": "mountain-bike-liguria-ponent.jpg"
+						}
+					]
+				}
+			},
+			"response": []
+		}
+	]
+}

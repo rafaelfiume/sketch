@@ -1,4 +1,4 @@
-package org.fiume.sketch.support
+package org.fiume.sketch.support.gens
 
 import cats.Applicative
 import cats.data.NonEmptyList
