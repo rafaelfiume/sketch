@@ -31,7 +31,7 @@ class DocumentsRoutesSpec
     with DocumentsStoreContext
     with DocumentsRoutesSpecContext:
 
-  test("upload documents") {
+  test("POST document") {
     val metadata = metadataG.sample.get
     val image = getClass.getClassLoader.getResource("mountain-bike-liguria-ponent.jpg")
     val multipart = Multipart[IO](
@@ -50,12 +50,14 @@ class DocumentsRoutesSpec
       storedMetadata <- store.fetchMetadata(metadata.name)
       uploadedBytes <- bytesFrom[IO]("mountain-bike-liguria-ponent.jpg").compile.toList
       storedBytes <- OptionT(store.fetchBytes(metadata.name)).semiflatMap(_.compile.toList).value
-      _ <- IO { assertEquals(storedMetadata, metadata.some) }
-      _ <- IO { assertEquals(storedBytes.map(_.toList), uploadedBytes.some) }
+      _ <- IO {
+        assertEquals(storedMetadata, metadata.some)
+        assertEquals(storedBytes.map(_.toList), uploadedBytes.some)
+      }
     yield ()
   }
 
-  test("get document metadata") {
+  test("GET document metadata") {
     val document = documents[IO].sample.get
     val request = GET(Uri.unsafeFromString(s"/documents/metadata?name=${document.metadata.name.value}"))
     for
@@ -66,18 +68,7 @@ class DocumentsRoutesSpec
     yield ()
   }
 
-  test("no document metadata") {
-    val document = documents.sample.get
-    val request = GET(Uri.unsafeFromString(s"/documents/metadata?name=${document.metadata.name.value}"))
-    for
-      store <- makeDocumentsStore()
-      _ <- whenSending(request)
-        .to(new DocumentsRoutes[IO, IO](store).routes)
-        .thenItReturns(Status.NotFound)
-    yield ()
-  }
-
-  test("get document bytes") {
+  test("GET document bytes") {
     val document = documents[IO].sample.get
     val request = GET(Uri.unsafeFromString(s"/documents?name=${document.metadata.name.value}"))
     for
@@ -88,7 +79,18 @@ class DocumentsRoutesSpec
     yield ()
   }
 
-  test("no document bytes") {
+  test("GET no document metadata") {
+    val document = documents.sample.get
+    val request = GET(Uri.unsafeFromString(s"/documents/metadata?name=${document.metadata.name.value}"))
+    for
+      store <- makeDocumentsStore()
+      _ <- whenSending(request)
+        .to(new DocumentsRoutes[IO, IO](store).routes)
+        .thenItReturns(Status.NotFound)
+    yield ()
+  }
+
+  test("GET no document bytes") {
     val document = documents[IO].sample.get
     val request = GET(Uri.unsafeFromString(s"/documents?name=${document.metadata.name.value}"))
     for
@@ -99,7 +101,26 @@ class DocumentsRoutesSpec
     yield ()
   }
 
-  test("decode . encode <-> document metadata payload") {
+  test("DELETE document") {
+    val document = documents[IO].sample.get
+    val request = DELETE(Uri.unsafeFromString(s"/documents?name=${document.metadata.name.value}"))
+    for
+      store <- makeDocumentsStore(state = document)
+      _ <- whenSending(request)
+        .to(new DocumentsRoutes[IO, IO](store).routes)
+        .thenItReturns(Status.NoContent)
+      stored <- IO.both(
+        store.fetchMetadata(document.metadata.name),
+        OptionT(store.fetchBytes(document.metadata.name)).semiflatMap(_.compile.toList).value
+      )
+      _ <- IO {
+        assertEquals(stored._1, none)
+        assertEquals(stored._2, none)
+      }
+    yield ()
+  }
+
+  test("contract: decode . encode <-> document metadata payload") {
     jsonFrom[IO]("contract/datasources/http/document.metadata.json").use { raw =>
       IO {
         val original = parse(raw).rightValue
@@ -142,7 +163,9 @@ trait DocumentsStoreContext:
           state.find(s => s._1 === name).map(_._2.bytes)
         }
 
-        def delete(name: Document.Metadata.Name): IO[Unit] = ???
+        def delete(name: Document.Metadata.Name): IO[Unit] = storage.update { state =>
+          state.removed(name)
+        }
 
         val commit: [A] => IO[A] => IO[A] = [A] => (action: IO[A]) => action
 

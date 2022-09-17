@@ -61,6 +61,13 @@ class DocumentsRoutes[F[_]: Async, Txn[_]](store: DocumentsStore[F, Txn]) extend
             case None         => NotFound()
             case Some(stream) => Ok(stream)
         yield res
+
+      case DELETE -> Root / "documents" :? NameQParam(name) =>
+        for
+          _ <- logger.info(s"Received request to delete doc $name")
+          _ <- store.commit { store.delete(name) }
+          res <- NoContent()
+        yield res
     }
 
   val routes: HttpRoutes[F] = Router(prefix -> httpRoutes)
