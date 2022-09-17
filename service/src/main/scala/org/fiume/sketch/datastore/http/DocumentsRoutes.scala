@@ -27,7 +27,7 @@ class DocumentsRoutes[F[_]: Async, Txn[_]](store: DocumentsStore[F, Txn]) extend
 
   private val httpRoutes: HttpRoutes[F] =
     HttpRoutes.of[F] {
-      case req @ POST -> Root / "documents" / "upload" =>
+      case req @ POST -> Root / "documents" =>
         req.decode { (m: Multipart[F]) =>
           // TODO Sad path
           for

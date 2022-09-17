@@ -41,7 +41,7 @@ class DocumentsRoutesSpec
       ),
       boundary = Boundary("boundary")
     )
-    val request = POST(uri"/documents/upload").withEntity(multipart).withHeaders(multipart.headers)
+    val request = POST(uri"/documents").withEntity(multipart).withHeaders(multipart.headers)
     for
       store <- makeDocumentsStore()
       _ <- whenSending(request)
