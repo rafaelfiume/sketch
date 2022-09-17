@@ -8,7 +8,7 @@ import doobie.*
 import doobie.implicits.*
 import fs2.Stream
 import org.fiume.sketch.algebras.*
-import org.fiume.sketch.datastore.algebras.{DocumentStore, Store}
+import org.fiume.sketch.datastore.algebras.{DocumentsStore, Store}
 import org.fiume.sketch.datastore.postgres.Statements.*
 import org.fiume.sketch.domain.Document
 import org.typelevel.log4cats.Logger
@@ -20,7 +20,7 @@ object PostgresStore:
 
 private class PostgresStore[F[_]: Async] private (l: F ~> ConnectionIO, tx: Transactor[F])
     extends Store[F, ConnectionIO]
-    with DocumentStore[F, ConnectionIO]
+    with DocumentsStore[F, ConnectionIO]
     with HealthCheck[F]:
 
   private val logger = Slf4jLogger.getLogger[F]

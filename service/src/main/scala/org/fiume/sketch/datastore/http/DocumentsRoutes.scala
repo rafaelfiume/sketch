@@ -4,7 +4,7 @@ import cats.MonadThrow
 import cats.effect.{Concurrent, Sync}
 import cats.effect.kernel.Async
 import cats.implicits.*
-import org.fiume.sketch.datastore.algebras.DocumentStore
+import org.fiume.sketch.datastore.algebras.DocumentsStore
 import org.fiume.sketch.datastore.http.JsonCodecs.Documents.given
 import org.fiume.sketch.domain.Document
 import org.http4s.{HttpRoutes, QueryParamDecoder, _}
@@ -19,7 +19,7 @@ import org.typelevel.log4cats.slf4j.Slf4jLogger
 
 import DocumentsRoutes.*
 
-class DocumentsRoutes[F[_]: Async, Txn[_]](store: DocumentStore[F, Txn]) extends Http4sDsl[F]:
+class DocumentsRoutes[F[_]: Async, Txn[_]](store: DocumentsStore[F, Txn]) extends Http4sDsl[F]:
 
   private val logger = Slf4jLogger.getLogger[F]
 

@@ -7,7 +7,7 @@ import com.comcast.ip4s.*
 import doobie.ConnectionIO
 import fs2.Stream
 import org.fiume.sketch.algebras.*
-import org.fiume.sketch.datastore.algebras.DocumentStore
+import org.fiume.sketch.datastore.algebras.DocumentsStore
 import org.fiume.sketch.datastore.http.DocumentsRoutes
 import org.fiume.sketch.datastore.postgres.PostgresStore
 import org.fiume.sketch.http.HealthStatusRoutes
@@ -37,7 +37,7 @@ object Server:
   private def httpd[F[_]: Async](
     versions: Versions[F],
     healthCheck: HealthCheck[F],
-    documentStore: DocumentStore[F, ConnectionIO],
+    documentStore: DocumentsStore[F, ConnectionIO],
     log: Logger[F]
   ): Stream[F, Unit] =
     val httpApp = HttpApi
@@ -60,7 +60,7 @@ object HttpApi:
   def httpApp[F[_]: Async](
     versions: Versions[F],
     healthCheck: HealthCheck[F],
-    documentStore: DocumentStore[F, ConnectionIO]
+    documentStore: DocumentsStore[F, ConnectionIO]
   ): HttpRoutes[F] =
     HealthStatusRoutes[F](versions, healthCheck).routes <+>
       DocumentsRoutes[F, ConnectionIO](documentStore).routes

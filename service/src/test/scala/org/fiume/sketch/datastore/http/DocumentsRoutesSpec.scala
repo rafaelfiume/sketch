@@ -7,7 +7,7 @@ import io.circe.{Encoder, Json}
 import io.circe.parser.{decode, parse}
 import io.circe.syntax.*
 import munit.CatsEffectSuite
-import org.fiume.sketch.datastore.algebras.DocumentStore
+import org.fiume.sketch.datastore.algebras.DocumentsStore
 import org.fiume.sketch.datastore.http.DocumentsRoutes
 import org.fiume.sketch.datastore.http.JsonCodecs.Documents.given
 import org.fiume.sketch.domain.Document
@@ -28,7 +28,7 @@ class DocumentsRoutesSpec
     extends CatsEffectSuite
     with Http4sTestingRoutesDsl
     with FileContentContext
-    with DocumentStoreContext
+    with DocumentsStoreContext
     with DocumentsRoutesSpecContext:
 
   test("upload documents") {
@@ -43,7 +43,7 @@ class DocumentsRoutesSpec
     )
     val request = POST(uri"/documents/upload").withEntity(multipart).withHeaders(multipart.headers)
     for
-      store <- makeDocumentStore()
+      store <- makeDocumentsStore()
       _ <- whenSending(request)
         .to(new DocumentsRoutes[IO, IO](store).routes)
         .thenItReturns(Status.Created, withJsonPayload = metadata)
@@ -59,7 +59,7 @@ class DocumentsRoutesSpec
     val document = documents[IO].sample.get
     val request = GET(Uri.unsafeFromString(s"/documents/metadata?name=${document.metadata.name.value}"))
     for
-      store <- makeDocumentStore(state = document)
+      store <- makeDocumentsStore(state = document)
       _ <- whenSending(request)
         .to(new DocumentsRoutes[IO, IO](store).routes)
         .thenItReturns(Status.Ok, withJsonPayload = document.metadata)
@@ -70,7 +70,7 @@ class DocumentsRoutesSpec
     val document = documents.sample.get
     val request = GET(Uri.unsafeFromString(s"/documents/metadata?name=${document.metadata.name.value}"))
     for
-      store <- makeDocumentStore()
+      store <- makeDocumentsStore()
       _ <- whenSending(request)
         .to(new DocumentsRoutes[IO, IO](store).routes)
         .thenItReturns(Status.NotFound)
@@ -81,7 +81,7 @@ class DocumentsRoutesSpec
     val document = documents[IO].sample.get
     val request = GET(Uri.unsafeFromString(s"/documents?name=${document.metadata.name.value}"))
     for
-      store <- makeDocumentStore(state = document)
+      store <- makeDocumentsStore(state = document)
       _ <- whenSending(request)
         .to(new DocumentsRoutes[IO, IO](store).routes)
         .thenItReturns(Status.Ok, withPayload = document.bytes)
@@ -92,7 +92,7 @@ class DocumentsRoutesSpec
     val document = documents[IO].sample.get
     val request = GET(Uri.unsafeFromString(s"/documents?name=${document.metadata.name.value}"))
     for
-      store <- makeDocumentStore()
+      store <- makeDocumentsStore()
       _ <- whenSending(request)
         .to(new DocumentsRoutes[IO, IO](store).routes)
         .thenItReturns(Status.NotFound)
@@ -122,14 +122,14 @@ trait DocumentsRoutesSpecContext extends FileContentContext:
         "description" -> metadata.description.asJson
       )
 
-trait DocumentStoreContext:
-  def makeDocumentStore(): IO[DocumentStore[IO, IO]] = makeDocumentStore(state = Map.empty)
+trait DocumentsStoreContext:
+  def makeDocumentsStore(): IO[DocumentsStore[IO, IO]] = makeDocumentsStore(state = Map.empty)
 
-  def makeDocumentStore(state: Document[IO]): IO[DocumentStore[IO, IO]] = makeDocumentStore(Map(state.metadata.name -> state))
+  def makeDocumentsStore(state: Document[IO]): IO[DocumentsStore[IO, IO]] = makeDocumentsStore(Map(state.metadata.name -> state))
 
-  private def makeDocumentStore(state: Map[Document.Metadata.Name, Document[IO]]): IO[DocumentStore[IO, IO]] =
+  private def makeDocumentsStore(state: Map[Document.Metadata.Name, Document[IO]]): IO[DocumentsStore[IO, IO]] =
     Ref.of[IO, Map[Document.Metadata.Name, Document[IO]]](state).map { storage =>
-      new DocumentStore[IO, IO]:
+      new DocumentsStore[IO, IO]:
         def store(doc: Document[IO]): IO[Unit] = storage.update { state =>
           state.updated(doc.metadata.name, doc)
         }
