@@ -108,7 +108,6 @@ class DocumentsRoutesSpec extends CatsEffectSuite with Http4sTestingRoutesDsl wi
 
   test("Post document with no file == bad request") {
     val metadata = metadataG.sample.get
-    val image = getClass.getClassLoader.getResource("mountain-bike-liguria-ponent.jpg")
     val multipart = Multipart[IO](
       // no file mamma!
       parts = Vector(Part.formData("metadata", metadata.asJson.spaces2SortKeys)),
@@ -122,6 +121,24 @@ class DocumentsRoutesSpec extends CatsEffectSuite with Http4sTestingRoutesDsl wi
         .to(new DocumentsRoutes[IO, IO](store).routes)
 //
         .thenItReturns(Status.BadRequest, withJsonPayload = Incorrect(NonEmptyChain.one(Incorrect.Missing("bytes"))))
+    yield ()
+  }
+
+  test("Post document with no metadata == bad request") {
+    val image = getClass.getClassLoader.getResource("mountain-bike-liguria-ponent.jpg")
+    val multipart = Multipart[IO](
+      // no metadata mamma!
+      parts = Vector(Part.fileData("document", image, `Content-Type`(MediaType.image.jpeg))),
+      boundary = Boundary("boundary")
+    )
+    val request = POST(uri"/documents").withEntity(multipart).withHeaders(multipart.headers)
+    for
+      store <- makeDocumentsStore()
+
+      _ <- whenSending(request)
+        .to(new DocumentsRoutes[IO, IO](store).routes)
+//
+        .thenItReturns(Status.BadRequest, withJsonPayload = Incorrect(NonEmptyChain.one(Incorrect.Missing("metadata"))))
     yield ()
   }
 

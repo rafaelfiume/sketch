@@ -1,7 +1,7 @@
 package org.fiume.sketch.datastore.http
 
 import cats.MonadThrow
-import cats.data.NonEmptyChainOps
+import cats.data.{EitherT, NonEmptyChain}
 import cats.effect.{Concurrent, Sync}
 import cats.effect.kernel.Async
 import cats.implicits.*
@@ -34,21 +34,25 @@ class DocumentsRoutes[F[_]: Async, Txn[_]](store: DocumentsStore[F, Txn]) extend
     HttpRoutes.of[F] {
       case req @ POST -> Root / "documents" =>
         req.decode { (m: Multipart[F]) =>
-          // TODO Sad path
+          val metadataV: EitherT[F, NonEmptyChain[Incorrect.Missing], Document.Metadata] =
+            EitherT
+              .fromEither {
+                m.parts.find { _.name == Some("metadata") }.orMissing("metadata")
+              }
+              .semiflatMap(_.as[Document.Metadata])
+          val bytesV: EitherT[F, NonEmptyChain[Incorrect.Missing], Stream[F, Byte]] = EitherT.fromEither {
+            m.parts.find { _.name == Some("document") }.orMissing("bytes").map(_.body)
+          }
+          val payload: EitherT[F, NonEmptyChain[Incorrect.Missing], (Document.Metadata, Stream[F, Byte])] =
+            (metadataV, bytesV).parTupled
           for
-            metadata <- m.parts
-              .find(_.name == Some("metadata"))
-              .getOrElse(throw new RuntimeException("sad path coming soon"))
-              .as[Document.Metadata]
-            documentBytes = m.parts
-              .find(_.name == Some("document"))
-              .orMissing("bytes")
-            _ <- logger.info(s"Received request to upload document ${metadata.name}")
-            res <- documentBytes match {
+            value <- payload.value
+            res <- value match {
               case Left(missing) =>
                 BadRequest(Incorrect(missing))
-              case Right(part) =>
-                store.commit { store.store(Document[F](metadata, part.body)) } >>
+              case Right((metadata, bytes)) =>
+                logger.info(s"Received request to upload document ${metadata.name}") *>
+                  store.commit { store.store(Document[F](metadata, bytes)) } >>
                   Created(metadata)
             }
           yield res
