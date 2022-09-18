@@ -1,11 +1,16 @@
 package org.fiume.sketch.datastore.http
 
 import cats.MonadThrow
+import cats.data.NonEmptyChainOps
 import cats.effect.{Concurrent, Sync}
 import cats.effect.kernel.Async
 import cats.implicits.*
+import fs2.Stream
 import org.fiume.sketch.datastore.algebras.DocumentsStore
 import org.fiume.sketch.datastore.http.JsonCodecs.Documents.given
+import org.fiume.sketch.datastore.http.JsonCodecs.Incorrects.given
+import org.fiume.sketch.datastore.http.Model.Incorrect
+import org.fiume.sketch.datastore.http.Model.IncorrectOps.*
 import org.fiume.sketch.domain.Document
 import org.http4s.{HttpRoutes, QueryParamDecoder, _}
 import org.http4s.circe.CirceEntityDecoder.*
@@ -37,10 +42,15 @@ class DocumentsRoutes[F[_]: Async, Txn[_]](store: DocumentsStore[F, Txn]) extend
               .as[Document.Metadata]
             documentBytes = m.parts
               .find(_.name == Some("document"))
-              .fold(ifEmpty = fs2.Stream.empty)(part => part.body)
+              .orMissing("bytes")
             _ <- logger.info(s"Received request to upload document ${metadata.name}")
-            _ <- store.commit { store.store(Document[F](metadata, documentBytes)) }
-            res <- Created(metadata)
+            res <- documentBytes match {
+              case Left(missing) =>
+                BadRequest(Incorrect(missing))
+              case Right(part) =>
+                store.commit { store.store(Document[F](metadata, part.body)) } >>
+                  Created(metadata)
+            }
           yield res
         }
 

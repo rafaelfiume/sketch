@@ -1,15 +1,18 @@
 package org.fiume.sketch.datastore.http
 
-import cats.data.OptionT
+import cats.data.{NonEmptyChain, OptionT}
 import cats.effect.{IO, Ref}
 import cats.implicits.*
-import io.circe.{Encoder, Json}
+import io.circe.{Decoder, HCursor}
+import io.circe.Decoder.Result
 import io.circe.parser.{decode, parse}
 import io.circe.syntax.*
 import munit.CatsEffectSuite
 import org.fiume.sketch.datastore.algebras.DocumentsStore
 import org.fiume.sketch.datastore.http.DocumentsRoutes
 import org.fiume.sketch.datastore.http.JsonCodecs.Documents.given
+import org.fiume.sketch.datastore.http.JsonCodecs.Incorrects.given
+import org.fiume.sketch.datastore.http.Model.Incorrect
 import org.fiume.sketch.domain.Document
 import org.fiume.sketch.support.{FileContentContext, Http4sTestingRoutesDsl}
 import org.fiume.sketch.support.EitherSyntax.*
@@ -24,14 +27,9 @@ import org.http4s.multipart.{Boundary, Multipart, Part}
 
 import java.net.URL
 
-class DocumentsRoutesSpec
-    extends CatsEffectSuite
-    with Http4sTestingRoutesDsl
-    with FileContentContext
-    with DocumentsStoreContext
-    with DocumentsRoutesSpecContext:
+class DocumentsRoutesSpec extends CatsEffectSuite with Http4sTestingRoutesDsl with FileContentContext with DocumentsStoreContext:
 
-  test("POST document") {
+  test("Post document") {
     val metadata = metadataG.sample.get
     val image = getClass.getClassLoader.getResource("mountain-bike-liguria-ponent.jpg")
     val multipart = Multipart[IO](
@@ -44,8 +42,10 @@ class DocumentsRoutesSpec
     val request = POST(uri"/documents").withEntity(multipart).withHeaders(multipart.headers)
     for
       store <- makeDocumentsStore()
+
       _ <- whenSending(request)
         .to(new DocumentsRoutes[IO, IO](store).routes)
+//
         .thenItReturns(Status.Created, withJsonPayload = metadata)
       storedMetadata <- store.fetchMetadata(metadata.name)
       uploadedBytes <- bytesFrom[IO]("mountain-bike-liguria-ponent.jpg").compile.toList
@@ -57,57 +57,41 @@ class DocumentsRoutesSpec
     yield ()
   }
 
-  test("GET document metadata") {
+  test("Get document metadata") {
     val document = documents[IO].sample.get
     val request = GET(Uri.unsafeFromString(s"/documents/metadata?name=${document.metadata.name.value}"))
     for
       store <- makeDocumentsStore(state = document)
+
       _ <- whenSending(request)
         .to(new DocumentsRoutes[IO, IO](store).routes)
+//
         .thenItReturns(Status.Ok, withJsonPayload = document.metadata)
     yield ()
   }
 
-  test("GET document bytes") {
+  test("Get document bytes") {
     val document = documents[IO].sample.get
     val request = GET(Uri.unsafeFromString(s"/documents?name=${document.metadata.name.value}"))
     for
       store <- makeDocumentsStore(state = document)
+
       _ <- whenSending(request)
         .to(new DocumentsRoutes[IO, IO](store).routes)
+//
         .thenItReturns(Status.Ok, withPayload = document.bytes)
     yield ()
   }
 
-  test("GET no document metadata") {
-    val document = documents.sample.get
-    val request = GET(Uri.unsafeFromString(s"/documents/metadata?name=${document.metadata.name.value}"))
-    for
-      store <- makeDocumentsStore()
-      _ <- whenSending(request)
-        .to(new DocumentsRoutes[IO, IO](store).routes)
-        .thenItReturns(Status.NotFound)
-    yield ()
-  }
-
-  test("GET no document bytes") {
-    val document = documents[IO].sample.get
-    val request = GET(Uri.unsafeFromString(s"/documents?name=${document.metadata.name.value}"))
-    for
-      store <- makeDocumentsStore()
-      _ <- whenSending(request)
-        .to(new DocumentsRoutes[IO, IO](store).routes)
-        .thenItReturns(Status.NotFound)
-    yield ()
-  }
-
-  test("DELETE document") {
+  test("Delete document") {
     val document = documents[IO].sample.get
     val request = DELETE(Uri.unsafeFromString(s"/documents?name=${document.metadata.name.value}"))
     for
       store <- makeDocumentsStore(state = document)
+
       _ <- whenSending(request)
         .to(new DocumentsRoutes[IO, IO](store).routes)
+//
         .thenItReturns(Status.NoContent)
       stored <- IO.both(
         store.fetchMetadata(document.metadata.name),
@@ -120,7 +104,30 @@ class DocumentsRoutesSpec
     yield ()
   }
 
-  test("contract: decode . encode <-> document metadata payload") {
+  /* Sad Path */
+
+  test("Post document with no file == bad request") {
+    val metadata = metadataG.sample.get
+    val image = getClass.getClassLoader.getResource("mountain-bike-liguria-ponent.jpg")
+    val multipart = Multipart[IO](
+      // no file mamma!
+      parts = Vector(Part.formData("metadata", metadata.asJson.spaces2SortKeys)),
+      boundary = Boundary("boundary")
+    )
+    val request = POST(uri"/documents").withEntity(multipart).withHeaders(multipart.headers)
+    for
+      store <- makeDocumentsStore()
+
+      _ <- whenSending(request)
+        .to(new DocumentsRoutes[IO, IO](store).routes)
+//
+        .thenItReturns(Status.BadRequest, withJsonPayload = Incorrect(NonEmptyChain.one(Incorrect.Missing("bytes"))))
+    yield ()
+  }
+
+  /* Contract */
+
+  test("decode . encode <-> document metadata payload") {
     jsonFrom[IO]("contract/datasources/http/document.metadata.json").use { raw =>
       IO {
         val original = parse(raw).rightValue
@@ -131,17 +138,17 @@ class DocumentsRoutesSpec
     }
   }
 
-trait DocumentsRoutesSpecContext extends FileContentContext:
-
-  given Encoder[Document.Metadata.Name] = Encoder.encodeString.contramap(_.value)
-  given Encoder[Document.Metadata.Description] = Encoder.encodeString.contramap(_.value)
-
-  given Encoder[Document.Metadata] = new Encoder[Document.Metadata]:
-    override def apply(metadata: Document.Metadata): Json =
-      Json.obj(
-        "name" -> metadata.name.asJson,
-        "description" -> metadata.description.asJson
-      )
+  // TODO This is a generic response and could be moved to another place?
+  test("decode . encode <-> incorrect payload") {
+    jsonFrom[IO]("contract/datasources/http/missing.fields.payload.json").use { raw =>
+      IO {
+        val original = parse(raw).rightValue
+        val metadata = decode[Incorrect](original.noSpaces).rightValue
+        val roundTrip = metadata.asJson
+        assertEquals(roundTrip.spaces2SortKeys, original.spaces2SortKeys)
+      }
+    }
+  }
 
 trait DocumentsStoreContext:
   def makeDocumentsStore(): IO[DocumentsStore[IO, IO]] = makeDocumentsStore(state = Map.empty)
