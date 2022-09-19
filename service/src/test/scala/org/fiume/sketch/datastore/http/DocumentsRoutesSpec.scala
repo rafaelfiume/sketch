@@ -13,6 +13,7 @@ import org.fiume.sketch.datastore.http.DocumentsRoutes
 import org.fiume.sketch.datastore.http.JsonCodecs.Documents.given
 import org.fiume.sketch.datastore.http.JsonCodecs.Incorrects.given
 import org.fiume.sketch.datastore.http.Model.Incorrect
+import org.fiume.sketch.datastore.http.Model.IncorrectOps.*
 import org.fiume.sketch.domain.Document
 import org.fiume.sketch.support.{FileContentContext, Http4sTestingRoutesDsl}
 import org.fiume.sketch.support.EitherSyntax.*
@@ -122,7 +123,7 @@ class DocumentsRoutesSpec extends CatsEffectSuite with Http4sTestingRoutesDsl wi
 //
         .thenItReturns(
           Status.BadRequest,
-          withJsonPayload = Incorrect(NonEmptyChain.one(Incorrect.Missing(field = "bytes")))
+          withJsonPayload = Incorrect("bytes".missing)
         )
     yield ()
   }
@@ -143,7 +144,7 @@ class DocumentsRoutesSpec extends CatsEffectSuite with Http4sTestingRoutesDsl wi
 //
         .thenItReturns(
           Status.BadRequest,
-          withJsonPayload = Incorrect(NonEmptyChain.one(Incorrect.Missing(field = "metadata")))
+          withJsonPayload = Incorrect("metadata".missing)
         )
     yield ()
   }
@@ -166,8 +167,7 @@ class DocumentsRoutesSpec extends CatsEffectSuite with Http4sTestingRoutesDsl wi
 //
         .thenItReturns(
           Status.BadRequest,
-          withJsonPayload =
-            Incorrect(NonEmptyChain.one(Incorrect.Malformed(description = "Malformed message body: Invalid JSON")))
+          withJsonPayload = Incorrect("Malformed message body: Invalid JSON".malformed)
         )
     yield ()
   }

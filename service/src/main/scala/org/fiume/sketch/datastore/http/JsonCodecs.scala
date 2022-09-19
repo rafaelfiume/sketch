@@ -1,7 +1,7 @@
 package org.fiume.sketch.datastore.http
 
-import cats.implicits.*
 import cats.data.NonEmptyChain
+import cats.implicits.*
 import io.circe.{Decoder, Encoder, HCursor, Json}
 import io.circe.Decoder.Result
 import io.circe.syntax.*

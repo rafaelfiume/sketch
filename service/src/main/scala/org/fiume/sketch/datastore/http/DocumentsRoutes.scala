@@ -34,28 +34,14 @@ class DocumentsRoutes[F[_]: Async, Txn[_]](store: DocumentsStore[F, Txn]) extend
     HttpRoutes.of[F] {
       case req @ POST -> Root / "documents" =>
         req.decode { (m: Multipart[F]) =>
-          val metadataV: EitherT[F, NonEmptyChain[Incorrect.Detail], Document.Metadata] =
-            EitherT
-              .fromEither {
-                m.parts.find { _.name == Some("metadata") }.orMissing("metadata")
-              }
-              .flatMap { json =>
-                json
-                  .as[Document.Metadata]
-                  .attemptT
-                  .leftMap { err => NonEmptyChain.one(Incorrect.Malformed(err.getMessage)) }
-              }
-          val bytesV: EitherT[F, NonEmptyChain[Incorrect.Detail], Stream[F, Byte]] = EitherT.fromEither {
-            m.parts.find { _.name == Some("document") }.orMissing("bytes").map(_.body)
-          }
-          val payload: EitherT[F, NonEmptyChain[Incorrect.Detail], (Document.Metadata, Stream[F, Byte])] =
-            (metadataV, bytesV).parTupled
+          val payload = (m.metadata, m.bytes).parTupled
           for
             value <- payload.value
             res <- value match {
               case Left(details) =>
                 logger.info(s"Received incorrect request to upload document: $details") *>
                   BadRequest(Incorrect(details))
+
               case Right((metadata, bytes)) =>
                 logger.info(s"Received request to upload document ${metadata.name}") *>
                   store.commit { store.store(Document[F](metadata, bytes)) } >>
@@ -95,3 +81,21 @@ class DocumentsRoutes[F[_]: Async, Txn[_]](store: DocumentsStore[F, Txn]) extend
 object DocumentsRoutes:
   given QueryParamDecoder[Document.Metadata.Name] = QueryParamDecoder.stringQueryParamDecoder.map(Document.Metadata.Name.apply)
   object NameQParam extends QueryParamDecoderMatcher[Document.Metadata.Name]("name")
+
+  // TODO Test extensions
+  extension [F[_]: MonadThrow: Concurrent](m: Multipart[F])
+    def metadata: EitherT[F, NonEmptyChain[Incorrect.Detail], Document.Metadata] = EitherT
+      .fromEither {
+        m.parts.find { _.name == Some("metadata") }.orMissing("metadata")
+      }
+      .flatMap { json =>
+        json
+          .as[Document.Metadata]
+          .attemptT
+          .leftMap { _.getMessage.malformed }
+      }
+
+    def bytes: EitherT[F, NonEmptyChain[Incorrect.Detail], Stream[F, Byte]] = EitherT
+      .fromEither {
+        m.parts.find { _.name == Some("document") }.orMissing("bytes").map(_.body)
+      }
