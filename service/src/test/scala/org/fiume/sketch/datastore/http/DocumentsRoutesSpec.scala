@@ -22,8 +22,6 @@ import org.http4s.headers.`Content-Type`
 import org.http4s.implicits.*
 import org.http4s.multipart.{Boundary, Multipart, Part}
 
-import java.net.URL
-
 class DocumentsRoutesSpec extends CatsEffectSuite with Http4sTestingRoutesDsl with FileContentContext with DocumentsStoreContext:
 
   test("Post document") {

@@ -25,7 +25,6 @@ import org.typelevel.log4cats.slf4j.Slf4jLogger
 import DocumentsRoutes.*
 
 class DocumentsRoutes[F[_]: Async, Txn[_]](store: DocumentsStore[F, Txn]) extends Http4sDsl[F]:
-
   private val logger = Slf4jLogger.getLogger[F]
 
   private val prefix = "/"
@@ -78,7 +77,7 @@ class DocumentsRoutes[F[_]: Async, Txn[_]](store: DocumentsStore[F, Txn]) extend
 
   val routes: HttpRoutes[F] = Router(prefix -> httpRoutes)
 
-object DocumentsRoutes:
+private [http] object DocumentsRoutes:
   given QueryParamDecoder[Document.Metadata.Name] = QueryParamDecoder.stringQueryParamDecoder.map(Document.Metadata.Name.apply)
   object NameQParam extends QueryParamDecoderMatcher[Document.Metadata.Name]("name")
 

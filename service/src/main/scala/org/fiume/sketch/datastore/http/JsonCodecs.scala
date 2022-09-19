@@ -43,23 +43,20 @@ object JsonCodecs:
       case malformed @ Incorrect.Malformed(_) => malformed.asJson
     }
 
-    given Encoder[Incorrect.Missing] = new Encoder[Incorrect.Missing] {
+    given Encoder[Incorrect.Missing] = new Encoder[Incorrect.Missing]:
       override def apply(missing: Incorrect.Missing): Json = Json.obj(
         "missing" -> missing.field.asJson
       )
-    }
 
-    given Encoder[Incorrect.Malformed] = new Encoder[Incorrect.Malformed] {
+    given Encoder[Incorrect.Malformed] = new Encoder[Incorrect.Malformed]:
       override def apply(malformed: Incorrect.Malformed): Json = Json.obj(
         "malformed" -> malformed.description.asJson
       )
-    }
 
-    given Encoder[Incorrect] = new Encoder[Incorrect] {
+    given Encoder[Incorrect] = new Encoder[Incorrect]:
       override def apply(incorrect: Incorrect): Json = Json.obj(
         "incorrect" -> incorrect.details.asJson
       )
-    }
 
     given Decoder[Incorrect.Detail] = List(
       Decoder[Incorrect.Missing].widen,

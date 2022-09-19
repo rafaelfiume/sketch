@@ -62,5 +62,5 @@ object HttpApi:
     healthCheck: HealthCheck[F],
     documentStore: DocumentsStore[F, ConnectionIO]
   ): HttpRoutes[F] =
-    HealthStatusRoutes[F](versions, healthCheck).routes <+>
-      DocumentsRoutes[F, ConnectionIO](documentStore).routes
+    new HealthStatusRoutes[F](versions, healthCheck).routes <+>
+     new DocumentsRoutes[F, ConnectionIO](documentStore).routes
