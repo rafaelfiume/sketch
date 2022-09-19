@@ -34,22 +34,28 @@ class DocumentsRoutes[F[_]: Async, Txn[_]](store: DocumentsStore[F, Txn]) extend
     HttpRoutes.of[F] {
       case req @ POST -> Root / "documents" =>
         req.decode { (m: Multipart[F]) =>
-          val metadataV: EitherT[F, NonEmptyChain[Incorrect.Missing], Document.Metadata] =
+          val metadataV: EitherT[F, NonEmptyChain[Incorrect.Detail], Document.Metadata] =
             EitherT
               .fromEither {
                 m.parts.find { _.name == Some("metadata") }.orMissing("metadata")
               }
-              .semiflatMap(_.as[Document.Metadata])
-          val bytesV: EitherT[F, NonEmptyChain[Incorrect.Missing], Stream[F, Byte]] = EitherT.fromEither {
+              .flatMap { json =>
+                json
+                  .as[Document.Metadata]
+                  .attemptT
+                  .leftMap { err => NonEmptyChain.one(Incorrect.Malformed(err.getMessage)) }
+              }
+          val bytesV: EitherT[F, NonEmptyChain[Incorrect.Detail], Stream[F, Byte]] = EitherT.fromEither {
             m.parts.find { _.name == Some("document") }.orMissing("bytes").map(_.body)
           }
-          val payload: EitherT[F, NonEmptyChain[Incorrect.Missing], (Document.Metadata, Stream[F, Byte])] =
+          val payload: EitherT[F, NonEmptyChain[Incorrect.Detail], (Document.Metadata, Stream[F, Byte])] =
             (metadataV, bytesV).parTupled
           for
             value <- payload.value
             res <- value match {
-              case Left(missing) =>
-                BadRequest(Incorrect(missing))
+              case Left(details) =>
+                logger.info(s"Received incorrect request to upload document: $details") *>
+                  BadRequest(Incorrect(details))
               case Right((metadata, bytes)) =>
                 logger.info(s"Received request to upload document ${metadata.name}") *>
                   store.commit { store.store(Document[F](metadata, bytes)) } >>

@@ -120,7 +120,10 @@ class DocumentsRoutesSpec extends CatsEffectSuite with Http4sTestingRoutesDsl wi
       _ <- whenSending(request)
         .to(new DocumentsRoutes[IO, IO](store).routes)
 //
-        .thenItReturns(Status.BadRequest, withJsonPayload = Incorrect(NonEmptyChain.one(Incorrect.Missing("bytes"))))
+        .thenItReturns(
+          Status.BadRequest,
+          withJsonPayload = Incorrect(NonEmptyChain.one(Incorrect.Missing(field = "bytes")))
+        )
     yield ()
   }
 
@@ -138,10 +141,36 @@ class DocumentsRoutesSpec extends CatsEffectSuite with Http4sTestingRoutesDsl wi
       _ <- whenSending(request)
         .to(new DocumentsRoutes[IO, IO](store).routes)
 //
-        .thenItReturns(Status.BadRequest, withJsonPayload = Incorrect(NonEmptyChain.one(Incorrect.Missing("metadata"))))
+        .thenItReturns(
+          Status.BadRequest,
+          withJsonPayload = Incorrect(NonEmptyChain.one(Incorrect.Missing(field = "metadata")))
+        )
     yield ()
   }
 
+  test("Post document with malformed metadata == bad request") {
+    val image = getClass.getClassLoader.getResource("mountain-bike-liguria-ponent.jpg")
+    val multipart = Multipart[IO](
+      parts = Vector(
+        Part.formData("metadata", """ { \"bananas\" : \"apples\" } """),
+        Part.fileData("document", image, `Content-Type`(MediaType.image.jpeg))
+      ),
+      boundary = Boundary("boundary")
+    )
+    val request = POST(uri"/documents").withEntity(multipart).withHeaders(multipart.headers)
+    for
+      store <- makeDocumentsStore()
+
+      _ <- whenSending(request)
+        .to(new DocumentsRoutes[IO, IO](store).routes)
+//
+        .thenItReturns(
+          Status.BadRequest,
+          withJsonPayload =
+            Incorrect(NonEmptyChain.one(Incorrect.Malformed(description = "Malformed message body: Invalid JSON")))
+        )
+    yield ()
+  }
   /* Contract */
 
   test("decode . encode <-> document metadata payload") {
@@ -160,8 +189,8 @@ class DocumentsRoutesSpec extends CatsEffectSuite with Http4sTestingRoutesDsl wi
     jsonFrom[IO]("contract/datasources/http/missing.fields.payload.json").use { raw =>
       IO {
         val original = parse(raw).rightValue
-        val metadata = decode[Incorrect](original.noSpaces).rightValue
-        val roundTrip = metadata.asJson
+        val incorrect = decode[Incorrect](original.noSpaces).rightValue
+        val roundTrip = incorrect.asJson
         assertEquals(roundTrip.spaces2SortKeys, original.spaces2SortKeys)
       }
     }

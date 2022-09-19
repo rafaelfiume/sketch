@@ -5,12 +5,14 @@ import cats.implicits.*
 
 object Model:
 
-  case class Incorrect(details: NonEmptyChain[Incorrect.Missing])
+  case class Incorrect(details: NonEmptyChain[Incorrect.Detail])
 
   object Incorrect:
-    case class Missing(field: String) extends AnyVal
+    sealed trait Detail
+    case class Missing(field: String) extends Detail
+    case class Malformed(description: String) extends Detail
 
   object IncorrectOps:
     extension [A](field: Option[A])
-      def orMissing(name: String): EitherNec[Incorrect.Missing, A] =
+      def orMissing(name: String): EitherNec[Incorrect.Detail, A] =
         field.toRight(Incorrect.Missing(name)).toEitherNec
