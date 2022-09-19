@@ -4,7 +4,7 @@ import cats.data.{NonEmptyChain, OptionT}
 import cats.effect.{IO, Ref}
 import cats.implicits.*
 import io.circe.syntax.*
-import munit.CatsEffectSuite
+import munit.{CatsEffectSuite, ScalaCheckEffectSuite}
 import org.fiume.sketch.datastore.algebras.DocumentsStore
 import org.fiume.sketch.datastore.http.DocumentsRoutes
 import org.fiume.sketch.datastore.http.JsonCodecs.Documents.given
@@ -21,105 +21,122 @@ import org.http4s.client.dsl.io.*
 import org.http4s.headers.`Content-Type`
 import org.http4s.implicits.*
 import org.http4s.multipart.{Boundary, Multipart, Part}
+import org.scalacheck.Shrink
+import org.scalacheck.effect.PropF.forAllF
 
-class DocumentsRoutesSpec extends CatsEffectSuite with Http4sTestingRoutesDsl with FileContentContext with DocumentsStoreContext:
+class DocumentsRoutesSpec
+    extends CatsEffectSuite
+    with ScalaCheckEffectSuite
+    with Http4sTestingRoutesDsl
+    with FileContentContext
+    with DocumentsStoreContext:
+
+  given noShrink[T]: Shrink[T] = Shrink.shrinkAny
+
+  // tests are slow, so run them less often
+  override def scalaCheckTestParameters = super.scalaCheckTestParameters.withMinSuccessfulTests(3)
 
   test("Post document") {
-    val metadata = metadataG.sample.get
-    val image = getClass.getClassLoader.getResource("mountain-bike-liguria-ponent.jpg")
-    val multipart = Multipart[IO](
-      parts = Vector(
-        Part.formData("metadata", metadata.asJson.spaces2SortKeys),
-        Part.fileData("document", image, `Content-Type`(MediaType.image.jpeg))
-      ),
-      boundary = Boundary("boundary")
-    )
-    val request = POST(uri"/documents").withEntity(multipart).withHeaders(multipart.headers)
-    for
-      store <- makeDocumentsStore()
+    forAllF(metadataG) { metadata =>
+      val image = getClass.getClassLoader.getResource("mountain-bike-liguria-ponent.jpg")
+      val multipart = Multipart[IO](
+        parts = Vector(
+          Part.formData("metadata", metadata.asJson.spaces2SortKeys),
+          Part.fileData("document", image, `Content-Type`(MediaType.image.jpeg))
+        ),
+        boundary = Boundary("boundary")
+      )
+      val request = POST(uri"/documents").withEntity(multipart).withHeaders(multipart.headers)
+      for
+        store <- makeDocumentsStore()
 
-      _ <- whenSending(request)
-        .to(new DocumentsRoutes[IO, IO](store).routes)
+        _ <- whenSending(request)
+          .to(new DocumentsRoutes[IO, IO](store).routes)
 //
-        .thenItReturns(Status.Created, withJsonPayload = metadata)
-      storedMetadata <- store.fetchMetadata(metadata.name)
-      uploadedBytes <- bytesFrom[IO]("mountain-bike-liguria-ponent.jpg").compile.toList
-      storedBytes <- OptionT(store.fetchBytes(metadata.name)).semiflatMap(_.compile.toList).value
-      _ <- IO {
-        assertEquals(storedMetadata, metadata.some)
-        assertEquals(storedBytes.map(_.toList), uploadedBytes.some)
-      }
-    yield ()
+          .thenItReturns(Status.Created, withJsonPayload = metadata)
+        storedMetadata <- store.fetchMetadata(metadata.name)
+        uploadedBytes <- bytesFrom[IO]("mountain-bike-liguria-ponent.jpg").compile.toList
+        storedBytes <- OptionT(store.fetchBytes(metadata.name)).semiflatMap(_.compile.toList).value
+        _ <- IO {
+          assertEquals(storedMetadata, metadata.some)
+          assertEquals(storedBytes.map(_.toList), uploadedBytes.some)
+        }
+      yield ()
+    }
   }
 
   test("Get document metadata") {
-    val document = documents[IO].sample.get
-    val request = GET(Uri.unsafeFromString(s"/documents/metadata?name=${document.metadata.name.value}"))
-    for
-      store <- makeDocumentsStore(state = document)
+    forAllF(documents[IO]) { document =>
+      val request = GET(Uri.unsafeFromString(s"/documents/metadata?name=${document.metadata.name.value}"))
+      for
+        store <- makeDocumentsStore(state = document)
 
-      _ <- whenSending(request)
-        .to(new DocumentsRoutes[IO, IO](store).routes)
+        _ <- whenSending(request)
+          .to(new DocumentsRoutes[IO, IO](store).routes)
 //
-        .thenItReturns(Status.Ok, withJsonPayload = document.metadata)
-    yield ()
+          .thenItReturns(Status.Ok, withJsonPayload = document.metadata)
+      yield ()
+    }
   }
 
   test("Get document bytes") {
-    val document = documents[IO].sample.get
-    val request = GET(Uri.unsafeFromString(s"/documents?name=${document.metadata.name.value}"))
-    for
-      store <- makeDocumentsStore(state = document)
+    forAllF(documents[IO]) { document =>
+      val request = GET(Uri.unsafeFromString(s"/documents?name=${document.metadata.name.value}"))
+      for
+        store <- makeDocumentsStore(state = document)
 
-      _ <- whenSending(request)
-        .to(new DocumentsRoutes[IO, IO](store).routes)
+        _ <- whenSending(request)
+          .to(new DocumentsRoutes[IO, IO](store).routes)
 //
-        .thenItReturns(Status.Ok, withPayload = document.bytes)
-    yield ()
+          .thenItReturns(Status.Ok, withPayload = document.bytes)
+      yield ()
+    }
   }
 
   test("Delete document") {
-    val document = documents[IO].sample.get
-    val request = DELETE(Uri.unsafeFromString(s"/documents?name=${document.metadata.name.value}"))
-    for
-      store <- makeDocumentsStore(state = document)
+    forAllF(documents[IO]) { document =>
+      val request = DELETE(Uri.unsafeFromString(s"/documents?name=${document.metadata.name.value}"))
+      for
+        store <- makeDocumentsStore(state = document)
 
-      _ <- whenSending(request)
-        .to(new DocumentsRoutes[IO, IO](store).routes)
+        _ <- whenSending(request)
+          .to(new DocumentsRoutes[IO, IO](store).routes)
 //
-        .thenItReturns(Status.NoContent)
-      stored <- IO.both(
-        store.fetchMetadata(document.metadata.name),
-        OptionT(store.fetchBytes(document.metadata.name)).semiflatMap(_.compile.toList).value
-      )
-      _ <- IO {
-        assertEquals(stored._1, none)
-        assertEquals(stored._2, none)
-      }
-    yield ()
+          .thenItReturns(Status.NoContent)
+        stored <- IO.both(
+          store.fetchMetadata(document.metadata.name),
+          OptionT(store.fetchBytes(document.metadata.name)).semiflatMap(_.compile.toList).value
+        )
+        _ <- IO {
+          assertEquals(stored._1, none)
+          assertEquals(stored._2, none)
+        }
+      yield ()
+    }
   }
 
   /* Sad Path */
 
   test("Post document with no file == bad request") {
-    val metadata = metadataG.sample.get
-    val multipart = Multipart[IO](
-      // no file mamma!
-      parts = Vector(Part.formData("metadata", metadata.asJson.spaces2SortKeys)),
-      boundary = Boundary("boundary")
-    )
-    val request = POST(uri"/documents").withEntity(multipart).withHeaders(multipart.headers)
-    for
-      store <- makeDocumentsStore()
+    forAllF(metadataG) { metadata =>
+      val multipart = Multipart[IO](
+        // no file mamma!
+        parts = Vector(Part.formData("metadata", metadata.asJson.spaces2SortKeys)),
+        boundary = Boundary("boundary")
+      )
+      val request = POST(uri"/documents").withEntity(multipart).withHeaders(multipart.headers)
+      for
+        store <- makeDocumentsStore()
 
-      _ <- whenSending(request)
-        .to(new DocumentsRoutes[IO, IO](store).routes)
+        _ <- whenSending(request)
+          .to(new DocumentsRoutes[IO, IO](store).routes)
 //
-        .thenItReturns(
-          Status.BadRequest,
-          withJsonPayload = Incorrect("bytes".missing)
-        )
-    yield ()
+          .thenItReturns(
+            Status.BadRequest,
+            withJsonPayload = Incorrect("bytes".missing)
+          )
+      yield ()
+    }
   }
 
   test("Post document with no metadata == bad request") {
