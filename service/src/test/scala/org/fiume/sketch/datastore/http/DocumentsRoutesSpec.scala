@@ -187,6 +187,20 @@ class DocumentsRoutesSpec
     yield ()
   }
 
+  test("Delete unexistent document == not found") {
+    forAllF(documents[IO]) { document =>
+      val request = DELETE(Uri.unsafeFromString(s"/documents?name=${document.metadata.name.value}"))
+      for
+        store <- makeDocumentsStore()
+
+        _ <- whenSending(request)
+          .to(new DocumentsRoutes[IO, IO](store).routes)
+//
+          .thenItReturns(Status.NotFound)
+      yield ()
+    }
+  }
+
   /* Validation */
 
   List(

@@ -70,14 +70,19 @@ class DocumentsRoutes[F[_]: Async, Txn[_]](store: DocumentsStore[F, Txn]) extend
       case DELETE -> Root / "documents" :? NameQParam(name) =>
         for
           _ <- logger.info(s"Received request to delete doc $name")
-          _ <- store.commit { store.delete(name) }
-          res <- NoContent()
+          metadata <- store.commit { store.fetchMetadata(name) }
+          res <- metadata match {
+            case None => NotFound()
+            case Some(_) =>
+              store.commit { store.delete(name) } >>
+                NoContent()
+          }
         yield res
     }
 
   val routes: HttpRoutes[F] = Router(prefix -> httpRoutes)
 
-private [http] object DocumentsRoutes:
+private[http] object DocumentsRoutes:
   given QueryParamDecoder[Document.Metadata.Name] = QueryParamDecoder.stringQueryParamDecoder.map(Document.Metadata.Name.apply)
   object NameQParam extends QueryParamDecoderMatcher[Document.Metadata.Name]("name")
 
