@@ -6,7 +6,6 @@ import org.http4s.{EntityDecoder, HttpRoutes, Request, Status}
 import org.http4s.Method.*
 import org.http4s.implicits.*
 
-// TODO Warning! For some unknown reason, this dsl _does not_ work with _ScalaCheckSuite_?!
 trait Http4sTestingRoutesDsl extends Assertions:
 
   private val breakingContractWarningMessage =

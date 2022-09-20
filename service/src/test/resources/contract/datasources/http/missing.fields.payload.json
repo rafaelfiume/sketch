@@ -1,0 +1,10 @@
+{
+    "incorrect": [
+        {
+            "missing": "bytes"
+        },
+        {
+            "malformed": "Malformed message body: Invalid JSON"
+        }
+    ]
+}

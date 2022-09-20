@@ -1,11 +1,16 @@
 package org.fiume.sketch.datastore.http
 
 import cats.MonadThrow
+import cats.data.{EitherT, NonEmptyChain}
 import cats.effect.{Concurrent, Sync}
 import cats.effect.kernel.Async
 import cats.implicits.*
+import fs2.Stream
 import org.fiume.sketch.datastore.algebras.DocumentsStore
 import org.fiume.sketch.datastore.http.JsonCodecs.Documents.given
+import org.fiume.sketch.datastore.http.JsonCodecs.Incorrects.given
+import org.fiume.sketch.datastore.http.Model.Incorrect
+import org.fiume.sketch.datastore.http.Model.IncorrectOps.*
 import org.fiume.sketch.domain.Document
 import org.http4s.{HttpRoutes, QueryParamDecoder, _}
 import org.http4s.circe.CirceEntityDecoder.*
@@ -20,7 +25,6 @@ import org.typelevel.log4cats.slf4j.Slf4jLogger
 import DocumentsRoutes.*
 
 class DocumentsRoutes[F[_]: Async, Txn[_]](store: DocumentsStore[F, Txn]) extends Http4sDsl[F]:
-
   private val logger = Slf4jLogger.getLogger[F]
 
   private val prefix = "/"
@@ -29,18 +33,19 @@ class DocumentsRoutes[F[_]: Async, Txn[_]](store: DocumentsStore[F, Txn]) extend
     HttpRoutes.of[F] {
       case req @ POST -> Root / "documents" =>
         req.decode { (m: Multipart[F]) =>
-          // TODO Sad path
+          val payload = (m.metadata, m.bytes).parTupled
           for
-            metadata <- m.parts
-              .find(_.name == Some("metadata"))
-              .getOrElse(throw new RuntimeException("sad path coming soon"))
-              .as[Document.Metadata]
-            documentBytes = m.parts
-              .find(_.name == Some("document"))
-              .fold(ifEmpty = fs2.Stream.empty)(part => part.body)
-            _ <- logger.info(s"Received request to upload document ${metadata.name}")
-            _ <- store.commit { store.store(Document[F](metadata, documentBytes)) }
-            res <- Created(metadata)
+            value <- payload.value
+            res <- value match {
+              case Left(details) =>
+                logger.info(s"Received incorrect request to upload document: $details") *>
+                  BadRequest(Incorrect(details))
+
+              case Right((metadata, bytes)) =>
+                logger.info(s"Received request to upload document ${metadata.name}") *>
+                  store.commit { store.store(Document[F](metadata, bytes)) } >>
+                  Created(metadata)
+            }
           yield res
         }
 
@@ -65,13 +70,35 @@ class DocumentsRoutes[F[_]: Async, Txn[_]](store: DocumentsStore[F, Txn]) extend
       case DELETE -> Root / "documents" :? NameQParam(name) =>
         for
           _ <- logger.info(s"Received request to delete doc $name")
-          _ <- store.commit { store.delete(name) }
-          res <- NoContent()
+          metadata <- store.commit { store.fetchMetadata(name) }
+          res <- metadata match {
+            case None => NotFound()
+            case Some(_) =>
+              store.commit { store.delete(name) } >>
+                NoContent()
+          }
         yield res
     }
 
   val routes: HttpRoutes[F] = Router(prefix -> httpRoutes)
 
-object DocumentsRoutes:
+private[http] object DocumentsRoutes:
   given QueryParamDecoder[Document.Metadata.Name] = QueryParamDecoder.stringQueryParamDecoder.map(Document.Metadata.Name.apply)
   object NameQParam extends QueryParamDecoderMatcher[Document.Metadata.Name]("name")
+
+  extension [F[_]: MonadThrow: Concurrent](m: Multipart[F])
+    def metadata: EitherT[F, NonEmptyChain[Incorrect.Detail], Document.Metadata] = EitherT
+      .fromEither {
+        m.parts.find { _.name == Some("metadata") }.orMissing("metadata")
+      }
+      .flatMap { json =>
+        json
+          .as[Document.Metadata]
+          .attemptT
+          .leftMap { _.getMessage.malformed }
+      }
+
+    def bytes: EitherT[F, NonEmptyChain[Incorrect.Detail], Stream[F, Byte]] = EitherT
+      .fromEither {
+        m.parts.find { _.name == Some("document") }.orMissing("bytes").map(_.body)
+      }
