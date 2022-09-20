@@ -35,7 +35,7 @@ class HealthStatusRoutesSpec
   test("ping returns pong") {
     whenSending(GET(uri"/ping"))
       .to(new HealthStatusRoutes[IO](makeVersions(Version("")), makeHealthCheck).routes)
-      .thenItReturns[String](Status.Ok, withJsonPayload = "pong") // not really json
+      .thenItReturns[String](Status.Ok, withJsonPayload = "pong")
   }
 
   test("return the status of the app when db is healthy") {

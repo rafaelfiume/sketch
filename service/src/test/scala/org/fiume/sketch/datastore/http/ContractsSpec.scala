@@ -27,7 +27,7 @@ class ContractsSpec extends CatsEffectSuite with FileContentContext:
     }
   }
 
-  // TODO This is a generic response and could be moved to another place?
+  // This is a generic response and could be moved to another place?
   test("decode . encode <-> incorrect payload") {
     jsonFrom[IO]("contract/datasources/http/missing.fields.payload.json").use { raw =>
       IO {
