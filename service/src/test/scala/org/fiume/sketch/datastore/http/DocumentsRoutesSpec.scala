@@ -1,6 +1,6 @@
 package org.fiume.sketch.datastore.http
 
-import cats.data.{NonEmptyChain, OptionT}
+import cats.data.{EitherT, NonEmptyChain, OptionT}
 import cats.effect.{IO, Ref}
 import cats.implicits.*
 import io.circe.syntax.*
@@ -13,6 +13,7 @@ import org.fiume.sketch.datastore.http.Model.Incorrect
 import org.fiume.sketch.datastore.http.Model.IncorrectOps.*
 import org.fiume.sketch.domain.Document
 import org.fiume.sketch.support.{FileContentContext, Http4sTestingRoutesDsl}
+import org.fiume.sketch.support.EitherSyntax.*
 import org.fiume.sketch.support.gens.SketchGens.Documents.*
 import org.http4s.{MediaType, _}
 import org.http4s.Method.*
@@ -23,6 +24,8 @@ import org.http4s.implicits.*
 import org.http4s.multipart.{Boundary, Multipart, Part}
 import org.scalacheck.Shrink
 import org.scalacheck.effect.PropF.forAllF
+
+import DocumentsRoutes.*
 
 class DocumentsRoutesSpec
     extends CatsEffectSuite
@@ -139,6 +142,7 @@ class DocumentsRoutesSpec
     }
   }
 
+  // TODO Can be merged with test above
   test("Post document with no metadata == bad request") {
     val image = getClass.getClassLoader.getResource("mountain-bike-liguria-ponent.jpg")
     val multipart = Multipart[IO](
@@ -181,6 +185,55 @@ class DocumentsRoutesSpec
           withJsonPayload = Incorrect("Malformed message body: Invalid JSON".malformed)
         )
     yield ()
+  }
+
+  /* Validation */
+
+  List(
+    "missing" ->
+      Multipart[IO](parts = Vector.empty, boundary = Boundary("boundary")) ->
+      "metadata".missing,
+    "malformed" ->
+      Multipart[IO](
+        parts = Vector(Part.formData("metadata", """ { \"bananas\" : \"apples\" } """)),
+        boundary = Boundary("boundary")
+      ) -> "Malformed message body: Invalid JSON".malformed
+  )
+    .foreach { case ((description, multipart), expected) =>
+      test(s"validate metadata: $description") {
+        multipart.metadata
+          .map { _ => fail("expected left") }
+          .leftMap { result => assertEquals(result, expected) }
+          .value
+      }
+    }
+
+  List(
+    "missing" -> Multipart[IO](parts = Vector.empty, boundary = Boundary("boundary")) -> "bytes".missing
+  )
+    .foreach { case ((description, multipart), expected) =>
+      test(s"validate document bytes: $description") {
+        multipart.bytes
+          .map { _ => fail("expected left") }
+          .leftMap { result => assertEquals(result, expected) }
+          .value
+      }
+    }
+
+  // TODO bug: it is not accumulating!
+  test("validation accumulates".ignore) {
+    val multipart = Multipart[IO](
+      parts = Vector.empty,
+      boundary = Boundary("boundary")
+    )
+
+    val result: EitherT[IO, NonEmptyChain[Incorrect.Detail], (Document.Metadata, fs2.Stream[IO, Byte])] =
+      (multipart.metadata, multipart.bytes).parTupled
+
+    result
+      .map { _ => fail("expected left") }
+      .leftMap { result => assertEquals(result.toList, ("metadata".missing |+| "bytes".missing).toList) }
+      .value
   }
 
 trait DocumentsStoreContext:

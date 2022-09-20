@@ -12,7 +12,6 @@ object Model:
     case class Missing(field: String) extends Detail
     case class Malformed(description: String) extends Detail
 
-  // TODO Test ops
   object IncorrectOps:
     extension [A](field: Option[A])
       def orMissing(name: String): EitherNec[Incorrect.Detail, A] =

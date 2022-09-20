@@ -81,7 +81,6 @@ private [http] object DocumentsRoutes:
   given QueryParamDecoder[Document.Metadata.Name] = QueryParamDecoder.stringQueryParamDecoder.map(Document.Metadata.Name.apply)
   object NameQParam extends QueryParamDecoderMatcher[Document.Metadata.Name]("name")
 
-  // TODO Test extensions
   extension [F[_]: MonadThrow: Concurrent](m: Multipart[F])
     def metadata: EitherT[F, NonEmptyChain[Incorrect.Detail], Document.Metadata] = EitherT
       .fromEither {
