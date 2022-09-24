@@ -33,7 +33,7 @@ class DocumentsRoutes[F[_]: Async, Txn[_]](store: DocumentsStore[F, Txn]) extend
     HttpRoutes.of[F] {
       case req @ POST -> Root / "documents" =>
         req.decode { (m: Multipart[F]) =>
-          val payload = (m.metadata, m.bytes).parTupled
+          val payload = (m.metadata, m.bytes).parTupled // warning: errors won't accumulate by default: see validation tests
           for
             value <- payload.value
             res <- value match {

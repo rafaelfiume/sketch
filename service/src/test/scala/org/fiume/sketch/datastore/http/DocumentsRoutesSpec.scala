@@ -234,8 +234,14 @@ class DocumentsRoutesSpec
       }
     }
 
-  // TODO bug: it is not accumulating!
-  test("validation accumulates".ignore) {
+  test("validation accumulates") {
+    /*
+     * Needs an alternative instance of Parallel to accumulate error
+     * More details here: https://github.com/typelevel/cats/pull/3777/files
+     */
+    given accumulatingParallel: cats.Parallel[EitherT[IO, NonEmptyChain[Incorrect.Detail], *]] =
+      EitherT.accumulatingParallel
+
     val multipart = Multipart[IO](
       parts = Vector.empty,
       boundary = Boundary("boundary")
