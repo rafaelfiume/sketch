@@ -1,9 +1,9 @@
 package org.fiume.sketch.app
 
-import cats.effect.{IO, IOApp}
+import cats.effect.{ExitCode, IO, IOApp}
 import org.slf4j.LoggerFactory
 
-object Main extends IOApp.Simple:
+object Main extends IOApp:
 
   private val log = LoggerFactory.getLogger(Main.getClass)
 
@@ -14,4 +14,4 @@ object Main extends IOApp.Simple:
         System.exit(1)
   )
 
-  override def run: IO[Unit] = Server.run[IO]
+  override def run(args: List[String]): IO[ExitCode] = Server.run[IO]

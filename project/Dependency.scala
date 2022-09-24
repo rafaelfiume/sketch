@@ -10,7 +10,7 @@ object Dependency {
     val ciris                 = "2.4.0"
     val doobie                = "1.0.0-RC2"
     val flyway                = "9.3.1"
-    val http4s                = "1.0.0-M36"
+    val http4s                = "1.0.0-M37"
     val log4cats              = "2.5.0"
     val monocle               = "3.1.0"
     val slf4j                 = "2.0.2"
@@ -33,10 +33,10 @@ object Dependency {
   val doobiePostgres              = "org.tpolecat"               %% "doobie-postgres"                     % Version.doobie
   val doobieHikari                = "org.tpolecat"               %% "doobie-hikari"                       % Version.doobie
   val flyway                      = "org.flywaydb"               %  "flyway-core"                         % Version.flyway
-  val http4sBlazeClient           = "org.http4s"                 %% "http4s-blaze-client"                 % Version.http4s
-  val http4sBlazeServer           = "org.http4s"                 %% "http4s-blaze-server"                 % Version.http4s
-  val http4sDsl                   = "org.http4s"                 %% "http4s-dsl"                          % Version.http4s
   val http4sCirce                 = "org.http4s"                 %% "http4s-circe"                        % Version.http4s
+  val http4sDsl                   = "org.http4s"                 %% "http4s-dsl"                          % Version.http4s
+  val http4sEmberClient           = "org.http4s"                 %% "http4s-ember-client"                 % Version.http4s
+  val http4sEmberServer           = "org.http4s"                 %% "http4s-ember-server"                 % Version.http4s
   val log4catsCore                = "org.typelevel"              %% "log4cats-core"                       % Version.log4cats
   val log4catsSlf4j               = "org.typelevel"              %% "log4cats-slf4j"                      % Version.log4cats
   val monocleCore                 = "dev.optics"                 %% "monocle-core"                        % Version.monocle
