@@ -43,6 +43,7 @@ val IntegrationTests = config("it").extend(Test)
 lazy val service =
   (project in file("service"))
     .enablePlugins(JavaAppPackaging)
+    .disablePlugins(plugins.JUnitXmlReportPlugin) // see https://www.scala-sbt.org/1.x/docs/Testing.html
     .settings(commonSettings: _*)
     .configs(IntegrationTests)
     .settings(
