@@ -6,8 +6,6 @@ val ScalaVersion = "3.2.0"
 
 enablePlugins(GitVersioning)
 
-ThisBuild / envFileName := "service/environments/dev.env"
-
 // scala fix organise imports config
 ThisBuild / scalafixDependencies += "com.github.liancheng" %% "organize-imports" % "0.6.0"
 // scalafix semantic db config
@@ -48,10 +46,6 @@ lazy val service =
     .configs(IntegrationTests)
     .settings(
       inConfig(IntegrationTests)(Defaults.testSettings ++ scalafixConfigSettings(IntegrationTests))
-    )
-    .settings(
-      Test / envFileName := "service/environments/dev.env",
-      Test / envVars := (Test / envFromFile).value
     )
     .settings(
       name := "sketch",
