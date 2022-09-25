@@ -35,7 +35,7 @@ lazy val commonSettings = Seq(
   scalaVersion := ScalaVersion,
   organization := "org.fiume",
   version := buildNumber,
-  run / fork := true
+  fork := true
 )
 
 val IntegrationTests = config("it").extend(Test)
@@ -47,7 +47,7 @@ lazy val service =
     .settings(commonSettings: _*)
     .configs(IntegrationTests)
     .settings(
-      inConfig(IntegrationTests)(Defaults.testSettings ++ scalafixConfigSettings(IntegrationTests) ++ Seq(fork := true)): _*
+      inConfig(IntegrationTests)(Defaults.testSettings ++ scalafixConfigSettings(IntegrationTests))
     )
     .settings(
       Test / envFileName := "service/environments/dev.env",
@@ -101,6 +101,22 @@ lazy val service =
       dockerUpdateLatest := true,
       dockerUsername := Some("rafaelfiume"),
       dockerRepository := Some("docker.io")
+    )
+
+lazy val acceptance =
+  (project in file("acceptance"))
+    .disablePlugins(plugins.JUnitXmlReportPlugin)
+    .settings(commonSettings: _*)
+    .settings(
+      name := "acceptance",
+      libraryDependencies ++= Seq(
+        Dependency.cats,
+        Dependency.catsEffect,
+        Dependency.http4sEmberClient,
+        Dependency.munit % Test,
+        Dependency.munitCatsEffect % Test,
+        Dependency.munitScalaCheckEffect % Test
+      )
     )
 
 lazy val sketch =
