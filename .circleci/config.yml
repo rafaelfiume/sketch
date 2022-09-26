@@ -48,6 +48,10 @@ jobs:
           command: cat /dev/null | sbt it:test
 
       - run:
+          name: Start services with docker compose
+          command: ./start-local.sh
+
+      - run:
           name: Push service docker image
           command: |
             echo $DOCKER_PWD | docker login -u $DOCKER_LOGIN --password-stdin
