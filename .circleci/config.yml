@@ -48,8 +48,10 @@ jobs:
           command: cat /dev/null | sbt it:test
 
       - run:
-          name: Start services with docker compose
-          command: ./start-local.sh
+          name: Acceptance tests
+          command: |
+            ./start-local.sh
+            sbt "acceptance/test"
 
       - run:
           name: Push service docker image
