@@ -18,7 +18,7 @@ object Dependency {
     val munit                 = "0.7.29"
     val munitCatsEffect       = "1.0.7"
     val munitScalaCheckEffect = "1.0.4"
-    val munitTestcontainers   = "0.40.10"
+    val munitTestcontainers   = "0.40.11"
   }
 
   val cats                        = "org.typelevel"              %% "cats-free"                           % Version.cats
