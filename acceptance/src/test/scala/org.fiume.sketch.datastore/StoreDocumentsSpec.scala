@@ -10,7 +10,7 @@ import org.http4s.implicits.*
 class StoreDocumentsSpec extends CatsEffectSuite:
 
   // should be moved to a separated suite in the future
-  test("ping") {
+  test("ping returns pong") {
     EmberClientBuilder.default[IO].build.use { client =>
       client.expect[String](uri"http://localhost:8080/ping").map { res =>
         assertEquals(res, "\"pong\"") // json string
