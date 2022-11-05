@@ -11,7 +11,7 @@ Sbt:
   `$ sbt scalafixAll`
   `$ sbt docker:publishLocal`
 
-Acceptance tests tasks are run separately, e.g.:
+Acceptance tests tasks:
   `$ sbt acceptance/test`
   `$ sbt acceptance/scalafixAll`
 
