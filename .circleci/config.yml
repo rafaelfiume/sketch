@@ -10,6 +10,7 @@ jobs:
     # See: https://circleci.com/docs/2.0/configuration-reference/#docker-machine-macos-windows-executor
     machine:
       image: ubuntu-2204:2022.07.1
+      docker_layer_caching: true
 
     working_directory: ~/repo
 
@@ -46,6 +47,12 @@ jobs:
       - run:
           name: Integration tests
           command: cat /dev/null | sbt it:test
+
+      - run:
+          name: Acceptance tests
+          command: |
+            ./start-local.sh
+            sbt "acceptance/test"
 
       - run:
           name: Push service docker image

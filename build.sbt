@@ -6,8 +6,6 @@ val ScalaVersion = "3.2.0"
 
 enablePlugins(GitVersioning)
 
-ThisBuild / envFileName := "service/environments/dev.env"
-
 // scala fix organise imports config
 ThisBuild / scalafixDependencies += "com.github.liancheng" %% "organize-imports" % "0.6.0"
 // scalafix semantic db config
@@ -35,7 +33,7 @@ lazy val commonSettings = Seq(
   scalaVersion := ScalaVersion,
   organization := "org.fiume",
   version := buildNumber,
-  run / fork := true
+  fork := true
 )
 
 val IntegrationTests = config("it").extend(Test)
@@ -43,14 +41,11 @@ val IntegrationTests = config("it").extend(Test)
 lazy val service =
   (project in file("service"))
     .enablePlugins(JavaAppPackaging)
+    .disablePlugins(plugins.JUnitXmlReportPlugin) // see https://www.scala-sbt.org/1.x/docs/Testing.html
     .settings(commonSettings: _*)
     .configs(IntegrationTests)
     .settings(
-      inConfig(IntegrationTests)(Defaults.testSettings ++ scalafixConfigSettings(IntegrationTests) ++ Seq(fork := true)): _*
-    )
-    .settings(
-      Test / envFileName := "service/environments/dev.env",
-      Test / envVars := (Test / envFromFile).value
+      inConfig(IntegrationTests)(Defaults.testSettings ++ scalafixConfigSettings(IntegrationTests))
     )
     .settings(
       name := "sketch",
@@ -100,6 +95,22 @@ lazy val service =
       dockerUpdateLatest := true,
       dockerUsername := Some("rafaelfiume"),
       dockerRepository := Some("docker.io")
+    )
+
+lazy val acceptance =
+  (project in file("acceptance"))
+    .disablePlugins(plugins.JUnitXmlReportPlugin)
+    .settings(commonSettings: _*)
+    .settings(
+      name := "acceptance",
+      libraryDependencies ++= Seq(
+        Dependency.cats,
+        Dependency.catsEffect,
+        Dependency.http4sEmberClient,
+        Dependency.munit % Test,
+        Dependency.munitCatsEffect % Test,
+        Dependency.munitScalaCheckEffect % Test
+      )
     )
 
 lazy val sketch =

@@ -4,7 +4,6 @@ import sbt.*
 object Plugin {
   private object Version {
     val DependencyGraph    = "0.9.2"
-    val DotEnv             = "3.0.0"
     val Git                = "2.0.0"
     val OrganizeImports    = "0.6.0"
     val SbtNativePackager  = "1.9.11"
@@ -15,7 +14,6 @@ object Plugin {
 
   // TODO Use sbt-explicit-dependencies ?
   val DependencyGraph   = "net.virtual-void"           %  "sbt-dependency-graph"  % Version.DependencyGraph
-  val DotEnv            = "nl.gn0s1s"                  %% "sbt-dotenv"            % Version.DotEnv
   val Git               = "com.github.sbt"             %  "sbt-git"               % Version.Git
   val OrganizeImports   = "com.github.liancheng"       %% "organize-imports"      % Version.OrganizeImports
   val SbtNativePackager = "com.github.sbt"             %% "sbt-native-packager"   % Version.SbtNativePackager

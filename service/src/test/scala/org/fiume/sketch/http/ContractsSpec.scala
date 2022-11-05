@@ -12,9 +12,14 @@ import org.fiume.sketch.http.Model.AppStatus
 import org.fiume.sketch.support.EitherSyntax.*
 import org.fiume.sketch.support.FileContentContext
 
+/*
+ * Checks encode and decode functions are isomorphic:
+ * f . g = id
+ * g . f = id
+ */
 class ContractsSpec extends CatsEffectSuite with FileContentContext:
 
-  test("decode . encode <-> status payload") {
+  test("encode . decode json <-> json (status payload)") {
     jsonFrom[IO]("contract/http/get.status.json").use { raw =>
       IO {
         val original = parse(raw).rightValue
