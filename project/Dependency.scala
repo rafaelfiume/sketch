@@ -4,20 +4,20 @@ import sbt._
 object Dependency {
   private object Version {
     val cats                  = "2.8.0"
-    val catsEffect            = "3.3.14"
+    val catsEffect            = "3.4.5"
     val circe                 = "0.14.3"
-    val ciris                 = "2.4.0"
+    val ciris                 = "3.0.0"
     val doobie                = "1.0.0-RC2"
     val flyway                = "9.7.0"
-    val http4s                = "1.0.0-M37"
+    val http4s                = "1.0.0-M39"
     val log4cats              = "2.5.0"
     val monocle               = "3.1.0"
-    val slf4j                 = "2.0.3"
+    val slf4j                 = "2.0.6"
 
     val munit                 = "0.7.29"
     val munitCatsEffect       = "1.0.7"
     val munitScalaCheckEffect = "1.0.4"
-    val munitTestcontainers   = "0.40.11"
+    val munitTestcontainers   = "0.40.12"
   }
 
   val cats                        = "org.typelevel"              %% "cats-free"                           % Version.cats
