@@ -9,7 +9,7 @@ object Dependency {
     val ciris                 = "2.4.0"
     val doobie                = "1.0.0-RC2"
     val flyway                = "9.7.0"
-    val http4s                = "1.0.0-M37"
+    val http4s                = "1.0.0-M39"
     val log4cats              = "2.5.0"
     val monocle               = "3.1.0"
     val slf4j                 = "2.0.6"
