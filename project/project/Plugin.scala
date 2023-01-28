@@ -4,7 +4,7 @@ import sbt.*
 object Plugin {
   private object Version {
     val DependencyGraph    = "0.9.2"
-    val Git                = "2.0.0"
+    val Git                = "2.0.1"
     val OrganizeImports    = "0.6.0"
     val SbtNativePackager  = "1.9.11"
     val Scalafix           = "0.10.4"
