@@ -8,7 +8,7 @@ object Plugin {
     val OrganizeImports    = "0.6.0"
     val SbtNativePackager  = "1.9.11"
     val Scalafix           = "0.10.4"
-    val ScalaFmt           = "2.4.6"
+    val ScalaFmt           = "2.5.0"
     val Tpolecat           = "0.4.1"
   }
 
