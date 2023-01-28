@@ -41,11 +41,11 @@ class DocumentsRoutesSpec
 
   test("Post document") {
     forAllF(metadataG) { metadata =>
-      val image = getClass.getClassLoader.getResource("mountain-bike-liguria-ponent.jpg")
+      val imageFile = getClass.getClassLoader.getResource("mountain-bike-liguria-ponent.jpg")
       val multipart = Multipart[IO](
         parts = Vector(
           Part.formData("metadata", metadata.asJson.spaces2SortKeys),
-          Part.fileData("document", image, `Content-Type`(MediaType.image.jpeg))
+          Part.fileData("document", imageFile, `Content-Type`(MediaType.image.jpeg))
         ),
         boundary = Boundary("boundary")
       )
@@ -144,10 +144,10 @@ class DocumentsRoutesSpec
 
   // TODO Can be merged with test above
   test("Post document with no metadata == bad request") {
-    val image = getClass.getClassLoader.getResource("mountain-bike-liguria-ponent.jpg")
+    val imageFile = getClass.getClassLoader.getResource("mountain-bike-liguria-ponent.jpg")
     val multipart = Multipart[IO](
       // no metadata mamma!
-      parts = Vector(Part.fileData("document", image, `Content-Type`(MediaType.image.jpeg))),
+      parts = Vector(Part.fileData("document", imageFile, `Content-Type`(MediaType.image.jpeg))),
       boundary = Boundary("boundary")
     )
     val request = POST(uri"/documents").withEntity(multipart).withHeaders(multipart.headers)
@@ -165,11 +165,11 @@ class DocumentsRoutesSpec
   }
 
   test("Post document with malformed metadata == bad request") {
-    val image = getClass.getClassLoader.getResource("mountain-bike-liguria-ponent.jpg")
+    val imageFile = getClass.getClassLoader.getResource("mountain-bike-liguria-ponent.jpg")
     val multipart = Multipart[IO](
       parts = Vector(
         Part.formData("metadata", """ { \"bananas\" : \"apples\" } """),
-        Part.fileData("document", image, `Content-Type`(MediaType.image.jpeg))
+        Part.fileData("document", imageFile, `Content-Type`(MediaType.image.jpeg))
       ),
       boundary = Boundary("boundary")
     )
