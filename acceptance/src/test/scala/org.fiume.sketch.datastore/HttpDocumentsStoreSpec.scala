@@ -18,7 +18,7 @@ import org.http4s.headers.`Content-Type`
 import org.http4s.implicits.*
 import org.http4s.multipart.{Boundary, Multipart, Part}
 
-class StoreDocumentsSpec extends CatsEffectSuite with StoreDocumentsSpecContext:
+class HttpDocumentsStoreSpec extends CatsEffectSuite with StoreDocumentsSpecContext:
 
   // should be moved to a separated suite in the future
   test("ping returns pong") {
