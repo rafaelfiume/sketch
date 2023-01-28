@@ -9,6 +9,7 @@ import munit.{CatsEffectSuite, ScalaCheckEffectSuite}
 import munit.Assertions.*
 import org.http4s.{MediaType, *}
 import org.http4s.Method.*
+import org.http4s.Status.*
 import org.http4s.circe.*
 import org.http4s.client.*
 import org.http4s.client.dsl.io.*
@@ -22,34 +23,33 @@ class StoreDocumentsSpec extends CatsEffectSuite with StoreDocumentsSpecContext:
   // should be moved to a separated suite in the future
   test("ping returns pong") {
     http { client =>
-      client.expect[String](uri"http://localhost:8080/ping").map { res =>
+      client.expect[String]("http://localhost:8080/ping".get).map { res =>
         assertEquals(res, "\"pong\"") // json string
       }
     }
   }
 
+  val docName = "some-random-unique-name"
+  val docDesc = "La bella Altamura in Puglia <3"
+  val pathToFile = "altamura.jpg"
+
   test("store documents") {
-    val docName = "some-random-unique-name"
-    val docDesc = "La bella Altamura in Puglia <3"
-    val pathToFile = "altamura.jpg"
     http { client =>
       for
-        uploadResponse <- client.expect[Json](fileUploadRequest(payload(docName, docDesc), pathToFile))
-        _ <- IO {
-          assertEquals(uploadResponse.docName, docName)
-          assertEquals(uploadResponse.description, docDesc)
+        upload <- client.expect[Json](fileUploadRequest(payload(docName, docDesc), pathToFile)).flatTap { res =>
+          IO {
+            assertEquals(res.docName, docName)
+            assertEquals(res.description, docDesc)
+          }
         }
 
-        metadataResponse <- client.expect[Json](
-          Uri.unsafeFromString(s"http://localhost:8080/documents/metadata?name=${uploadResponse.docName}")
-        )
-        _ <- IO {
-          assertEquals(metadataResponse.docName, docName)
-          assertEquals(metadataResponse.description, docDesc)
+        _ <- client.expect[Json](s"http://localhost:8080/documents/metadata?name=${upload.docName}".get).map { res =>
+          assertEquals(res.docName, docName)
+          assertEquals(res.description, docDesc)
         }
 
         docBytes <- client
-          .stream(GET(Uri.unsafeFromString(s"http://localhost:8080/documents?name=${uploadResponse.docName}")))
+          .stream(s"http://localhost:8080/documents?name=${upload.docName}".get)
           .flatMap(_.body)
           .compile
           .toList
@@ -59,9 +59,28 @@ class StoreDocumentsSpec extends CatsEffectSuite with StoreDocumentsSpecContext:
     }
   }
 
+  test("delete documents") {
+    http { client =>
+      for
+        upload <- client.expect[Json](fileUploadRequest(payload(docName, docDesc), pathToFile))
+
+        _ <- client.status(s"http://localhost:8080/documents?name=${upload.docName}".delete).map { status =>
+          assertEquals(status, NoContent)
+        }
+
+        _ <- client.status(s"http://localhost:8080/documents/metadata?name=${upload.docName}".get).map { status =>
+          assertEquals(status, NotFound)
+        }
+
+        _ <- client.status(s"http://localhost:8080/documents?name=${upload.docName}".get).map { status =>
+          assertEquals(status, NotFound)
+        }
+      yield ()
+    }
+  }
+
 trait StoreDocumentsSpecContext:
-  def http(exec: Client[IO] => IO[Unit]): IO[Unit] =
-    EmberClientBuilder.default[IO].build.use { exec(_) }
+  def http(exec: Client[IO] => IO[Unit]): IO[Unit] = EmberClientBuilder.default[IO].build.use { exec(_) }
 
   def payload(name: String, description: String): String =
     s"""
@@ -80,7 +99,7 @@ trait StoreDocumentsSpecContext:
       ),
       boundary = Boundary("boundary")
     )
-    POST(uri"http://localhost:8080/documents").withEntity(multipart).withHeaders(multipart.headers)
+    "http://localhost:8080/documents".post.withEntity(multipart).withHeaders(multipart.headers)
 
   extension (json: Json)
     def docName: String = json.hcursor.get[String]("name").getOrElse(fail("'name' field not found"))
@@ -91,3 +110,9 @@ trait StoreDocumentsSpecContext:
   import fs2.io.file.{Files, Path}
   def bytesFrom[F[_]](path: String)(using F: Async[F]): fs2.Stream[F, Byte] =
     Files[F].readAll(Path(getClass.getClassLoader.getResource(path).getPath()))
+
+  extension (s: String)
+    def get: Request[IO] = GET(s.toUri)
+    def post: Request[IO] = POST(s.toUri)
+    def delete: Request[IO] = DELETE(s.toUri)
+    private def toUri: Uri = Uri.unsafeFromString(s)
