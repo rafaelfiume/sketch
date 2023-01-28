@@ -106,6 +106,8 @@ lazy val acceptance =
       libraryDependencies ++= Seq(
         Dependency.cats,
         Dependency.catsEffect,
+        Dependency.circeCore,
+        Dependency.http4sCirce,
         Dependency.http4sEmberClient,
         Dependency.munit % Test,
         Dependency.munitCatsEffect % Test,
