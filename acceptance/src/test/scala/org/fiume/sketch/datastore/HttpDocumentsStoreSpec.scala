@@ -10,7 +10,7 @@ import org.http4s.circe.*
 
 class HttpDocumentsStoreSpec extends CatsEffectSuite with Http4sContext with StoreDocumentsSpecContext:
 
-  val docName = "some-random-unique-name"
+  val docName = "a-unique-name-for-altamural.jpg"
   val docDesc = "La bella Altamura in Puglia <3"
   val pathToFile = "altamura.jpg"
 
@@ -61,6 +61,7 @@ class HttpDocumentsStoreSpec extends CatsEffectSuite with Http4sContext with Sto
   }
 
 trait StoreDocumentsSpecContext:
+  // TODO Load from service/src/test/resources/contract/datasources/http/document.metadata.json
   def payload(name: String, description: String): String =
     s"""
        |{
@@ -72,3 +73,9 @@ trait StoreDocumentsSpecContext:
   extension (json: Json)
     def docName: String = json.hcursor.get[String]("name").getOrElse(fail("'name' field not found"))
     def description: String = json.hcursor.get[String]("description").getOrElse(fail("'description' field not found"))
+
+  // TODO duplicated from FileContentContext
+  import cats.effect.Async
+  import fs2.io.file.{Files, Path}
+  def bytesFrom[F[_]](path: String)(using F: Async[F]): fs2.Stream[F, Byte] =
+    Files[F].readAll(Path(getClass.getClassLoader.getResource(path).getPath()))

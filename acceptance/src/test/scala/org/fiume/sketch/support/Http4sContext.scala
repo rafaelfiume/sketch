@@ -25,12 +25,6 @@ trait Http4sContext:
     )
     "http://localhost:8080/documents".post.withEntity(multipart).withHeaders(multipart.headers)
 
-  // TODO duplicated from FileContentContext
-  import cats.effect.Async
-  import fs2.io.file.{Files, Path}
-  def bytesFrom[F[_]](path: String)(using F: Async[F]): fs2.Stream[F, Byte] =
-    Files[F].readAll(Path(getClass.getClassLoader.getResource(path).getPath()))
-
   extension (s: String)
     def get: Request[IO] = GET(s.toUri)
     def post: Request[IO] = POST(s.toUri)
