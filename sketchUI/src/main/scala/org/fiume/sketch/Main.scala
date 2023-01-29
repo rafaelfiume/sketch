@@ -1,12 +1,20 @@
 package org.fiume.sketch
 
-import scala.scalajs.js
+import com.raquo.laminar.api.L.{*, given}
 import org.scalajs.dom
 
+// Laminar bootstrap
+
 @main
-def LiveChart(): Unit = {
-    dom.document.querySelector("#app").innerHTML = """
-      <h1>Hello Sketch!</h1>
-      <a href="https://vitejs.dev/guide/features.html" target="_blank">Documentation</a>
-    """
-}
+def LiveChart(): Unit =
+  renderOnDomContentLoaded(  // entry point for laminar
+    dom.document.querySelector("#app"), Main.appElement()
+  )
+
+
+object Main:
+  def appElement(): Element =
+    div(
+      h1("Hello Sketch!"),
+      a(href := "https://vitejs.dev/guide/features.html", target := "_blank", "Documentation")
+    )

@@ -134,5 +134,6 @@ lazy val sketchUI =
       },
       libraryDependencies ++= Seq(
         "org.scala-js" %%% "scalajs-dom" % "2.2.0",
+        "com.raquo" %%% "laminar" % "0.14.2"
       )
     )
