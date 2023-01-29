@@ -12,13 +12,13 @@ object PlayIt extends IOApp.Simple:
     for
       _ <- (validateInt, validateString).parTupled match
         case Left(error) => IO { println(error) }
-        case Right(_) => ???
+        case Right(_)    => ???
 
       validated <- (EitherT(IO.pure(validateInt)), EitherT(IO.pure(validateString))).parTupled.value
       _ <- validated match
         case Left(error) => IO { println(error) }
-        case Right(_) => ???
-    yield()
+        case Right(_)    => ???
+    yield ()
 
   def validateInt: EitherNec[String, Int] = Either.left(NonEmptyChain.one("invalid int"))
   def validateString: EitherNec[String, String] = Either.left(NonEmptyChain.one("invalid string"))

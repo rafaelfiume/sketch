@@ -124,7 +124,7 @@ class PostgresStoreSpec
 
           updatedAt2 <- store.fetchUpdatedAt(original.metadata.name).ccommit
           _ <- IO {
-            assert(updatedAt2.isAfter(updatedAt1), "updatedAt should be updated")
+            assert(updatedAt2.isAfter(updatedAt1), s"updatedAt should be updated: (updatedAt2=$updatedAt2; updatedAt1=$updated)")
           }
         yield ()
       }

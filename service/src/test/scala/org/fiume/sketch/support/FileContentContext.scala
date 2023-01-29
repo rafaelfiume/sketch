@@ -1,6 +1,6 @@
 package org.fiume.sketch.support
 
-import cats.effect.kernel.{Async, Resource, Sync}
+import cats.effect.{Async, Resource, Sync}
 import fs2.io.file.{Files, Path}
 
 import scala.io.Source
