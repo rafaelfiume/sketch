@@ -119,3 +119,20 @@ lazy val sketch =
   (project in file("."))
     .settings(commonSettings: _*)
     .aggregate(service)
+
+import org.scalajs.linker.interface.ModuleSplitStyle
+lazy val sketchUI =
+  (project in file("sketchUI"))
+    .enablePlugins(ScalaJSPlugin)
+    .settings(commonSettings: _*)
+    .settings(
+      name := "sketchUI",
+      scalaJSUseMainModuleInitializer := true,
+      scalaJSLinkerConfig ~= {
+        _.withModuleKind(ModuleKind.ESModule)
+          .withModuleSplitStyle(ModuleSplitStyle.SmallModulesFor(List("sketchUI")))
+      },
+      libraryDependencies ++= Seq(
+        "org.scala-js" %%% "scalajs-dom" % "2.2.0",
+      )
+    )

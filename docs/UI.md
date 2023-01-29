@@ -6,3 +6,7 @@ $ npm create vite@latest
 $ cd sketch-ui
 $ npm install
 $ npm run dev
+
+$ sbt
+$ project sketchUI
+$ ~fastLinkJS
