@@ -88,6 +88,31 @@
 				}
 			},
 			"response": []
+		},
+		{
+			"name": "Delete doc",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "http://localhost:8080/documents?name=mountain-bike-liguria-ponent.jpg",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "8080",
+					"path": [
+						"documents"
+					],
+					"query": [
+						{
+							"key": "name",
+							"value": "mountain-bike-liguria-ponent.jpg"
+						}
+					]
+				}
+			},
+			"response": []
 		}
 	]
 }
