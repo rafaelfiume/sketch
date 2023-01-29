@@ -1,0 +1,161 @@
+package org.fiume.sketch
+
+import com.raquo.laminar.api.L.*
+import com.raquo.laminar.nodes.ReactiveHtmlElement
+import org.scalajs.dom.html.Form
+
+object FormSkeleton:
+
+  case class FormState(docName: Option[String], description: Option[String])
+
+  def RegisterForm(): ReactiveHtmlElement[Form] =
+    val $formSend = Var(false)
+    val $formState = Var(FormState(None, None))
+    val $nameValue = Var("")
+    val $descriptionValue = Var("")
+    form(
+      onSubmit.preventDefault.map(_ => true) --> $formSend,
+      Header(),
+      DocumentName($formSend.signal, $formState.updater((state, newName) => state.copy(docName = newName))),
+      Description($formSend.signal, $formState.updater((state, newName) => state.copy(description = newName))),
+      // TODO Missing file path
+      Store()
+    )
+
+  private def DocumentName($formSend: Signal[Boolean], $observer: Observer[Option[String]]): HtmlElement =
+    def isValidName(s: String) = if s.isEmpty then Some("Name cannot be empty") else None
+    val $name = Var("")
+    val $nameTouched = Var[Boolean](false)
+    Input.Text(
+      "Name:",
+      "docName",
+      Observer.combine(
+        $observer.contramap { name => if isValidName(name).isEmpty then Some(name) else None },
+        $name.writer
+      ),
+      InputStateConfig(touched = $nameTouched.writer),
+      $name.signal
+        .map(isValidName)
+        .combineWith($formSend, $nameTouched.signal)
+        .map({ case (nameValidationResult, formSend, nameTouched) =>
+          if formSend || nameTouched then nameValidationResult else None
+        })
+    )
+
+  private def Description($formSend: Signal[Boolean], $observer: Observer[Option[String]]): HtmlElement =
+    val $description = Var("")
+    val $descriptionTouched = Var[Boolean](false)
+    Input.Text(
+      "Description:",
+      "descr",
+      $description.writer,
+      InputStateConfig(touched = $descriptionTouched.writer)
+    )
+
+  private def Header(): HtmlElement = div("Documents")
+  private def Store(): HtmlElement = button("Store")
+
+  object Input:
+    // returns Some("error text") when validation fails or None when it succeeds
+    type Validator = Signal[Option[String]]
+
+    def Text(
+      labelText: String,
+      id: String,
+      valueObserver: Observer[String],
+      inputStateConfig: InputStateConfig,
+      validators: Validator*
+    ): HtmlElement = Input(labelText, id, "text", valueObserver, inputStateConfig, validators)
+
+    private def Input(
+      labelText: String,
+      id: String,
+      inputType: String,
+      valueObserver: Observer[String],
+      inputStateConfig: InputStateConfig,
+      validators: Seq[Validator]
+    ): HtmlElement =
+      val $value = Var("")
+      val $collectedErrors = collectErrors(validators)
+      val $invalid = $collectedErrors.map(_.nonEmpty)
+      div(
+        // InputStyles.inputWrapper, // possible to setup styles in divs....
+        cls.toggle("invalid") <-- $invalid,
+        div(
+          label(
+            labelText,
+            forId := id
+          ),
+          input(
+            inputStateMod(inputStateConfig, $invalid),
+            `type` := inputType,
+            idAttr := id,
+            name := id,
+            onInput.mapToValue --> valueObserver,
+            onInput.mapToValue --> $value,
+            cls.toggle("non-empty") <-- $value.signal.map(_.nonEmpty)
+          ),
+          Errors($collectedErrors)
+        )
+      )
+
+    private def inputStateMod(inputStateConfig: InputStateConfig, $invalid: Signal[Boolean]): Mod[Input] =
+      val $dirty = Var(false)
+      val $touched = Var(false)
+      val $untouched: Signal[Boolean] = $touched.signal.map(touched => !touched)
+      val $pristine: Signal[Boolean] = $dirty.signal.map(dirty => !dirty)
+      val $valid = $invalid.map(invalid => !invalid)
+      List(
+        $touched --> inputStateConfig.touched,
+        $untouched --> inputStateConfig.untouched,
+        $dirty --> inputStateConfig.dirty,
+        $pristine --> inputStateConfig.pristine,
+        $valid --> inputStateConfig.valid,
+        $invalid --> inputStateConfig.invalid,
+        onBlur.map(_ => true) --> $touched,
+        onInput.map(_ => true) --> $dirty
+      )
+
+    private def Errors($collectedErrors: Signal[Seq[String]]) =
+      div(
+        children <-- $collectedErrors.map(errors => errors.map(div(_)))
+      )
+
+    private def collectErrors(validators: Seq[Validator]) =
+      Signal.combineSeq(validators).map { validatorsSeq =>
+        validatorsSeq.collect { case Some(errorMessage) => errorMessage }
+      }
+
+    private val isPasswordEmpty = (password: String) => if password.nonEmpty then None else Some("Password can't be empty.")
+
+case class InputStateConfig(touched: Observer[Boolean] = Observer.empty,
+                            untouched: Observer[Boolean] = Observer.empty,
+                            dirty: Observer[Boolean] = Observer.empty,
+                            pristine: Observer[Boolean] = Observer.empty,
+                            valid: Observer[Boolean] = Observer.empty,
+                            invalid: Observer[Boolean] = Observer.empty
+)
+
+object InputStateConfig:
+  def empty(): InputStateConfig = InputStateConfig()
+
+object Helper:
+  extension [A]($observer: Observer[Option[A]])
+    def emitIfValid(validator: A => Option[A]): Observer[A] =
+      $observer.contramap(value => if validator(value).isEmpty then Some(value) else None)
+
+  extension [A]($signal: Signal[Option[A]])
+    def validateIf($activationSignal: Signal[Boolean]): Signal[Option[A]] =
+      $activationSignal.combineWith($signal).map({
+        case (activationSignal, signal) if activationSignal => signal
+        case _                                              => None
+      })
+
+  extension ($signal: Signal[Boolean])
+    def and($secondSignal: Signal[Boolean]): Signal[Boolean] =
+      $signal.combineWith($secondSignal)
+        .map({ case (signal, secondSignal) => signal && secondSignal })
+
+    def or($secondSignal: Signal[Boolean]): Signal[Boolean] =
+      $signal.combineWith($secondSignal)
+        .map({ case (signal, secondSignal) => signal || secondSignal })
