@@ -11,10 +11,3 @@ def DocumentsForm(): Unit =
     dom.document.querySelector("#app"),
     FormSkeleton.RegisterForm()
   )
-
-object Main:
-  def appElement(): Element =
-    div(
-      h1("Hello Sketch!"),
-      a(href := "https://vitejs.dev/guide/features.html", target := "_blank", "Documentation")
-    )
