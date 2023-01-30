@@ -4,38 +4,41 @@ import com.raquo.laminar.api.L.*
 import com.raquo.laminar.nodes.ReactiveHtmlElement
 import org.scalajs.dom.html.Form
 
+/*
+ * Heavily inspired on https://blog.softwaremill.com/hands-on-laminar-354ddcc536a9
+ */
 object FormSkeleton:
 
-  case class FormState(docName: Option[String], description: Option[String])
+  case class FormState(docName: Option[String], description: Option[String], file: Option[String])
 
   def RegisterForm(): ReactiveHtmlElement[Form] =
     val $formSend = Var(false)
-    val $formState = Var(FormState(None, None))
+    val $formState = Var(FormState(None, None, None))
     val $nameValue = Var("")
     val $descriptionValue = Var("")
     form(
       onSubmit.preventDefault.map(_ => true) --> $formSend,
       Header(),
-      DocumentName($formSend.signal, $formState.updater((state, newName) => state.copy(docName = newName))),
-      Description($formSend.signal, $formState.updater((state, newName) => state.copy(description = newName))),
-      // TODO Missing file path
+      Name($formSend.signal, $formState.updater((state, newName) => state.copy(docName = newName))),
+      Description($formSend.signal, $formState.updater((state, newDescription) => state.copy(description = newDescription))),
+      File($formSend.signal, $formState.updater((state, newFile) => state.copy(file = newFile))),
       Store()
     )
 
-  private def DocumentName($formSend: Signal[Boolean], $observer: Observer[Option[String]]): HtmlElement =
-    def isValidName(s: String) = if s.isEmpty then Some("Name cannot be empty") else None
+  private def Name($formSend: Signal[Boolean], $observer: Observer[Option[String]]): HtmlElement =
+    def nonEmptyName(s: String) = if s.isEmpty then Some("Name cannot be empty") else None
     val $name = Var("")
     val $nameTouched = Var[Boolean](false)
     Input.Text(
       "Name:",
-      "docName",
+      "name",
       Observer.combine(
-        $observer.contramap { name => if isValidName(name).isEmpty then Some(name) else None },
+        $observer.contramap { name => if nonEmptyName(name).isEmpty then Some(name) else None },
         $name.writer
       ),
       InputStateConfig(touched = $nameTouched.writer),
       $name.signal
-        .map(isValidName)
+        .map(nonEmptyName)
         .combineWith($formSend, $nameTouched.signal)
         .map({ case (nameValidationResult, formSend, nameTouched) =>
           if formSend || nameTouched then nameValidationResult else None
@@ -52,11 +55,29 @@ object FormSkeleton:
       InputStateConfig(touched = $descriptionTouched.writer)
     )
 
+  private def File($formSend: Signal[Boolean], $observer: Observer[Option[String]]): HtmlElement =
+    def nonEmptyFile(s: String) = if s.isEmpty then Some("Select a file to be uploaded") else None
+    val $file = Var("")
+    val $fileTouched = Var[Boolean](false)
+    Input.File(
+      "File:",
+      "file",
+      "image/*,.pdf,.doc,.xml",
+      $file.writer,
+      InputStateConfig(touched = $fileTouched.writer),
+      $file.signal
+        .map(nonEmptyFile)
+        .combineWith($formSend, $fileTouched.signal)
+        .map({ case (fileValidationResult, formSend, fileTouched) =>
+          if formSend || fileTouched then fileValidationResult else None
+        })
+    )
+
   private def Header(): HtmlElement = div("Documents")
   private def Store(): HtmlElement = button("Store")
 
   object Input:
-    // returns Some("error text") when validation fails or None when it succeeds
+    // returns Some("string") when validation fails or None when it succeeds
     type Validator = Signal[Option[String]]
 
     def Text(
@@ -65,15 +86,6 @@ object FormSkeleton:
       valueObserver: Observer[String],
       inputStateConfig: InputStateConfig,
       validators: Validator*
-    ): HtmlElement = Input(labelText, id, "text", valueObserver, inputStateConfig, validators)
-
-    private def Input(
-      labelText: String,
-      id: String,
-      inputType: String,
-      valueObserver: Observer[String],
-      inputStateConfig: InputStateConfig,
-      validators: Seq[Validator]
     ): HtmlElement =
       val $value = Var("")
       val $collectedErrors = collectErrors(validators)
@@ -88,7 +100,7 @@ object FormSkeleton:
           ),
           input(
             inputStateMod(inputStateConfig, $invalid),
-            `type` := inputType,
+            `type` := "text",
             idAttr := id,
             name := id,
             onInput.mapToValue --> valueObserver,
@@ -98,6 +110,49 @@ object FormSkeleton:
           Errors($collectedErrors)
         )
       )
+
+    def File(
+      labelText: String,
+      id: String,
+      typeOfFilesAccepted: String,
+      valueObserver: Observer[String],
+      inputStateConfig: InputStateConfig,
+      validators: Validator*
+    ): HtmlElement =
+      val $value = Var("")
+      val $collectedErrors = collectErrors(validators)
+      val $invalid = $collectedErrors.map(_.nonEmpty)
+      div(
+        // InputStyles.inputWrapper, // possible to setup styles in divs....
+        cls.toggle("invalid") <-- $invalid,
+        div(
+          label(
+            labelText,
+            forId := id
+          ),
+          input(
+            inputStateMod(inputStateConfig, $invalid),
+            `type` := "file",
+            idAttr := id,
+            name := id,
+            accept := typeOfFilesAccepted,
+            onInput.mapToValue --> valueObserver,
+            onInput.mapToValue --> $value,
+            cls.toggle("non-empty") <-- $value.signal.map(_.nonEmpty)
+          ),
+          Errors($collectedErrors)
+        )
+      )
+
+    private def Errors($errors: Signal[Seq[String]]) =
+      div(
+        children <-- $errors.map(_.map(div(_)))
+      )
+
+    private def collectErrors(validators: Seq[Validator]): Signal[Seq[String]] =
+      Signal.combineSeq(validators).map { validatorsSeq =>
+        validatorsSeq.collect { case Some(errorMessage) => errorMessage }
+      }
 
     private def inputStateMod(inputStateConfig: InputStateConfig, $invalid: Signal[Boolean]): Mod[Input] =
       val $dirty = Var(false)
@@ -115,18 +170,6 @@ object FormSkeleton:
         onBlur.map(_ => true) --> $touched,
         onInput.map(_ => true) --> $dirty
       )
-
-    private def Errors($collectedErrors: Signal[Seq[String]]) =
-      div(
-        children <-- $collectedErrors.map(errors => errors.map(div(_)))
-      )
-
-    private def collectErrors(validators: Seq[Validator]) =
-      Signal.combineSeq(validators).map { validatorsSeq =>
-        validatorsSeq.collect { case Some(errorMessage) => errorMessage }
-      }
-
-    private val isPasswordEmpty = (password: String) => if password.nonEmpty then None else Some("Password can't be empty.")
 
 case class InputStateConfig(touched: Observer[Boolean] = Observer.empty,
                             untouched: Observer[Boolean] = Observer.empty,
