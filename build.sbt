@@ -125,6 +125,11 @@ lazy val sketchUI =
   (project in file("sketchUI"))
     .enablePlugins(ScalaJSPlugin)
     .settings(commonSettings: _*)
+    .settings(fork := false)
+    // See for it config, which doesn't seem to work?
+    // [info] Fast optimizing /Users/rafafium/rf-workspace/sketch/sketchUI/target/scala-3.2.1/sketchui-it-fastopt
+    // [error] Referring to non-existent class org.scalajs.testing.bridge.Bridge
+    // https://www.scala-js.org/doc/project/testing.html
     .settings(
       name := "sketchUI",
       scalaJSUseMainModuleInitializer := true,
@@ -133,7 +138,14 @@ lazy val sketchUI =
           .withModuleSplitStyle(ModuleSplitStyle.SmallModulesFor(List("sketchUI")))
       },
       libraryDependencies ++= Seq(
-        "org.scala-js" %%% "scalajs-dom" % "2.2.0",
-        "com.raquo" %%% "laminar" % "0.14.2"
+        "com.raquo"                       %%% "laminar"                         % "0.14.2",
+        "org.http4s"                      %%% "http4s-client"                   % "1.0.0-M36",
+        "org.http4s"                      %%% "http4s-circe"                    % "1.0.0-M36",
+        "org.http4s"                      %%% "http4s-dom"                      % "1.0.0-M36",
+        "org.scala-js"                    %%% "scalajs-dom"                     % "2.2.0",
+
+        //// Test Dependencies
+        "org.scalameta"                   %%% "munit"                           % "0.7.29"        % Test,
+        "org.typelevel"                   %%% "munit-cats-effect-3"             % "1.0.7"         % Test,
       )
     )
