@@ -51,7 +51,7 @@ object FormSkeleton:
     Input.Text(
       "Description:",
       "descr",
-      $description.writer,
+      $observer.contramap { Some(_) },
       InputStateConfig(touched = $descriptionTouched.writer)
     )
 
@@ -63,7 +63,10 @@ object FormSkeleton:
       "File:",
       "file",
       "image/*,.pdf,.doc,.xml",
-      $file.writer,
+      Observer.combine(
+        $observer.contramap { Some(_) },
+        $file.writer
+      ),
       InputStateConfig(touched = $fileTouched.writer),
       $file.signal
         .map(nonEmptyFile)
@@ -136,7 +139,7 @@ object FormSkeleton:
             idAttr := id,
             name := id,
             accept := typeOfFilesAccepted,
-            onInput.mapToValue --> valueObserver,
+            onChange.mapToValue --> valueObserver,
             onInput.mapToValue --> $value,
             cls.toggle("non-empty") <-- $value.signal.map(_.nonEmpty)
           ),
