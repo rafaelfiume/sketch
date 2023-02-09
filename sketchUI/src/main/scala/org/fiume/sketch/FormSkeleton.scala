@@ -3,6 +3,8 @@ package org.fiume.sketch
 import com.raquo.laminar.api.L.*
 import com.raquo.laminar.nodes.ReactiveHtmlElement
 import org.scalajs.dom.html.Form
+import org.scalajs.dom
+import scala.concurrent.Future
 
 /*
  * Heavily inspired on https://blog.softwaremill.com/hands-on-laminar-354ddcc536a9
@@ -22,7 +24,7 @@ object FormSkeleton:
       Name($formSend.signal, $formState.updater((state, newName) => state.copy(docName = newName))),
       Description($formSend.signal, $formState.updater((state, newDescription) => state.copy(description = newDescription))),
       File($formSend.signal, $formState.updater((state, newFile) => state.copy(file = newFile))),
-      Store()
+      Store($formState)
     )
 
   private def Name($formSend: Signal[Boolean], $observer: Observer[Option[String]]): HtmlElement =
@@ -77,7 +79,25 @@ object FormSkeleton:
     )
 
   private def Header(): HtmlElement = div("Documents")
-  private def Store(): HtmlElement = button("Store")
+
+  private def Store($formState: Var[FormState]): HtmlElement =
+    val $payload = Var[String]("")
+    div(
+      button(
+        "Store",
+        inContext { thisNode =>
+          val $click = thisNode.events(onClick).sample($formState.signal)
+          val $response = $click.flatMap { state =>
+            EventStream.fromFuture(Future.successful(state.toString()), true)
+          }
+          List(
+            $response --> $payload.writer
+          )
+        }
+      ),
+      //div(children <-- $formState.signal.map { s => List(div(s.docName), div(s.description), div(s.file)) }),
+      div(children <-- $payload.signal.map { p => List(div(p)) })
+    )
 
   object Input:
     // returns Some("string") when validation fails or None when it succeeds
