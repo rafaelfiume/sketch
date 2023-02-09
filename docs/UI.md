@@ -3,7 +3,7 @@
 Initial setup
 $ npm create vite@latest
 
-$ cd sketch-ui
+$ cd sketchUI
 $ npm install
 $ npm run dev
 

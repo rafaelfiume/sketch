@@ -1,10 +1,8 @@
 package org.fiume.sketch
 
 import cats.effect.IO
-import fs2.io.file.Path
 import munit.Assertions.*
 import munit.CatsEffectSuite
-import org.http4s.Uri
 
 class DatasourceClientSpec extends CatsEffectSuite with DatasourceClientSpecContext:
 
@@ -26,8 +24,8 @@ class DatasourceClientSpec extends CatsEffectSuite with DatasourceClientSpecCont
 
     for
       metadata <- DatasourceClient
-        .make(Uri.unsafeFromString("http://localhost:8080"))
-        .storeDocument(payload, Path("sketchUI/src/test/resources/altamura.jpg"))
+        .make("http://localhost:8080")
+        .storeDocument(payload, "sketchUI/src/test/resources/altamura.jpg")
 
       _ <- IO { println(metadata) }
       _ <- IO {

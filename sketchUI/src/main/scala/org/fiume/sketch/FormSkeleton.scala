@@ -13,7 +13,7 @@ object FormSkeleton:
 
   case class FormState(docName: Option[String], description: Option[String], file: Option[String])
 
-  def RegisterForm(): ReactiveHtmlElement[Form] =
+  def make(storage: Storage[Future, String]): ReactiveHtmlElement[Form] =
     val $formSend = Var(false)
     val $formState = Var(FormState(None, None, None))
     val $nameValue = Var("")
@@ -24,7 +24,7 @@ object FormSkeleton:
       Name($formSend.signal, $formState.updater((state, newName) => state.copy(docName = newName))),
       Description($formSend.signal, $formState.updater((state, newDescription) => state.copy(description = newDescription))),
       File($formSend.signal, $formState.updater((state, newFile) => state.copy(file = newFile))),
-      Store($formState)
+      Store($formState, storage)
     )
 
   private def Name($formSend: Signal[Boolean], $observer: Observer[Option[String]]): HtmlElement =
@@ -80,7 +80,8 @@ object FormSkeleton:
 
   private def Header(): HtmlElement = div("Documents")
 
-  private def Store($formState: Var[FormState]): HtmlElement =
+  private def Store($formState: Var[FormState], storage: Storage[Future, String]): HtmlElement =
+    import cats.effect.unsafe.implicits.global
     val $payload = Var[String]("")
     div(
       button(
@@ -88,14 +89,19 @@ object FormSkeleton:
         inContext { thisNode =>
           val $click = thisNode.events(onClick).sample($formState.signal)
           val $response = $click.flatMap { state =>
-            EventStream.fromFuture(Future.successful(state.toString()), true)
+            val p = s"""{"name": "bla","description": "How to handle errors?"}"""
+            EventStream.fromFuture(
+              // storeDocument(p, """C:\fakepath\IMG-20180616-WA0002.jpg""")
+              storage.storeDocument(p, "bla.pdf"),
+              true
+            )
           }
           List(
             $response --> $payload.writer
           )
         }
       ),
-      //div(children <-- $formState.signal.map { s => List(div(s.docName), div(s.description), div(s.file)) }),
+      // div(children <-- $formState.signal.map { s => List(div(s.docName), div(s.description), div(s.file)) }),
       div(children <-- $payload.signal.map { p => List(div(p)) })
     )
 

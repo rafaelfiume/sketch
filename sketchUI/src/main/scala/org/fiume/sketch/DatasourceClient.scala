@@ -1,37 +1,42 @@
 package org.fiume.sketch
 
 import cats.effect.IO
-import fs2.io.file.Path
-import org.http4s.{MediaType, Request, Uri}
-import org.http4s.client.Client
-import org.http4s.client.dsl.io.*
-import org.http4s.dom.FetchClientBuilder
-import org.http4s.multipart.Multiparts
-import org.http4s.multipart.Part
-import org.http4s.headers.`Content-Type`
-import org.http4s.Method.*
-import org.http4s.Uri
-import java.nio.file.{Paths, Files}
 import io.circe.Json
-import org.http4s.circe.*
 
-trait Storage:
-  def storeDocument(payload: String, file: Path): IO[Json]
+trait Storage[F[_], A]:
+  def storeDocument(payload: String, file: String): F[A]
 
 object DatasourceClient:
-  def make(baseUri: Uri) = new Storage:
-    // For a discussion of how to use IO and laminar
-    private val client: Client[IO] = FetchClientBuilder[IO].create
+  def make(baseUri: String) = new Storage[IO, Json]:
+    //private val client: Client[IO] = FetchClientBuilder[IO].create
 
-    def storeDocument(payload: String, file: Path): IO[Json] =
-      Multiparts.forSync[IO].flatMap {
-        _.multipart(
-          Vector(
-            Part.formData("metadata", payload),
-            Part.fileData("document", file, `Content-Type`(MediaType.image.jpeg))
-          )
-        ).flatMap { multipart =>
-          client
-            .expect[Json](POST(multipart, baseUri / "documents").withHeaders(multipart.headers))
-        }
-      }
+    def storeDocument(payload: String, file: String): IO[Json] = ???
+      // TODO Replated http4s implementation,
+      // ... which relies on fs2-io (not available on web-browsers)
+      // Multiparts.forSync[IO].flatMap {
+      //   _.multipart(
+      //     Vector(
+      //       Part.formData("metadata", payload),
+      //       Part.fileData("document", Path(file), `Content-Type`(MediaType.image.jpeg))
+      //     )
+      //   ).flatMap { multipart =>
+      //     client
+      //       .expect[Json](POST(multipart, baseUri / "documents").withHeaders(multipart.headers))
+      //   }
+      //}
+
+object ImpureDatasourceClient:
+  import cats.effect.unsafe.implicits.global // integrationg with non pure code (frontend)
+  import io.circe.syntax.*
+  import scala.concurrent.ExecutionContext.Implicits.global // TODO Fix this (see ExecutionContext doc)
+  import scala.concurrent.Future
+
+  def make(baseUri: String) = new Storage[Future, String]:
+    val storage = DatasourceClient.make(baseUri: String)
+
+    def storeDocument(payload: String, file: String): Future[String] =
+      storage
+        .storeDocument(payload, file)
+        .map(_.spaces2SortKeys)
+        .unsafeToFuture()
+        .recover { case err: Throwable => err.getMessage() }
