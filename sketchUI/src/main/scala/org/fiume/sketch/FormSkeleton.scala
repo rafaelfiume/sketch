@@ -2,6 +2,7 @@ package org.fiume.sketch
 
 import com.raquo.laminar.api.L.*
 import com.raquo.laminar.nodes.ReactiveHtmlElement
+import org.fiume.sketch.domain.Document
 import org.scalajs.dom.html.Form
 import org.scalajs.dom
 import scala.concurrent.Future
@@ -13,7 +14,7 @@ object FormSkeleton:
 
   case class FormState(docName: Option[String], description: Option[String], file: Option[String])
 
-  def make(storage: Storage[Future, String]): ReactiveHtmlElement[Form] =
+  def make(storage: Storage[Future, Document.Metadata]): ReactiveHtmlElement[Form] =
     val $formSend = Var(false)
     val $formState = Var(FormState(None, None, None))
     val $nameValue = Var("")
@@ -80,29 +81,33 @@ object FormSkeleton:
 
   private def Header(): HtmlElement = div("Documents")
 
-  private def Store($formState: Var[FormState], storage: Storage[Future, String]): HtmlElement =
-    import cats.effect.unsafe.implicits.global
-    val $payload = Var[String]("")
+  private def Store($formState: Var[FormState], storage: Storage[Future, Document.Metadata]): HtmlElement =
+    // TODO......
+    //import cats.effect.unsafe.implicits.global
+    val $payload = Var[Option[Document.Metadata]](None)
     div(
       button(
         "Store",
         inContext { thisNode =>
           val $click = thisNode.events(onClick).sample($formState.signal)
           val $response = $click.flatMap { state =>
-            val p = s"""{"name": "bla","description": "How to handle errors?"}"""
+            val metadata = Document.Metadata(
+              Document.Metadata.Name(state.docName.get),
+              Document.Metadata.Description(state.description.getOrElse(""))
+            )
+
             EventStream.fromFuture(
-              // storeDocument(p, """C:\fakepath\IMG-20180616-WA0002.jpg""")
-              storage.storeDocument(p, "bla.pdf"),
+              storage.storeDocument(metadata, state.file.get),
               true
             )
           }
           List(
-            $response --> $payload.writer
+            $response.map(Some(_)) --> $payload.writer
           )
         }
       ),
       // div(children <-- $formState.signal.map { s => List(div(s.docName), div(s.description), div(s.file)) }),
-      div(children <-- $payload.signal.map { p => List(div(p)) })
+      div(children <-- $payload.signal.map { p => List(div(p.toString)) })
     )
 
   object Input:

@@ -1,42 +1,32 @@
 package org.fiume.sketch
 
-import cats.effect.IO
 import io.circe.Json
+import org.fiume.sketch.domain.Document
+import org.fiume.sketch.domain.JsonCodecs.Documents.given
+import sttp.client3.*
+import sttp.client3.circe.*
+import scala.concurrent.ExecutionContext.Implicits.global
+import scala.concurrent.Future
+import sttp.capabilities.WebSockets
 
 trait Storage[F[_], A]:
-  def storeDocument(payload: String, file: String): F[A]
+  def storeDocument(metadata: Document.Metadata, file: String): F[A]
 
 object DatasourceClient:
-  def make(baseUri: String) = new Storage[IO, Json]:
-    //private val client: Client[IO] = FetchClientBuilder[IO].create
+  def make(baseUri: String) = new Storage[Future, Document.Metadata]:
+    val backend: SttpBackend[Future, WebSockets] = FetchBackend()
 
-    def storeDocument(payload: String, file: String): IO[Json] = ???
-      // TODO Replated http4s implementation,
-      // ... which relies on fs2-io (not available on web-browsers)
-      // Multiparts.forSync[IO].flatMap {
-      //   _.multipart(
-      //     Vector(
-      //       Part.formData("metadata", payload),
-      //       Part.fileData("document", Path(file), `Content-Type`(MediaType.image.jpeg))
-      //     )
-      //   ).flatMap { multipart =>
-      //     client
-      //       .expect[Json](POST(multipart, baseUri / "documents").withHeaders(multipart.headers))
-      //   }
-      //}
-
-object ImpureDatasourceClient:
-  import cats.effect.unsafe.implicits.global // integrationg with non pure code (frontend)
-  import io.circe.syntax.*
-  import scala.concurrent.ExecutionContext.Implicits.global // TODO Fix this (see ExecutionContext doc)
-  import scala.concurrent.Future
-
-  def make(baseUri: String) = new Storage[Future, String]:
-    val storage = DatasourceClient.make(baseUri: String)
-
-    def storeDocument(payload: String, file: String): Future[String] =
-      storage
-        .storeDocument(payload, file)
-        .map(_.spaces2SortKeys)
-        .unsafeToFuture()
-        .recover { case err: Throwable => err.getMessage() }
+    def storeDocument(metadata: Document.Metadata, file: String): Future[Document.Metadata] =
+      val data = Array[Byte](1, 2, 3, 4, 5)
+      val request =
+        basicRequest
+          .post(uri"$baseUri/documents")
+          .multipartBody(
+            multipart("metadata", metadata),
+            multipart("file", data)
+          )
+          .response(asJson[Document.Metadata])
+      request.send(backend).map(_.body).flatMap {
+        case Left(e)  => Future.failed(e)
+        case Right(r) => Future(r)
+      }

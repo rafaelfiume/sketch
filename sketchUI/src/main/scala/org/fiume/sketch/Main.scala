@@ -5,7 +5,7 @@ import org.scalajs.dom
 
 val host = "http://localhost"
 val port = "8080" // backend port
-val storage = DumbDatasourceClient.make(s"$host:$port")
+val storage = DatasourceClient.make(s"$host:$port")
 
 @main
 def DocumentsForm(): Unit =
@@ -15,9 +15,3 @@ def DocumentsForm(): Unit =
     dom.document.querySelector("#app"),
     FormSkeleton.make(storage)
   )
-
-object DumbDatasourceClient:
-  import scala.concurrent.Future
-  def make(baseUri: String) = new Storage[Future, String]:
-    def storeDocument(payload: String, file: String): Future[String] =
-      Future.successful(s"$payload   $file")
