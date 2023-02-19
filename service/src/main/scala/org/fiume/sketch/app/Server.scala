@@ -27,7 +27,7 @@ object Server:
       conf <- Resource.eval(ServiceConfig.load[F])
       res <- Resources.make(conf)
       versions <- Resource.liftK(Versions.make[F])
-      server <- httpd[F](versions, res.store, res.store)
+      server <- httpServer[F](versions, res.store, res.store)
     yield server)
       .use { server =>
         logger.info(s"Server has started at ${server.address}") >>
@@ -37,7 +37,7 @@ object Server:
         logger.error(s"The service has failed with $ex")
       }
 
-  private def httpd[F[_]: Async](
+  private def httpServer[F[_]: Async](
     versions: Versions[F],
     healthCheck: HealthCheck[F],
     documentStore: DocumentsStore[F, ConnectionIO]
@@ -53,10 +53,23 @@ object Server:
       .build
 
 object HttpApi:
+  import org.http4s.server.middleware.*
+  import org.http4s.headers.Origin
+  import org.http4s.Uri
+
   def httpApp[F[_]: Async](
     versions: Versions[F],
     healthCheck: HealthCheck[F],
     documentStore: DocumentsStore[F, ConnectionIO]
   ): HttpRoutes[F] =
-    new HealthStatusRoutes[F](versions, healthCheck).routes <+>
-      new DocumentsRoutes[F, ConnectionIO](documentStore).routes
+    val documentsStorageRoute = new DocumentsRoutes[F, ConnectionIO](documentStore).routes
+    val healthStatusRoutes = new HealthStatusRoutes[F](versions, healthCheck).routes
+
+    // TODO pass origin over config
+    val corsRoutes = corsPolicy(
+      allow = Origin.Host(Uri.Scheme.http, Uri.RegName("localhost"), 5173.some)
+    )(documentsStorageRoute)
+
+    healthStatusRoutes <+> corsRoutes
+
+  def corsPolicy[F[_]](allow: Origin.Host) = CORS.policy.withAllowOriginHost(Set(allow))

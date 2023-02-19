@@ -4,29 +4,39 @@ import munit.Assertions.*
 import munit.FunSuite
 import org.fiume.sketch.domain.Document
 import org.fiume.sketch.domain.Document.Metadata.*
+import scala.concurrent.ExecutionContext
 
 class DatasourceClientSpec extends FunSuite:
 
-  // TODO delete bla.jpg and altamura.jpg
+  given ExecutionContext = scala.concurrent.ExecutionContext.global
+
   /*
    * Disabled since it depends on a server running, e.g. via `$ ./start-local.sh`.
    *
    * Note this is an integration test and it should be on an `it` folder.
+   *
+   * Note 2: unfortunatelly test doesn't work due to `TypeError: fetch failed`,
+   * which is probably caused by a JS headless script environment used in for tests.
+   * and thus `fetch` API not being availed.
+   *
+   * I've tried to fix the test by defining `jsEnv := new org.scalajs.jsenv.jsdomnodejs.JSDOMNodeJSEnv`.
+   * It didn't work for several reasons, so I'm postponing a fix for this test.
+   *
+   * Maybe we should rely less on unit tests and more on acceptance or end-2-end tests to check the frontend?
    */
-  import scala.concurrent.ExecutionContext
-  given ExecutionContext = scala.concurrent.ExecutionContext.global
-  test("upload document") {
+
+  test("upload document".ignore) {
     // given
     val name = Name("altamura.jpg")
     val description = Description("La bella Altamura in Puglia <3")
-    val metadata = Document.Metadata(name, description)
-    // TODO Leaving filePath out of Document for now
-    val filePath = "sketchUI/src/test/resources/altamura.jpg"
+    val bytes = Array[Byte](1, 2, 3, 4, 5)
 
+    val host = "http://localhost"
+    val port = "8080" // backend port
     // when
     DatasourceClient
-      .make("http://localhost:8080")
-      .storeDocument(metadata, filePath)
+      .make(s"$host:$port")
+      .storeDocument(Document.Metadata(name, description), bytes)
 
       // then
       .map { metadata =>

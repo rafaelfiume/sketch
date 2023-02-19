@@ -2,17 +2,20 @@ package org.fiume.sketch
 
 import com.raquo.laminar.api.L.*
 import com.raquo.laminar.nodes.ReactiveHtmlElement
+import org.fiume.sketch.Files
 import org.fiume.sketch.domain.Document
+import org.scalajs.dom.File
+import org.scalajs.dom.HTMLInputElement
 import org.scalajs.dom.html.Form
-import org.scalajs.dom
 import scala.concurrent.Future
+import scala.concurrent.ExecutionContext.Implicits.global // TODO Pass proper ec
 
 /*
  * Heavily inspired on https://blog.softwaremill.com/hands-on-laminar-354ddcc536a9
  */
 object FormSkeleton:
 
-  case class FormState(docName: Option[String], description: Option[String], file: Option[String])
+  case class FormState(docName: Option[String], description: Option[String], file: Option[File])
 
   def make(storage: Storage[Future, Document.Metadata]): ReactiveHtmlElement[Form] =
     val $formSend = Var(false)
@@ -58,9 +61,9 @@ object FormSkeleton:
       InputStateConfig(touched = $descriptionTouched.writer)
     )
 
-  private def File($formSend: Signal[Boolean], $observer: Observer[Option[String]]): HtmlElement =
-    def nonEmptyFile(s: String) = if s.isEmpty then Some("Select a file to be uploaded") else None
-    val $file = Var("")
+  private def File($formSend: Signal[Boolean], $observer: Observer[Option[File]]): HtmlElement =
+    def nonEmptyFile(file: Option[File]) = if file.fold("")(_.name).isEmpty then Some("Select a file to be uploaded") else None
+    val $file = Var[Option[File]](None)
     val $fileTouched = Var[Boolean](false)
     Input.File(
       "File:",
@@ -68,7 +71,7 @@ object FormSkeleton:
       "image/*,.pdf,.doc,.xml",
       Observer.combine(
         $observer.contramap { Some(_) },
-        $file.writer
+        $file.writer.contramap { Some(_) }
       ),
       InputStateConfig(touched = $fileTouched.writer),
       $file.signal
@@ -82,8 +85,6 @@ object FormSkeleton:
   private def Header(): HtmlElement = div("Documents")
 
   private def Store($formState: Var[FormState], storage: Storage[Future, Document.Metadata]): HtmlElement =
-    // TODO......
-    //import cats.effect.unsafe.implicits.global
     val $payload = Var[Option[Document.Metadata]](None)
     div(
       button(
@@ -92,12 +93,14 @@ object FormSkeleton:
           val $click = thisNode.events(onClick).sample($formState.signal)
           val $response = $click.flatMap { state =>
             val metadata = Document.Metadata(
-              Document.Metadata.Name(state.docName.get),
+              Document.Metadata.Name(state.docName.get), // TODO .get explodes when no name or file selected
               Document.Metadata.Description(state.description.getOrElse(""))
             )
 
             EventStream.fromFuture(
-              storage.storeDocument(metadata, state.file.get),
+              Files.readFileAsByteArray(state.file.get).flatMap { bytes =>
+                storage.storeDocument(metadata, bytes)
+              },
               true
             )
           }
@@ -106,7 +109,8 @@ object FormSkeleton:
           )
         }
       ),
-      // div(children <-- $formState.signal.map { s => List(div(s.docName), div(s.description), div(s.file)) }),
+      // Leaving commented out, useful when debugging or just as a biding example
+      // div(children <-- $formState.signal.map { s => List(div(s.docName), div(s.description), div(s.file.map(_.name))) }),
       div(children <-- $payload.signal.map { p => List(div(p.toString)) })
     )
 
@@ -149,7 +153,7 @@ object FormSkeleton:
       labelText: String,
       id: String,
       typeOfFilesAccepted: String,
-      valueObserver: Observer[String],
+      valueObserver: Observer[File],
       inputStateConfig: InputStateConfig,
       validators: Validator*
     ): HtmlElement =
@@ -170,7 +174,7 @@ object FormSkeleton:
             idAttr := id,
             name := id,
             accept := typeOfFilesAccepted,
-            onChange.mapToValue --> valueObserver,
+            onChange.map(_.target.asInstanceOf[HTMLInputElement].files(0)) --> valueObserver,
             onInput.mapToValue --> $value,
             cls.toggle("non-empty") <-- $value.signal.map(_.nonEmpty)
           ),
@@ -216,7 +220,7 @@ case class InputStateConfig(touched: Observer[Boolean] = Observer.empty,
 object InputStateConfig:
   def empty(): InputStateConfig = InputStateConfig()
 
-object Helper:
+object Helper: // TODO Remove helper for now
   extension [A]($observer: Observer[Option[A]])
     def emitIfValid(validator: A => Option[A]): Observer[A] =
       $observer.contramap(value => if validator(value).isEmpty then Some(value) else None)

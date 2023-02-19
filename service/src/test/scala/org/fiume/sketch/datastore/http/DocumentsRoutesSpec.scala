@@ -15,7 +15,7 @@ import org.fiume.sketch.domain.Document
 import org.fiume.sketch.support.{FileContentContext, Http4sTestingRoutesDsl}
 import org.fiume.sketch.support.EitherSyntax.*
 import org.fiume.sketch.support.gens.SketchGens.Documents.*
-import org.http4s.{MediaType, _}
+import org.http4s.{MediaType, *}
 import org.http4s.Method.*
 import org.http4s.circe.CirceEntityDecoder.*
 import org.http4s.client.dsl.io.*
@@ -45,7 +45,7 @@ class DocumentsRoutesSpec
       val multipart = Multipart[IO](
         parts = Vector(
           Part.formData("metadata", metadata.asJson.spaces2SortKeys),
-          Part.fileData("document", imageFile, `Content-Type`(MediaType.image.jpeg))
+          Part.fileData("bytes", imageFile, `Content-Type`(MediaType.image.jpeg))
         ),
         boundary = Boundary("boundary")
       )
@@ -147,7 +147,7 @@ class DocumentsRoutesSpec
     val imageFile = getClass.getClassLoader.getResource("mountain-bike-liguria-ponent.jpg")
     val multipart = Multipart[IO](
       // no metadata mamma!
-      parts = Vector(Part.fileData("document", imageFile, `Content-Type`(MediaType.image.jpeg))),
+      parts = Vector(Part.fileData("bytes", imageFile, `Content-Type`(MediaType.image.jpeg))),
       boundary = Boundary("boundary")
     )
     val request = POST(uri"/documents").withEntity(multipart).withHeaders(multipart.headers)
@@ -169,7 +169,7 @@ class DocumentsRoutesSpec
     val multipart = Multipart[IO](
       parts = Vector(
         Part.formData("metadata", """ { \"bananas\" : \"apples\" } """),
-        Part.fileData("document", imageFile, `Content-Type`(MediaType.image.jpeg))
+        Part.fileData("bytes", imageFile, `Content-Type`(MediaType.image.jpeg))
       ),
       boundary = Boundary("boundary")
     )

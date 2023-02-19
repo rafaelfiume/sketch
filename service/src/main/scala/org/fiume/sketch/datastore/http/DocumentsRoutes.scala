@@ -12,12 +12,12 @@ import org.fiume.sketch.datastore.http.JsonCodecs.Incorrects.given
 import org.fiume.sketch.datastore.http.Model.Incorrect
 import org.fiume.sketch.datastore.http.Model.IncorrectOps.*
 import org.fiume.sketch.domain.Document
-import org.http4s.{HttpRoutes, QueryParamDecoder, _}
+import org.http4s.{HttpRoutes, QueryParamDecoder, *}
 import org.http4s.circe.CirceEntityDecoder.*
 import org.http4s.circe.CirceEntityEncoder.*
 import org.http4s.dsl.Http4sDsl
 import org.http4s.dsl.io.QueryParamDecoderMatcher
-import org.http4s.multipart.{Multipart, Part, _}
+import org.http4s.multipart.{Multipart, Part, *}
 import org.http4s.server.Router
 import org.typelevel.log4cats.Logger
 import org.typelevel.log4cats.slf4j.Slf4jLogger
@@ -31,27 +31,37 @@ class DocumentsRoutes[F[_]: Async, Txn[_]](store: DocumentsStore[F, Txn]) extend
 
   private val httpRoutes: HttpRoutes[F] =
     HttpRoutes.of[F] {
+      /*
+       * TODO Fix warning:
+       *
+       * > [io-compute-9] INFO org.fiume.sketch.datastore.http.DocumentsRoutes - Received request to upload document Name(altamura.jpg)
+       * > [WARNING] Your app's responsiveness to a new asynchronous event (such as a
+       * > new connection, an upstream response, or a timer) was in excess of 100 milliseconds.
+       * > Your CPU is probably starving. Consider increasing the granularity
+       * > of your delays or adding more cedes. This may also be a sign that you are
+       * > unintentionally running blocking I/O operations (such as File or InetAddress)
+       * > without the blocking combinator.
+       */
       case req @ POST -> Root / "documents" =>
         req.decode { (m: Multipart[F]) =>
           val payload = (m.metadata, m.bytes).parTupled // warning: errors won't accumulate by default: see validation tests
           for
             value <- payload.value
-            res <- value match {
+            res <- value match
               case Left(details) =>
-                logger.info(s"Received incorrect request to upload document: $details") *>
+                logger.info(s"Bad request to upload document: $details") *>
                   BadRequest(Incorrect(details))
 
               case Right((metadata, bytes)) =>
-                logger.info(s"Received request to upload document ${metadata.name}") *>
+                logger.info(s"Uploading document ${metadata.name}") *>
                   store.commit { store.store(Document[F](metadata, bytes)) } >>
                   Created(metadata)
-            }
           yield res
         }
 
       case GET -> Root / "documents" / "metadata" :? NameQParam(name) =>
         for
-          _ <- logger.info(s"Received request to fetch metadata for doc $name")
+          _ <- logger.info(s"Fetching document $name metadata")
           result <- store.commit { store.fetchMetadata(name) }
           res <- result match
             case None           => NotFound()
@@ -60,7 +70,7 @@ class DocumentsRoutes[F[_]: Async, Txn[_]](store: DocumentsStore[F, Txn]) extend
 
       case GET -> Root / "documents" :? NameQParam(name) =>
         for
-          _ <- logger.info(s"Received request to download doc $name")
+          _ <- logger.info(s"Downloading file $name")
           result <- store.commit { store.fetchBytes(name) }
           res <- result match
             case None         => NotFound()
@@ -69,14 +79,13 @@ class DocumentsRoutes[F[_]: Async, Txn[_]](store: DocumentsStore[F, Txn]) extend
 
       case DELETE -> Root / "documents" :? NameQParam(name) =>
         for
-          _ <- logger.info(s"Received request to delete doc $name")
+          _ <- logger.info(s"Deleting document $name")
           metadata <- store.commit { store.fetchMetadata(name) }
-          res <- metadata match {
+          res <- metadata match
             case None => NotFound()
             case Some(_) =>
               store.commit { store.delete(name) } >>
                 NoContent()
-          }
         yield res
     }
 
@@ -100,5 +109,5 @@ private[http] object DocumentsRoutes:
 
     def bytes: EitherT[F, NonEmptyChain[Incorrect.Detail], Stream[F, Byte]] = EitherT
       .fromEither {
-        m.parts.find { _.name == Some("document") }.orMissing("bytes").map(_.body)
+        m.parts.find { _.name == Some("bytes") }.orMissing("bytes").map(_.body)
       }
