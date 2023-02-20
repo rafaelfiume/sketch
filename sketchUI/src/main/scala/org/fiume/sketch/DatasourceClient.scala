@@ -10,20 +10,20 @@ import scala.concurrent.Future
 import sttp.capabilities.WebSockets
 
 trait Storage[F[_], A]: // TODO Rename `datastore` package to `storage`
-  def storeDocument(metadata: Document.Metadata, bytes: Array[Byte]): F[A]
+  def store(document: Document): F[A]
 
-object DatasourceClient: // TODO Rename it StoreHttpClient
+object StorageHttpClient:
   def make(baseUri: String) = new Storage[Future, Document.Metadata]:
     val backend: SttpBackend[Future, WebSockets] = FetchBackend()
 
-    def storeDocument(metadata: Document.Metadata, bytes: Array[Byte]): Future[Document.Metadata] =
+    def store(document: Document): Future[Document.Metadata] =
       basicRequest
         .post(uri"$baseUri/documents")
         .multipartBody(
-          multipart("metadata", metadata),
-          multipart("bytes", bytes)
+          multipart("metadata", document.metadata),
+          multipart("bytes", document.bytes)
         )
-        .contentLength(bytes.length)
+        .contentLength(document.bytes.length)
         // TODO pass origin over config
         .header("Origin", "https://localhost:5173")
         .response(asJson[Document.Metadata])

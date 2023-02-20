@@ -27,16 +27,21 @@ class DatasourceClientSpec extends FunSuite:
 
   test("upload document".ignore) {
     // given
+    val host = "http://localhost"
+    val port = "8080" // backend port
     val name = Name("altamura.jpg")
     val description = Description("La bella Altamura in Puglia <3")
     val bytes = Array[Byte](1, 2, 3, 4, 5)
 
-    val host = "http://localhost"
-    val port = "8080" // backend port
     // when
-    DatasourceClient
+    StorageHttpClient
       .make(s"$host:$port")
-      .storeDocument(Document.Metadata(name, description), bytes)
+      .store(
+        Document(
+          Document.Metadata(name, description),
+          bytes
+        )
+      )
 
       // then
       .map { metadata =>

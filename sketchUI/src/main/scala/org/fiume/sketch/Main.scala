@@ -5,7 +5,7 @@ import org.scalajs.dom
 
 val host = "http://localhost"
 val port = "8080" // backend port
-val storage = DatasourceClient.make(s"$host:$port")
+val storage = StorageHttpClient.make(s"$host:$port")
 
 @main
 def DocumentsForm(): Unit =

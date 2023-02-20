@@ -6,4 +6,4 @@ addSbtPlugin(Plugin.ScalaFmt)
 addSbtPlugin(Plugin.Tpolecat)
 
 // Frontend
-addSbtPlugin("org.scala-js" % "sbt-scalajs" % "1.13.0")
+addSbtPlugin(Plugin.ScalaJs)

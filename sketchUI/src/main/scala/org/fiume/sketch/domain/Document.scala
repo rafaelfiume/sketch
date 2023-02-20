@@ -1,13 +1,11 @@
 package org.fiume.sketch.domain
 
 import cats.Eq
-//import fs2.Stream
 import org.fiume.sketch.domain.Document.Metadata
 import org.fiume.sketch.domain.Document.Metadata.*
 
-// TODO Duplicated for now
-// No , bytes: Stream[F, Byte] for now
-case class Document[F[_]](metadata: Metadata)
+// TODO Duplicated from service module
+case class Document(metadata: Metadata, bytes: Array[Byte])
 
 object Document:
 

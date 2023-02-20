@@ -99,7 +99,7 @@ object FormSkeleton:
 
             EventStream.fromFuture(
               Files.readFileAsByteArray(state.file.get).flatMap { bytes =>
-                storage.storeDocument(metadata, bytes)
+                storage.store(Document(metadata, bytes))
               },
               true
             )
@@ -219,24 +219,3 @@ case class InputStateConfig(touched: Observer[Boolean] = Observer.empty,
 
 object InputStateConfig:
   def empty(): InputStateConfig = InputStateConfig()
-
-object Helper: // TODO Remove helper for now
-  extension [A]($observer: Observer[Option[A]])
-    def emitIfValid(validator: A => Option[A]): Observer[A] =
-      $observer.contramap(value => if validator(value).isEmpty then Some(value) else None)
-
-  extension [A]($signal: Signal[Option[A]])
-    def validateIf($activationSignal: Signal[Boolean]): Signal[Option[A]] =
-      $activationSignal.combineWith($signal).map({
-        case (activationSignal, signal) if activationSignal => signal
-        case _                                              => None
-      })
-
-  extension ($signal: Signal[Boolean])
-    def and($secondSignal: Signal[Boolean]): Signal[Boolean] =
-      $signal.combineWith($secondSignal)
-        .map({ case (signal, secondSignal) => signal && secondSignal })
-
-    def or($secondSignal: Signal[Boolean]): Signal[Boolean] =
-      $signal.combineWith($secondSignal)
-        .map({ case (signal, secondSignal) => signal || secondSignal })
