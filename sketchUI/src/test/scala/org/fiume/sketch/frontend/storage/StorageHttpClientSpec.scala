@@ -1,4 +1,4 @@
-package org.fiume.sketch
+package org.fiume.sketch.frontend.storage
 
 import munit.Assertions.*
 import munit.FunSuite
@@ -6,7 +6,7 @@ import org.fiume.sketch.domain.Document
 import org.fiume.sketch.domain.Document.Metadata.*
 import scala.concurrent.ExecutionContext
 
-class DatasourceClientSpec extends FunSuite:
+class StorageHttpClientSpec extends FunSuite:
 
   given ExecutionContext = scala.concurrent.ExecutionContext.global
 

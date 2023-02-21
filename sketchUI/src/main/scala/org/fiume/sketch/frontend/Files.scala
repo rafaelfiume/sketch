@@ -1,12 +1,8 @@
-package org.fiume.sketch
+package org.fiume.sketch.frontend
 
-import scala.scalajs.js.typedarray.Int8Array
-import scala.scalajs.js.typedarray.ArrayBuffer
-import org.scalajs.dom.Event
-import org.scalajs.dom.File
-import org.scalajs.dom.FileReader
-import scala.concurrent.Future
-import scala.concurrent.Promise
+import org.scalajs.dom.{Event, File, FileReader}
+import scala.scalajs.js.typedarray.{ArrayBuffer, Int8Array}
+import scala.concurrent.{Future, Promise}
 
 object Files:
 

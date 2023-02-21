@@ -1,15 +1,16 @@
-package org.fiume.sketch
+package org.fiume.sketch.frontend.storage
 
 import io.circe.Json
 import org.fiume.sketch.domain.Document
 import org.fiume.sketch.domain.JsonCodecs.Documents.given
+import org.fiume.sketch.frontend.storage.Storage
 import sttp.client3.*
 import sttp.client3.circe.*
 import scala.concurrent.ExecutionContext.Implicits.global // TODO Pass proper ec
 import scala.concurrent.Future
 import sttp.capabilities.WebSockets
 
-trait Storage[F[_], A]: // TODO Rename `datastore` package to `storage`
+trait Storage[F[_], A]:
   def store(document: Document): F[A]
 
 object StorageHttpClient:

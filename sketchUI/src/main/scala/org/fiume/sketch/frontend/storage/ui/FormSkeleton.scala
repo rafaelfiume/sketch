@@ -1,11 +1,11 @@
-package org.fiume.sketch
+package org.fiume.sketch.frontend.storage.ui
 
 import com.raquo.laminar.api.L.*
 import com.raquo.laminar.nodes.ReactiveHtmlElement
-import org.fiume.sketch.Files
+import org.fiume.sketch.frontend.Files
+import org.fiume.sketch.frontend.storage.Storage
 import org.fiume.sketch.domain.Document
-import org.scalajs.dom.File
-import org.scalajs.dom.HTMLInputElement
+import org.scalajs.dom.{File, HTMLInputElement}
 import org.scalajs.dom.html.Form
 import scala.concurrent.Future
 import scala.concurrent.ExecutionContext.Implicits.global // TODO Pass proper ec
