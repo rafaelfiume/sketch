@@ -49,13 +49,13 @@ jobs:
           command: cat /dev/null | sbt it:test
 
       - run:
-          name: Acceptance tests
-          command: |
-            ./start-local.sh
-            sbt "acceptance/test"
-
-      - run:
           name: Push service docker image
           command: |
             echo $DOCKER_PWD | docker login -u $DOCKER_LOGIN --password-stdin
             sbt "service/docker:publish"
+
+      - run:
+          name: Acceptance tests
+          command: |
+            ./start-local.sh
+            sbt "acceptance/test"
