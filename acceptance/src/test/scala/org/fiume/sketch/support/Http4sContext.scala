@@ -19,7 +19,7 @@ trait Http4sContext:
     val multipart = Multipart[IO](
       parts = Vector(
         Part.formData("metadata", payload),
-        Part.fileData("document", imageFile, `Content-Type`(MediaType.image.jpeg))
+        Part.fileData("bytes", imageFile, `Content-Type`(MediaType.image.jpeg))
       ),
       boundary = Boundary("boundary")
     )

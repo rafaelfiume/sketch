@@ -4,3 +4,6 @@ addSbtPlugin(Plugin.SbtNativePackager)
 addSbtPlugin(Plugin.Scalafix)
 addSbtPlugin(Plugin.ScalaFmt)
 addSbtPlugin(Plugin.Tpolecat)
+
+// Frontend
+addSbtPlugin(Plugin.ScalaJs)

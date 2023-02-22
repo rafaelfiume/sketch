@@ -119,3 +119,32 @@ lazy val sketch =
   (project in file("."))
     .settings(commonSettings: _*)
     .aggregate(service)
+
+import org.scalajs.linker.interface.ModuleSplitStyle
+lazy val sketchUI =
+  (project in file("sketchUI"))
+    .enablePlugins(ScalaJSPlugin)
+    .settings(scalaVersion := ScalaVersion)
+    // See for it config, which doesn't seem to work?
+    // [info] Fast optimizing /Users/rafafium/rf-workspace/sketch/sketchUI/target/scala-3.2.1/sketchui-it-fastopt
+    // [error] Referring to non-existent class org.scalajs.testing.bridge.Bridge
+    // https://www.scala-js.org/doc/project/testing.html
+    .settings(fork := false)
+    .settings(
+      name := "sketchUI",
+      scalaJSUseMainModuleInitializer := true,
+      scalaJSLinkerConfig ~= {
+        _.withModuleKind(ModuleKind.ESModule)
+          .withModuleSplitStyle(ModuleSplitStyle.SmallModulesFor(List("sketchUI")))
+      },
+      libraryDependencies ++= Seq(
+        "com.raquo"                       %%% "laminar"                         % "0.14.2",
+        "io.circe"                        %%% "circe-core"                      % "0.14.3",
+        "org.scala-js"                    %%% "scalajs-dom"                     % "2.2.0",
+        "com.softwaremill.sttp.client3"   %%% "core"                            % "3.8.11",
+        "com.softwaremill.sttp.client3"   %%% "circe"                           % "3.8.11",
+
+        //// Test Dependencies
+        "org.scalameta"                   %%% "munit"                           % "0.7.29"        % Test
+      )
+    )
