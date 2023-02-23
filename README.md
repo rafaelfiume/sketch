@@ -24,6 +24,11 @@ Docker:
  - `$ docker run --rm -p8080:8080 sketch:dev`
  - `$ docker network prune`
 
+## Pipeline
+ - [GitHub](https://github.com/rafaelfiume/sketch)
+ - [CircleCI](https://app.circleci.com/pipelines/github/rafaelfiume/sketch)
+ - [Docker Hub](https://hub.docker.com/repository/docker/rafaelfiume/sketch/tags?page=1&ordering=last_updated)
+
 ## Workstation
 
 This is a non-exhaustive list of tools you might need installed locally to work with this project:

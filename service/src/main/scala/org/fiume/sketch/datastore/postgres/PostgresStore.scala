@@ -10,7 +10,7 @@ import fs2.Stream
 import org.fiume.sketch.algebras.*
 import org.fiume.sketch.datastore.algebras.{DocumentsStore, Store}
 import org.fiume.sketch.datastore.postgres.Statements.*
-import org.fiume.sketch.domain.Document
+import org.fiume.sketch.domain.documents.{Document, Metadata}
 import org.typelevel.log4cats.Logger
 import org.typelevel.log4cats.slf4j.Slf4jLogger
 
@@ -37,10 +37,10 @@ private class PostgresStore[F[_]: Async] private (l: F ~> ConnectionIO, tx: Tran
       _ <- Statements.insertDocument(doc.metadata, array).run.void
     yield ()
 
-  override def fetchMetadata(name: Document.Metadata.Name): ConnectionIO[Option[Document.Metadata]] =
+  override def fetchMetadata(name: Metadata.Name): ConnectionIO[Option[Metadata]] =
     Statements.selectDocumentMetadata(name).option
 
-  override def fetchBytes(name: Document.Metadata.Name): ConnectionIO[Option[Stream[F, Byte]]] =
+  override def fetchBytes(name: Metadata.Name): ConnectionIO[Option[Stream[F, Byte]]] =
     // not the greatest implementation, since it will require bytes to be fully read from the db before the stream can start emiting bytes
     // this can be better optimised later (perhaps by storing/reading documents using a file sytem? or large objects?)
     // API is the most important part here.
@@ -48,7 +48,7 @@ private class PostgresStore[F[_]: Async] private (l: F ~> ConnectionIO, tx: Tran
       .map(Stream.emits)
       .value
 
-  override def delete(name: Document.Metadata.Name): ConnectionIO[Unit] =
+  override def delete(name: Metadata.Name): ConnectionIO[Unit] =
     Statements.delete(name).run.void
 
   override def healthCheck: F[Unit] = Statements.healthCheck.transact(tx).void

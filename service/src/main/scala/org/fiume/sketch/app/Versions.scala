@@ -20,7 +20,6 @@ object Versions:
         .headOption
         .getOrElse(throw new RuntimeException("Unable to load version"))
     }.map { appVersion =>
-      new Versions[F] {
+      new Versions[F]:
         def currentVersion = Version(appVersion).pure[F]
-      }
     }

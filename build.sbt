@@ -38,8 +38,27 @@ lazy val commonSettings = Seq(
 
 val IntegrationTests = config("it").extend(Test)
 
+lazy val acceptance =
+  (project in file("acceptance"))
+    .disablePlugins(plugins.JUnitXmlReportPlugin)
+    .settings(commonSettings: _*)
+    .settings(
+      name := "acceptance",
+      libraryDependencies ++= Seq(
+        Dependency.cats,
+        Dependency.catsEffect,
+        Dependency.circeCore,
+        Dependency.http4sCirce,
+        Dependency.http4sEmberClient,
+        Dependency.munit % Test,
+        Dependency.munitCatsEffect % Test,
+        Dependency.munitScalaCheckEffect % Test
+      )
+    )
+
 lazy val service =
   (project in file("service"))
+    .dependsOn(sharedDomain.jvm)
     .enablePlugins(JavaAppPackaging)
     .disablePlugins(plugins.JUnitXmlReportPlugin) // see https://www.scala-sbt.org/1.x/docs/Testing.html
     .settings(commonSettings: _*)
@@ -61,6 +80,7 @@ lazy val service =
         Dependency.doobiePostgres,
         Dependency.doobieHikari,
         Dependency.flyway,
+        Dependency.fs2Core,
         Dependency.http4sCirce,
         Dependency.http4sDsl,
         Dependency.http4sEmberClient,
@@ -97,38 +117,47 @@ lazy val service =
       dockerRepository := Some("docker.io")
     )
 
-lazy val acceptance =
-  (project in file("acceptance"))
+/*
+ * sharedDomain == contract between modules/services, for instance
+ * `frontend -> datastore`, `frontend -> sketch`, `sketch -> datastore`, etc.
+ *
+ * I.e. be cautious with breaking changes
+ */
+lazy val sharedDomain =
+  crossProject(JSPlatform, JVMPlatform).in(file("shared-domain"))
     .disablePlugins(plugins.JUnitXmlReportPlugin)
     .settings(commonSettings: _*)
     .settings(
-      name := "acceptance",
+      name := "shared-domain",
       libraryDependencies ++= Seq(
         Dependency.cats,
-        Dependency.catsEffect,
         Dependency.circeCore,
-        Dependency.http4sCirce,
-        Dependency.http4sEmberClient,
-        Dependency.munit % Test,
-        Dependency.munitCatsEffect % Test,
-        Dependency.munitScalaCheckEffect % Test
+        Dependency.fs2Core
       )
+    )
+    .jvmSettings(
+      libraryDependencies ++= Seq(
+        Dependency.fs2Core
+      )
+    )
+    .jsSettings(
+      fork := false
     )
 
 lazy val sketch =
   (project in file("."))
     .settings(commonSettings: _*)
     .aggregate(service)
+    .aggregate(sharedDomain.js, sharedDomain.jvm)
+    .aggregate(sketchUI)
 
 import org.scalajs.linker.interface.ModuleSplitStyle
-lazy val sketchUI =
+lazy val sketchUI =  // TODO Rename to module frontend
   (project in file("sketchUI"))
     .enablePlugins(ScalaJSPlugin)
+    .dependsOn(sharedDomain.js)
     .settings(scalaVersion := ScalaVersion)
-    // See for it config, which doesn't seem to work?
-    // [info] Fast optimizing /Users/rafafium/rf-workspace/sketch/sketchUI/target/scala-3.2.1/sketchui-it-fastopt
-    // [error] Referring to non-existent class org.scalajs.testing.bridge.Bridge
-    // https://www.scala-js.org/doc/project/testing.html
+    // `test / test` tasks in a Scala.js project require `test / fork := false`.
     .settings(fork := false)
     .settings(
       name := "sketchUI",

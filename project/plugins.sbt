@@ -6,4 +6,5 @@ addSbtPlugin(Plugin.ScalaFmt)
 addSbtPlugin(Plugin.Tpolecat)
 
 // Frontend
+addSbtPlugin(Plugin.PortableScala)
 addSbtPlugin(Plugin.ScalaJs)

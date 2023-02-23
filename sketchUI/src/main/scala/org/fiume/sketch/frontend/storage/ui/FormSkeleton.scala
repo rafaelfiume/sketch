@@ -2,13 +2,14 @@ package org.fiume.sketch.frontend.storage.ui
 
 import com.raquo.laminar.api.L.*
 import com.raquo.laminar.nodes.ReactiveHtmlElement
+import org.fiume.sketch.domain.documents.{Document, Metadata}
 import org.fiume.sketch.frontend.Files
 import org.fiume.sketch.frontend.storage.Storage
-import org.fiume.sketch.domain.Document
 import org.scalajs.dom.{File, HTMLInputElement}
 import org.scalajs.dom.html.Form
-import scala.concurrent.Future
-import scala.concurrent.ExecutionContext.Implicits.global // TODO Pass proper ec
+
+import scala.concurrent.ExecutionContext.Implicits.global
+import scala.concurrent.Future // TODO Pass proper ec
 
 /*
  * Heavily inspired on https://blog.softwaremill.com/hands-on-laminar-354ddcc536a9
@@ -17,7 +18,7 @@ object FormSkeleton:
 
   case class FormState(docName: Option[String], description: Option[String], file: Option[File])
 
-  def make(storage: Storage[Future, Document.Metadata]): ReactiveHtmlElement[Form] =
+  def make(storage: Storage[Future, Metadata]): ReactiveHtmlElement[Form] =
     val $formSend = Var(false)
     val $formState = Var(FormState(None, None, None))
     val $nameValue = Var("")
@@ -84,17 +85,17 @@ object FormSkeleton:
 
   private def Header(): HtmlElement = div("Documents")
 
-  private def Store($formState: Var[FormState], storage: Storage[Future, Document.Metadata]): HtmlElement =
-    val $payload = Var[Option[Document.Metadata]](None)
+  private def Store($formState: Var[FormState], storage: Storage[Future, Metadata]): HtmlElement =
+    val $payload = Var[Option[Metadata]](None)
     div(
       button(
         "Store",
         inContext { thisNode =>
           val $click = thisNode.events(onClick).sample($formState.signal)
           val $response = $click.flatMap { state =>
-            val metadata = Document.Metadata(
-              Document.Metadata.Name(state.docName.get), // TODO .get explodes when no name or file selected
-              Document.Metadata.Description(state.description.getOrElse(""))
+            val metadata = Metadata(
+              Metadata.Name(state.docName.get), // TODO .get explodes when no name or file selected
+              Metadata.Description(state.description.getOrElse(""))
             )
 
             EventStream.fromFuture(

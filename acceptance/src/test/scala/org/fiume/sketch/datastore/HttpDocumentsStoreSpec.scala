@@ -1,4 +1,4 @@
-package org.fiume.sketch.datastore
+package org.fiume.sketch.datastore // TODO Rename `datastore` -> `storage`
 
 import cats.effect.IO
 import io.circe.Json

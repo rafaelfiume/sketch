@@ -7,11 +7,11 @@ import cats.effect.kernel.Async
 import cats.implicits.*
 import fs2.Stream
 import org.fiume.sketch.datastore.algebras.DocumentsStore
-import org.fiume.sketch.datastore.http.JsonCodecs.Documents.given
 import org.fiume.sketch.datastore.http.JsonCodecs.Incorrects.given
 import org.fiume.sketch.datastore.http.Model.Incorrect
 import org.fiume.sketch.datastore.http.Model.IncorrectOps.*
-import org.fiume.sketch.domain.Document
+import org.fiume.sketch.domain.documents.{Document, Metadata}
+import org.fiume.sketch.domain.documents.JsonCodecs.given
 import org.http4s.{HttpRoutes, QueryParamDecoder, *}
 import org.http4s.circe.CirceEntityDecoder.*
 import org.http4s.circe.CirceEntityEncoder.*
@@ -92,17 +92,17 @@ class DocumentsRoutes[F[_]: Async, Txn[_]](store: DocumentsStore[F, Txn]) extend
   val routes: HttpRoutes[F] = Router(prefix -> httpRoutes)
 
 private[http] object DocumentsRoutes:
-  given QueryParamDecoder[Document.Metadata.Name] = QueryParamDecoder.stringQueryParamDecoder.map(Document.Metadata.Name.apply)
-  object NameQParam extends QueryParamDecoderMatcher[Document.Metadata.Name]("name")
+  given QueryParamDecoder[Metadata.Name] = QueryParamDecoder.stringQueryParamDecoder.map(Metadata.Name.apply)
+  object NameQParam extends QueryParamDecoderMatcher[Metadata.Name]("name")
 
   extension [F[_]: MonadThrow: Concurrent](m: Multipart[F])
-    def metadata: EitherT[F, NonEmptyChain[Incorrect.Detail], Document.Metadata] = EitherT
+    def metadata: EitherT[F, NonEmptyChain[Incorrect.Detail], Metadata] = EitherT
       .fromEither {
         m.parts.find { _.name == Some("metadata") }.orMissing("metadata")
       }
       .flatMap { json =>
         json
-          .as[Document.Metadata]
+          .as[Metadata]
           .attemptT
           .leftMap { _.getMessage.malformed }
       }

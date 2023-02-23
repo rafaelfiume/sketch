@@ -5,14 +5,14 @@ import cats.implicits.*
 import doobie.*
 import doobie.implicits.*
 import org.fiume.sketch.datastore.postgres.DoobieMappings.given
-import org.fiume.sketch.domain.Document
+import org.fiume.sketch.domain.documents.Metadata
 
 import java.time.ZonedDateTime
 
 private[postgres] object Statements:
   val healthCheck: ConnectionIO[Int] = sql"select 42".query[Int].unique
 
-  def insertDocument[F[_]](metadata: Document.Metadata, bytes: Array[Byte]): Update0 =
+  def insertDocument[F[_]](metadata: Metadata, bytes: Array[Byte]): Update0 =
     sql"""
          |INSERT INTO documents(
          |  name,
@@ -32,16 +32,16 @@ private[postgres] object Statements:
          |  bytes = EXCLUDED.bytes
     """.stripMargin.update
 
-  def selectDocumentMetadata(name: Document.Metadata.Name): Query0[Document.Metadata] =
+  def selectDocumentMetadata(name: Metadata.Name): Query0[Metadata] =
     sql"""
          |SELECT
          |  d.name,
          |  d.description
          |FROM documents d
          |WHERE d.name = ${name}
-    """.stripMargin.query[Document.Metadata]
+    """.stripMargin.query[Metadata]
 
-  def selectDocumentBytes(name: Document.Metadata.Name): Query0[Array[Byte]] =
+  def selectDocumentBytes(name: Metadata.Name): Query0[Array[Byte]] =
     sql"""
          |SELECT
          |  d.bytes
@@ -49,7 +49,7 @@ private[postgres] object Statements:
          |WHERE d.name = ${name}
     """.stripMargin.query[Array[Byte]]
 
-  def delete(name: Document.Metadata.Name): Update0 =
+  def delete(name: Metadata.Name): Update0 =
     sql"""
          |DELETE
          |FROM documents d

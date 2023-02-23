@@ -2,8 +2,8 @@ package org.fiume.sketch.frontend.storage
 
 import munit.Assertions.*
 import munit.FunSuite
-import org.fiume.sketch.domain.Document
-import org.fiume.sketch.domain.Document.Metadata.*
+import org.fiume.sketch.domain.documents.{Document, Metadata}
+
 import scala.concurrent.ExecutionContext
 
 class StorageHttpClientSpec extends FunSuite:
@@ -29,8 +29,8 @@ class StorageHttpClientSpec extends FunSuite:
     // given
     val host = "http://localhost"
     val port = "8080" // backend port
-    val name = Name("altamura.jpg")
-    val description = Description("La bella Altamura in Puglia <3")
+    val name = Metadata.Name("altamura.jpg")
+    val description = Metadata.Description("La bella Altamura in Puglia <3")
     val bytes = Array[Byte](1, 2, 3, 4, 5)
 
     // when
@@ -38,7 +38,7 @@ class StorageHttpClientSpec extends FunSuite:
       .make(s"$host:$port")
       .store(
         Document(
-          Document.Metadata(name, description),
+          Metadata(name, description),
           bytes
         )
       )
