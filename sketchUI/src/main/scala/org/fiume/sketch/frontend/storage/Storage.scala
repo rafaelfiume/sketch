@@ -1,15 +1,15 @@
 package org.fiume.sketch.frontend.storage
 
 import io.circe.Json
-import org.fiume.sketch.domain.documents.Document
+import org.fiume.sketch.domain.documents.{Document, Metadata}
 import org.fiume.sketch.domain.documents.JsonCodecs.given
-import org.fiume.sketch.domain.documents.Metadata
 import org.fiume.sketch.frontend.storage.Storage
+import sttp.capabilities.WebSockets
 import sttp.client3.*
 import sttp.client3.circe.*
-import scala.concurrent.ExecutionContext.Implicits.global // TODO Pass proper ec
+
+import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
-import sttp.capabilities.WebSockets
 
 trait Storage[F[_], A]:
   def store(document: Document): F[A]

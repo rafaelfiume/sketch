@@ -10,9 +10,8 @@ import org.fiume.sketch.datastore.http.DocumentsRoutes
 import org.fiume.sketch.datastore.http.JsonCodecs.Incorrects.given
 import org.fiume.sketch.datastore.http.Model.Incorrect
 import org.fiume.sketch.datastore.http.Model.IncorrectOps.*
-import org.fiume.sketch.domain.documents.Document
+import org.fiume.sketch.domain.documents.{Document, Metadata}
 import org.fiume.sketch.domain.documents.JsonCodecs.given
-import org.fiume.sketch.domain.documents.Metadata
 import org.fiume.sketch.support.{FileContentContext, Http4sTestingRoutesDsl}
 import org.fiume.sketch.support.EitherSyntax.*
 import org.fiume.sketch.support.gens.SketchGens.Documents.*

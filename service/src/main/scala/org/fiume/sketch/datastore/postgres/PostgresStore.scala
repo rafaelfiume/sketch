@@ -10,8 +10,7 @@ import fs2.Stream
 import org.fiume.sketch.algebras.*
 import org.fiume.sketch.datastore.algebras.{DocumentsStore, Store}
 import org.fiume.sketch.datastore.postgres.Statements.*
-import org.fiume.sketch.domain.documents.Document
-import org.fiume.sketch.domain.documents.Metadata
+import org.fiume.sketch.domain.documents.{Document, Metadata}
 import org.typelevel.log4cats.Logger
 import org.typelevel.log4cats.slf4j.Slf4jLogger
 

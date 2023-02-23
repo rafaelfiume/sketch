@@ -1,9 +1,9 @@
 package org.fiume.sketch.frontend
 
-import com.raquo.laminar.api.L.{*, given} // HTML tags and CSS properties are within the scope
-import org.scalajs.dom
+import com.raquo.laminar.api.L.{*, given}
 import org.fiume.sketch.frontend.storage.StorageHttpClient
 import org.fiume.sketch.frontend.storage.ui.FormSkeleton
+import org.scalajs.dom
 
 @main
 def DocumentsForm(): Unit =
