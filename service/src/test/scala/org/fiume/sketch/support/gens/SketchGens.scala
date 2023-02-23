@@ -1,7 +1,8 @@
 package org.fiume.sketch.support.gens
 
 import fs2.Stream
-import org.fiume.sketch.domain.Document
+import org.fiume.sketch.domain.documents.Document
+import org.fiume.sketch.domain.documents.Metadata
 import org.fiume.sketch.support.gens.Gens.Bytes.*
 import org.fiume.sketch.support.gens.Gens.Strings.*
 import org.scalacheck.Gen
@@ -9,15 +10,15 @@ import org.scalacheck.Gen
 object SketchGens:
 
   object Documents:
-    def names: Gen[Document.Metadata.Name] = alphaNumString.map(Document.Metadata.Name.apply)
+    def names: Gen[Metadata.Name] = alphaNumString.map(Metadata.Name.apply)
 
-    def descriptions: Gen[Document.Metadata.Description] = alphaNumString.map(Document.Metadata.Description.apply)
+    def descriptions: Gen[Metadata.Description] = alphaNumString.map(Metadata.Description.apply)
 
-    def metadataG: Gen[Document.Metadata] =
+    def metadataG: Gen[Metadata] =
       for
         name <- names
         description <- descriptions
-      yield Document.Metadata(name, description)
+      yield Metadata(name, description)
 
     def bytesG[F[_]]: Gen[Stream[F, Byte]] = Gen.nonEmptyListOf(bytes).map(Stream.emits)
 

@@ -7,11 +7,12 @@ import io.circe.syntax.*
 import munit.{CatsEffectSuite, ScalaCheckEffectSuite}
 import org.fiume.sketch.datastore.algebras.DocumentsStore
 import org.fiume.sketch.datastore.http.DocumentsRoutes
-import org.fiume.sketch.datastore.http.JsonCodecs.Documents.given
 import org.fiume.sketch.datastore.http.JsonCodecs.Incorrects.given
 import org.fiume.sketch.datastore.http.Model.Incorrect
 import org.fiume.sketch.datastore.http.Model.IncorrectOps.*
-import org.fiume.sketch.domain.Document
+import org.fiume.sketch.domain.documents.Document
+import org.fiume.sketch.domain.documents.JsonCodecs.given
+import org.fiume.sketch.domain.documents.Metadata
 import org.fiume.sketch.support.{FileContentContext, Http4sTestingRoutesDsl}
 import org.fiume.sketch.support.EitherSyntax.*
 import org.fiume.sketch.support.gens.SketchGens.Documents.*
@@ -247,7 +248,7 @@ class DocumentsRoutesSpec
       boundary = Boundary("boundary")
     )
 
-    val result: EitherT[IO, NonEmptyChain[Incorrect.Detail], (Document.Metadata, fs2.Stream[IO, Byte])] =
+    val result: EitherT[IO, NonEmptyChain[Incorrect.Detail], (Metadata, fs2.Stream[IO, Byte])] =
       (multipart.metadata, multipart.bytes).parTupled
 
     result
@@ -261,22 +262,22 @@ trait DocumentsStoreContext:
 
   def makeDocumentsStore(state: Document[IO]): IO[DocumentsStore[IO, IO]] = makeDocumentsStore(Map(state.metadata.name -> state))
 
-  private def makeDocumentsStore(state: Map[Document.Metadata.Name, Document[IO]]): IO[DocumentsStore[IO, IO]] =
-    Ref.of[IO, Map[Document.Metadata.Name, Document[IO]]](state).map { storage =>
+  private def makeDocumentsStore(state: Map[Metadata.Name, Document[IO]]): IO[DocumentsStore[IO, IO]] =
+    Ref.of[IO, Map[Metadata.Name, Document[IO]]](state).map { storage =>
       new DocumentsStore[IO, IO]:
         def store(doc: Document[IO]): IO[Unit] = storage.update { state =>
           state.updated(doc.metadata.name, doc)
         }
 
-        def fetchMetadata(name: Document.Metadata.Name): IO[Option[Document.Metadata]] = storage.get.map { state =>
+        def fetchMetadata(name: Metadata.Name): IO[Option[Metadata]] = storage.get.map { state =>
           state.find(s => s._1 === name).map(_._2.metadata)
         }
 
-        def fetchBytes(name: Document.Metadata.Name): IO[Option[fs2.Stream[IO, Byte]]] = storage.get.map { state =>
+        def fetchBytes(name: Metadata.Name): IO[Option[fs2.Stream[IO, Byte]]] = storage.get.map { state =>
           state.find(s => s._1 === name).map(_._2.bytes)
         }
 
-        def delete(name: Document.Metadata.Name): IO[Unit] = storage.update { state =>
+        def delete(name: Metadata.Name): IO[Unit] = storage.update { state =>
           state.removed(name)
         }
 

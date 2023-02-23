@@ -14,7 +14,8 @@ import org.fiume.sketch.datastore.algebras.Store
 import org.fiume.sketch.datastore.postgres.DoobieMappings.given
 import org.fiume.sketch.datastore.postgres.PostgresStore
 import org.fiume.sketch.datastore.support.DockerPostgresSuite
-import org.fiume.sketch.domain.Document
+import org.fiume.sketch.domain.documents.Document
+import org.fiume.sketch.domain.documents.Metadata.*
 import org.fiume.sketch.support.FileContentContext
 import org.fiume.sketch.support.gens.SketchGens.Documents.*
 import org.scalacheck.Shrink
@@ -190,7 +191,7 @@ trait PostgresStoreSpecContext:
   def cleanDocuments: ConnectionIO[Unit] = sql"DELETE FROM documents".update.run.void
 
   extension (store: PostgresStore[IO])
-    def fetchUpdatedAt(name: Document.Metadata.Name): ConnectionIO[Instant] =
+    def fetchUpdatedAt(name: Name): ConnectionIO[Instant] =
       sql"SELECT updated_at_utc FROM documents WHERE name = ${name}"
         .query[Instant]
         .unique
@@ -199,7 +200,7 @@ trait PostgresStoreSpecContext:
    * Lenses
    */
   extension [F[_]](doc: Document[F])
-    def withDescription(description: Document.Metadata.Description): Document[F] =
+    def withDescription(description: Description): Document[F] =
       doc.focus(_.metadata.description).replace(description)
 
     def withBytes(bytes: Stream[F, Byte]): Document[F] =
