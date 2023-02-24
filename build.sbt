@@ -149,22 +149,22 @@ lazy val sketch =
     .settings(commonSettings: _*)
     .aggregate(service)
     .aggregate(sharedDomain.js, sharedDomain.jvm)
-    .aggregate(sketchUI)
+    .aggregate(frontend)
 
 import org.scalajs.linker.interface.ModuleSplitStyle
-lazy val sketchUI =  // TODO Rename to module frontend
-  (project in file("sketchUI"))
+lazy val frontend =
+  (project in file("frontend"))
     .enablePlugins(ScalaJSPlugin)
     .dependsOn(sharedDomain.js)
     .settings(scalaVersion := ScalaVersion)
     // `test / test` tasks in a Scala.js project require `test / fork := false`.
     .settings(fork := false)
     .settings(
-      name := "sketchUI",
+      name := "frontend",
       scalaJSUseMainModuleInitializer := true,
       scalaJSLinkerConfig ~= {
         _.withModuleKind(ModuleKind.ESModule)
-          .withModuleSplitStyle(ModuleSplitStyle.SmallModulesFor(List("sketchUI")))
+          .withModuleSplitStyle(ModuleSplitStyle.SmallModulesFor(List("frontend")))
       },
       libraryDependencies ++= Seq(
         "com.raquo"                       %%% "laminar"                         % "0.14.2",
