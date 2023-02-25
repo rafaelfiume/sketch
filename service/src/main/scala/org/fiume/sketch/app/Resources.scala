@@ -5,9 +5,9 @@ import doobie.ConnectionIO
 import doobie.hikari.HikariTransactor
 import doobie.util.transactor.Transactor
 import org.fiume.sketch.algebras.*
-import org.fiume.sketch.app.ServiceConfig.DatabaseConfig
-import org.fiume.sketch.datastore.algebras.{DocumentsStore, *}
-import org.fiume.sketch.datastore.postgres.{PostgresStore, SchemaMigration}
+import org.fiume.sketch.storage.Config.DatabaseConfig
+import org.fiume.sketch.storage.algebras.{DocumentsStore, *}
+import org.fiume.sketch.storage.postgres.{PostgresStore, SchemaMigration}
 
 import java.util.concurrent.{Executors, ThreadFactory}
 import java.util.concurrent.atomic.AtomicLong

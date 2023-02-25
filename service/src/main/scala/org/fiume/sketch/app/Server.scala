@@ -6,10 +6,10 @@ import cats.implicits.*
 import com.comcast.ip4s.*
 import doobie.ConnectionIO
 import org.fiume.sketch.algebras.*
-import org.fiume.sketch.datastore.algebras.DocumentsStore
-import org.fiume.sketch.datastore.http.DocumentsRoutes
-import org.fiume.sketch.datastore.postgres.PostgresStore
 import org.fiume.sketch.http.HealthStatusRoutes
+import org.fiume.sketch.storage.algebras.DocumentsStore
+import org.fiume.sketch.storage.http.DocumentsRoutes
+import org.fiume.sketch.storage.postgres.PostgresStore
 import org.http4s.HttpRoutes
 import org.http4s.ember.server.EmberServerBuilder
 import org.http4s.implicits.*
