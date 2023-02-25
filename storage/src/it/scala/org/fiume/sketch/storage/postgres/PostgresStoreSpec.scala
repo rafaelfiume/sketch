@@ -15,7 +15,7 @@ import org.fiume.sketch.domain.documents.Metadata.*
 import org.fiume.sketch.storage.postgres.DoobieMappings.given
 import org.fiume.sketch.storage.postgres.PostgresStore
 import org.fiume.sketch.storage.support.DockerPostgresSuite
-import org.fiume.sketch.support.gens.SketchGens.Documents.*
+import org.fiume.sketch.support.gens.DocumentsGens.*
 import org.fiume.sketch.test.support.FileContentContext
 import org.scalacheck.Shrink
 import org.scalacheck.effect.PropF.forAllF

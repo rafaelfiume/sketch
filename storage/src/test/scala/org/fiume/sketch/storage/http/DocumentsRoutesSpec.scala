@@ -12,7 +12,7 @@ import org.fiume.sketch.storage.http.DocumentsRoutes
 import org.fiume.sketch.storage.http.JsonCodecs.Incorrects.given
 import org.fiume.sketch.storage.http.Model.Incorrect
 import org.fiume.sketch.storage.http.Model.IncorrectOps.*
-import org.fiume.sketch.support.gens.SketchGens.Documents.*
+import org.fiume.sketch.support.gens.DocumentsGens.*
 import org.fiume.sketch.test.support.{FileContentContext, Http4sTestingRoutesDsl}
 import org.fiume.sketch.test.support.EitherSyntax.*
 import org.http4s.{MediaType, *}
