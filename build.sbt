@@ -86,8 +86,7 @@ lazy val service =
          Dependency.circeGeneric,
          Dependency.circeParser,
          Dependency.ciris,
-         Dependency.doobieCore, // TODO Should we have any dependencies on Doobie here
-         Dependency.doobieHikari,
+         Dependency.doobieCore,
          Dependency.http4sCirce,
          Dependency.http4sDsl,
          Dependency.http4sEmberClient,

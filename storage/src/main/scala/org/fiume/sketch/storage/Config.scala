@@ -8,5 +8,8 @@ object Config:
     driver: String,
     url: String,
     user: String,
-    password: Secret[String]
+    password: Secret[String],
+    // Match the default size of the Hikari pool
+    // Also https://github.com/brettwooldridge/HikariCP/wiki/About-Pool-Sizing
+    dbPoolThreads: Int = 10
   )
