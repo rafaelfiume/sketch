@@ -42,7 +42,7 @@ import org.scalajs.linker.interface.ModuleSplitStyle
 lazy val frontend =
   (project in file("frontend"))
     .enablePlugins(ScalaJSPlugin)
-    .dependsOn(sharedDomain.js)
+    .dependsOn(sharedComponents.js)
     .settings(scalaVersion := ScalaVersion)
     // `test / test` tasks in a Scala.js project require `test / fork := false`.
     .settings(fork := false)
@@ -67,7 +67,7 @@ lazy val frontend =
 
 lazy val service =
   (project in file("service")) // TODO replace 'project in file'
-    .dependsOn(sharedDomain.jvm)
+    .dependsOn(sharedComponents.jvm)
     .dependsOn(storage)
     .dependsOn(sharedTestComponents % Test)
     .enablePlugins(JavaAppPackaging)
@@ -124,17 +124,17 @@ lazy val service =
     )
 
 /*
- * sharedDomain == contract between modules/services, for instance
+ * sharedComponents == contract between modules/services, for instance
  * `frontend -> storage`, `frontend -> sketch`, `sketch -> storage`, etc.
  *
  * I.e. be cautious with breaking changes
  */
-lazy val sharedDomain =
-  crossProject(JSPlatform, JVMPlatform).in(file("shared-domain"))
+lazy val sharedComponents =
+  crossProject(JSPlatform, JVMPlatform).in(file("shared-components"))
     .disablePlugins(plugins.JUnitXmlReportPlugin)
     .settings(commonSettings: _*)
     .settings(
-      name := "shared-domain",
+      name := "shared-components",
       libraryDependencies ++= Seq(
         Dependency.cats,
         Dependency.circeCore,
@@ -151,14 +151,16 @@ lazy val sharedDomain =
     )
 
 /*
- * Shared for the backend (jvm) only (see SketchGens).
+ * Shared for backend (jvm) only.
+ * It might be necessary separated shared dependencies for jvm and js.
+ * For instance, FileContentContext needs to be platform specific.
  * 
- * Might be necessary separated shared dependencies for jvm and js.
- * For instance, DocumentsGen and FileContentContext both need to be platform specific.
+ * Don't include any domain specific class in this module,
+ * for instance a dependency on `sharedComponents`
+ * (i.e. it is a domain agnostic module/lib).
  */
 lazy val sharedTestComponents =
   (project in file("shared-test-components"))
-    .dependsOn(sharedDomain.jvm)
     .disablePlugins(plugins.JUnitXmlReportPlugin)
     .settings(commonSettings: _*)
     .settings(
@@ -180,13 +182,11 @@ lazy val sketch =
     .settings(commonSettings: _*)
     .aggregate(frontend)
     .aggregate(service)
-    .aggregate(sharedDomain.js, sharedDomain.jvm)
-    .aggregate(sharedTestComponents)
     .aggregate(storage)
 
 lazy val storage =
   (project in file("storage"))
-    .dependsOn(sharedDomain.jvm)
+    .dependsOn(sharedComponents.jvm)
     .dependsOn(sharedTestComponents % Test)
     .disablePlugins(plugins.JUnitXmlReportPlugin)
     .settings(commonSettings: _*)
