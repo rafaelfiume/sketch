@@ -10,8 +10,8 @@ Sbt:
 - `$ sbt docker:publishLocal`
 
 Acceptance tests tasks:
-- `$ sbt acceptance/test`
-- `$ sbt acceptance/scalafixAll`
+- `$ sbt testAcceptance/test`
+- `$ sbt testAcceptance/scalafixAll`
 
 Docker:
  - `$ docker stop $(docker ps -a -q)`

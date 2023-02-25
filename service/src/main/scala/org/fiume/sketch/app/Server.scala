@@ -6,10 +6,10 @@ import cats.implicits.*
 import com.comcast.ip4s.*
 import doobie.ConnectionIO
 import org.fiume.sketch.algebras.*
-import org.fiume.sketch.datastore.algebras.DocumentsStore
-import org.fiume.sketch.datastore.http.DocumentsRoutes
-import org.fiume.sketch.datastore.postgres.PostgresStore
 import org.fiume.sketch.http.HealthStatusRoutes
+import org.fiume.sketch.storage.algebras.DocumentsStore
+import org.fiume.sketch.storage.http.DocumentsRoutes
+import org.fiume.sketch.storage.postgres.PostgresStore
 import org.http4s.HttpRoutes
 import org.http4s.ember.server.EmberServerBuilder
 import org.http4s.implicits.*
@@ -26,7 +26,7 @@ object Server:
     (for
       conf <- Resource.eval(ServiceConfig.load[F])
       res <- Resources.make(conf)
-      versions <- Resource.liftK(Versions.make[F])
+      versions <- Resource.liftK(SketchVersions.make[F])
       server <- httpServer[F](versions, res.store, res.store)
     yield server)
       .use { server =>

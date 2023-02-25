@@ -1,0 +1,32 @@
+package org.fiume.sketch.support
+
+import cats.effect.IO
+import munit.Assertions.*
+import munit.CatsEffectSuite
+import org.http4s.{MediaType, Request, Uri}
+import org.http4s.Method.*
+import org.http4s.client.*
+import org.http4s.client.dsl.io.*
+import org.http4s.ember.client.*
+import org.http4s.headers.`Content-Type`
+import org.http4s.multipart.{Boundary, Multipart, Part}
+
+trait Http4sContext:
+  def http(exec: Client[IO] => IO[Unit]): IO[Unit] = EmberClientBuilder.default[IO].build.use { exec(_) }
+
+  def fileUploadRequest(payload: String, pathToFile: String): Request[IO] =
+    val imageFile = getClass.getClassLoader.getResource(pathToFile)
+    val multipart = Multipart[IO](
+      parts = Vector(
+        Part.formData("metadata", payload),
+        Part.fileData("bytes", imageFile, `Content-Type`(MediaType.image.jpeg))
+      ),
+      boundary = Boundary("boundary")
+    )
+    "http://localhost:8080/documents".post.withEntity(multipart).withHeaders(multipart.headers)
+
+  extension (s: String)
+    def get: Request[IO] = GET(s.toUri)
+    def post: Request[IO] = POST(s.toUri)
+    def delete: Request[IO] = DELETE(s.toUri)
+    private def toUri: Uri = Uri.unsafeFromString(s)

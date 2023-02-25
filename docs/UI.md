@@ -3,12 +3,12 @@
 Initial setup
 $ npm create vite@latest
 
-$ cd sketchUI
+$ cd frontend
 $ npm install
 $ npm run dev
 
 $ sbt
-$ project sketchUI
+$ project frontend
 $ ~fastLinkJS
 
 ### Total YOLO mode!

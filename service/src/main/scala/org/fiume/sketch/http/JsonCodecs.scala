@@ -2,7 +2,7 @@ package org.fiume.sketch.http
 
 import io.circe.{Decoder, Encoder, HCursor, Json}
 import io.circe.Decoder.Result
-import org.fiume.sketch.app.{Version, Versions}
+import org.fiume.sketch.algebras.{Version, Versions}
 import org.fiume.sketch.http.Model.AppStatus
 
 object JsonCodecs:

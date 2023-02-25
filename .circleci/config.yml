@@ -33,7 +33,8 @@ jobs:
 
       - run:
           name: Compile and run linter
-          command: cat /dev/null | sbt "scalafixAll --check"
+          command: |
+            sbt "scalafixAll --check; sharedComponentsJS/scalafixAll; sharedComponentsJVM/scalafixAll; sharedTestComponents/scalafixAll; testAcceptance/scalafixAll"
 
       - save_cache:
           paths:
@@ -41,21 +42,21 @@ jobs:
           key: v1-dependencies--{{ checksum "build.sbt" }}
 
       - run:
-          name: Unit tests
+          name: Run unit tests
           command: cat /dev/null | sbt test:test
 
       - run:
-          name: Integration tests
+          name: Run integration tests
           command: cat /dev/null | sbt it:test
 
       - run:
-          name: Push service docker image
+          name: Publish service docker image
           command: |
             echo $DOCKER_PWD | docker login -u $DOCKER_LOGIN --password-stdin
             sbt "service/docker:publish"
 
       - run:
-          name: Acceptance tests
+          name: Run acceptance tests
           command: |
             ./start-local.sh
-            sbt "acceptance/test"
+            sbt "testAcceptance/test"

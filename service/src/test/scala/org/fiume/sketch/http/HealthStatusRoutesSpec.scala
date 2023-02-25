@@ -8,13 +8,12 @@ import io.circe.Decoder.Result
 import io.circe.parser.decode
 import io.circe.syntax.*
 import munit.{CatsEffectSuite, ScalaCheckEffectSuite}
-import org.fiume.sketch.algebras.HealthCheck
-import org.fiume.sketch.app.{Version, Versions}
+import org.fiume.sketch.algebras.{HealthCheck, Version, Versions}
 import org.fiume.sketch.http.JsonCodecs.AppStatus.given
 import org.fiume.sketch.http.Model.AppStatus
-import org.fiume.sketch.support.{FileContentContext, Http4sTestingRoutesDsl}
-import org.fiume.sketch.support.EitherSyntax.*
-import org.fiume.sketch.support.gens.Gens.*
+import org.fiume.sketch.test.support.{FileContentContext, Http4sTestingRoutesDsl}
+import org.fiume.sketch.test.support.EitherSyntax.*
+import org.fiume.sketch.test.support.SketchGens.*
 import org.http4s.Method.*
 import org.http4s.Status
 import org.http4s.circe.CirceEntityDecoder.*
