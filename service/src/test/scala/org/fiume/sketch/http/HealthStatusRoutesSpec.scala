@@ -9,7 +9,7 @@ import io.circe.parser.decode
 import io.circe.syntax.*
 import munit.{CatsEffectSuite, ScalaCheckEffectSuite}
 import org.fiume.sketch.algebras.HealthCheck
-import org.fiume.sketch.app.{Version, Versions}
+import org.fiume.sketch.algebras.{Version, Versions}
 import org.fiume.sketch.http.JsonCodecs.AppStatus.given
 import org.fiume.sketch.http.Model.AppStatus
 import org.fiume.sketch.support.SketchGens.*

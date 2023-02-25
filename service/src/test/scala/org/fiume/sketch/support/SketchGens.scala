@@ -1,11 +1,12 @@
 package org.fiume.sketch.support
 
-import org.fiume.sketch.app.Version
+import org.fiume.sketch.algebras.Version
 import org.fiume.sketch.test.support.Gens.DateAndTime.*
 import org.scalacheck.Gen
 
 object SketchGens:
 
+  // Could be moved to a specific test components module?
   def appVersions: Gen[Version] =
     val prefix = "0.1"
     val snapshot: Gen[Version] = Gen.const(Version(s"$prefix-SNAPSHOT"))

@@ -3,7 +3,7 @@ package org.fiume.sketch.http
 import cats.MonadThrow
 import cats.implicits.*
 import org.fiume.sketch.algebras.HealthCheck
-import org.fiume.sketch.app.{Version, Versions}
+import org.fiume.sketch.algebras.{Version, Versions}
 import org.fiume.sketch.http.JsonCodecs.AppStatus.given
 import org.fiume.sketch.http.Model.AppStatus
 import org.http4s.HttpRoutes

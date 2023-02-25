@@ -2,15 +2,11 @@ package org.fiume.sketch.app
 
 import cats.effect.Sync
 import cats.implicits.*
+import org.fiume.sketch.algebras.{Version, Versions}
 
 import scala.io.Source
 
-case class Version(value: String) extends AnyVal
-
-trait Versions[F[_]]:
-  def currentVersion: F[Version]
-
-object Versions:
+object SketchVersions:
   def make[F[_]](using F: Sync[F]): F[Versions[F]] =
     F.delay {
       Source
