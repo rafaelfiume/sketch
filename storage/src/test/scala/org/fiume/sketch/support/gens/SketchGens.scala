@@ -2,8 +2,8 @@ package org.fiume.sketch.support.gens
 
 import fs2.Stream
 import org.fiume.sketch.domain.documents.{Document, Metadata}
-import org.fiume.sketch.support.gens.Gens.Bytes.*
-import org.fiume.sketch.support.gens.Gens.Strings.*
+import org.fiume.sketch.test.support.Gens.Bytes.*
+import org.fiume.sketch.test.support.Gens.Strings.*
 import org.scalacheck.Gen
 
 object SketchGens:

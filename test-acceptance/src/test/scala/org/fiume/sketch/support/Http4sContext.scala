@@ -1,8 +1,8 @@
 package org.fiume.sketch.support
 
 import cats.effect.IO
-import munit.CatsEffectSuite
 import munit.Assertions.*
+import munit.CatsEffectSuite
 import org.http4s.{MediaType, Request, Uri}
 import org.http4s.Method.*
 import org.http4s.client.*

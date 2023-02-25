@@ -2,13 +2,14 @@ package org.fiume.sketch.storage
 
 import cats.effect.IO
 import io.circe.Json
-import munit.CatsEffectSuite
 import munit.Assertions.*
+import munit.CatsEffectSuite
 import org.fiume.sketch.support.Http4sContext
+import org.fiume.sketch.test.support.FileContentContext
 import org.http4s.Status.*
 import org.http4s.circe.*
 
-class HttpDocumentsStoreSpec extends CatsEffectSuite with Http4sContext with StoreDocumentsSpecContext:
+class HttpDocumentsStoreSpec extends CatsEffectSuite with Http4sContext with FileContentContext with StoreDocumentsSpecContext:
 
   val docName = "a-unique-name-for-altamural.jpg"
   val docDesc = "La bella Altamura in Puglia <3"
@@ -73,9 +74,3 @@ trait StoreDocumentsSpecContext:
   extension (json: Json)
     def docName: String = json.hcursor.get[String]("name").getOrElse(fail("'name' field not found"))
     def description: String = json.hcursor.get[String]("description").getOrElse(fail("'description' field not found"))
-
-  // TODO duplicated from FileContentContext
-  import cats.effect.Async
-  import fs2.io.file.{Files, Path}
-  def bytesFrom[F[_]](path: String)(using F: Async[F]): fs2.Stream[F, Byte] =
-    Files[F].readAll(Path(getClass.getClassLoader.getResource(path).getPath()))

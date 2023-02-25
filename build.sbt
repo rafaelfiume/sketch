@@ -69,6 +69,7 @@ lazy val service =
   (project in file("service")) // TODO replace 'project in file'
     .dependsOn(sharedDomain.jvm)
     .dependsOn(storage)
+    .dependsOn(sharedTestComponents % Test)
     .enablePlugins(JavaAppPackaging)
     .disablePlugins(plugins.JUnitXmlReportPlugin) // see https://www.scala-sbt.org/1.x/docs/Testing.html
     .settings(commonSettings: _*)
@@ -96,6 +97,7 @@ lazy val service =
         Dependency.slf4jSimple,
         Dependency.munit % "test,it",
         Dependency.munitCatsEffect % "test,it",
+        Dependency.munitScalaCheck % "test,it",
         Dependency.munitScalaCheckEffect % "test,it",
         Dependency.munitTestcontainersScala % "it",
         Dependency.munitTestcontainersScalaPG % "it"
@@ -148,17 +150,44 @@ lazy val sharedDomain =
       fork := false
     )
 
+/*
+ * Shared for the backend (jvm) only (see SketchGens).
+ * 
+ * Might be necessary separated shared dependencies for jvm and js.
+ * For instance, DocumentsGen and FileContentContext both need to be platform specific.
+ */
+lazy val sharedTestComponents =
+  (project in file("shared-test-components"))
+    .dependsOn(sharedDomain.jvm)
+    .disablePlugins(plugins.JUnitXmlReportPlugin)
+    .settings(commonSettings: _*)
+    .settings(
+      name := "shared-test-components",
+      libraryDependencies ++= Seq(
+        Dependency.cats,
+        Dependency.catsEffect,
+        Dependency.fs2Core,
+        Dependency.fs2Io,
+        Dependency.http4sCirce,
+        Dependency.http4sEmberClient,
+        Dependency.munit,
+        Dependency.munitScalaCheck
+      )
+    )
+
 lazy val sketch =
   (project in file("."))
     .settings(commonSettings: _*)
     .aggregate(frontend)
     .aggregate(service)
     .aggregate(sharedDomain.js, sharedDomain.jvm)
+    .aggregate(sharedTestComponents)
     .aggregate(storage)
 
 lazy val storage =
   (project in file("storage"))
     .dependsOn(sharedDomain.jvm)
+    .dependsOn(sharedTestComponents % Test)
     .disablePlugins(plugins.JUnitXmlReportPlugin)
     .settings(commonSettings: _*)
     .configs(IntegrationTests)
@@ -191,6 +220,7 @@ lazy val storage =
         Dependency.monocleMacro,
         Dependency.munit % "test,it",
         Dependency.munitCatsEffect % "test,it",
+        Dependency.munitScalaCheck % "test,it",
         Dependency.munitScalaCheckEffect % "test,it",
         Dependency.munitTestcontainersScala % "it",
         Dependency.munitTestcontainersScalaPG % "it"
@@ -199,6 +229,7 @@ lazy val storage =
 
 lazy val testAcceptance =
   (project in file("test-acceptance"))
+    .dependsOn(sharedTestComponents % Test)
     .disablePlugins(plugins.JUnitXmlReportPlugin)
     .settings(commonSettings: _*)
     .settings(
@@ -210,7 +241,6 @@ lazy val testAcceptance =
         Dependency.http4sCirce,
         Dependency.http4sEmberClient,
         Dependency.munit % Test,
-        Dependency.munitCatsEffect % Test,
-        Dependency.munitScalaCheckEffect % Test
+        Dependency.munitCatsEffect % Test
       )
     )

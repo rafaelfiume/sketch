@@ -1,4 +1,4 @@
-package org.fiume.sketch.support
+package org.fiume.sketch.test.support
 
 import cats.Applicative
 import cats.effect.{Clock, IO}

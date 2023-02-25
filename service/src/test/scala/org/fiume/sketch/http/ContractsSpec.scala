@@ -9,8 +9,8 @@ import io.circe.syntax.*
 import munit.CatsEffectSuite
 import org.fiume.sketch.http.JsonCodecs.AppStatus.given
 import org.fiume.sketch.http.Model.AppStatus
-import org.fiume.sketch.support.EitherSyntax.*
-import org.fiume.sketch.support.FileContentContext
+import org.fiume.sketch.test.support.EitherSyntax.*
+import org.fiume.sketch.test.support.FileContentContext
 
 /*
  * Checks encode and decode functions are isomorphic:

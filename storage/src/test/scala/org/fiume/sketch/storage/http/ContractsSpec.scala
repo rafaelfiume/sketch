@@ -11,8 +11,8 @@ import org.fiume.sketch.domain.documents.JsonCodecs.given
 import org.fiume.sketch.domain.documents.Metadata
 import org.fiume.sketch.storage.http.JsonCodecs.Incorrects.given
 import org.fiume.sketch.storage.http.Model.Incorrect
-import org.fiume.sketch.support.EitherSyntax.*
-import org.fiume.sketch.support.FileContentContext
+import org.fiume.sketch.test.support.EitherSyntax.*
+import org.fiume.sketch.test.support.FileContentContext
 
 /*
  * Checks encode and decode functions are isomorphic:
