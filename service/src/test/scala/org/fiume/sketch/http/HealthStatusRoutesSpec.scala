@@ -11,9 +11,9 @@ import munit.{CatsEffectSuite, ScalaCheckEffectSuite}
 import org.fiume.sketch.algebras.{HealthCheck, Version, Versions}
 import org.fiume.sketch.http.JsonCodecs.AppStatus.given
 import org.fiume.sketch.http.Model.AppStatus
-import org.fiume.sketch.support.SketchGens.*
 import org.fiume.sketch.test.support.{FileContentContext, Http4sTestingRoutesDsl}
 import org.fiume.sketch.test.support.EitherSyntax.*
+import org.fiume.sketch.test.support.SketchGens.*
 import org.http4s.Method.*
 import org.http4s.Status
 import org.http4s.circe.CirceEntityDecoder.*

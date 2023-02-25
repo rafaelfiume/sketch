@@ -62,7 +62,7 @@ class HttpDocumentsStoreSpec extends CatsEffectSuite with Http4sContext with Fil
   }
 
 trait StoreDocumentsSpecContext:
-  // TODO Load from service/src/test/resources/contract/datasources/http/document.metadata.json
+  // TODO Load from storage/src/test/resources/storage/contract/http/document.metadata.json
   def payload(name: String, description: String): String =
     s"""
        |{

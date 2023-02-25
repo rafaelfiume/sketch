@@ -1,4 +1,4 @@
-package org.fiume.sketch.storage.support
+package org.fiume.sketch.storage.test.support
 
 import cats.effect.{IO, Resource}
 import ciris.Secret

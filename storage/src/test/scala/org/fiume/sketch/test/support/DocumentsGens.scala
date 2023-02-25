@@ -1,4 +1,4 @@
-package org.fiume.sketch.support.gens
+package org.fiume.sketch.test.support
 
 import fs2.Stream
 import org.fiume.sketch.domain.documents.{Document, Metadata}

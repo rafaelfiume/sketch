@@ -1,4 +1,4 @@
-package org.fiume.sketch.support
+package org.fiume.sketch.test.support
 
 import org.fiume.sketch.algebras.Version
 import org.fiume.sketch.test.support.Gens.DateAndTime.*
