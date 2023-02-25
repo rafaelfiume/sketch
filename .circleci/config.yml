@@ -58,4 +58,4 @@ jobs:
           name: Acceptance tests
           command: |
             ./start-local.sh
-            sbt "acceptance/test"
+            sbt "testAcceptance/test"

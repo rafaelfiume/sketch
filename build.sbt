@@ -38,24 +38,6 @@ lazy val commonSettings = Seq(
 
 val IntegrationTests = config("it").extend(Test)
 
-lazy val acceptance =
-  (project in file("acceptance"))
-    .disablePlugins(plugins.JUnitXmlReportPlugin)
-    .settings(commonSettings: _*)
-    .settings(
-      name := "acceptance",
-      libraryDependencies ++= Seq(
-        Dependency.cats,
-        Dependency.catsEffect,
-        Dependency.circeCore,
-        Dependency.http4sCirce,
-        Dependency.http4sEmberClient,
-        Dependency.munit % Test,
-        Dependency.munitCatsEffect % Test,
-        Dependency.munitScalaCheckEffect % Test
-      )
-    )
-
 import org.scalajs.linker.interface.ModuleSplitStyle
 lazy val frontend =
   (project in file("frontend"))
@@ -212,5 +194,23 @@ lazy val storage =
         Dependency.munitScalaCheckEffect % "test,it",
         Dependency.munitTestcontainersScala % "it",
         Dependency.munitTestcontainersScalaPG % "it"
+      )
+    )
+
+lazy val testAcceptance =
+  (project in file("test-acceptance"))
+    .disablePlugins(plugins.JUnitXmlReportPlugin)
+    .settings(commonSettings: _*)
+    .settings(
+      name := "test-acceptance",
+      libraryDependencies ++= Seq(
+        Dependency.cats,
+        Dependency.catsEffect,
+        Dependency.circeCore,
+        Dependency.http4sCirce,
+        Dependency.http4sEmberClient,
+        Dependency.munit % Test,
+        Dependency.munitCatsEffect % Test,
+        Dependency.munitScalaCheckEffect % Test
       )
     )
