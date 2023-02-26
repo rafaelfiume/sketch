@@ -21,7 +21,9 @@ class HealthStatusRoutes[F[_]: MonadThrow](versions: Versions[F], healthCheck: H
       case (GET | HEAD) -> Root / "status" =>
         for
           version <- versions.currentVersion
-          db <- healthCheck.healthCheck.as(true).handleError(_ => false)
+          // `healthCheck` implementations should recover from errors and return false,
+          // but let's handle unexpected raised errors here nonetheless for extra-safety.
+          db <- healthCheck.healthCheck.handleError(_ => false)
           resp <- Ok(AppStatus(db, version))
         yield resp
     }

@@ -51,4 +51,4 @@ private class PostgresStore[F[_]: Async] private (l: F ~> ConnectionIO, tx: Tran
   override def delete(name: Metadata.Name): ConnectionIO[Unit] =
     Statements.delete(name).run.void
 
-  override def healthCheck: F[Unit] = Statements.healthCheck.transact(tx).void
+  override def healthCheck: F[Boolean] = Statements.healthCheck.transact(tx).as(true).recover(_ => false)

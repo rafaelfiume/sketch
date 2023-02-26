@@ -19,6 +19,7 @@ import org.http4s.Status
 import org.http4s.circe.CirceEntityDecoder.*
 import org.http4s.client.dsl.io.*
 import org.http4s.implicits.*
+import org.scalacheck.Gen.oneOf
 import org.scalacheck.effect.PropF.forAllF
 
 import scala.language.reflectiveCalls
@@ -29,7 +30,8 @@ class HealthStatusRoutesSpec
     with Http4sTestingRoutesDsl
     with VersionsContext
     with HealthCheckContext
-    with FileContentContext:
+    with FileContentContext
+    with HealthStatusRoutesSpecContext:
 
   test("ping returns pong") {
     whenSending(GET(uri"/ping"))
@@ -49,28 +51,31 @@ class HealthStatusRoutesSpec
   }
 
   test("return the status of the app when db unhealthy") {
-    forAllF(appVersions) { version =>
+    def unhealthyDb = oneOf(
+      IO.pure(false),
+      IO.raiseError[Boolean](DatabaseFailure)
+     )
+    forAllF(appVersions, unhealthyDb) { (version, unhealthy) =>
       whenSending(GET(uri"/status"))
         .to(
           new HealthStatusRoutes[IO](
             makeVersions(returning = version),
-            makeHealthCheck(IO.raiseError[Unit](DatabaseFailure))
+            makeHealthCheck(unhealthy)
           ).routes
         )
         .thenItReturns(Status.Ok, withJsonPayload = AppStatus(healthy = false, version))
     }
   }
 
-trait VersionsContext:
+trait HealthStatusRoutesSpecContext:
+  case object DatabaseFailure extends Throwable
 
+trait VersionsContext:
   def makeVersions[F[_]: Applicative](returning: Version) = new Versions[F]:
     override def currentVersion: F[Version] = returning.pure[F]
 
-case object DatabaseFailure extends Throwable
-
 trait HealthCheckContext:
+  def makeHealthCheck[F[_]](healthy: F[Boolean]): HealthCheck[F] = new HealthCheck[F]:
+    override def healthCheck: F[Boolean] = healthy
 
-  def makeHealthCheck[F[_]](healthy: F[Unit]): HealthCheck[F] = new HealthCheck[F]:
-    override def healthCheck: F[Unit] = healthy
-
-  def makeHealthCheck[F[_]](using F: Applicative[F]): HealthCheck[F] = makeHealthCheck(F.unit)
+  def makeHealthCheck[F[_]](using F: Applicative[F]): HealthCheck[F] = makeHealthCheck(F.pure(true))

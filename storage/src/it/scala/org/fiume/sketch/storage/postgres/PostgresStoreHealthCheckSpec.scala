@@ -11,11 +11,11 @@ class PostgresStoreHealthCheckSpec extends CatsEffectSuite with DockerPostgresSu
   // shrinking just make failing tests messages more obscure
   given noShrink[T]: Shrink[T] = Shrink.shrinkAny
 
-  test("healthcheck when db is healthy") {
+  test("db is healthy") {
     PostgresStore.make[IO](transactor()).use { store =>
       for
         result <- store.healthCheck
-        _ <- IO { assertEquals(result, ()) }
+        _ <- IO { assert(result) }
       yield ()
     }
   }
