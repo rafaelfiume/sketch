@@ -15,7 +15,7 @@ object SketchVersions:
         .toSeq
         .headOption
         .getOrElse(throw new RuntimeException("Unable to load version"))
-    }.map { appVersion =>
+    }.map { version =>
       new Versions[F]:
-        def currentVersion = Version(appVersion).pure[F]
+        def currentVersion = Version(version).pure[F]
     }

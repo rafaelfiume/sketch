@@ -3,8 +3,8 @@ package org.fiume.sketch.http
 import cats.MonadThrow
 import cats.implicits.*
 import org.fiume.sketch.algebras.{HealthCheck, Version, Versions}
-import org.fiume.sketch.http.JsonCodecs.AppStatus.given
-import org.fiume.sketch.http.Model.AppStatus
+import org.fiume.sketch.http.JsonCodecs.ServiceStatus.given
+import org.fiume.sketch.http.Model.ServiceStatus
 import org.http4s.HttpRoutes
 import org.http4s.circe.CirceEntityEncoder.*
 import org.http4s.dsl.Http4sDsl
@@ -21,10 +21,8 @@ class HealthStatusRoutes[F[_]: MonadThrow](versions: Versions[F], healthCheck: H
       case (GET | HEAD) -> Root / "status" =>
         for
           version <- versions.currentVersion
-          // `healthCheck` implementations should recover from errors and return false,
-          // but let's handle unexpected raised errors here nonetheless for extra-safety.
-          db <- healthCheck.healthCheck.handleError(_ => false)
-          resp <- Ok(AppStatus(db, version))
+          health <- healthCheck.check
+          resp <- Ok(ServiceStatus(version, health))
         yield resp
     }
 

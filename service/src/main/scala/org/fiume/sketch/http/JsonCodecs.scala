@@ -1,22 +1,33 @@
 package org.fiume.sketch.http
 
-import io.circe.{Decoder, Encoder, HCursor, Json}
+import io.circe.{Codec, Decoder, Encoder, HCursor, Json}
 import io.circe.Decoder.Result
-import org.fiume.sketch.algebras.{Version, Versions}
-import org.fiume.sketch.http.Model.AppStatus
+import io.circe.syntax.*
+import org.fiume.sketch.algebras.{HealthCheck, Version, Versions}
+import org.fiume.sketch.http.Model.ServiceStatus
 
+// TODO Move to shared lib
 object JsonCodecs:
-  object AppStatus:
-    given Encoder[Model.AppStatus] = new Encoder[Model.AppStatus]:
-      override def apply(a: Model.AppStatus): Json =
+  // TODO Rename
+  object ServiceStatus:
+    given Encoder[Version] = Encoder.encodeString.contramap(_.value)
+    given Decoder[Version] = Decoder.decodeString.map(Version.apply)
+
+    given Encoder[HealthCheck.Infra] = Encoder.encodeString.contramap(_.toString)
+    given Decoder[HealthCheck.Infra] = Decoder.decodeString.map(HealthCheck.Infra.valueOf(_))
+
+    given Codec.AsObject[HealthCheck.ServiceHealth] = Codec.codecForEither("Fail", "Ok")
+
+    given Encoder[Model.ServiceStatus] = new Encoder[Model.ServiceStatus]:
+      override def apply(a: Model.ServiceStatus): Json =
         Json.obj(
-          "healthy" -> Json.fromBoolean(a.healthy),
-          "appVersion" -> Json.fromString(a.version.value)
+          "version" -> a.version.asJson,
+          "health" -> a.health.asJson
         )
 
-    given Decoder[Model.AppStatus] = new Decoder[Model.AppStatus]:
-      override def apply(c: HCursor): Result[Model.AppStatus] =
+    given Decoder[Model.ServiceStatus] = new Decoder[Model.ServiceStatus]:
+      override def apply(c: HCursor): Result[Model.ServiceStatus] =
         for
-          healthy <- c.downField("healthy").as[Boolean]
-          appVersion <- c.downField("appVersion").as[String]
-        yield Model.AppStatus(healthy, Version(appVersion))
+          version <- c.downField("version").as[Version]
+          health <- c.downField("health").as[HealthCheck.ServiceHealth]
+        yield Model.ServiceStatus(version, health)
