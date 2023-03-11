@@ -7,17 +7,11 @@ import org.fiume.sketch.domain.documents.Metadata
 
 object JsonCodecs:
 
-  given Encoder[Metadata.Name] =
-    Encoder.encodeString.contramap(_.value)
+  given Encoder[Metadata.Name] = Encoder.encodeString.contramap(_.value)
+  given Decoder[Metadata.Name] = Decoder.decodeString.map(Metadata.Name.apply)
 
-  given Decoder[Metadata.Name] =
-    Decoder.decodeString.map(Metadata.Name.apply)
-
-  given Encoder[Metadata.Description] =
-    Encoder.encodeString.contramap(_.value)
-
-  given Decoder[Metadata.Description] =
-    Decoder.decodeString.map(Metadata.Description.apply)
+  given Encoder[Metadata.Description] = Encoder.encodeString.contramap(_.value)
+  given Decoder[Metadata.Description] = Decoder.decodeString.map(Metadata.Description.apply)
 
   given Encoder[Metadata] = new Encoder[Metadata]:
     override def apply(metadata: Metadata): Json =

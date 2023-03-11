@@ -27,14 +27,14 @@ import org.scalacheck.effect.PropF.forAllF
 
 import scala.language.reflectiveCalls
 
+// TODO Rename HealthCheckRoutesSpec
 class HealthStatusRoutesSpec
     extends CatsEffectSuite // otherwise non-property-based tests won't be executed (?)
     with ScalaCheckEffectSuite
     with Http4sTestingRoutesDsl
     with VersionsContext
     with HealthCheckContext
-    with FileContentContext
-    with HealthStatusRoutesSpecContext:
+    with FileContentContext:
 
   override def scalaCheckTestParameters = super.scalaCheckTestParameters.withMinSuccessfulTests(3)
 
@@ -65,7 +65,7 @@ class HealthStatusRoutesSpec
         .to(
           new HealthStatusRoutes[IO](
             makeVersions(returning = version),
-            makeHealthCheck()
+            makeHealthCheck(faulty)
           ).routes
         )
         .thenItReturns(
@@ -75,9 +75,6 @@ class HealthStatusRoutesSpec
         )
     }
   }
-
-trait HealthStatusRoutesSpecContext:
-  case object DatabaseFailure extends Throwable
 
 trait VersionsContext:
   def makeVersions[F[_]: Applicative](returning: Version) = new Versions[F]:
