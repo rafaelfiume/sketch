@@ -7,9 +7,10 @@ import org.fiume.sketch.algebras.Version
 class SketchVersionsSpec extends CatsEffectSuite:
 
   test("Current service version") {
-    for
-      underTest <- SketchVersions.make[IO]
-      result <- underTest.currentVersion
-      _ <- IO { assertEquals(result, Version("0.1.1596724824884.c80e670.46")) }
-    yield ()
+    SketchVersions.make[IO].use { versions =>
+      for
+        result <- versions.currentVersion
+        _ <- IO { assertEquals(result, Version("0.1.1596724824884.c80e670.46")) }
+      yield ()
+    }
   }
