@@ -6,8 +6,8 @@ import cats.effect.{Concurrent, Sync}
 import cats.effect.kernel.Async
 import cats.implicits.*
 import fs2.Stream
+import org.fiume.sketch.codecs.json.Documents.given
 import org.fiume.sketch.domain.documents.{Document, Metadata}
-import org.fiume.sketch.domain.documents.JsonCodecs.given
 import org.fiume.sketch.storage.algebras.DocumentsStore
 import org.fiume.sketch.storage.http.JsonCodecs.Incorrects.given
 import org.fiume.sketch.storage.http.Model.Incorrect

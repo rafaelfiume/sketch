@@ -3,8 +3,8 @@ package org.fiume.sketch.http
 import cats.MonadThrow
 import cats.implicits.*
 import org.fiume.sketch.algebras.{HealthCheck, Version, Versions}
-import org.fiume.sketch.http.JsonCodecs.ServiceStatus.given
-import org.fiume.sketch.http.Model.ServiceStatus
+import org.fiume.sketch.app.ServiceStatus
+import org.fiume.sketch.codecs.json.Service.given
 import org.http4s.HttpRoutes
 import org.http4s.circe.CirceEntityEncoder.*
 import org.http4s.dsl.Http4sDsl

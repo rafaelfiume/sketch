@@ -1,12 +1,13 @@
-package org.fiume.sketch.domain.documents
+package org.fiume.sketch.codecs.json
 
-import io.circe.{Decoder, Encoder, HCursor, Json}
+import io.circe.{Codec, Decoder, Encoder, HCursor, Json}
 import io.circe.Decoder.Result
 import io.circe.syntax.*
+import org.fiume.sketch.algebras.{HealthCheck, Version, Versions}
+import org.fiume.sketch.app.ServiceStatus
 import org.fiume.sketch.domain.documents.Metadata
 
-object JsonCodecs:
-
+object Documents:
   given Encoder[Metadata.Name] = Encoder.encodeString.contramap(_.value)
   given Decoder[Metadata.Name] = Decoder.decodeString.map(Metadata.Name.apply)
 

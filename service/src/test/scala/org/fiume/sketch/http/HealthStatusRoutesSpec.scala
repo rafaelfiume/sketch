@@ -11,8 +11,8 @@ import io.circe.syntax.*
 import munit.{CatsEffectSuite, ScalaCheckEffectSuite}
 import org.fiume.sketch.algebras.{HealthCheck, Version, Versions}
 import org.fiume.sketch.algebras.HealthCheck.{ServiceHealth, *}
-import org.fiume.sketch.http.JsonCodecs.ServiceStatus.given
-import org.fiume.sketch.http.Model.ServiceStatus
+import org.fiume.sketch.app.ServiceStatus
+import org.fiume.sketch.codecs.json.Service.given
 import org.fiume.sketch.test.support.{FileContentContext, Http4sTestingRoutesDsl}
 import org.fiume.sketch.test.support.EitherSyntax.*
 import org.fiume.sketch.test.support.Gens.Lists.*
