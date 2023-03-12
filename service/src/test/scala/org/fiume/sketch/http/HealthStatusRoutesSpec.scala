@@ -9,8 +9,8 @@ import io.circe.Decoder.Result
 import io.circe.parser.decode
 import io.circe.syntax.*
 import munit.{CatsEffectSuite, ScalaCheckEffectSuite}
-import org.fiume.sketch.shared.app.ServiceStatus
-import org.fiume.sketch.shared.app.algebras.{HealthCheck, Version, Versions}
+import org.fiume.sketch.shared.app.{ServiceStatus, Version}
+import org.fiume.sketch.shared.app.algebras.{HealthCheck, Versions}
 import org.fiume.sketch.shared.app.algebras.HealthCheck.{ServiceHealth, *}
 import org.fiume.sketch.shared.codecs.json.app.Service.given
 import org.fiume.sketch.test.support.{FileContentContext, Http4sTestingRoutesDsl}

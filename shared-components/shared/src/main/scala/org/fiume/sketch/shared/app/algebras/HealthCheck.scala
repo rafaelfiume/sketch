@@ -2,7 +2,6 @@ package org.fiume.sketch.shared.app.algebras
 
 import cats.data.NonEmptyList
 import cats.implicits.*
-
 import org.fiume.sketch.shared.app.algebras.HealthCheck.*
 
 trait HealthCheck[F[_]]:
