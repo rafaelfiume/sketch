@@ -4,8 +4,8 @@ import cats.effect.IO
 import munit.Assertions
 import org.http4s.{EntityDecoder, HttpRoutes, Request, Status}
 import org.http4s.Method.*
-import org.http4s.implicits.*
 import org.http4s.circe.CirceEntityDecoder.*
+import org.http4s.implicits.*
 
 trait Http4sTestingRoutesDsl extends Assertions:
 

@@ -189,6 +189,9 @@ lazy val sketch =
     .settings(commonSettings: _*)
     .aggregate(frontend)
     .aggregate(service)
+    .aggregate(sharedComponentsJvm)
+    .aggregate(sharedComponents.js)
+    .aggregate(sharedTestComponents)
     .aggregate(storage)
 
 lazy val storage =
