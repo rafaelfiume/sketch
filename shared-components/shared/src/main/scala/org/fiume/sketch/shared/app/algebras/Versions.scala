@@ -1,4 +1,4 @@
-package org.fiume.sketch.algebras
+package org.fiume.sketch.shared.app.algebras
 
 case class Version(value: String) extends AnyVal
 

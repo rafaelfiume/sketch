@@ -1,7 +1,7 @@
-package org.fiume.sketch.domain.documents
+package org.fiume.sketch.shared.domain.documents
 
 import cats.Eq
-import org.fiume.sketch.domain.documents.Metadata.*
+import org.fiume.sketch.shared.domain.documents.Metadata.*
 
 case class Metadata(name: Name, description: Description)
 

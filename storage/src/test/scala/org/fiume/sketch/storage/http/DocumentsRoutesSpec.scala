@@ -5,8 +5,8 @@ import cats.effect.{IO, Ref}
 import cats.implicits.*
 import io.circe.syntax.*
 import munit.{CatsEffectSuite, ScalaCheckEffectSuite}
-import org.fiume.sketch.codecs.json.Documents.given
-import org.fiume.sketch.domain.documents.{Document, Metadata}
+import org.fiume.sketch.shared.codecs.json.Documents.given
+import org.fiume.sketch.shared.domain.documents.{Document, Metadata}
 import org.fiume.sketch.storage.algebras.DocumentsStore
 import org.fiume.sketch.storage.http.DocumentsRoutes
 import org.fiume.sketch.storage.http.JsonCodecs.Incorrects.given

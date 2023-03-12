@@ -4,7 +4,7 @@ import cats.data.NonEmptyList
 import cats.implicits.*
 import doobie.*
 import doobie.implicits.*
-import org.fiume.sketch.domain.documents.Metadata
+import org.fiume.sketch.shared.domain.documents.Metadata
 import org.fiume.sketch.storage.postgres.DoobieMappings.given
 
 import java.time.ZonedDateTime

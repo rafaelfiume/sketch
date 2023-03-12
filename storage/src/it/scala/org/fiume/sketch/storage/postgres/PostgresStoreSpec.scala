@@ -10,8 +10,8 @@ import doobie.postgres.implicits.*
 import fs2.Stream
 import monocle.syntax.all.*
 import munit.ScalaCheckEffectSuite
-import org.fiume.sketch.domain.documents.Document
-import org.fiume.sketch.domain.documents.Metadata.*
+import org.fiume.sketch.shared.domain.documents.Document
+import org.fiume.sketch.shared.domain.documents.Metadata.*
 import org.fiume.sketch.storage.postgres.DoobieMappings.given
 import org.fiume.sketch.storage.postgres.PostgresStore
 import org.fiume.sketch.storage.test.support.DockerPostgresSuite

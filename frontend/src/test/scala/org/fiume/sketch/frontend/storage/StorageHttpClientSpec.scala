@@ -2,10 +2,9 @@ package org.fiume.sketch.frontend.storage
 
 import munit.Assertions.*
 import munit.FunSuite
-import org.fiume.sketch.domain.documents.{Document, Metadata}
+import org.fiume.sketch.shared.domain.documents.{Document, Metadata}
 
 import scala.concurrent.ExecutionContext
-
 class StorageHttpClientSpec extends FunSuite:
 
   given ExecutionContext = scala.concurrent.ExecutionContext.global

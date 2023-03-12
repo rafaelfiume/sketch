@@ -2,14 +2,14 @@ package org.fiume.sketch.frontend.storage.ui
 
 import com.raquo.laminar.api.L.*
 import com.raquo.laminar.nodes.ReactiveHtmlElement
-import org.fiume.sketch.domain.documents.{Document, Metadata}
 import org.fiume.sketch.frontend.Files
 import org.fiume.sketch.frontend.storage.Storage
+import org.fiume.sketch.shared.domain.documents.{Document, Metadata}
 import org.scalajs.dom.{File, HTMLInputElement}
 import org.scalajs.dom.html.Form
 
 import scala.concurrent.ExecutionContext.Implicits.global
-import scala.concurrent.Future // TODO Pass proper ec
+import scala.concurrent.Future// TODO Pass proper ec
 
 /*
  * Heavily inspired on https://blog.softwaremill.com/hands-on-laminar-354ddcc536a9

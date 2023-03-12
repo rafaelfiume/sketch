@@ -1,4 +1,4 @@
-package org.fiume.sketch.codecs.json
+package org.fiume.sketch.shared.codecs.json
 
 import cats.effect.IO
 import cats.implicits.*
@@ -7,8 +7,8 @@ import io.circe.Decoder.Result
 import io.circe.parser.{decode, parse}
 import io.circe.syntax.*
 import munit.{CatsEffectSuite, ScalaCheckEffectSuite}
-import org.fiume.sketch.app.ServiceStatus
-import org.fiume.sketch.codecs.json.Service.given
+import org.fiume.sketch.shared.app.ServiceStatus
+import org.fiume.sketch.shared.codecs.json.Service.given
 import org.fiume.sketch.test.support.EitherSyntax.*
 import org.fiume.sketch.test.support.FileContentContext
 import org.scalacheck.Gen

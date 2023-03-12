@@ -3,7 +3,7 @@ package org.fiume.sketch.app
 import cats.effect.{Async, Resource}
 import doobie.ConnectionIO
 import doobie.util.transactor.Transactor
-import org.fiume.sketch.algebras.HealthCheck
+import org.fiume.sketch.shared.app.algebras.HealthCheck
 import org.fiume.sketch.storage.algebras.DocumentsStore
 import org.fiume.sketch.storage.postgres.{DbTransactor, PostgresStore}
 

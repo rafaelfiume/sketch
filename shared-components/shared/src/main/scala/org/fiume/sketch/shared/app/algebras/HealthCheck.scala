@@ -1,9 +1,9 @@
-package org.fiume.sketch.algebras
+package org.fiume.sketch.shared.app.algebras
 
 import cats.data.NonEmptyList
 import cats.implicits.*
 
-import org.fiume.sketch.algebras.HealthCheck.*
+import org.fiume.sketch.shared.app.algebras.HealthCheck.*
 
 trait HealthCheck[F[_]]:
   def check: F[ServiceHealth]

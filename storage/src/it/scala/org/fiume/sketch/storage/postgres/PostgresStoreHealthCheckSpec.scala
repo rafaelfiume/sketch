@@ -2,7 +2,7 @@ package org.fiume.sketch.storage.postgres
 
 import cats.effect.IO
 import munit.CatsEffectSuite
-import org.fiume.sketch.algebras.HealthCheck.{ServiceHealth, *}
+import org.fiume.sketch.shared.app.algebras.HealthCheck.{ServiceHealth, *}
 import org.fiume.sketch.storage.postgres.PostgresStore
 import org.fiume.sketch.storage.test.support.DockerPostgresSuite
 import org.scalacheck.Shrink

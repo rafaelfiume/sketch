@@ -1,7 +1,7 @@
 package org.fiume.sketch.test.support
 
 import fs2.Stream
-import org.fiume.sketch.domain.documents.{Document, Metadata}
+import org.fiume.sketch.shared.domain.documents.{Document, Metadata}
 import org.fiume.sketch.test.support.Gens.Bytes.*
 import org.fiume.sketch.test.support.Gens.Strings.*
 import org.scalacheck.Gen

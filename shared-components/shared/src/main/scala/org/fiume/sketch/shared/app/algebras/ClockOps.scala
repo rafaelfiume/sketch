@@ -1,4 +1,4 @@
-package org.fiume.sketch.algebras
+package org.fiume.sketch.shared.app.algebras
 
 import cats.Functor
 import cats.effect.Clock
