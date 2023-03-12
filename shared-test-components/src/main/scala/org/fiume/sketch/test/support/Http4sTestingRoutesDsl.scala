@@ -38,8 +38,10 @@ trait Http4sTestingRoutesDsl extends Assertions:
           .run(request)
           .flatMap { res =>
             IO { assertEquals(res.status, httpStatus) } *>
-              res.as[A].product(res.as[io.circe.Json])
-                .flatTap { case (_, json) => IO { if (debug) then println(json) else () }}
+              res
+                .as[A]
+                .product(res.as[io.circe.Json])
+                .flatTap { case (_, json) => IO { if debug then println(json) else () } }
                 .map { case (obtained, _) => assertEquals(obtained, withJsonPayload, clue = breakingContractWarningMessage) }
                 .onError { error => fail(s"$error\n$breakingContractWarningMessage") }
           }
