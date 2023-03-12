@@ -2,7 +2,7 @@ package org.fiume.sketch.frontend.storage
 
 import io.circe.Json
 import org.fiume.sketch.frontend.storage.Storage
-import org.fiume.sketch.shared.codecs.json.Documents.given
+import org.fiume.sketch.shared.codecs.json.domain.Documents.given
 import org.fiume.sketch.shared.domain.documents.{Document, Metadata}
 import sttp.capabilities.WebSockets
 import sttp.client3.*
@@ -10,6 +10,7 @@ import sttp.client3.circe.*
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
+
 trait Storage[F[_], A]:
   def store(document: Document): F[A]
 

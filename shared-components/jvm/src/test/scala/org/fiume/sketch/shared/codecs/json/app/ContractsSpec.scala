@@ -1,4 +1,4 @@
-package org.fiume.sketch.shared.codecs.json
+package org.fiume.sketch.shared.codecs.json.app
 
 import cats.effect.IO
 import cats.implicits.*
@@ -8,12 +8,13 @@ import io.circe.parser.{decode, parse}
 import io.circe.syntax.*
 import munit.{CatsEffectSuite, ScalaCheckEffectSuite}
 import org.fiume.sketch.shared.app.ServiceStatus
-import org.fiume.sketch.shared.codecs.json.Service.given
+import org.fiume.sketch.shared.codecs.json.app.Service.given
 import org.fiume.sketch.test.support.EitherSyntax.*
 import org.fiume.sketch.test.support.FileContentContext
 import org.scalacheck.Gen
 import org.scalacheck.effect.PropF.forAllF
 
+import org.fiume.sketch.shared.codecs.json.app.Service
 /*
  * Checks encode and decode functions are isomorphic:
  * f . g = id

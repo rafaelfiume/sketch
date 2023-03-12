@@ -1,4 +1,4 @@
-package org.fiume.sketch.shared.codecs.json
+package org.fiume.sketch.shared.codecs.json.domain
 
 import io.circe.{Codec, Decoder, Encoder, HCursor, Json}
 import io.circe.Decoder.Result

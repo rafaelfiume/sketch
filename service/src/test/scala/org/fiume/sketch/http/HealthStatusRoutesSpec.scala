@@ -12,7 +12,7 @@ import munit.{CatsEffectSuite, ScalaCheckEffectSuite}
 import org.fiume.sketch.shared.app.ServiceStatus
 import org.fiume.sketch.shared.app.algebras.{HealthCheck, Version, Versions}
 import org.fiume.sketch.shared.app.algebras.HealthCheck.{ServiceHealth, *}
-import org.fiume.sketch.shared.codecs.json.Service.given
+import org.fiume.sketch.shared.codecs.json.app.Service.given
 import org.fiume.sketch.test.support.{FileContentContext, Http4sTestingRoutesDsl}
 import org.fiume.sketch.test.support.EitherSyntax.*
 import org.fiume.sketch.test.support.Gens.Lists.*
@@ -26,7 +26,6 @@ import org.scalacheck.Gen
 import org.scalacheck.effect.PropF.forAllF
 
 import scala.language.reflectiveCalls
-
 // TODO Rename HealthCheckRoutesSpec
 class HealthStatusRoutesSpec
     extends CatsEffectSuite // otherwise non-property-based tests won't be executed (?)

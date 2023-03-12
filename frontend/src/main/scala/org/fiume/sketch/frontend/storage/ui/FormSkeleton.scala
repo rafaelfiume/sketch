@@ -9,7 +9,7 @@ import org.scalajs.dom.{File, HTMLInputElement}
 import org.scalajs.dom.html.Form
 
 import scala.concurrent.ExecutionContext.Implicits.global
-import scala.concurrent.Future// TODO Pass proper ec
+import scala.concurrent.Future // TODO Pass proper ec
 
 /*
  * Heavily inspired on https://blog.softwaremill.com/hands-on-laminar-354ddcc536a9

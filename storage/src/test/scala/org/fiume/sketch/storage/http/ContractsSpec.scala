@@ -7,7 +7,7 @@ import io.circe.Decoder.Result
 import io.circe.parser.{decode, parse}
 import io.circe.syntax.*
 import munit.CatsEffectSuite
-import org.fiume.sketch.shared.codecs.json.Documents.given
+import org.fiume.sketch.shared.codecs.json.domain.Documents.given
 import org.fiume.sketch.shared.domain.documents.Metadata
 import org.fiume.sketch.storage.http.JsonCodecs.Incorrects.given
 import org.fiume.sketch.storage.http.Model.Incorrect
