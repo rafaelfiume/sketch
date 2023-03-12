@@ -26,7 +26,7 @@ object Server:
     (for
       conf <- Resource.eval(ServiceConfig.load[F])
       res <- Resources.make(conf)
-      versions <- Resource.liftK(SketchVersions.make[F])
+      versions <- SketchVersions.make[F]
       server <- httpServer[F](versions, res.store, res.store)
     yield server)
       .use { server =>

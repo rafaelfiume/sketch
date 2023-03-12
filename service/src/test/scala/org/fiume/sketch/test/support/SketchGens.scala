@@ -7,7 +7,7 @@ import org.scalacheck.Gen
 object SketchGens:
 
   // Could be moved to a specific test components module?
-  def appVersions: Gen[Version] =
+  def versions: Gen[Version] =
     val prefix = "0.1"
     val snapshot: Gen[Version] = Gen.const(Version(s"$prefix-SNAPSHOT"))
     val buildVersion: Gen[Version] = for

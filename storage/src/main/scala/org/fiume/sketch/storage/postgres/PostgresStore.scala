@@ -7,7 +7,8 @@ import cats.~>
 import doobie.*
 import doobie.implicits.*
 import fs2.Stream
-import org.fiume.sketch.algebras.*
+import org.fiume.sketch.algebras.HealthCheck
+import org.fiume.sketch.algebras.HealthCheck.*
 import org.fiume.sketch.domain.documents.{Document, Metadata}
 import org.fiume.sketch.storage.algebras.{DocumentsStore, Store}
 import org.fiume.sketch.storage.postgres.Statements.*
@@ -51,4 +52,8 @@ private class PostgresStore[F[_]: Async] private (l: F ~> ConnectionIO, tx: Tran
   override def delete(name: Metadata.Name): ConnectionIO[Unit] =
     Statements.delete(name).run.void
 
-  override def healthCheck: F[Unit] = Statements.healthCheck.transact(tx).void
+  override def check: F[ServiceHealth] =
+    Statements.healthCheck
+      .transact(tx)
+      .as(ServiceHealth.healthy(Infra.Database))
+      .recover(_ => ServiceHealth.faulty(Infra.Database))

@@ -5,6 +5,7 @@ import munit.Assertions
 import org.http4s.{EntityDecoder, HttpRoutes, Request, Status}
 import org.http4s.Method.*
 import org.http4s.implicits.*
+import org.http4s.circe.CirceEntityDecoder.*
 
 trait Http4sTestingRoutesDsl extends Assertions:
 
@@ -19,6 +20,7 @@ trait Http4sTestingRoutesDsl extends Assertions:
       |as opposed to changing (e.g. renaming) or removing at least one of them.
       |There's _still_ a chance contract will be broken with clients implementing a more strict parsing.
   """.stripMargin
+
   def whenSending(request: Request[IO]): To = new To(request) {}
 
   trait To(val request: Request[IO]):
@@ -31,15 +33,15 @@ trait Http4sTestingRoutesDsl extends Assertions:
           .run(request)
           .flatMap { res => IO(assertEquals(res.status, httpStatus)) }
 
-      def thenItReturns[A](httpStatus: Status, withJsonPayload: A)(implicit ec: EntityDecoder[IO, A]): IO[Unit] =
+      def thenItReturns[A](httpStatus: Status, withJsonPayload: A, debug: Boolean = false)(using EntityDecoder[IO, A]): IO[Unit] =
         routes.orNotFound
           .run(request)
           .flatMap { res =>
             IO { assertEquals(res.status, httpStatus) } *>
-              res
-                .as[A]
+              res.as[A].product(res.as[io.circe.Json])
+                .flatTap { case (_, json) => IO { if (debug) then println(json) else () }}
+                .map { case (obtained, _) => assertEquals(obtained, withJsonPayload, clue = breakingContractWarningMessage) }
                 .onError { error => fail(s"$error\n$breakingContractWarningMessage") }
-                .map { assertEquals(withJsonPayload, _, clue = breakingContractWarningMessage) }
           }
 
       def thenItReturns[A](httpStatus: Status, withPayload: fs2.Stream[IO, Byte]): IO[Unit] =

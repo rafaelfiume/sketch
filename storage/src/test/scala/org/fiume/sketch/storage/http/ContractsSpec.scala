@@ -21,7 +21,7 @@ import org.fiume.sketch.test.support.FileContentContext
  */
 class ContractsSpec extends CatsEffectSuite with FileContentContext:
 
-  test("encode . decode json <-> json (document metadata payload)") {
+  test("encode . decode $ json == json ## document metadata payload") {
     jsonFrom[IO]("contract/http/document.metadata.json").use { raw =>
       IO {
         val original = parse(raw).rightValue
@@ -33,7 +33,7 @@ class ContractsSpec extends CatsEffectSuite with FileContentContext:
   }
 
   // This is a generic response and could be moved to another place?
-  test("encode . decode json <-> json (incorrect payload)") {
+  test("encode . decode $ json <-> json ## incorrect payload") {
     jsonFrom[IO]("contract/http/missing.fields.payload.json").use { raw =>
       IO {
         val original = parse(raw).rightValue
