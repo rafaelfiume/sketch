@@ -14,13 +14,12 @@ object SketchVersions:
         F.blocking(Source.fromResource("sketch.version"))
       }
       .map { source =>
-        source
-          .getLines()
-          .toSeq
-          .headOption
-          .getOrElse(throw new RuntimeException("Unable to load version"))
+        val lines = source.getLines().toSeq
+        val version = lines.headOption.getOrElse(throw new RuntimeException("No build number specified in 'sketch.version'"))
+        val commit = lines.tail.headOption.getOrElse(throw new RuntimeException("No commit hash specified in 'sketch.version'"))
+        (version, commit)
       }
-      .map { version =>
+      .map { (build, commit) =>
         new Versions[F]:
-          def currentVersion = Version(version).pure[F]
+          def currentVersion = Version(build, commit).pure[F]
       }

@@ -10,7 +10,12 @@ class SketchVersionsSpec extends CatsEffectSuite:
     SketchVersions.make[IO].use { versions =>
       for
         result <- versions.currentVersion
-        _ <- IO { assertEquals(result, Version("0.1.1596724824884.c80e670.46")) }
+        _ <- IO {
+          assertEquals(
+            result,
+            Version(build = "272", commit = "546fb2cfc03e4c4554c2e4de61c89080091123e8")
+          )
+        }
       yield ()
     }
   }

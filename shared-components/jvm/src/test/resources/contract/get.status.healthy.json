@@ -1,6 +1,7 @@
 {
-  "version" : "0.1.1724786457000.8TXogOw.06",
-  "health" : {
+  "build" : "snapshot",
+  "commit" : "68e28f9ab5274d2be986304de27f9d63c2ec2187",
+    "health" : {
     "Ok" : [
       "Database"
     ]

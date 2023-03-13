@@ -102,13 +102,13 @@ lazy val service =
          Dependency.munitTestcontainersScalaPG % "it"
        ),
        Compile / resourceGenerators += Def.task {
-         val file = (Compile / resourceManaged).value / "sketch.version"
-         val lines = Seq(
+         val versionFile = (Compile / resourceManaged).value / "sketch.version"
+         val versionLines = Seq(
            version.value,
            git.gitHeadCommit.value.getOrElse("no commit hash")
          )
-         IO.writeLines(file, lines)
-         Seq(file)
+         IO.writeLines(versionFile, versionLines)
+         Seq(versionFile)
        },
        Compile / mainClass := Some("org.fiume.sketch.app.Main"),
        dockerBaseImage := "openjdk:17-jdk-slim",
