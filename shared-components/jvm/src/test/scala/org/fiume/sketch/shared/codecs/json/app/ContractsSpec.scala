@@ -24,7 +24,7 @@ class ContractsSpec extends CatsEffectSuite with ScalaCheckEffectSuite with File
   override def scalaCheckTestParameters = super.scalaCheckTestParameters.withMinSuccessfulTests(3)
 
   test("encode . decode $ json == json ## status payload") {
-    def samples = Gen.oneOf("contract/http/get.status.faulty.json", "contract/http/get.status.healthy.json")
+    def samples = Gen.oneOf("contract/get.status.faulty.json", "contract/get.status.healthy.json")
     forAllF(samples) { sample =>
       jsonFrom[IO](sample).use { raw =>
         IO {
