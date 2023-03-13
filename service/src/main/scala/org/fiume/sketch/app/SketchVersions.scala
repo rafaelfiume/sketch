@@ -8,10 +8,13 @@ import org.fiume.sketch.shared.app.algebras.Versions
 import scala.io.Source
 
 object SketchVersions:
-  def make[F[_]](using F: Sync[F]): Resource[F, Versions[F]] =
+  /* See `(Compile / resourceManaged).value / "${value}.version"` in build.sbt */
+  case class VersionFile(name: String) extends AnyVal
+
+  def make[F[_]](versionFile: VersionFile)(using F: Sync[F]): Resource[F, Versions[F]] =
     Resource
       .fromAutoCloseable {
-        F.blocking(Source.fromResource("sketch.version"))
+        F.blocking(Source.fromResource(versionFile.name))
       }
       .map { source =>
         val lines = source.getLines().toSeq

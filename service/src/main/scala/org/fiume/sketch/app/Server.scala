@@ -5,6 +5,8 @@ import cats.effect.{Async, Concurrent, ExitCode, Resource}
 import cats.implicits.*
 import com.comcast.ip4s.*
 import doobie.ConnectionIO
+import org.fiume.sketch.app.SketchVersions
+import org.fiume.sketch.app.SketchVersions.VersionFile
 import org.fiume.sketch.http.HealthStatusRoutes
 import org.fiume.sketch.shared.app.algebras.{HealthCheck, Versions}
 import org.fiume.sketch.storage.algebras.DocumentsStore
@@ -26,7 +28,7 @@ object Server:
     (for
       conf <- Resource.eval(ServiceConfig.load[F])
       res <- Resources.make(conf)
-      versions <- SketchVersions.make[F]
+      versions <- SketchVersions.make[F](VersionFile("sketch.version"))
       server <- httpServer[F](versions, res.store, res.store)
     yield server)
       .use { server =>
