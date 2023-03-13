@@ -2,9 +2,9 @@ package org.fiume.sketch.frontend.storage.ui
 
 import com.raquo.laminar.api.L.*
 import com.raquo.laminar.nodes.ReactiveHtmlElement
-import org.fiume.sketch.domain.documents.{Document, Metadata}
 import org.fiume.sketch.frontend.Files
 import org.fiume.sketch.frontend.storage.Storage
+import org.fiume.sketch.shared.domain.documents.{Document, Metadata}
 import org.scalajs.dom.{File, HTMLInputElement}
 import org.scalajs.dom.html.Form
 

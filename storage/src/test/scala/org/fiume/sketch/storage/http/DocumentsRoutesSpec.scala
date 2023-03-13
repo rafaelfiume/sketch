@@ -5,16 +5,16 @@ import cats.effect.{IO, Ref}
 import cats.implicits.*
 import io.circe.syntax.*
 import munit.{CatsEffectSuite, ScalaCheckEffectSuite}
-import org.fiume.sketch.domain.documents.{Document, Metadata}
-import org.fiume.sketch.domain.documents.JsonCodecs.given
+import org.fiume.sketch.shared.codecs.json.domain.Documents.given
+import org.fiume.sketch.shared.domain.documents.{Document, Metadata}
+import org.fiume.sketch.shared.test.{FileContentContext, Http4sTestingRoutesDsl}
+import org.fiume.sketch.shared.test.EitherSyntax.*
 import org.fiume.sketch.storage.algebras.DocumentsStore
 import org.fiume.sketch.storage.http.DocumentsRoutes
 import org.fiume.sketch.storage.http.JsonCodecs.Incorrects.given
 import org.fiume.sketch.storage.http.Model.Incorrect
 import org.fiume.sketch.storage.http.Model.IncorrectOps.*
-import org.fiume.sketch.test.support.{FileContentContext, Http4sTestingRoutesDsl}
 import org.fiume.sketch.test.support.DocumentsGens.*
-import org.fiume.sketch.test.support.EitherSyntax.*
 import org.http4s.{MediaType, *}
 import org.http4s.Method.*
 import org.http4s.circe.CirceEntityDecoder.*

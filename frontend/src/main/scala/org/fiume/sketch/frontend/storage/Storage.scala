@@ -1,9 +1,9 @@
 package org.fiume.sketch.frontend.storage
 
 import io.circe.Json
-import org.fiume.sketch.domain.documents.{Document, Metadata}
-import org.fiume.sketch.domain.documents.JsonCodecs.given
 import org.fiume.sketch.frontend.storage.Storage
+import org.fiume.sketch.shared.codecs.json.domain.Documents.given
+import org.fiume.sketch.shared.domain.documents.{Document, Metadata}
 import sttp.capabilities.WebSockets
 import sttp.client3.*
 import sttp.client3.circe.*

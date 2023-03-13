@@ -9,13 +9,13 @@ import io.circe.Decoder.Result
 import io.circe.parser.decode
 import io.circe.syntax.*
 import munit.{CatsEffectSuite, ScalaCheckEffectSuite}
-import org.fiume.sketch.algebras.{HealthCheck, Version, Versions}
-import org.fiume.sketch.algebras.HealthCheck.{ServiceHealth, *}
-import org.fiume.sketch.http.JsonCodecs.ServiceStatus.given
-import org.fiume.sketch.http.Model.ServiceStatus
-import org.fiume.sketch.test.support.{FileContentContext, Http4sTestingRoutesDsl}
-import org.fiume.sketch.test.support.EitherSyntax.*
-import org.fiume.sketch.test.support.Gens.Lists.*
+import org.fiume.sketch.shared.app.{ServiceHealth, ServiceStatus, Version}
+import org.fiume.sketch.shared.app.ServiceHealth.Infra
+import org.fiume.sketch.shared.app.algebras.{HealthCheck, Versions}
+import org.fiume.sketch.shared.codecs.json.app.Service.given
+import org.fiume.sketch.shared.test.{FileContentContext, Http4sTestingRoutesDsl}
+import org.fiume.sketch.shared.test.EitherSyntax.*
+import org.fiume.sketch.shared.test.Gens.Lists.*
 import org.fiume.sketch.test.support.SketchGens.*
 import org.http4s.Method.*
 import org.http4s.Status
@@ -26,7 +26,6 @@ import org.scalacheck.Gen
 import org.scalacheck.effect.PropF.forAllF
 
 import scala.language.reflectiveCalls
-
 // TODO Rename HealthCheckRoutesSpec
 class HealthStatusRoutesSpec
     extends CatsEffectSuite // otherwise non-property-based tests won't be executed (?)

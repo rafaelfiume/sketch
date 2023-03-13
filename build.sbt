@@ -67,7 +67,7 @@ lazy val frontend =
 
 lazy val service =
    project.in(file("service"))
-     .dependsOn(sharedComponents.jvm)
+     .dependsOn(sharedComponentsJvm)
      .dependsOn(storage)
      .dependsOn(sharedTestComponents % Test)
      .enablePlugins(JavaAppPackaging)
@@ -142,12 +142,20 @@ lazy val sharedComponents =
     )
     .jvmSettings(
       libraryDependencies ++= Seq(
-        Dependency.fs2Core
+        Dependency.circeParser,
+        Dependency.fs2Core,
+        Dependency.munit % Test,
+        Dependency.munitCatsEffect % Test,
+        Dependency.munitScalaCheck % Test,
+        Dependency.munitScalaCheckEffect % Test
       )
     )
     .jsSettings(
       fork := false
     )
+
+lazy val sharedComponentsJvm =
+  sharedComponents.jvm.dependsOn(sharedTestComponents % Test)
 
 /*
  * Shared for backend (jvm) only.
@@ -181,11 +189,14 @@ lazy val sketch =
     .settings(commonSettings: _*)
     .aggregate(frontend)
     .aggregate(service)
+    .aggregate(sharedComponentsJvm)
+    .aggregate(sharedComponents.js)
+    .aggregate(sharedTestComponents)
     .aggregate(storage)
 
 lazy val storage =
    project.in(file("storage"))
-     .dependsOn(sharedComponents.jvm)
+     .dependsOn(sharedComponentsJvm)
      .dependsOn(sharedTestComponents % Test)
      .disablePlugins(plugins.JUnitXmlReportPlugin)
      .settings(commonSettings: _*)

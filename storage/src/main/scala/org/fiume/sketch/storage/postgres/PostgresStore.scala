@@ -7,9 +7,10 @@ import cats.~>
 import doobie.*
 import doobie.implicits.*
 import fs2.Stream
-import org.fiume.sketch.algebras.HealthCheck
-import org.fiume.sketch.algebras.HealthCheck.*
-import org.fiume.sketch.domain.documents.{Document, Metadata}
+import org.fiume.sketch.shared.app.ServiceHealth
+import org.fiume.sketch.shared.app.ServiceHealth.Infra
+import org.fiume.sketch.shared.app.algebras.HealthCheck
+import org.fiume.sketch.shared.domain.documents.{Document, Metadata}
 import org.fiume.sketch.storage.algebras.{DocumentsStore, Store}
 import org.fiume.sketch.storage.postgres.Statements.*
 import org.typelevel.log4cats.Logger

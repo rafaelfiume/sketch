@@ -5,8 +5,8 @@ import cats.effect.{Async, Concurrent, ExitCode, Resource}
 import cats.implicits.*
 import com.comcast.ip4s.*
 import doobie.ConnectionIO
-import org.fiume.sketch.algebras.*
 import org.fiume.sketch.http.HealthStatusRoutes
+import org.fiume.sketch.shared.app.algebras.{HealthCheck, Versions}
 import org.fiume.sketch.storage.algebras.DocumentsStore
 import org.fiume.sketch.storage.http.DocumentsRoutes
 import org.fiume.sketch.storage.postgres.PostgresStore
