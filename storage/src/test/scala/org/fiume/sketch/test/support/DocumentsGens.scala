@@ -2,8 +2,8 @@ package org.fiume.sketch.test.support
 
 import fs2.Stream
 import org.fiume.sketch.shared.domain.documents.{Document, Metadata}
-import org.fiume.sketch.test.support.Gens.Bytes.*
-import org.fiume.sketch.test.support.Gens.Strings.*
+import org.fiume.sketch.shared.test.Gens.Bytes.*
+import org.fiume.sketch.shared.test.Gens.Strings.*
 import org.scalacheck.Gen
 
 object DocumentsGens: // good candidate to be moved to a specific test-components module/lib

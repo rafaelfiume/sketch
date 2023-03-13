@@ -5,7 +5,7 @@ import io.circe.Json
 import munit.Assertions.*
 import munit.CatsEffectSuite
 import org.fiume.sketch.support.Http4sContext
-import org.fiume.sketch.test.support.FileContentContext
+import org.fiume.sketch.shared.test.FileContentContext
 import org.http4s.Status.*
 import org.http4s.circe.*
 

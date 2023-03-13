@@ -9,8 +9,8 @@ import io.circe.syntax.*
 import munit.CatsEffectSuite
 import org.fiume.sketch.shared.codecs.json.domain.Documents.given
 import org.fiume.sketch.shared.domain.documents.Metadata
-import org.fiume.sketch.test.support.EitherSyntax.*
-import org.fiume.sketch.test.support.FileContentContext
+import org.fiume.sketch.shared.test.EitherSyntax.*
+import org.fiume.sketch.shared.test.FileContentContext
 
 class ContractsSpec extends CatsEffectSuite with FileContentContext:
 

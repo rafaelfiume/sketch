@@ -10,8 +10,8 @@ import munit.{CatsEffectSuite, ScalaCheckEffectSuite}
 import org.fiume.sketch.shared.app.ServiceStatus
 import org.fiume.sketch.shared.codecs.json.app.Service
 import org.fiume.sketch.shared.codecs.json.app.Service.given
-import org.fiume.sketch.test.support.EitherSyntax.*
-import org.fiume.sketch.test.support.FileContentContext
+import org.fiume.sketch.shared.test.EitherSyntax.*
+import org.fiume.sketch.shared.test.FileContentContext
 import org.scalacheck.Gen
 import org.scalacheck.effect.PropF.forAllF
 /*

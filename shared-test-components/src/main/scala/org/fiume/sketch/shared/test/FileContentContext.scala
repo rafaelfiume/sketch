@@ -1,4 +1,4 @@
-package org.fiume.sketch.test.support
+package org.fiume.sketch.shared.test
 
 import cats.effect.{Async, Resource, Sync}
 import fs2.io.file.{Files, Path}

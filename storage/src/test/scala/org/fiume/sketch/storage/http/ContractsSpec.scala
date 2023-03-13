@@ -7,10 +7,10 @@ import io.circe.Decoder.Result
 import io.circe.parser.{decode, parse}
 import io.circe.syntax.*
 import munit.CatsEffectSuite
+import org.fiume.sketch.shared.test.EitherSyntax.*
+import org.fiume.sketch.shared.test.FileContentContext
 import org.fiume.sketch.storage.http.JsonCodecs.Incorrects.given
 import org.fiume.sketch.storage.http.Model.Incorrect
-import org.fiume.sketch.test.support.EitherSyntax.*
-import org.fiume.sketch.test.support.FileContentContext
 
 class ContractsSpec extends CatsEffectSuite with FileContentContext:
 
