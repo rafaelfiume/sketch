@@ -17,17 +17,14 @@ inThisBuild(
   )
 )
 
-lazy val branchVersion: Option[String] =
-  Properties
-    .envOrNone("CIRCLE_BRANCH")
-    .map(name => if (name == "main") "" else s"$name.")
-
-// e.g. version 105 (main) or branch.105 (branch) or snapshot (workstation)
-lazy val buildNumber: String =
+// e.g. version `105` (main), `branch.105` (feature branch) or `snapshot` (local)
+lazy val buildNumber: String = {
+  lazy val branchVersion = Properties.envOrNone("CIRCLE_BRANCH").map { name => if (name == "main") "" else s"$name." }
   Properties
     .envOrNone("CIRCLE_BUILD_NUM")
     .flatMap(number => branchVersion.map(branch => s"$branch$number"))
     .getOrElse("snapshot")
+}
 
 lazy val commonSettings = Seq(
   scalaVersion := ScalaVersion,
@@ -132,6 +129,8 @@ lazy val sharedComponents =
   crossProject(JSPlatform, JVMPlatform).in(file("shared-components"))
     .disablePlugins(plugins.JUnitXmlReportPlugin)
     .settings(commonSettings: _*)
+    .configs(IntegrationTest)
+    .settings(Defaults.itSettings: _*)
     .settings(
       name := "shared-components",
       libraryDependencies ++= Seq(
@@ -144,12 +143,14 @@ lazy val sharedComponents =
       libraryDependencies ++= Seq(
         Dependency.circeParser,
         Dependency.fs2Core,
-        Dependency.munit % Test,
-        Dependency.munitCatsEffect % Test,
-        Dependency.munitScalaCheck % Test,
-        Dependency.munitScalaCheckEffect % Test
+        Dependency.munit % "test,it",
+        Dependency.munitCatsEffect % "test,it",
+        Dependency.munitScalaCheck % "test,it",
+        Dependency.munitScalaCheckEffect % "test,it"
       )
     )
+    // TODO causes "Referring to non-existent class org.scalajs.testing.bridge.Bridge" error
+    //.jsSettings(inConfig(IntegrationTest)(ScalaJSPlugin.testConfigSettings): _*)
     .jsSettings(
       fork := false
     )

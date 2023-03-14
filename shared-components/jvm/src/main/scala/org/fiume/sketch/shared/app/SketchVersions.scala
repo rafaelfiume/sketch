@@ -1,4 +1,4 @@
-package org.fiume.sketch.app
+package org.fiume.sketch.shared.app
 
 import cats.effect.{Resource, Sync}
 import cats.implicits.*
