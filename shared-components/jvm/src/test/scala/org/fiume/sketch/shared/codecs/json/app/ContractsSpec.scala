@@ -26,13 +26,11 @@ class ContractsSpec extends CatsEffectSuite with ScalaCheckEffectSuite with File
   test("encode . decode $ json == json ## status payload") {
     def samples = Gen.oneOf("contract/get.status.faulty.json", "contract/get.status.healthy.json")
     forAllF(samples) { sample =>
-      jsonFrom[IO](sample).use { raw =>
-        IO {
-          val original = parse(raw).rightValue
-          val serviceStatus = decode[ServiceStatus](original.noSpaces).rightValue
-          val roundTrip = serviceStatus.asJson
-          assertEquals(roundTrip.spaces2SortKeys, original.spaces2SortKeys)
-        }
-      }
+      jsonFrom[IO](sample).map { raw =>
+        val original = parse(raw).rightValue
+        val serviceStatus = decode[ServiceStatus](original.noSpaces).rightValue
+        val roundTrip = serviceStatus.asJson
+        assertEquals(roundTrip.spaces2SortKeys, original.spaces2SortKeys)
+      }.use_
     }
   }
