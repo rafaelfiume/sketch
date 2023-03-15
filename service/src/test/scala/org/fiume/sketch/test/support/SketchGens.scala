@@ -8,11 +8,19 @@ object SketchGens:
 
   // Could be moved to a specific test components module?
   def versions: Gen[Version] =
-    val prefix = "0.1"
-    val snapshot: Gen[Version] = Gen.const(Version(s"$prefix-SNAPSHOT"))
-    val buildVersion: Gen[Version] = for
-      currentMillis <- dateAndTime.map(_.toInstant.toEpochMilli)
-      buildA <- Gen.buildableOfN[String, Char](7, Gen.alphaNumChar)
-      buildNumber <- Gen.buildableOfN[String, Char](2, Gen.numChar)
-    yield Version(s"$prefix.$currentMillis.$buildA.$buildNumber")
-    Gen.oneOf(snapshot, buildVersion)
+    def builds = Gen.frequency(
+      1 -> "snapshot",
+      9 -> Gen.choose(1, 1000000001).map(_.toString)
+    )
+    val commits = Gen.oneOf(
+      "7ab220dd4840368884322cedae340dbf253746dc",
+      "20c0c8d38bdefe29f49c8c6a702066b4251c40a1",
+      "ef933263dbd158bb0af2fa28f4cc62acb3824a4d",
+      "10ab3ac009972f653a827658ca98d96fee32a0a4",
+      "09e6e6a1eb465d4dcfdf8c591ca3b7ffe3085b3c",
+      "09e6e6a1eb465d4dcfdf8c591ca3b7ffe3085b3c"
+    )
+    for
+      build <- builds
+      commit <- commits
+    yield Version(build, commit)

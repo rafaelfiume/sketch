@@ -1,3 +1,3 @@
 package org.fiume.sketch.shared.app
 
-case class Version(value: String) extends AnyVal
+case class Version(build: String, commit: String)

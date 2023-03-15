@@ -15,12 +15,10 @@ import org.fiume.sketch.shared.test.FileContentContext
 class ContractsSpec extends CatsEffectSuite with FileContentContext:
 
   test("encode . decode $ json == json ## document metadata payload") {
-    jsonFrom[IO]("contract/document.metadata.json").use { raw =>
-      IO {
-        val original = parse(raw).rightValue
-        val metadata = decode[Metadata](original.noSpaces).rightValue
-        val roundTrip = metadata.asJson
-        assertEquals(roundTrip.spaces2SortKeys, original.spaces2SortKeys)
-      }
-    }
+    jsonFrom[IO]("contract/document.metadata.json").map { raw =>
+      val original = parse(raw).rightValue
+      val metadata = decode[Metadata](original.noSpaces).rightValue
+      val roundTrip = metadata.asJson
+      assertEquals(roundTrip.spaces2SortKeys, original.spaces2SortKeys)
+    }.use_
   }

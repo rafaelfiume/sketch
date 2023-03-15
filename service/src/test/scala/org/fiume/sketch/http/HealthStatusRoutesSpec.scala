@@ -26,7 +26,7 @@ import org.scalacheck.Gen
 import org.scalacheck.effect.PropF.forAllF
 
 import scala.language.reflectiveCalls
-// TODO Rename HealthCheckRoutesSpec
+
 class HealthStatusRoutesSpec
     extends CatsEffectSuite // otherwise non-property-based tests won't be executed (?)
     with ScalaCheckEffectSuite
