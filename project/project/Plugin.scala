@@ -10,7 +10,7 @@ object Plugin {
     val SbtNativePackager   = "1.9.13"
     val Scalafix            = "0.10.4"
     val ScalaFmt            = "2.5.0"
-    val ScalaJs             = "1.13.0"
+    val ScalaJs             = "1.13.1"
     val Tpolecat            = "0.4.2"
   }
 
