@@ -2,7 +2,7 @@ import com.typesafe.sbt.packager.docker._
 import sbt.{enablePlugins, IO}
 import scala.util.Properties
 
-val ScalaVersion = "3.2.1"
+val ScalaVersion = "3.2.2"
 
 enablePlugins(GitVersioning)
 
@@ -11,7 +11,7 @@ ThisBuild / scalafixDependencies += "com.github.liancheng" %% "organize-imports"
 // scalafix semantic db config
 inThisBuild(
   List(
-    scalaVersion := "3.2.1",
+    scalaVersion := "3.2.2",
     semanticdbEnabled := true,
     semanticdbVersion := scalafixSemanticdb.revision
   )
@@ -53,7 +53,7 @@ lazy val frontend =
        libraryDependencies ++= Seq(
          "com.raquo"                       %%% "laminar"                         % "0.14.2",
          "io.circe"                        %%% "circe-core"                      % "0.14.3",
-         "org.scala-js"                    %%% "scalajs-dom"                     % "2.2.0",
+         "org.scala-js"                    %%% "scalajs-dom"                     % "2.6.0",
          "com.softwaremill.sttp.client3"   %%% "core"                            % "3.8.11",
          "com.softwaremill.sttp.client3"   %%% "circe"                           % "3.8.11",
 
