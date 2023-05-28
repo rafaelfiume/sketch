@@ -52,7 +52,7 @@ lazy val frontend =
        },
        libraryDependencies ++= Seq(
          "com.raquo"                       %%% "laminar"                         % "0.14.2",
-         "io.circe"                        %%% "circe-core"                      % "0.14.3",
+         "io.circe"                        %%% "circe-core"                      % "0.14.5",
          "org.scala-js"                    %%% "scalajs-dom"                     % "2.2.0",
          "com.softwaremill.sttp.client3"   %%% "core"                            % "3.8.11",
          "com.softwaremill.sttp.client3"   %%% "circe"                           % "3.8.11",
