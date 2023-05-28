@@ -2,6 +2,7 @@ package org.fiume.sketch.shared.test
 
 import cats.effect.{Async, Resource, Sync}
 import fs2.io.file.{Files, Path}
+import fs2.io.file.Files.*
 
 import scala.io.Source
 
@@ -17,4 +18,4 @@ trait FileContentContext:
     Resource.fromAutoCloseable { F.blocking(Source.fromResource(path)) }.map(_.mkString(""))
 
   def bytesFrom[F[_]](path: String)(using F: Async[F]): fs2.Stream[F, Byte] =
-    Files[F].readAll(Path(getClass.getClassLoader.getResource(path).getPath()))
+    Files.forAsync[F].readAll(Path(getClass.getClassLoader.getResource(path).getPath()))
