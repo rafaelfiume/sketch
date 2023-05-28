@@ -7,7 +7,7 @@ object Plugin {
     val Git                 = "2.0.1"
     val OrganizeImports     = "0.6.0"
     val PortableScala       = "1.0.0"
-    val SbtNativePackager   = "1.9.16"
+    val SbtNativePackager   = "1.9.13"
     val Scalafix            = "0.10.4"
     val ScalaFmt            = "2.5.0"
     val ScalaJs             = "1.13.0"
