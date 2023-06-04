@@ -51,7 +51,7 @@ lazy val frontend =
            .withModuleSplitStyle(ModuleSplitStyle.SmallModulesFor(List("frontend")))
        },
        libraryDependencies ++= Seq(
-         "com.raquo"                       %%% "laminar"                         % "0.14.5",
+         "com.raquo"                       %%% "laminar"                         % "0.14.2",
          "io.circe"                        %%% "circe-core"                      % "0.14.3",
          "org.scala-js"                    %%% "scalajs-dom"                     % "2.6.0",
          "com.softwaremill.sttp.client3"   %%% "core"                            % "3.8.11",
