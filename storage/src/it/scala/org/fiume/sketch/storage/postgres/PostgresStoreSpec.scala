@@ -35,16 +35,16 @@ class PostgresStoreSpec
   // override def scalaCheckInitialSeed = "DCHaHgKmD4XmEOKVUE1Grw8K2uWlohHvD-5gMuoh2pE="
 
   test("store and fetch documents metadata") {
-    forAllF(documents[IO], documents[IO]) { (fst, snd) =>
+    forAllF(documents[IO]) { doc =>
       will(cleanDocuments) {
         PostgresStore.make[IO](transactor()).use { store =>
           for
-            _ <- store.store(fst).ccommit
+            _ <- store.store(doc).ccommit
 
-            result <- store.fetchMetadata(fst.metadata.name).ccommit
+            result <- store.fetchMetadata(doc.metadata.name).ccommit
 
             _ <- IO {
-              assertEquals(result, fst.metadata.some)
+              assertEquals(result, doc.metadata.some)
             }
           yield ()
         }
@@ -187,7 +187,7 @@ trait PostgresStoreSpecContext:
    * Queries
    */
 
-  def cleanDocuments: ConnectionIO[Unit] = sql"DELETE FROM documents".update.run.void
+  def cleanDocuments: ConnectionIO[Unit] = sql"TRUNCATE TABLE documents".update.run.void
 
   extension (store: PostgresStore[IO])
     def fetchUpdatedAt(name: Name): ConnectionIO[Instant] =
