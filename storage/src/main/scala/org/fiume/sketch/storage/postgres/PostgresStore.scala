@@ -1,6 +1,6 @@
 package org.fiume.sketch.storage.postgres
 
-import cats.data.OptionT
+import cats.data.{NonEmptyList, OptionT}
 import cats.effect.{Async, Clock, Resource}
 import cats.implicits.*
 import cats.~>
@@ -12,24 +12,18 @@ import org.fiume.sketch.shared.app.ServiceHealth.Infra
 import org.fiume.sketch.shared.app.algebras.HealthCheck
 import org.fiume.sketch.shared.domain.documents.{Document, Metadata}
 import org.fiume.sketch.storage.algebras.{DocumentsStore, Store}
-import org.fiume.sketch.storage.postgres.Statements.*
-import org.typelevel.log4cats.Logger
-import org.typelevel.log4cats.slf4j.Slf4jLogger
+import org.fiume.sketch.storage.postgres.DoobieMappings.given
+
+import java.time.ZonedDateTime
 
 object PostgresStore:
   def make[F[_]: Async](tx: Transactor[F]): Resource[F, PostgresStore[F]] =
     WeakAsync.liftK[F, ConnectionIO].map(l => new PostgresStore[F](l, tx))
 
 private class PostgresStore[F[_]: Async] private (l: F ~> ConnectionIO, tx: Transactor[F])
-    extends Store[F, ConnectionIO]
+    extends AbstractPostgresStore[F](l, tx)
     with DocumentsStore[F, ConnectionIO]
     with HealthCheck[F]:
-
-  private val logger = Slf4jLogger.getLogger[F]
-
-  override val lift: [A] => F[A] => ConnectionIO[A] = [A] => (fa: F[A]) => l(fa)
-
-  override val commit: [A] => ConnectionIO[A] => F[A] = [A] => (txn: ConnectionIO[A]) => txn.transact(tx)
 
   override def store(doc: Document[F]): ConnectionIO[Unit] =
     for
@@ -58,3 +52,50 @@ private class PostgresStore[F[_]: Async] private (l: F ~> ConnectionIO, tx: Tran
       .transact(tx)
       .as(ServiceHealth.healthy(Infra.Database))
       .recover(_ => ServiceHealth.faulty(Infra.Database))
+
+private object Statements:
+  val healthCheck: ConnectionIO[Int] = sql"select 42".query[Int].unique
+
+  def insertDocument[F[_]](metadata: Metadata, bytes: Array[Byte]): Update0 =
+    sql"""
+         |INSERT INTO documents(
+         |  name,
+         |  description,
+         |  bytes
+         |)
+         |VALUES (
+         |  ${metadata.name},
+         |  ${metadata.description},
+         |  ${bytes}
+         |)
+         |ON CONFLICT (name) DO
+         |UPDATE SET
+         |  name = EXCLUDED.name,
+         |  description = EXCLUDED.description,
+         |  updated_at_utc = EXCLUDED.updated_at_utc,
+         |  bytes = EXCLUDED.bytes
+    """.stripMargin.update
+
+  def selectDocumentMetadata(name: Metadata.Name): Query0[Metadata] =
+    sql"""
+         |SELECT
+         |  d.name,
+         |  d.description
+         |FROM documents d
+         |WHERE d.name = ${name}
+    """.stripMargin.query[Metadata]
+
+  def selectDocumentBytes(name: Metadata.Name): Query0[Array[Byte]] =
+    sql"""
+         |SELECT
+         |  d.bytes
+         |FROM documents d
+         |WHERE d.name = ${name}
+    """.stripMargin.query[Array[Byte]]
+
+  def delete(name: Metadata.Name): Update0 =
+    sql"""
+         |DELETE
+         |FROM documents d
+         |WHERE d.name = ${name}
+    """.stripMargin.update
