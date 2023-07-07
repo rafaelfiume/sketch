@@ -13,8 +13,6 @@ import org.fiume.sketch.shared.app.algebras.HealthCheck
 import org.fiume.sketch.shared.domain.documents.{Document, Metadata}
 import org.fiume.sketch.storage.algebras.{DocumentsStore, Store}
 import org.fiume.sketch.storage.postgres.DoobieMappings.given
-import org.typelevel.log4cats.Logger
-import org.typelevel.log4cats.slf4j.Slf4jLogger
 
 import java.time.ZonedDateTime
 
@@ -23,14 +21,9 @@ object PostgresStore:
     WeakAsync.liftK[F, ConnectionIO].map(l => new PostgresStore[F](l, tx))
 
 private class PostgresStore[F[_]: Async] private (l: F ~> ConnectionIO, tx: Transactor[F])
-    extends DocumentsStore[F, ConnectionIO]
+    extends AbstractPostgresStore[F](l, tx)
+    with DocumentsStore[F, ConnectionIO]
     with HealthCheck[F]:
-
-  private val logger = Slf4jLogger.getLogger[F]
-
-  override val lift: [A] => F[A] => ConnectionIO[A] = [A] => (fa: F[A]) => l(fa)
-
-  override val commit: [A] => ConnectionIO[A] => F[A] = [A] => (txn: ConnectionIO[A]) => txn.transact(tx)
 
   override def store(doc: Document[F]): ConnectionIO[Unit] =
     for

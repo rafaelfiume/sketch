@@ -10,19 +10,16 @@ import org.fiume.sketch.storage.auth0.Model.*
 import org.fiume.sketch.storage.auth0.algebras.UserStore
 import org.fiume.sketch.storage.auth0.postgres.DoobieMappings.given
 import org.fiume.sketch.storage.auth0.postgres.Statements.*
-import org.typelevel.log4cats.Logger
-import org.typelevel.log4cats.slf4j.Slf4jLogger
+import org.fiume.sketch.storage.postgres.AbstractPostgresStore
 
 object PostgresUserStore:
   def make[F[_]: Async](tx: Transactor[F]): Resource[F, PostgresUserStore[F]] =
     WeakAsync.liftK[F, ConnectionIO].map(l => new PostgresUserStore[F](l, tx))
 
-private class PostgresUserStore[F[_]: Async] private (l: F ~> ConnectionIO, tx: Transactor[F]) extends UserStore[F, ConnectionIO]:
+private class PostgresUserStore[F[_]: Async] private (l: F ~> ConnectionIO, tx: Transactor[F])
+    extends AbstractPostgresStore[F](l, tx)
+    with UserStore[F, ConnectionIO]:
 
-  // TODO: Duplicate code from PostgresStore
-  private val logger = Slf4jLogger.getLogger[F]
-  override val lift: [A] => F[A] => ConnectionIO[A] = [A] => (fa: F[A]) => l(fa)
-  override val commit: [A] => ConnectionIO[A] => F[A] = [A] => (txn: ConnectionIO[A]) => txn.transact(tx)
   def store(user: User, password: PasswordHash, salt: Salt): ConnectionIO[UserCredentials] =
     insertUserCredentials(user, password, salt)
       .withUniqueGeneratedKeys[UserCredentials](
