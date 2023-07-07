@@ -142,7 +142,7 @@ trait PostgresUserStoreSpecContext:
 
   def passwords: Gen[PasswordHash] = Gens.Strings.alphaNumString(1, 50).map(PasswordHash(_))
 
-  def salts: Gen[Salt] = Gens.Strings.alphaNumString(1, 50).map(Salt(_))
+  def salts: Gen[Salt] = Gens.Strings.alphaNumString(1, 50).map(Salt.unsafeFromString(_))
 
   def userCredentials: Gen[UserCredentials] =
     for

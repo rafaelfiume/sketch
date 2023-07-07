@@ -13,7 +13,7 @@ private[postgres] object DoobieMappings:
 
   given Meta[PasswordHash] = Meta[String].timap(PasswordHash.apply)(_.value)
 
-  given Meta[Salt] = Meta[String].timap(Salt.apply)(_.value)
+  given Meta[Salt] = Meta[String].timap(Salt.unsafeFromString)(_.value)
 
   given Meta[Username] = Meta[String].timap(Username.apply)(_.value)
 

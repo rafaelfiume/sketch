@@ -1,6 +1,7 @@
 package org.fiume.sketch.storage.auth0
 
 import cats.Show
+import cats.effect.Sync
 
 import java.time.ZonedDateTime
 import java.util.UUID
@@ -10,8 +11,12 @@ object Model:
   case class PasswordHash(value: String) extends AnyVal:
     override def toString(): String = "********"
 
-  // TODO: Salf of 32 bytes long
-  case class Salt(value: String) extends AnyVal:
+  object Salt:
+    // TODO: Salf of 32 bytes long
+    def generate[F[_]: Sync](): F[Salt] = ???
+    def unsafeFromString(value: String): Salt = new Salt(value) {}
+
+  sealed abstract case class Salt(value: String):
     override def toString(): String = "********"
 
   case class Username(value: String) extends AnyVal
