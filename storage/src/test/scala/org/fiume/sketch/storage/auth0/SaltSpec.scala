@@ -1,11 +1,10 @@
 package org.fiume.sketch.storage.auth0
 
-import munit.ScalaCheckEffectSuite
-import munit.CatsEffectSuite
-import org.scalacheck.effect.PropF.forAllF
-import org.scalacheck.{Gen, Shrink}
 import cats.effect.IO
 import cats.implicits.*
+import munit.{CatsEffectSuite, ScalaCheckEffectSuite}
+import org.scalacheck.{Gen, Shrink}
+import org.scalacheck.effect.PropF.forAllF
 
 class SaltSpec extends CatsEffectSuite with ScalaCheckEffectSuite:
   // shrinking just make failing tests messages more obscure
