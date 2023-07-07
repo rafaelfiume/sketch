@@ -1,6 +1,6 @@
 # Authentication
 
-### Strategy
+## Strategy
 
 Hash-based authentication and JSON Web Tokens ([JWT](https://jwt.io)) serve different purposes and should be used together in the authentication system.
 
@@ -15,6 +15,13 @@ In an authentication system, you can combine hash-based authentication with JWTs
 2. The JWT can then be issued to the client, which can include it in subsequent requests as an "Authorization" header with the "Bearer" authentication scheme.
 
 3. On the server side, validate the JWT's signature to ensure its authenticity and integrity. You can also extract and verify the claims within the payload to determine the user's identity and access privileges.
+
+### Hash-based Authentication and Sault
+
+When implementing hash-based authentication, it is generally recommended to include a salt column in the users table. The salt is an additional random value that is combined with the user's password before hashing it. It adds an extra layer of security to the password storage and helps protect against pre-computed or rainbow table attacks. Besides, The salt makes each user's hashed password unique, even if they have the same password.
+
+Including a salt column in the users table allows you to generate a unique salt value for each user during the registration process. When the user attempts to authenticate, you retrieve their salt from the table, combine it with their provided password, and then hash the result for comparison against the stored password hash.
+
 
 
 
