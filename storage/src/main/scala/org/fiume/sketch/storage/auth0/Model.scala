@@ -1,6 +1,7 @@
 package org.fiume.sketch.storage.auth0
 
 import cats.Show
+
 import java.time.ZonedDateTime
 import java.util.UUID
 

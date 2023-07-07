@@ -29,13 +29,11 @@ class PostgresUserStoreSpec extends ScalaCheckEffectSuite with DockerPostgresSui
             result <- store.fetchCredentials(user.username).ccommit
 
             _ <- IO {
+              assertEquals(result, storedCredentials.some)
               assertEquals(storedCredentials.user, user)
               assertEquals(storedCredentials.salt, salt)
               assertEquals(storedCredentials.password, password)
-              assertEquals(result, storedCredentials.some)
               assertEquals(storedCredentials.createdAt, storedCredentials.updatedAt)
-              assertEquals(result.map(_.createdAt), storedCredentials.createdAt.some)
-              assertEquals(result.map(_.updatedAt), storedCredentials.updatedAt.some)
             }
           yield ()
         }
@@ -66,16 +64,16 @@ class PostgresUserStoreSpec extends ScalaCheckEffectSuite with DockerPostgresSui
       will(cleanUsers) {
         PostgresUserStore.make[IO](transactor()).use { store =>
           for
-            credentials <- store.store(user, password, salt).ccommit
-            updatedUser = up.copy(username = user.username)
+            _ <- store.store(user, password, salt).ccommit
 
+            updatedUser = up.copy(username = user.username)
             _ <- store.updateUser(updatedUser).ccommit
 
             result <- store.fetchCredentials(updatedUser.username).ccommit
             _ <- IO {
               assertEquals(result.map(_.user), updatedUser.some)
               assert(
-                result.exists(c => c.updatedAt.isAfter(c.createdAt)),
+                result.exists(user => user.updatedAt.isAfter(user.createdAt)),
                 clue = "updatedAt should be after createdAt"
               )
             }
@@ -98,7 +96,7 @@ class PostgresUserStoreSpec extends ScalaCheckEffectSuite with DockerPostgresSui
             _ <- IO {
               assertEquals(result.map(_.password), newPassword.some)
               assert(
-                result.exists(c => c.updatedAt.isAfter(c.createdAt)),
+                result.exists(user => user.updatedAt.isAfter(user.createdAt)),
                 clue = "updatedAt should be after createdAt"
               )
             }
@@ -117,11 +115,13 @@ class PostgresUserStoreSpec extends ScalaCheckEffectSuite with DockerPostgresSui
 
             _ <- store.remove(user.username).ccommit
 
-            credentialsResult <- store.fetchCredentials(user.username).ccommit
-            userResult <- store.fetchUser(user.username).ccommit
+            result <- IO.both(
+              store.fetchCredentials(user.username).ccommit,
+              store.fetchUser(user.username).ccommit
+            )
             _ <- IO {
-              assertEquals(userResult, none)
-              assertEquals(credentialsResult, none)
+              assertEquals(result._1, none)
+              assertEquals(result._2, none)
             }
           yield ()
         }

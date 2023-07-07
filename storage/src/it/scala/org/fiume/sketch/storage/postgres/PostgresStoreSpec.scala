@@ -131,6 +131,8 @@ class PostgresStoreSpec
     }
   }
 
+  // TODO: this test is flickering
+  // why is it?
   test("delete document") {
     forAllF(documents[IO], documents[IO]) { (fst, snd) =>
       // TODO Wait till PropF.forAllF supports '==>' (scalacheck implication)
