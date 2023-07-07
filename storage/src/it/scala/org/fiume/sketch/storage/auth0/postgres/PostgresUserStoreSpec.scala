@@ -135,10 +135,10 @@ trait PostgresUserStoreSpecContext:
 
   def users: Gen[User] =
     for
-      username <- Gens.Strings.alphaNumString(1, 50).map(Username(_))
-      first <- Gens.Strings.alphaNumString(1, 50).map(FirstName(_))
-      last <- Gens.Strings.alphaNumString(1, 50).map(LastName(_))
-      email <- Gens.Strings.alphaNumString(1, 50).map(Email(_))
+      username <- Gens.Strings.alphaNumString(1, 60).map(Username(_))
+      first <- Gens.Strings.alphaNumString(1, 45).map(FirstName(_))
+      last <- Gens.Strings.alphaNumString(1, 45).map(LastName(_))
+      email <- Gens.Strings.alphaNumString(1, 60).map(Email(_))
     yield User(username, Name(first, last), email)
 
   def passwords: Gen[PasswordHash] = Gens.Strings.alphaNumString(1, 50).map(PasswordHash(_))
