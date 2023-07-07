@@ -2,6 +2,7 @@ package org.fiume.sketch.storage.auth0.algebras
 
 import org.fiume.sketch.storage.algebras.Store
 import org.fiume.sketch.storage.auth0.Model.*
+import org.fiume.sketch.storage.auth0.Salt
 
 trait UserStore[F[_], Txn[_]] extends Store[F, Txn]:
   def store(user: User, password: PasswordHash, salt: Salt): Txn[UserCredentials]

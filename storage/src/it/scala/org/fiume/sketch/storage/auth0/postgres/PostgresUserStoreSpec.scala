@@ -8,6 +8,7 @@ import doobie.postgres.implicits.*
 import munit.ScalaCheckEffectSuite
 import org.fiume.sketch.shared.test.Gens
 import org.fiume.sketch.storage.auth0.Model.*
+import org.fiume.sketch.storage.auth0.Salt
 import org.fiume.sketch.storage.auth0.algebras.UserStore
 import org.fiume.sketch.storage.auth0.postgres.PostgresUserStore.*
 import org.fiume.sketch.storage.test.support.DockerPostgresSuite
@@ -134,15 +135,15 @@ trait PostgresUserStoreSpecContext:
 
   def users: Gen[User] =
     for
-      username <- Gens.Strings.alphaNumString(1, 50).map(Username(_))
-      first <- Gens.Strings.alphaNumString(1, 50).map(FirstName(_))
-      last <- Gens.Strings.alphaNumString(1, 50).map(LastName(_))
-      email <- Gens.Strings.alphaNumString(1, 50).map(Email(_))
+      username <- Gens.Strings.alphaNumString(1, 60).map(Username(_))
+      first <- Gens.Strings.alphaNumString(1, 45).map(FirstName(_))
+      last <- Gens.Strings.alphaNumString(1, 45).map(LastName(_))
+      email <- Gens.Strings.alphaNumString(1, 60).map(Email(_))
     yield User(username, Name(first, last), email)
 
   def passwords: Gen[PasswordHash] = Gens.Strings.alphaNumString(1, 50).map(PasswordHash(_))
 
-  def salts: Gen[Salt] = Gens.Strings.alphaNumString(1, 50).map(Salt(_))
+  def salts: Gen[Salt] = Gens.Strings.alphaNumStringFixedSize(44).map(Salt.unsafeFromString(_))
 
   def userCredentials: Gen[UserCredentials] =
     for
