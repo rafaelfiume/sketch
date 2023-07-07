@@ -7,12 +7,19 @@ import org.http4s.{MediaType, Request, Uri}
 import org.http4s.Method.*
 import org.http4s.client.*
 import org.http4s.client.dsl.io.*
+import org.http4s.client.middleware.{Retry, RetryPolicy}
 import org.http4s.ember.client.*
 import org.http4s.headers.`Content-Type`
 import org.http4s.multipart.{Boundary, Multipart, Part}
 
+import scala.concurrent.duration.*
+
 trait Http4sContext:
-  def http(exec: Client[IO] => IO[Unit]): IO[Unit] = EmberClientBuilder.default[IO].build.use { exec(_) }
+  def http(exec: Client[IO] => IO[Unit]): IO[Unit] = EmberClientBuilder
+    .default[IO]
+    .build
+    .map { retry(_) }
+    .use { exec(_) }
 
   def fileUploadRequest(payload: String, pathToFile: String): Request[IO] =
     val imageFile = getClass.getClassLoader.getResource(pathToFile)
@@ -24,6 +31,12 @@ trait Http4sContext:
       boundary = Boundary("boundary")
     )
     "http://localhost:8080/documents".post.withEntity(multipart).withHeaders(multipart.headers)
+
+  private def retry = Retry[IO](
+    policy = RetryPolicy(
+      RetryPolicy.exponentialBackoff(maxWait = 300.millisecond, maxRetry = 10)
+    )
+  )
 
   extension (s: String)
     def get: Request[IO] = GET(s.toUri)
