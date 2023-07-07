@@ -3,6 +3,7 @@ package org.fiume.sketch.storage.auth0.postgres
 import doobie.{Meta, Read}
 import doobie.postgres.implicits.*
 import org.fiume.sketch.storage.auth0.Model.*
+import org.fiume.sketch.storage.auth0.Salt
 
 import java.time.ZonedDateTime
 import java.util.UUID
@@ -13,7 +14,7 @@ private[postgres] object DoobieMappings:
 
   given Meta[PasswordHash] = Meta[String].timap(PasswordHash.apply)(_.value)
 
-  given Meta[Salt] = Meta[String].timap(Salt.unsafeFromString)(_.value)
+  given Meta[Salt] = Meta[String].timap(Salt.unsafeFromString)(_.base64Value)
 
   given Meta[Username] = Meta[String].timap(Username.apply)(_.value)
 

@@ -7,6 +7,7 @@ import doobie.*
 import doobie.free.connection.ConnectionIO
 import doobie.implicits.*
 import org.fiume.sketch.storage.auth0.Model.*
+import org.fiume.sketch.storage.auth0.Salt
 import org.fiume.sketch.storage.auth0.algebras.UserStore
 import org.fiume.sketch.storage.auth0.postgres.DoobieMappings.given
 import org.fiume.sketch.storage.auth0.postgres.Statements.*
