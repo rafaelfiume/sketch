@@ -10,7 +10,7 @@ import scala.concurrent.duration.*
 class BaselineSpec extends CatsEffectSuite with Http4sContext:
 
   test("ping returns pong") {
-    IO.sleep(300.millisecond) *> http { client =>
+    IO.sleep(500.millisecond) *> http { client =>
       client.expect[String]("http://localhost:8080/ping".get).map { res =>
         assertEquals(res, "\"pong\"") // json string
       }
