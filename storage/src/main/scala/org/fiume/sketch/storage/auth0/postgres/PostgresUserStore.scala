@@ -21,7 +21,7 @@ private class PostgresUserStore[F[_]: Async] private (l: F ~> ConnectionIO, tx: 
     extends AbstractPostgresStore[F](l, tx)
     with UserStore[F, ConnectionIO]:
 
-  def store(user: User, password: PasswordHash, salt: Salt): ConnectionIO[UserCredentials] =
+  def store(user: User, password: HashedPassword, salt: Salt): ConnectionIO[UserCredentials] =
     insertUserCredentials(user, password, salt)
       .withUniqueGeneratedKeys[UserCredentials](
         "id",
@@ -38,12 +38,12 @@ private class PostgresUserStore[F[_]: Async] private (l: F ~> ConnectionIO, tx: 
   def fetchCredentials(username: Username): ConnectionIO[Option[UserCredentials]] = selectUserCredentials(username).option
   def fetchUser(username: Username): ConnectionIO[Option[User]] = Statements.selectUser(username).option
   def updateUser(user: User): ConnectionIO[Unit] = Statements.updateUser(user).run.void
-  def updatePassword(username: Username, password: PasswordHash): ConnectionIO[Unit] =
+  def updatePassword(username: Username, password: HashedPassword): ConnectionIO[Unit] =
     Statements.updatePassword(username, password).run.void
   def remove(username: Username): ConnectionIO[Unit] = Statements.deleteUser(username).run.void
 
 private object Statements:
-  def insertUserCredentials(user: User, password: PasswordHash, salt: Salt): Update0 =
+  def insertUserCredentials(user: User, password: HashedPassword, salt: Salt): Update0 =
     sql"""
          |INSERT INTO users (
          |  password_hash,
@@ -99,7 +99,7 @@ private object Statements:
          |WHERE username = ${user.username}
     """.stripMargin.update
 
-  def updatePassword(username: Username, password: PasswordHash): Update0 =
+  def updatePassword(username: Username, password: HashedPassword): Update0 =
     sql"""
          |UPDATE users
          |SET

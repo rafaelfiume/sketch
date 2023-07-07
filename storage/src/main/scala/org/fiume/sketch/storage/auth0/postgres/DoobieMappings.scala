@@ -12,7 +12,7 @@ private[postgres] object DoobieMappings:
 
   given Read[UUID] = Read[String].map(UUID.fromString)
 
-  given Meta[PasswordHash] = Meta[String].timap(PasswordHash.apply)(_.value)
+  given Meta[HashedPassword] = Meta[String].timap(HashedPassword.apply)(_.value)
 
   given Meta[Salt] = Meta[String].timap(Salt.unsafeFromString)(_.base64Value)
 
@@ -25,7 +25,7 @@ private[postgres] object DoobieMappings:
   given Meta[Email] = Meta[String].timap(Email.apply)(_.value)
 
   given Read[UserCredentials] =
-    Read[(UUID, PasswordHash, Salt, Username, FirstName, LastName, Email, ZonedDateTime, ZonedDateTime)]
+    Read[(UUID, HashedPassword, Salt, Username, FirstName, LastName, Email, ZonedDateTime, ZonedDateTime)]
       .map { case (id, password, salt, username, first, last, email, createdAt, updatedAt) =>
         UserCredentials(id, password, salt, User(username, Name(first, last), email), createdAt, updatedAt)
       }

@@ -141,7 +141,7 @@ trait PostgresUserStoreSpecContext:
       email <- Gens.Strings.alphaNumString(1, 60).map(Email(_))
     yield User(username, Name(first, last), email)
 
-  def passwords: Gen[PasswordHash] = Gens.Strings.alphaNumString(1, 50).map(PasswordHash(_))
+  def passwords: Gen[HashedPassword] = Gens.Strings.alphaNumString(1, 50).map(HashedPassword(_))
 
   def salts: Gen[Salt] = Gens.Strings.alphaNumStringFixedSize(44).map(Salt.unsafeFromString(_))
 

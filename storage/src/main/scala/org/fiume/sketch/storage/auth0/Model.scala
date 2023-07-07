@@ -8,7 +8,7 @@ import java.util.UUID
 
 object Model:
   // bcrypt or Argon2 ?
-  case class PasswordHash(value: String) extends AnyVal:
+  case class HashedPassword(value: String) extends AnyVal:
     override def toString(): String = "********"
 
   case class Username(value: String) extends AnyVal
@@ -20,7 +20,7 @@ object Model:
 
   case class UserCredentials(
     id: UUID,
-    password: PasswordHash,
+    password: HashedPassword,
     salt: Salt,
     user: User,
     createdAt: ZonedDateTime,
@@ -28,7 +28,7 @@ object Model:
   )
 
   given Show[UUID] = Show.fromToString
-  given Show[PasswordHash] = Show.show(_ => "********")
+  given Show[HashedPassword] = Show.show(_ => "********")
   given Show[Username] = Show.fromToString
   given Show[FirstName] = Show.fromToString
   given Show[LastName] = Show.fromToString
