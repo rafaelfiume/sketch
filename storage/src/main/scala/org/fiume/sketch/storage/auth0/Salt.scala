@@ -3,25 +3,16 @@ package org.fiume.sketch.storage.auth0
 import cats.Show
 import cats.effect.Sync
 import cats.implicits.*
+import org.mindrot.jbcrypt.BCrypt
 
 import java.util.Base64
 
-sealed abstract case class Salt(base64Value: String):
-  val bytes: Array[Byte] = Base64.getDecoder.decode(base64Value)
+sealed abstract case class Salt(base64Value: String)
 
 object Salt:
-  val lengthInBytes = 32
+  val logRounds = 12
 
-  def generate[F[_]]()(using F: Sync[F]): F[Salt] =
-    for
-      // cryptographically secure random number generator
-      random <- F.delay { new java.security.SecureRandom() }
-      salt <- F.delay {
-        val bytes = new Array[Byte](lengthInBytes)
-        random.nextBytes(bytes)
-        Base64.getEncoder.encodeToString(bytes)
-      }
-    yield Salt.unsafeFromString(salt)
+  def generate[F[_]]()(using F: Sync[F]): F[Salt] = F.delay { BCrypt.gensalt(logRounds) }.map(Salt.unsafeFromString)
 
   def unsafeFromString(base64: String): Salt = new Salt(base64) {}
 

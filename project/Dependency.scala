@@ -3,6 +3,8 @@ import sbt._
 // format: off
 object Dependency {
   private object Version {
+    val jbcrypt               = "0.4"
+
     val cats                  = "2.9.0"
     val catsEffect            = "3.5.0"
     val circe                 = "0.14.5"
@@ -22,6 +24,10 @@ object Dependency {
     val munitTestcontainers   = "0.40.16"
   }
 
+  // auth
+  val jbcrypt                     = "org.mindrot"                %  "jbcrypt"                             % Version.jbcrypt
+
+  // common
   val cats                        = "org.typelevel"              %% "cats-free"                           % Version.cats
   val catsEffect                  = "org.typelevel"              %% "cats-effect"                         % Version.catsEffect
   val circeCore                   = "io.circe"                   %% "circe-core"                          % Version.circe
@@ -46,7 +52,6 @@ object Dependency {
   val slf4jSimple                 = "org.slf4j"                  %  "slf4j-simple"                        % Version.slf4j
 
   //// Test Dependencies
-
   val munit                       = "org.scalameta"              %% "munit"                               % Version.munit
   val munitCatsEffect             = "org.typelevel"              %% "munit-cats-effect-3"                 % Version.munitCatsEffect
   val munitScalaCheck             = "org.scalameta"              %% "munit-scalacheck"                    % Version.munitScalaCheck

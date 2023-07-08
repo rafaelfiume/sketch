@@ -9,7 +9,10 @@ CREATE TABLE users (
   -- 32 bytes Base64 encoded (padding '=' plus each char representing 6 bits) password = 1 + (32 * 8) / 6 = 44 + extra space = 50
   password_hash VARCHAR(50) NOT NULL,
   -- 32 bytes Base64 encoded (padding '=' plus each char representing 6 bits) salt = 1 + (32 * 8) / 6 = 44 + extra space = 50
-  salt VARCHAR(50) NOT NULL,
+  -- note that the actual salt size depends on the algorithm used to generate it
+  -- there are other factors besides the size that determine the strength of the salt (e.g. round numbers)
+  -- UNIQUE salts helps to prevent precomputed hash attacks
+  salt VARCHAR(50) NOT NULL UNIQUE,
   first_name VARCHAR(45) NOT NULL,
   last_name VARCHAR(45) NOT NULL,
   email VARCHAR(60) NOT NULL UNIQUE,

@@ -16,13 +16,22 @@ In an authentication system, you can combine hash-based authentication with JWTs
 
 3. On the server side, validate the JWT's signature to ensure its authenticity and integrity. You can also extract and verify the claims within the payload to determine the user's identity and access privileges.
 
-### Hash-based Authentication and Sault
+## Hash-based Authentication
 
-When implementing hash-based authentication, it is generally recommended to include a salt column in the users table. The salt is an additional random value that is combined with the user's password before hashing it. It adds an extra layer of security to the password storage and helps protect against pre-computed or rainbow table attacks. Besides, The salt makes each user's hashed password unique, even if they have the same password.
+### Sault
 
-Including a salt column in the users table allows you to generate a unique salt value for each user during the registration process. When the user attempts to authenticate, you retrieve their salt from the table, combine it with their provided password, and then hash the result for comparison against the stored password hash.
+Salt is an additional random value that is combined with the user's password before hashing it. It adds an extra layer of security to the password storage and unique salts help to protect against pre-computed or rainbow table attacks. Besides, The salt makes each user's hashed password unique, even if they have the same password.
 
+Note that BCrypt includes the salt in the hashed password and thus doesn't require salt when verifying password.
+Including a salt column in the users table allows unique salt value for each user during the registration process and increased flexibility if changing hash algorithm.
 
+### Hashed Password and Salt Uniqueness
+
+Enforcing salt uniqueness prevents precomputed hash attacks.
+
+However, enforcing hashed password uniqueness can cause collisions (e.g. when migrating to a new hash algoright) and cause performance issues (?).
+
+This hybrid approach tries to strike a balance between security and usability.
 
 
 

@@ -1,16 +1,12 @@
 package org.fiume.sketch.storage.auth0
 
 import cats.Show
-import org.fiume.sketch.storage.auth0.Salt
+import org.fiume.sketch.storage.auth0.{HashedPassword, Salt}
 
 import java.time.ZonedDateTime
 import java.util.UUID
 
 object Model:
-  // bcrypt or Argon2 ?
-  case class HashedPassword(value: String) extends AnyVal:
-    override def toString(): String = "********"
-
   case class Username(value: String) extends AnyVal
   case class FirstName(value: String) extends AnyVal
   case class LastName(value: String) extends AnyVal
@@ -28,7 +24,6 @@ object Model:
   )
 
   given Show[UUID] = Show.fromToString
-  given Show[HashedPassword] = Show.show(_ => "********")
   given Show[Username] = Show.fromToString
   given Show[FirstName] = Show.fromToString
   given Show[LastName] = Show.fromToString

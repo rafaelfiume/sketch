@@ -7,21 +7,22 @@ import doobie.implicits.*
 import doobie.postgres.implicits.*
 import munit.ScalaCheckEffectSuite
 import org.fiume.sketch.shared.test.Gens
+import org.fiume.sketch.storage.auth0.{HashedPassword, Salt}
 import org.fiume.sketch.storage.auth0.Model.*
-import org.fiume.sketch.storage.auth0.Salt
 import org.fiume.sketch.storage.auth0.algebras.UserStore
 import org.fiume.sketch.storage.auth0.postgres.PostgresUserStore.*
 import org.fiume.sketch.storage.test.support.DockerPostgresSuite
-import org.scalacheck.{Gen, Shrink}
+import org.scalacheck.{Arbitrary, Gen, Shrink, ShrinkLowPriority}
 import org.scalacheck.effect.PropF.forAllF
 
-class PostgresUserStoreSpec extends ScalaCheckEffectSuite with DockerPostgresSuite with PostgresUserStoreSpecContext:
-
-  // shrinking just make failing tests messages more obscure
-  given noShrink[T]: Shrink[T] = Shrink.shrinkAny
+class PostgresUserStoreSpec
+    extends ScalaCheckEffectSuite
+    with ShrinkLowPriority
+    with DockerPostgresSuite
+    with PostgresUserStoreSpecContext:
 
   test("store and fetch user credentials") {
-    forAllF(users, passwords, salts) { (user, password, salt) =>
+    forAllF { (user: User, password: HashedPassword, salt: Salt) =>
       will(cleanUsers) {
         PostgresUserStore.make[IO](transactor()).use { store =>
           for
@@ -43,7 +44,7 @@ class PostgresUserStoreSpec extends ScalaCheckEffectSuite with DockerPostgresSui
   }
 
   test("store and fetch user") {
-    forAllF(users, passwords, salts) { (user, password, salt) =>
+    forAllF { (user: User, password: HashedPassword, salt: Salt) =>
       will(cleanUsers) {
         PostgresUserStore.make[IO](transactor()).use { store =>
           for
@@ -61,7 +62,7 @@ class PostgresUserStoreSpec extends ScalaCheckEffectSuite with DockerPostgresSui
   }
 
   test("update user") {
-    forAllF(users, passwords, salts, users) { (user, password, salt, up) =>
+    forAllF { (user: User, password: HashedPassword, salt: Salt, up: User) =>
       will(cleanUsers) {
         PostgresUserStore.make[IO](transactor()).use { store =>
           for
@@ -85,7 +86,7 @@ class PostgresUserStoreSpec extends ScalaCheckEffectSuite with DockerPostgresSui
   }
 
   test("update password") {
-    forAllF(users, passwords, salts, passwords) { (user, password, salt, newPassword) =>
+    forAllF { (user: User, password: HashedPassword, salt: Salt, newPassword: HashedPassword) =>
       will(cleanUsers) {
         PostgresUserStore.make[IO](transactor()).use { store =>
           for
@@ -108,7 +109,7 @@ class PostgresUserStoreSpec extends ScalaCheckEffectSuite with DockerPostgresSui
   }
 
   test("remove user then fetch returns none") {
-    forAllF(users, passwords, salts) { (user, password, salt) =>
+    forAllF { (user: User, password: HashedPassword, salt: Salt) =>
       will(cleanUsers) {
         PostgresUserStore.make[IO](transactor()).use { store =>
           for
@@ -133,6 +134,7 @@ class PostgresUserStoreSpec extends ScalaCheckEffectSuite with DockerPostgresSui
 trait PostgresUserStoreSpecContext:
   def cleanUsers: ConnectionIO[Unit] = sql"TRUNCATE TABLE users".update.run.void
 
+  given Arbitrary[User] = Arbitrary(users)
   def users: Gen[User] =
     for
       username <- Gens.Strings.alphaNumString(1, 60).map(Username(_))
@@ -141,8 +143,10 @@ trait PostgresUserStoreSpecContext:
       email <- Gens.Strings.alphaNumString(1, 60).map(Email(_))
     yield User(username, Name(first, last), email)
 
+  given Arbitrary[HashedPassword] = Arbitrary(passwords)
   def passwords: Gen[HashedPassword] = Gens.Strings.alphaNumString(1, 50).map(HashedPassword(_))
 
+  given Arbitrary[Salt] = Arbitrary(salts)
   def salts: Gen[Salt] = Gens.Strings.alphaNumStringFixedSize(44).map(Salt.unsafeFromString(_))
 
   def userCredentials: Gen[UserCredentials] =
