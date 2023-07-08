@@ -11,7 +11,7 @@ trait UserStore[F[_], Txn[_]] extends Store[F, Txn]:
   def updateUser(user: User): Txn[Unit]
 
   /**
-   * Salt be retained and used during password update One for the service layer.
+   * Salt must be retained and used during password update. One for the service layer.
    */
   def updatePassword(username: Username, password: HashedPassword): Txn[Unit]
   def remove(username: Username): Txn[Unit]

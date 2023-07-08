@@ -144,9 +144,11 @@ trait PostgresUserStoreSpecContext:
     yield User(username, Name(first, last), email)
 
   given Arbitrary[HashedPassword] = Arbitrary(passwords)
-  def passwords: Gen[HashedPassword] = Gens.Strings.alphaNumString(1, 50).map(HashedPassword(_))
+  // TODO A more accurated HashedPassword? It might be resuource intensive and not worth it
+  def passwords: Gen[HashedPassword] = Gens.Strings.alphaNumString(1, 50).map(HashedPassword.unsafeFromString)
 
   given Arbitrary[Salt] = Arbitrary(salts)
+  // TODO Better salt gen, see the one that's been duplicated.
   def salts: Gen[Salt] = Gens.Strings.alphaNumStringFixedSize(44).map(Salt.unsafeFromString(_))
 
   def userCredentials: Gen[UserCredentials] =
