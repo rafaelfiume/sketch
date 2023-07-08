@@ -6,13 +6,15 @@ CREATE TABLE users (
   id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
   -- same size as email
   username VARCHAR(60) NOT NULL UNIQUE,
-  -- 32 bytes Base64 encoded (padding '=' plus each char representing 6 bits) password = 1 + (32 * 8) / 6 = 44 + extra space = 50
-  password_hash VARCHAR(50) NOT NULL,
-  -- 32 bytes Base64 encoded (padding '=' plus each char representing 6 bits) salt = 1 + (32 * 8) / 6 = 44 + extra space = 50
+  -- supports 32 bytes Base64 encoded (padding '=' plus each char representing 6 bits) password = 1 + (32 * 8) / 6 = 44
+  -- note that the actual password size depends on the algorithm used to generate it
+  -- actual size of bcrypt hash is 60 chars length
+  password_hash VARCHAR(60) NOT NULL,
+  -- supports 32 bytes Base64 encoded (padding '=' plus each char representing 6 bits) salt = 1 + (32 * 8) / 6 = 44
   -- note that the actual salt size depends on the algorithm used to generate it
-  -- there are other factors besides the size that determine the strength of the salt (e.g. round numbers)
+  -- jbcrypt uses 16 bytes salt, and its actual size is 29 chars length
   -- UNIQUE salts helps to prevent precomputed hash attacks
-  salt VARCHAR(50) NOT NULL UNIQUE,
+  salt VARCHAR(50) NOT NULL UNIQUE, -- TODO there is a bug here!!! bcrypt stores the salt along with the hash!!! the hash will be truncated
   first_name VARCHAR(45) NOT NULL,
   last_name VARCHAR(45) NOT NULL,
   email VARCHAR(60) NOT NULL UNIQUE,

@@ -18,13 +18,6 @@ class SaltSpec extends CatsEffectSuite with ScalaCheckEffectSuite with ShrinkLow
     }
   }
 
-  test("generate a base64 salt that is 29 character length") {
-    forAllF(Gen.choose(1, 100)) { (_: Int) =>
-      for salt <- Salt.generate[IO]()
-      yield assertEquals(salt.base64Value.length, 29)
-    }
-  }
-
   test("generate a salt from a string") {
     forAllF(Gen.choose(1, 100)) { (_: Int) =>
       for salt <- Salt.generate[IO]()
@@ -32,7 +25,14 @@ class SaltSpec extends CatsEffectSuite with ScalaCheckEffectSuite with ShrinkLow
     }
   }
 
-  test("generate a salt that is url safe") {
+  test("salt is 29 characters long") {
+    forAllF(Gen.choose(1, 100)) { (_: Int) =>
+      for salt <- Salt.generate[IO]()
+      yield assertEquals(salt.base64Value.length, 29)
+    }
+  }
+
+  test("salt is url safe") {
     forAllF(Gen.choose(1, 100)) { (_: Int) =>
       for
         salt <- Salt.generate[IO]()

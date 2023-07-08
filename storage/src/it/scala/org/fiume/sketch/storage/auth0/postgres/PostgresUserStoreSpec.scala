@@ -143,18 +143,27 @@ trait PostgresUserStoreSpecContext:
       email <- Gens.Strings.alphaNumString(1, 60).map(Email(_))
     yield User(username, Name(first, last), email)
 
-  given Arbitrary[HashedPassword] = Arbitrary(passwords)
-  // TODO A more accurated HashedPassword? It might be resuource intensive and not worth it
-  def passwords: Gen[HashedPassword] = Gens.Strings.alphaNumString(1, 50).map(HashedPassword.unsafeFromString)
+  // a bcrypt hash approximation for efficience (store assumes correctness)
+  given Arbitrary[HashedPassword] = Arbitrary(hashedPassword)
+  def hashedPassword: Gen[HashedPassword] =
+    Gen.listOfN(60, bcryptBase64Char).map(_.mkString).map(HashedPassword.unsafeFromString)
 
+  // a bcrypt salt approximation for efficience (store assumes correctness)
   given Arbitrary[Salt] = Arbitrary(salts)
-  // TODO Better salt gen, see the one that's been duplicated.
-  def salts: Gen[Salt] = Gens.Strings.alphaNumStringFixedSize(44).map(Salt.unsafeFromString(_))
+  def salts: Gen[Salt] = Gen.listOfN(29, bcryptBase64Char).map(_.mkString).map(Salt.unsafeFromString)
+
+  private def bcryptBase64Char: Gen[Char] = Gen.oneOf(
+    Gen.choose('A', 'Z'),
+    Gen.choose('a', 'z'),
+    Gen.choose('0', '9'),
+    Gen.const('.'),
+    Gen.const('/')
+  )
 
   def userCredentials: Gen[UserCredentials] =
     for
       id <- Gen.uuid
-      password <- passwords
+      password <- hashedPassword
       salt <- salts
       user <- users
       createdAt <- Gens.DateAndTime.dateAndTime

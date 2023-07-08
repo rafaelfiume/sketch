@@ -12,15 +12,15 @@ class HashedPasswordSpec extends ScalaCheckSuite with ShrinkLowPriority:
   override def scalaCheckTestParameters = super.scalaCheckTestParameters
     .withMinSuccessfulTests(2)
 
-  // TODO Duplicated from PostgresStoreSpec (with variation)
-  def salts: Gen[Salt] =
+  def bcryptSalts: Gen[Salt] =
     import cats.effect.IO
     import cats.effect.unsafe.IORuntime
     given IORuntime = IORuntime.global
     Gen.delay(Salt.generate[IO]().unsafeRunSync())
-  given Arbitrary[Salt] = Arbitrary(salts)
+  given Arbitrary[Salt] = Arbitrary(bcryptSalts)
 
-  def passwords: Gen[PlainPassword] = Gens.Strings.alphaNumString(8, 50).map(PlainPassword.apply)
+  // TODO Improve this to conform to the password policy
+  def passwords: Gen[PlainPassword] = Gens.Strings.alphaNumString(8, 64).map(PlainPassword.apply)
   given Arbitrary[PlainPassword] = Arbitrary(passwords)
 
   test("hashing passwords is consistent for the same input (referencially transparent)") {
@@ -48,6 +48,13 @@ class HashedPasswordSpec extends ScalaCheckSuite with ShrinkLowPriority:
         val hashedPassword2 = HashedPassword.hashPassword(differentPassword, salt)
         hashedPassword1.base64Value != hashedPassword2.base64Value
       }
+    }
+  }
+
+  test("hashed password is 60 characters long") {
+    forAll { (password: PlainPassword, salt: Salt) =>
+      val hashedPassword = HashedPassword.hashPassword(password, salt)
+      hashedPassword.base64Value.length == 60
     }
   }
 
