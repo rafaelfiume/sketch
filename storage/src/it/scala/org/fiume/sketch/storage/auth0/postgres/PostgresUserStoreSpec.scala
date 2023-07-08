@@ -7,8 +7,8 @@ import doobie.implicits.*
 import doobie.postgres.implicits.*
 import munit.ScalaCheckEffectSuite
 import org.fiume.sketch.shared.test.Gens
-import org.fiume.sketch.storage.auth0.{HashedPassword, Salt}
 import org.fiume.sketch.storage.auth0.Model.*
+import org.fiume.sketch.storage.auth0.Passwords.{HashedPassword, Salt}
 import org.fiume.sketch.storage.auth0.algebras.UserStore
 import org.fiume.sketch.storage.auth0.postgres.PostgresUserStore.*
 import org.fiume.sketch.storage.test.support.DockerPostgresSuite

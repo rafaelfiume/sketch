@@ -3,6 +3,7 @@ package org.fiume.sketch.storage.auth0
 import cats.effect.IO
 import cats.implicits.*
 import munit.{CatsEffectSuite, ScalaCheckEffectSuite}
+import org.fiume.sketch.storage.auth0.Passwords.Salt
 import org.scalacheck.{Gen, Shrink, ShrinkLowPriority}
 import org.scalacheck.effect.PropF.forAllF
 
