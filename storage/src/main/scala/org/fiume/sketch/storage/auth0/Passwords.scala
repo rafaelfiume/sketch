@@ -21,7 +21,7 @@ object Passwords:
 
     given Show[Salt] = Show.fromToString
 
-  case class HashedPassword(value: String) extends AnyVal:
+  case class HashedPassword(base64Value: String) extends AnyVal:
     override def toString(): String = "********"
 
   object HashedPassword:
@@ -30,6 +30,6 @@ object Passwords:
       HashedPassword(hashedPassword)
 
     def verifyPassword(password: PlainPassword, hashedPassword: HashedPassword): Boolean =
-      BCrypt.checkpw(password.value, hashedPassword.value)
+      BCrypt.checkpw(password.value, hashedPassword.base64Value)
 
     given Show[HashedPassword] = Show.show(_ => "********")

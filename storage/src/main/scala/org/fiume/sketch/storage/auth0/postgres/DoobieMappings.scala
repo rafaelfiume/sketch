@@ -12,7 +12,7 @@ private[postgres] object DoobieMappings:
 
   given Read[UUID] = Read[String].map(UUID.fromString)
 
-  given Meta[HashedPassword] = Meta[String].timap(HashedPassword.apply)(_.value)
+  given Meta[HashedPassword] = Meta[String].timap(HashedPassword.apply)(_.base64Value)
 
   given Meta[Salt] = Meta[String].timap(Salt.unsafeFromString)(_.base64Value)
 

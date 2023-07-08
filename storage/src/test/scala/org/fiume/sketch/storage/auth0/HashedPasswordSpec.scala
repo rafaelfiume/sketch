@@ -27,7 +27,7 @@ class HashedPasswordSpec extends ScalaCheckSuite with ShrinkLowPriority:
     forAll { (password: PlainPassword, salt: Salt) =>
       val hashedPassword1 = HashedPassword.hashPassword(password, salt)
       val hashedPassword2 = HashedPassword.hashPassword(password, salt)
-      hashedPassword1.value == hashedPassword2.value
+      hashedPassword1.base64Value == hashedPassword2.base64Value
     }
   }
 
@@ -36,7 +36,7 @@ class HashedPasswordSpec extends ScalaCheckSuite with ShrinkLowPriority:
       (salt != differentSalt) ==> {
         val hashedPassword1 = HashedPassword.hashPassword(password, salt)
         val hashedPassword2 = HashedPassword.hashPassword(password, differentSalt)
-        hashedPassword1.value != hashedPassword2.value
+        hashedPassword1.base64Value != hashedPassword2.base64Value
       }
     }
   }
@@ -46,7 +46,7 @@ class HashedPasswordSpec extends ScalaCheckSuite with ShrinkLowPriority:
       (password != differentPassword) ==> {
         val hashedPassword1 = HashedPassword.hashPassword(password, salt)
         val hashedPassword2 = HashedPassword.hashPassword(differentPassword, salt)
-        hashedPassword1.value != hashedPassword2.value
+        hashedPassword1.base64Value != hashedPassword2.base64Value
       }
     }
   }
@@ -71,7 +71,7 @@ class HashedPasswordSpec extends ScalaCheckSuite with ShrinkLowPriority:
     forAll { (password: PlainPassword, salt: Salt) =>
       val hashedPassword1 = HashedPassword.hashPassword(password, salt)
       println("password: " + password.value)
-      println("hashedPassword1: " + hashedPassword1.value)
+      println("hashedPassword1: " + hashedPassword1.base64Value)
       println("salt: " + salt.base64Value)
       true
     }
