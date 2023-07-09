@@ -21,7 +21,7 @@ class PostgresUserStoreSpec
     with DockerPostgresSuite
     with PostgresUserStoreSpecContext:
 
-  test("store and fetch user credentials") {
+  test("store and fetch user credentials"):
     forAllF { (user: User, password: HashedPassword, salt: Salt) =>
       will(cleanUsers) {
         PostgresUserStore.make[IO](transactor()).use { store =>
@@ -41,9 +41,8 @@ class PostgresUserStoreSpec
         }
       }
     }
-  }
 
-  test("store and fetch user") {
+  test("store and fetch user"):
     forAllF { (user: User, password: HashedPassword, salt: Salt) =>
       will(cleanUsers) {
         PostgresUserStore.make[IO](transactor()).use { store =>
@@ -59,9 +58,8 @@ class PostgresUserStoreSpec
         }
       }
     }
-  }
 
-  test("update user") {
+  test("update user"):
     forAllF { (user: User, password: HashedPassword, salt: Salt, up: User) =>
       will(cleanUsers) {
         PostgresUserStore.make[IO](transactor()).use { store =>
@@ -83,9 +81,8 @@ class PostgresUserStoreSpec
         }
       }
     }
-  }
 
-  test("update password") {
+  test("update password"):
     forAllF { (user: User, password: HashedPassword, salt: Salt, newPassword: HashedPassword) =>
       will(cleanUsers) {
         PostgresUserStore.make[IO](transactor()).use { store =>
@@ -106,9 +103,8 @@ class PostgresUserStoreSpec
         }
       }
     }
-  }
 
-  test("remove user then fetch returns none") {
+  test("remove user then fetch returns none"):
     forAllF { (user: User, password: HashedPassword, salt: Salt) =>
       will(cleanUsers) {
         PostgresUserStore.make[IO](transactor()).use { store =>
@@ -129,7 +125,6 @@ class PostgresUserStoreSpec
         }
       }
     }
-  }
 
 trait PostgresUserStoreSpecContext:
   def cleanUsers: ConnectionIO[Unit] = sql"TRUNCATE TABLE users".update.run.void
