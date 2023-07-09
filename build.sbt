@@ -6,9 +6,7 @@ val ScalaVersion = "3.3.0"
 
 enablePlugins(GitVersioning)
 
-// scala fix organise imports config
 ThisBuild / scalafixDependencies += "com.github.liancheng" %% "organize-imports" % "0.6.0"
-// scalafix semantic db config
 inThisBuild(
   List(
     scalaVersion := "3.3.0",
@@ -33,6 +31,8 @@ lazy val commonSettings = Seq(
   fork := true
 )
 
+// TODO IntegrationTests has been deprecated in sbt 1.9.0
+// See https://eed3si9n.com/sbt-1.9.0
 val IntegrationTests = config("it").extend(Test)
 
 import org.scalajs.linker.interface.ModuleSplitStyle
@@ -159,10 +159,6 @@ lazy val sharedComponentsJvm =
   sharedComponents.jvm.dependsOn(sharedTestComponents % Test)
 
 /*
- * Shared for backend (jvm) only.
- * It might be necessary separated shared dependencies for jvm and js.
- * For instance, FileContentContext needs to be platform specific.
- * 
  * Don't include any domain specific class in this module,
  * for instance a dependency on `sharedComponents`
  * (i.e. it is a domain agnostic module/lib).
@@ -208,6 +204,7 @@ lazy val storage =
      .settings(
        name := "storage",
        libraryDependencies ++= Seq(
+         Dependency.jbcrypt, // TODO To be moved to a separate module
          Dependency.cats,
          Dependency.catsEffect,
          Dependency.circeCore,
