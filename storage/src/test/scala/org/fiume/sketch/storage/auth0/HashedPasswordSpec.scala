@@ -74,5 +74,5 @@ class HashedPasswordSpec extends ScalaCheckSuite with ShrinkLowPriority:
   given Arbitrary[Salt] = Arbitrary(bcryptSalts)
 
   // TODO Improve this to conform to the password policy
-  def passwords: Gen[PlainPassword] = Gens.Strings.alphaNumString(8, 64).map(PlainPassword.apply)
+  def passwords: Gen[PlainPassword] = Gens.Strings.alphaNumString(8, 64).map(PlainPassword.unsafeFromString)
   given Arbitrary[PlainPassword] = Arbitrary(passwords)
