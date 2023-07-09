@@ -77,7 +77,7 @@ class PlainPasswordSpec extends ScalaCheckSuite:
     given Arbitrary[PlainPassword] = Arbitrary(
       for
         password <- plainPasswords
-        invalidChar <- blacklistedSpecialChars
+        invalidChar <- invalidSpecialChars
       yield password.modify(invalidChar +: _).modify(Random.shuffle(_).mkString)
     )
     forAll { (withInvalidChar: PlainPassword) =>
@@ -88,11 +88,30 @@ class PlainPasswordSpec extends ScalaCheckSuite:
     given Arbitrary[PlainPassword] = Arbitrary(
       for
         password <- plainPasswords
-        invalidChar <- Gen.oneOf(asciiControlChars, unicodeControlChars, emojis)
+        invalidChar <- invalidChars
       yield password.modify(invalidChar +: _).modify(Random.shuffle(_).mkString)
     )
     forAll { (withInvalidChar: PlainPassword) =>
       PlainPassword.validated(withInvalidChar.value).leftValue.contains(PlainPassword.InvalidCharater)
+    }
+
+  test("accumulate validation errors"):
+    import cats.syntax.all.*
+    import org.fiume.sketch.shared.test.Gens.given
+    given Arbitrary[PlainPassword] = Arbitrary(
+      (plainPasswords, whitespaces, invalidSpecialChars, invalidChars).mapN {
+        case (password, whitespace, invalidSpeciaChar, invalidChar) =>
+          password.modify { value => (Random.shuffle(value + whitespace :+ invalidSpeciaChar :+ invalidChar).mkString) }
+      }
+    )
+    forAll { (withInvalidChar: PlainPassword) =>
+      val result = PlainPassword.validated(withInvalidChar.value)
+      val expectedErrors = Set[PlainPassword.WeakPassword](
+        PlainPassword.Whitespace,
+        PlainPassword.InvalidSpecialChar,
+        PlainPassword.InvalidCharater
+      )
+      expectedErrors.subsetOf(result.leftValue.toList.toSet)
     }
 
   extension (password: PlainPassword)
@@ -114,9 +133,11 @@ class PlainPasswordSpec extends ScalaCheckSuite:
       password = scala.util.Random.shuffle(lowercase ++ uppercase ++ digit ++ specialChar).take(length).mkString
     yield PlainPassword.unsafeFromString(password)
 
-  def blacklistedSpecialChars: Gen[Char] = Gen.oneOf(PlainPassword.invalidSpecialChars)
+  def invalidSpecialChars: Gen[Char] = Gen.oneOf(PlainPassword.invalidSpecialChars)
 
   def whitespaces: Gen[Char] = Gen.oneOf(' ', '\t', '\n', '\r')
+
+  def invalidChars: Gen[Char] = Gen.oneOf(asciiControlChars, unicodeControlChars, emojis)
 
   def asciiControlChars: Gen[Char] = Gen
     .frequency(
@@ -129,17 +150,69 @@ class PlainPasswordSpec extends ScalaCheckSuite:
   def unicodeControlChars: Gen[Char] = Gen.choose(0x0080.toChar, 0x009f.toChar)
 
   def emojis: Gen[Char] = Gen.oneOf(
-    0x1F600.toChar, 0x1F601.toChar, 0x1F602.toChar, 0x1F603.toChar, 0x1F604.toChar,
-    0x1F605.toChar, 0x1F606.toChar, 0x1F607.toChar, 0x1F608.toChar, 0x1F609.toChar,
-    0x1F60A.toChar, 0x1F60B.toChar, 0x1F60C.toChar, 0x1F60D.toChar, 0x1F60E.toChar,
-    0x1F60F.toChar, 0x1F610.toChar, 0x1F611.toChar, 0x1F612.toChar, 0x1F613.toChar,
-    0x1F614.toChar, 0x1F615.toChar, 0x1F616.toChar, 0x1F617.toChar, 0x1F618.toChar,
-    0x1F619.toChar, 0x1F61A.toChar, 0x1F61B.toChar, 0x1F61C.toChar, 0x1F61D.toChar,
-    0x1F61E.toChar, 0x1F61F.toChar, 0x1F620.toChar, 0x1F621.toChar, 0x1F622.toChar,
-    0x1F623.toChar, 0x1F624.toChar, 0x1F625.toChar, 0x1F626.toChar, 0x1F627.toChar,
-    0x1F628.toChar, 0x1F629.toChar, 0x1F62A.toChar, 0x1F62B.toChar, 0x1F62C.toChar,
-    0x1F62D.toChar, 0x1F62E.toChar, 0x1F62F.toChar, 0x1F630.toChar, 0x1F631.toChar,
-    0x1F632.toChar, 0x1F633.toChar, 0x1F634.toChar, 0x1F635.toChar, 0x1F636.toChar,
-    0x1F637.toChar, 0x1F638.toChar, 0x1F639.toChar, 0x1F63A.toChar, 0x1F63B.toChar,
-    0x1F63C.toChar, 0x1F63D.toChar, 0x1F63E.toChar, 0x1F63F.toChar, 0x1F640.toChar
+    0x1f600.toChar,
+    0x1f601.toChar,
+    0x1f602.toChar,
+    0x1f603.toChar,
+    0x1f604.toChar,
+    0x1f605.toChar,
+    0x1f606.toChar,
+    0x1f607.toChar,
+    0x1f608.toChar,
+    0x1f609.toChar,
+    0x1f60a.toChar,
+    0x1f60b.toChar,
+    0x1f60c.toChar,
+    0x1f60d.toChar,
+    0x1f60e.toChar,
+    0x1f60f.toChar,
+    0x1f610.toChar,
+    0x1f611.toChar,
+    0x1f612.toChar,
+    0x1f613.toChar,
+    0x1f614.toChar,
+    0x1f615.toChar,
+    0x1f616.toChar,
+    0x1f617.toChar,
+    0x1f618.toChar,
+    0x1f619.toChar,
+    0x1f61a.toChar,
+    0x1f61b.toChar,
+    0x1f61c.toChar,
+    0x1f61d.toChar,
+    0x1f61e.toChar,
+    0x1f61f.toChar,
+    0x1f620.toChar,
+    0x1f621.toChar,
+    0x1f622.toChar,
+    0x1f623.toChar,
+    0x1f624.toChar,
+    0x1f625.toChar,
+    0x1f626.toChar,
+    0x1f627.toChar,
+    0x1f628.toChar,
+    0x1f629.toChar,
+    0x1f62a.toChar,
+    0x1f62b.toChar,
+    0x1f62c.toChar,
+    0x1f62d.toChar,
+    0x1f62e.toChar,
+    0x1f62f.toChar,
+    0x1f630.toChar,
+    0x1f631.toChar,
+    0x1f632.toChar,
+    0x1f633.toChar,
+    0x1f634.toChar,
+    0x1f635.toChar,
+    0x1f636.toChar,
+    0x1f637.toChar,
+    0x1f638.toChar,
+    0x1f639.toChar,
+    0x1f63a.toChar,
+    0x1f63b.toChar,
+    0x1f63c.toChar,
+    0x1f63d.toChar,
+    0x1f63e.toChar,
+    0x1f63f.toChar,
+    0x1f640.toChar
   )

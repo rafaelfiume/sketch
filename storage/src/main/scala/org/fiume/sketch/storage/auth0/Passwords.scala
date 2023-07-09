@@ -42,8 +42,7 @@ object Passwords:
       override val message: String = "must not contain any whitespace"
 
     case object InvalidCharater extends WeakPassword:
-      override def message: String =
-        s"must not contain control characters or emojis"
+      override def message: String = "must not contain control characters or emojis"
 
     val minLength = 12
     val maxLength = 64
