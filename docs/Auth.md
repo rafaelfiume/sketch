@@ -29,7 +29,7 @@ Including a salt column in the users table allows unique salt value for each use
 
 Enforcing salt uniqueness prevents precomputed hash attacks.
 
-However, enforcing hashed password uniqueness can cause collisions (e.g. when migrating to a new hash algoright) and cause performance issues (?).
+However, enforcing hashed password uniqueness can cause collisions (e.g. when migrating to a new hash algorithm) and cause performance issues (?).
 
 This hybrid approach tries to strike a balance between security and usability.
 

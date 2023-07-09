@@ -14,7 +14,7 @@ CREATE TABLE users (
   -- note that the actual salt size depends on the algorithm used to generate it
   -- jbcrypt uses 16 bytes salt, and its actual size is 29 chars length
   -- UNIQUE salts helps to prevent precomputed hash attacks
-  salt VARCHAR(50) NOT NULL UNIQUE, -- TODO there is a bug here!!! bcrypt stores the salt along with the hash!!! the hash will be truncated
+  salt VARCHAR(50) NOT NULL UNIQUE,
   first_name VARCHAR(45) NOT NULL,
   last_name VARCHAR(45) NOT NULL,
   email VARCHAR(60) NOT NULL UNIQUE,
