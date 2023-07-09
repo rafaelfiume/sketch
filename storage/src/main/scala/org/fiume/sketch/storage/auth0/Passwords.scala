@@ -32,13 +32,23 @@ object Passwords:
       override val message: String = "must contain at least one digit"
 
     case object NoSpecialChar extends WeakPassword:
-      override val message: String = "must contain at least one special character"
+      override val message: String = s"must contain at least one special character: ${specialChars.mkString("'", "', '", "'")}"
+
+    case object InvalidSpecialChar extends WeakPassword:
+      override val message: String =
+        s"must not contain any of the following characters: ${invalidSpecialChars.mkString("'", "', '", "'")}"
 
     case object Whitespace extends WeakPassword:
       override val message: String = "must not contain any whitespace"
 
+    case object InvalidCharater extends WeakPassword:
+      override def message: String =
+        s"must not contain control characters or emojis"
+
     val minLength = 12
     val maxLength = 64
+    val specialChars = Set('!', '@', '#', '$', '%', '^', '&', '*', '_', '+', '=', '~', ';', ':', ',', '.', '?')
+    val invalidSpecialChars = Set('(', ')', '[', ']', '{', '}', '|', '\\', '\'', '"', '<', '>', '/')
 
     def validated(value: String): EitherNec[WeakPassword, PlainPassword] =
       val hasMinLength = Validated.condNec[WeakPassword, Unit](value.length >= minLength, (), TooShort(value.length))
@@ -46,12 +56,26 @@ object Passwords:
       val hasUppercase = Validated.condNec(value.exists(_.isUpper), (), NoUpperCase)
       val hasLowercase = Validated.condNec(value.exists(_.isLower), (), NoLowerCase)
       val hasDigit = Validated.condNec(value.exists(_.isDigit), (), NoDigit)
-      val hasSpecialChar = Validated.condNec(value.exists(c => !c.isLetterOrDigit), (), NoSpecialChar)
+      val hasSpecialChar = Validated.condNec(value.exists(specialChars.contains), (), NoSpecialChar)
+      val hasNoInvalidSpecialChar = Validated.condNec(value.forall(!invalidSpecialChars.contains(_)), (), InvalidSpecialChar)
       val hasNoWhitespace = Validated.condNec(value.forall(!_.isWhitespace), (), Whitespace)
+      val hasNoUnexpectedChar = Validated.condNec(
+        value.forall(c => c.isUpper || c.isLower || c.isDigit || specialChars.contains(c)),
+        (),
+        InvalidCharater
+      )
 
-      (hasMinLength, hasMaxLength, hasUppercase, hasLowercase, hasDigit, hasSpecialChar, hasNoWhitespace).mapN {
-        case (_, _, _, _, _, _, _) =>
-          PlainPassword.unsafeFromString(value)
+      (hasMinLength,
+       hasMaxLength,
+       hasUppercase,
+       hasLowercase,
+       hasDigit,
+       hasSpecialChar,
+       hasNoInvalidSpecialChar,
+       hasNoWhitespace,
+       hasNoUnexpectedChar
+      ).mapN { case (_, _, _, _, _, _, _, _, _) =>
+        PlainPassword.unsafeFromString(value)
       }.toEither
 
     def unsafeFromString(value: String): PlainPassword = new PlainPassword(value) {}
