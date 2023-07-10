@@ -12,7 +12,7 @@ import munit.{CatsEffectSuite, ScalaCheckEffectSuite}
 import org.fiume.sketch.shared.app.{ServiceHealth, ServiceStatus, Version}
 import org.fiume.sketch.shared.app.ServiceHealth.Infra
 import org.fiume.sketch.shared.app.algebras.{HealthCheck, Versions}
-import org.fiume.sketch.shared.codecs.json.app.Service.given
+import org.fiume.sketch.shared.app.codecs.JsonCodecs.given
 import org.fiume.sketch.shared.test.{FileContentContext, Http4sTestingRoutesDsl}
 import org.fiume.sketch.shared.test.EitherSyntax.*
 import org.fiume.sketch.shared.test.Gens.Lists.*
