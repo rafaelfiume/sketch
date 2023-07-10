@@ -7,7 +7,7 @@ import cats.~>
 import doobie.*
 import doobie.implicits.*
 import fs2.Stream
-import org.fiume.sketch.shared.domain.documents.{Document, Metadata}
+import org.fiume.sketch.storage.documents.Model.{Document, Metadata}
 import org.fiume.sketch.storage.documents.algebras.DocumentsStore
 import org.fiume.sketch.storage.documents.postgres.DoobieMappings
 import org.fiume.sketch.storage.documents.postgres.DoobieMappings.given

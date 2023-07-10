@@ -1,4 +1,4 @@
-package org.fiume.sketch.shared.domain.documents.codecs
+package org.fiume.sketch.storage.documents.http
 
 import io.circe.{Codec, Decoder, Encoder, HCursor, Json}
 import io.circe.Decoder.Result
@@ -6,7 +6,8 @@ import io.circe.syntax.*
 import org.fiume.sketch.shared.app.ServiceStatus
 import org.fiume.sketch.shared.app.algebras.{HealthCheck, Versions}
 import org.fiume.sketch.shared.app.algebras.Versions.Version
-import org.fiume.sketch.shared.domain.documents.Metadata
+import org.fiume.sketch.storage.documents.Model.Metadata
+import org.fiume.sketch.storage.documents.Model.Metadata.*
 
 object JsonCodecs:
   given Encoder[Metadata.Name] = Encoder.encodeString.contramap(_.value)
