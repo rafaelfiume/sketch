@@ -1,4 +1,4 @@
-package org.fiume.sketch.storage.postgres
+package org.fiume.sketch.storage.documents.postgres
 
 import cats.data.{NonEmptyList, OptionT}
 import cats.effect.{Async, Clock, Resource}
@@ -11,8 +11,10 @@ import org.fiume.sketch.shared.app.algebras.HealthCheck
 import org.fiume.sketch.shared.app.algebras.HealthCheck.ServiceHealth
 import org.fiume.sketch.shared.app.algebras.HealthCheck.ServiceHealth.Infra
 import org.fiume.sketch.shared.domain.documents.{Document, Metadata}
-import org.fiume.sketch.storage.algebras.{DocumentsStore, Store}
-import org.fiume.sketch.storage.postgres.DoobieMappings.given
+import org.fiume.sketch.storage.documents.algebras.DocumentsStore
+import org.fiume.sketch.storage.documents.postgres.DoobieMappings
+import org.fiume.sketch.storage.documents.postgres.DoobieMappings.given
+import org.fiume.sketch.storage.postgres.{AbstractPostgresStore, Store}
 
 import java.time.ZonedDateTime
 

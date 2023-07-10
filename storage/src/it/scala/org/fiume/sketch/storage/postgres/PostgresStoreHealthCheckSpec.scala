@@ -4,14 +4,11 @@ import cats.effect.IO
 import munit.CatsEffectSuite
 import org.fiume.sketch.shared.app.algebras.HealthCheck.ServiceHealth
 import org.fiume.sketch.shared.app.algebras.HealthCheck.ServiceHealth.Infra
-import org.fiume.sketch.storage.postgres.PostgresStore
+import org.fiume.sketch.storage.documents.postgres.PostgresStore
 import org.fiume.sketch.storage.test.support.DockerPostgresSuite
-import org.scalacheck.Shrink
+import org.scalacheck.ShrinkLowPriority
 
-class PostgresStoreHealthCheckSpec extends CatsEffectSuite with DockerPostgresSuite:
-
-  // shrinking just make failing tests messages more obscure
-  given noShrink[T]: Shrink[T] = Shrink.shrinkAny
+class PostgresStoreHealthCheckSpec extends CatsEffectSuite with DockerPostgresSuite with ShrinkLowPriority:
 
   test("db is healthy") {
     PostgresStore.make[IO](transactor()).use { store =>

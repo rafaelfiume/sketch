@@ -9,9 +9,9 @@ import org.fiume.sketch.app.SketchVersions
 import org.fiume.sketch.app.SketchVersions.VersionFile
 import org.fiume.sketch.http.HealthStatusRoutes
 import org.fiume.sketch.shared.app.algebras.{HealthCheck, Versions}
-import org.fiume.sketch.storage.algebras.DocumentsStore
+import org.fiume.sketch.storage.documents.algebras.DocumentsStore
+import org.fiume.sketch.storage.documents.postgres.PostgresStore
 import org.fiume.sketch.storage.http.DocumentsRoutes
-import org.fiume.sketch.storage.postgres.PostgresStore
 import org.http4s.HttpRoutes
 import org.http4s.ember.server.EmberServerBuilder
 import org.http4s.implicits.*

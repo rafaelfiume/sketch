@@ -1,4 +1,4 @@
-package org.fiume.sketch.storage.postgres
+package org.fiume.sketch.storage.documents.postgres
 
 import cats.data.OptionT
 import cats.effect.*
@@ -13,8 +13,8 @@ import munit.ScalaCheckEffectSuite
 import org.fiume.sketch.shared.domain.documents.Document
 import org.fiume.sketch.shared.domain.documents.Metadata.*
 import org.fiume.sketch.shared.test.FileContentContext
-import org.fiume.sketch.storage.postgres.DoobieMappings.given
-import org.fiume.sketch.storage.postgres.PostgresStore
+import org.fiume.sketch.storage.documents.postgres.{DoobieMappings, PostgresStore}
+import org.fiume.sketch.storage.documents.postgres.DoobieMappings.given
 import org.fiume.sketch.storage.test.support.DockerPostgresSuite
 import org.fiume.sketch.test.support.DocumentsGens.*
 import org.scalacheck.Shrink

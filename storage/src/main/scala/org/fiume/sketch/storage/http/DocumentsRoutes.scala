@@ -8,7 +8,7 @@ import cats.implicits.*
 import fs2.Stream
 import org.fiume.sketch.shared.domain.documents.{Document, Metadata}
 import org.fiume.sketch.shared.domain.documents.codecs.JsonCodecs.given
-import org.fiume.sketch.storage.algebras.DocumentsStore
+import org.fiume.sketch.storage.documents.algebras.DocumentsStore
 import org.fiume.sketch.storage.http.JsonCodecs.Incorrects.given
 import org.fiume.sketch.storage.http.Model.Incorrect
 import org.fiume.sketch.storage.http.Model.IncorrectOps.*

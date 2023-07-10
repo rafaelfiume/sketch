@@ -4,8 +4,9 @@ import cats.effect.{Async, Resource}
 import doobie.ConnectionIO
 import doobie.util.transactor.Transactor
 import org.fiume.sketch.shared.app.algebras.HealthCheck
-import org.fiume.sketch.storage.algebras.DocumentsStore
-import org.fiume.sketch.storage.postgres.{DbTransactor, PostgresStore}
+import org.fiume.sketch.storage.documents.algebras.DocumentsStore
+import org.fiume.sketch.storage.documents.postgres.PostgresStore
+import org.fiume.sketch.storage.postgres.DbTransactor
 
 trait Resources[F[_]]:
   val store: DocumentsStore[F, ConnectionIO] & HealthCheck[F]

@@ -1,7 +1,8 @@
-package org.fiume.sketch.storage.algebras
+package org.fiume.sketch.storage.documents.algebras
 
 import fs2.Stream
 import org.fiume.sketch.shared.domain.documents.{Document, Metadata}
+import org.fiume.sketch.storage.postgres.Store
 
 trait DocumentsStore[F[_], Txn[_]] extends Store[F, Txn]:
 
