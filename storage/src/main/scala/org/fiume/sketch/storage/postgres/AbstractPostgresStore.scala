@@ -5,7 +5,7 @@ import cats.~>
 import doobie.ConnectionIO
 import doobie.implicits.*
 import doobie.util.transactor.Transactor
-import org.fiume.sketch.storage.algebras.Store
+import org.fiume.sketch.storage.postgres.Store
 
 abstract class AbstractPostgresStore[F[_]: Async] protected (l: F ~> ConnectionIO, tx: Transactor[F])
     extends Store[F, ConnectionIO]:

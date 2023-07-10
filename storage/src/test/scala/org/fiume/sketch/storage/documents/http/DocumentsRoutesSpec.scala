@@ -1,16 +1,16 @@
-package org.fiume.sketch.storage.http
+package org.fiume.sketch.storage.documents.http
 
 import cats.data.{EitherT, NonEmptyChain, OptionT}
 import cats.effect.{IO, Ref}
 import cats.implicits.*
 import io.circe.syntax.*
 import munit.{CatsEffectSuite, ScalaCheckEffectSuite}
-import org.fiume.sketch.shared.domain.documents.{Document, Metadata}
-import org.fiume.sketch.shared.domain.documents.codecs.JsonCodecs.given
 import org.fiume.sketch.shared.test.{FileContentContext, Http4sTestingRoutesDsl}
 import org.fiume.sketch.shared.test.EitherSyntax.*
-import org.fiume.sketch.storage.algebras.DocumentsStore
-import org.fiume.sketch.storage.http.DocumentsRoutes
+import org.fiume.sketch.storage.documents.Model.{Document, Metadata}
+import org.fiume.sketch.storage.documents.algebras.DocumentsStore
+import org.fiume.sketch.storage.documents.http.DocumentsRoutes.*
+import org.fiume.sketch.storage.documents.http.JsonCodecs.given
 import org.fiume.sketch.storage.http.JsonCodecs.Incorrects.given
 import org.fiume.sketch.storage.http.Model.Incorrect
 import org.fiume.sketch.storage.http.Model.IncorrectOps.*
@@ -24,8 +24,6 @@ import org.http4s.implicits.*
 import org.http4s.multipart.{Boundary, Multipart, Part}
 import org.scalacheck.Shrink
 import org.scalacheck.effect.PropF.forAllF
-
-import DocumentsRoutes.*
 
 class DocumentsRoutesSpec
     extends CatsEffectSuite

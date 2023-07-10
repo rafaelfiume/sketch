@@ -9,9 +9,9 @@ import org.fiume.sketch.app.SketchVersions
 import org.fiume.sketch.app.SketchVersions.VersionFile
 import org.fiume.sketch.http.HealthStatusRoutes
 import org.fiume.sketch.shared.app.algebras.{HealthCheck, Versions}
-import org.fiume.sketch.storage.algebras.DocumentsStore
-import org.fiume.sketch.storage.http.DocumentsRoutes
-import org.fiume.sketch.storage.postgres.PostgresStore
+import org.fiume.sketch.storage.documents.algebras.DocumentsStore
+import org.fiume.sketch.storage.documents.http.DocumentsRoutes
+import org.fiume.sketch.storage.documents.postgres.PostgresDocumentsStore
 import org.http4s.HttpRoutes
 import org.http4s.ember.server.EmberServerBuilder
 import org.http4s.implicits.*
@@ -29,7 +29,7 @@ object Server:
       conf <- Resource.eval(ServiceConfig.load[F])
       res <- Resources.make(conf)
       versions <- SketchVersions.make[F](VersionFile("sketch.version"))
-      server <- httpServer[F](versions, res.store, res.store)
+      server <- httpServer[F](versions, res.healthCheck, res.store)
     yield server)
       .use { server =>
         logger.info(s"Server has started at ${server.address}") >>
