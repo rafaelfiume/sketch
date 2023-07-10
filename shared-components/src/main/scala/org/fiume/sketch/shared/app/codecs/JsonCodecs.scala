@@ -3,9 +3,10 @@ package org.fiume.sketch.shared.app.codecs
 import io.circe.{Codec, Decoder, Encoder, HCursor, Json}
 import io.circe.Decoder.Result
 import io.circe.syntax.*
-import org.fiume.sketch.shared.app.{ServiceStatus, Version}
+import org.fiume.sketch.shared.app.ServiceStatus
 import org.fiume.sketch.shared.app.algebras.HealthCheck.ServiceHealth
 import org.fiume.sketch.shared.app.algebras.Versions
+import org.fiume.sketch.shared.app.algebras.Versions.Version
 import org.fiume.sketch.shared.domain.documents.Metadata
 
 object JsonCodecs:

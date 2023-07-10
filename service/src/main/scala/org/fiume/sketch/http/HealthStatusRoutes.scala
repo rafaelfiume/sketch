@@ -2,9 +2,10 @@ package org.fiume.sketch.http
 
 import cats.MonadThrow
 import cats.implicits.*
-import org.fiume.sketch.shared.app.{ServiceStatus, Version}
+import org.fiume.sketch.shared.app.ServiceStatus
 import org.fiume.sketch.shared.app.algebras.{HealthCheck, Versions}
 import org.fiume.sketch.shared.app.algebras.HealthCheck.ServiceHealth
+import org.fiume.sketch.shared.app.algebras.Versions.Version
 import org.fiume.sketch.shared.app.codecs.JsonCodecs.given
 import org.http4s.HttpRoutes
 import org.http4s.circe.CirceEntityEncoder.*

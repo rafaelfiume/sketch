@@ -1,6 +1,6 @@
 package org.fiume.sketch.test.support
 
-import org.fiume.sketch.shared.app.Version
+import org.fiume.sketch.shared.app.algebras.Versions.Version
 import org.fiume.sketch.shared.test.Gens.DateAndTime.*
 import org.scalacheck.Gen
 

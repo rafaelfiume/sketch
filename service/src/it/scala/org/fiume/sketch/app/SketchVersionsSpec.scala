@@ -4,7 +4,7 @@ import cats.effect.IO
 import munit.CatsEffectSuite
 import org.fiume.sketch.app.SketchVersions
 import org.fiume.sketch.app.SketchVersions.VersionFile
-import org.fiume.sketch.shared.app.Version
+import org.fiume.sketch.shared.app.algebras.Versions.Version
 
 class SketchVersionsSpec extends CatsEffectSuite:
 
