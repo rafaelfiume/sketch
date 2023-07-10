@@ -23,7 +23,7 @@ import org.scalacheck.effect.PropF.forAllF
 import java.time.Instant
 import scala.concurrent.duration.*
 
-class PostgresStoreSpec
+class PostgresDocumentsStoreSpec
     extends ScalaCheckEffectSuite
     with DockerPostgresSuite
     with FileContentContext

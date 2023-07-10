@@ -5,6 +5,9 @@ import cats.implicits.*
 import org.fiume.sketch.shared.app.algebras.HealthCheck.ServiceHealth
 import org.fiume.sketch.shared.app.algebras.HealthCheck.ServiceHealth.Infra
 
+/*
+ * Responsible for checking the overall health of a resource a services relies on.
+ */
 trait HealthCheck[F[_]]:
   def check: F[ServiceHealth]
 

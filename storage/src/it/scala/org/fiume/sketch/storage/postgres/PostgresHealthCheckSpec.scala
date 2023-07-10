@@ -8,10 +8,10 @@ import org.fiume.sketch.storage.documents.postgres.PostgresDocumentsStore
 import org.fiume.sketch.storage.test.support.DockerPostgresSuite
 import org.scalacheck.ShrinkLowPriority
 
-class PostgresStoreHealthCheckSpec extends CatsEffectSuite with DockerPostgresSuite with ShrinkLowPriority:
+class PostgresHealthCheckSpec extends CatsEffectSuite with DockerPostgresSuite with ShrinkLowPriority:
 
   test("db is healthy") {
-    PostgresDocumentsStore.make[IO](transactor()).use { store =>
+    PostgresHealthCheck.make[IO](transactor()).use { store =>
       for
         result <- store.check
         _ <- IO { assertEquals(result, ServiceHealth.healthy(Infra.Database)) }

@@ -7,9 +7,6 @@ import cats.~>
 import doobie.*
 import doobie.implicits.*
 import fs2.Stream
-import org.fiume.sketch.shared.app.algebras.HealthCheck
-import org.fiume.sketch.shared.app.algebras.HealthCheck.ServiceHealth
-import org.fiume.sketch.shared.app.algebras.HealthCheck.ServiceHealth.Infra
 import org.fiume.sketch.shared.domain.documents.{Document, Metadata}
 import org.fiume.sketch.storage.documents.algebras.DocumentsStore
 import org.fiume.sketch.storage.documents.postgres.DoobieMappings
@@ -24,8 +21,7 @@ object PostgresDocumentsStore:
 
 private class PostgresDocumentsStore[F[_]: Async] private (l: F ~> ConnectionIO, tx: Transactor[F])
     extends AbstractPostgresStore[F](l, tx)
-    with DocumentsStore[F, ConnectionIO]
-    with HealthCheck[F]:
+    with DocumentsStore[F, ConnectionIO]:
 
   override def store(doc: Document[F]): ConnectionIO[Unit] =
     for
@@ -49,15 +45,7 @@ private class PostgresDocumentsStore[F[_]: Async] private (l: F ~> ConnectionIO,
   override def delete(name: Metadata.Name): ConnectionIO[Unit] =
     Statements.delete(name).run.void
 
-  override def check: F[ServiceHealth] =
-    Statements.healthCheck
-      .transact(tx)
-      .as(ServiceHealth.healthy(Infra.Database))
-      .recover(_ => ServiceHealth.faulty(Infra.Database))
-
 private object Statements:
-  val healthCheck: ConnectionIO[Int] = sql"select 42".query[Int].unique
-
   def insertDocument[F[_]](metadata: Metadata, bytes: Array[Byte]): Update0 =
     sql"""
          |INSERT INTO documents(

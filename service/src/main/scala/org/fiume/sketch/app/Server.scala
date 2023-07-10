@@ -29,7 +29,7 @@ object Server:
       conf <- Resource.eval(ServiceConfig.load[F])
       res <- Resources.make(conf)
       versions <- SketchVersions.make[F](VersionFile("sketch.version"))
-      server <- httpServer[F](versions, res.store, res.store)
+      server <- httpServer[F](versions, res.healthCheck, res.store)
     yield server)
       .use { server =>
         logger.info(s"Server has started at ${server.address}") >>
