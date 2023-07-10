@@ -9,7 +9,6 @@ import org.fiume.sketch.shared.test.{FileContentContext, Http4sTestingRoutesDsl}
 import org.fiume.sketch.shared.test.EitherSyntax.*
 import org.fiume.sketch.storage.documents.Model.{Document, Metadata}
 import org.fiume.sketch.storage.documents.algebras.DocumentsStore
-import org.fiume.sketch.storage.documents.http.DocumentsRoutes
 import org.fiume.sketch.storage.documents.http.DocumentsRoutes.*
 import org.fiume.sketch.storage.documents.http.JsonCodecs.given
 import org.fiume.sketch.storage.http.JsonCodecs.Incorrects.given
