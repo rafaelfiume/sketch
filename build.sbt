@@ -35,36 +35,9 @@ lazy val commonSettings = Seq(
 // See https://eed3si9n.com/sbt-1.9.0
 val IntegrationTests = config("it").extend(Test)
 
-import org.scalajs.linker.interface.ModuleSplitStyle
-lazy val frontend =
-   project.in(file("frontend"))
-     .enablePlugins(ScalaJSPlugin)
-     .dependsOn(sharedComponents.js)
-     .settings(scalaVersion := ScalaVersion)
-     // `test / test` tasks in a Scala.js project require `test / fork := false`.
-     .settings(fork := false)
-     .settings(
-       name := "frontend",
-       scalaJSUseMainModuleInitializer := true,
-       scalaJSLinkerConfig ~= {
-         _.withModuleKind(ModuleKind.ESModule)
-           .withModuleSplitStyle(ModuleSplitStyle.SmallModulesFor(List("frontend")))
-       },
-       libraryDependencies ++= Seq(
-         "com.raquo"                       %%% "laminar"                         % "0.14.5",
-         "io.circe"                        %%% "circe-core"                      % "0.14.5",
-         "org.scala-js"                    %%% "scalajs-dom"                     % "2.6.0",
-         "com.softwaremill.sttp.client3"   %%% "core"                            % "3.8.15",
-         "com.softwaremill.sttp.client3"   %%% "circe"                           % "3.8.15",
-
-         //// Test Dependencies
-         "org.scalameta"                   %%% "munit"                           % "0.7.29"        % Test
-       )
-     )
-
 lazy val service =
    project.in(file("service"))
-     .dependsOn(sharedComponentsJvm)
+     .dependsOn(sharedComponents)
      .dependsOn(storage)
      .dependsOn(sharedTestComponents % Test)
      .enablePlugins(JavaAppPackaging)
@@ -119,14 +92,9 @@ lazy val service =
        dockerRepository := Some("docker.io")
      )
 
-/*
- * sharedComponents == contract between modules/services, for instance
- * `frontend -> storage`, `frontend -> sketch`, `sketch -> storage`, etc.
- *
- * I.e. be cautious with breaking changes
- */
 lazy val sharedComponents =
-  crossProject(JSPlatform, JVMPlatform).in(file("shared-components"))
+    project.in(file("shared-components"))
+    .dependsOn(sharedTestComponents % Test)
     .disablePlugins(plugins.JUnitXmlReportPlugin)
     .settings(commonSettings: _*)
     .configs(IntegrationTest)
@@ -136,11 +104,6 @@ lazy val sharedComponents =
       libraryDependencies ++= Seq(
         Dependency.cats,
         Dependency.circeCore,
-        Dependency.fs2Core
-      )
-    )
-    .jvmSettings(
-      libraryDependencies ++= Seq(
         Dependency.circeParser,
         Dependency.fs2Core,
         Dependency.munit % "test,it",
@@ -149,14 +112,6 @@ lazy val sharedComponents =
         Dependency.munitScalaCheckEffect % "test,it"
       )
     )
-    // TODO causes "Referring to non-existent class org.scalajs.testing.bridge.Bridge" error
-    //.jsSettings(inConfig(IntegrationTest)(ScalaJSPlugin.testConfigSettings): _*)
-    .jsSettings(
-      fork := false
-    )
-
-lazy val sharedComponentsJvm =
-  sharedComponents.jvm.dependsOn(sharedTestComponents % Test)
 
 /*
  * Don't include any domain specific class in this module,
@@ -184,16 +139,14 @@ lazy val sharedTestComponents =
 lazy val sketch =
    project.in(file("."))
     .settings(commonSettings: _*)
-    .aggregate(frontend)
     .aggregate(service)
-    .aggregate(sharedComponentsJvm)
-    .aggregate(sharedComponents.js)
+    .aggregate(sharedComponents)
     .aggregate(sharedTestComponents)
     .aggregate(storage)
 
 lazy val storage =
    project.in(file("storage"))
-     .dependsOn(sharedComponentsJvm)
+     .dependsOn(sharedComponents)
      .dependsOn(sharedTestComponents % Test)
      .disablePlugins(plugins.JUnitXmlReportPlugin)
      .settings(commonSettings: _*)

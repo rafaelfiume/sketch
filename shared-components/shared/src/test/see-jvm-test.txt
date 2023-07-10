@@ -1,6 +1,0 @@
-`shared/src` components are all tested in `jvm/src/test`.
-
-The reason being mainly twofold:
- * More dependencies available to be used with a jvm version of the library, e.g. fs2-io
- * We cannot load files from a `shared/test/scala/resources` e.g. to implement `ContractsSpec`.
- 
