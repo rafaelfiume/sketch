@@ -18,11 +18,11 @@ import org.fiume.sketch.storage.postgres.{AbstractPostgresStore, Store}
 
 import java.time.ZonedDateTime
 
-object PostgresStore:
-  def make[F[_]: Async](tx: Transactor[F]): Resource[F, PostgresStore[F]] =
-    WeakAsync.liftK[F, ConnectionIO].map(l => new PostgresStore[F](l, tx))
+object PostgresDocumentsStore:
+  def make[F[_]: Async](tx: Transactor[F]): Resource[F, PostgresDocumentsStore[F]] =
+    WeakAsync.liftK[F, ConnectionIO].map(l => new PostgresDocumentsStore[F](l, tx))
 
-private class PostgresStore[F[_]: Async] private (l: F ~> ConnectionIO, tx: Transactor[F])
+private class PostgresDocumentsStore[F[_]: Async] private (l: F ~> ConnectionIO, tx: Transactor[F])
     extends AbstractPostgresStore[F](l, tx)
     with DocumentsStore[F, ConnectionIO]
     with HealthCheck[F]:

@@ -13,7 +13,7 @@ import munit.ScalaCheckEffectSuite
 import org.fiume.sketch.shared.domain.documents.Document
 import org.fiume.sketch.shared.domain.documents.Metadata.*
 import org.fiume.sketch.shared.test.FileContentContext
-import org.fiume.sketch.storage.documents.postgres.{DoobieMappings, PostgresStore}
+import org.fiume.sketch.storage.documents.postgres.{DoobieMappings, PostgresDocumentsStore}
 import org.fiume.sketch.storage.documents.postgres.DoobieMappings.given
 import org.fiume.sketch.storage.test.support.DockerPostgresSuite
 import org.fiume.sketch.test.support.DocumentsGens.*
@@ -37,7 +37,7 @@ class PostgresStoreSpec
   test("store and fetch documents metadata") {
     forAllF(documents[IO]) { doc =>
       will(cleanDocuments) {
-        PostgresStore.make[IO](transactor()).use { store =>
+        PostgresDocumentsStore.make[IO](transactor()).use { store =>
           for
             _ <- store.store(doc).ccommit
 
@@ -55,7 +55,7 @@ class PostgresStoreSpec
   test("store and fetch document bytes") {
     forAllF(documents[IO]) { document =>
       will(cleanDocuments) {
-        PostgresStore.make[IO](transactor()).use { store =>
+        PostgresDocumentsStore.make[IO](transactor()).use { store =>
           for
             _ <- store.store(document).ccommit
 
@@ -75,7 +75,7 @@ class PostgresStoreSpec
 
   test("update document metadata") {
     forAllF(documents[IO], descriptions) { (original, updatedDescription) =>
-      PostgresStore.make[IO](transactor()).use { store =>
+      PostgresDocumentsStore.make[IO](transactor()).use { store =>
         for
           _ <- store.store(original).ccommit
 
@@ -93,7 +93,7 @@ class PostgresStoreSpec
 
   test("update document bytes") {
     forAllF(documents[IO], bytesG[IO]) { (original, updatedBytes) =>
-      PostgresStore.make[IO](transactor()).use { store =>
+      PostgresDocumentsStore.make[IO](transactor()).use { store =>
         for
           _ <- store.store(original).ccommit
 
@@ -114,7 +114,7 @@ class PostgresStoreSpec
 
   test("updated document -> more recent updated_at_utc") {
     forAllF(documents[IO], descriptions, bytesG[IO]) { (original, updatedDescription, updatedBytes) =>
-      PostgresStore.make[IO](transactor()).use { store =>
+      PostgresDocumentsStore.make[IO](transactor()).use { store =>
         for
           _ <- store.store(original).ccommit
           updatedAt1 <- store.fetchUpdatedAt(original.metadata.name).ccommit
@@ -137,7 +137,7 @@ class PostgresStoreSpec
     forAllF(documents[IO], documents[IO]) { (fst, snd) =>
       // TODO Wait till PropF.forAllF supports '==>' (scalacheck implication)
       will(cleanDocuments) {
-        PostgresStore.make[IO](transactor()).use { store =>
+        PostgresDocumentsStore.make[IO](transactor()).use { store =>
           for
             _ <- store.store(fst).ccommit
             _ <- store.store(snd).ccommit
@@ -168,7 +168,7 @@ class PostgresStoreSpec
     val filename = "mountain-bike-liguria-ponent.jpg"
     IO { bytesFrom[IO](filename) }.flatMap { bytes =>
       will(cleanDocuments) {
-        PostgresStore.make[IO](transactor()).use { store =>
+        PostgresDocumentsStore.make[IO](transactor()).use { store =>
           val document = documents[IO].sample.get.withBytes(bytes)
           for
             _ <- store.store(document).ccommit
@@ -191,7 +191,7 @@ trait PostgresStoreSpecContext:
 
   def cleanDocuments: ConnectionIO[Unit] = sql"TRUNCATE TABLE documents".update.run.void
 
-  extension (store: PostgresStore[IO])
+  extension (store: PostgresDocumentsStore[IO])
     def fetchUpdatedAt(name: Name): ConnectionIO[Instant] =
       sql"SELECT updated_at_utc FROM documents WHERE name = ${name}"
         .query[Instant]
