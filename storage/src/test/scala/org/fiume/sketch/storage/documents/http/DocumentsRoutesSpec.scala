@@ -15,6 +15,7 @@ import org.fiume.sketch.storage.http.JsonCodecs.Incorrects.given
 import org.fiume.sketch.storage.http.Model.Incorrect
 import org.fiume.sketch.storage.http.Model.IncorrectOps.*
 import org.fiume.sketch.test.support.DocumentsGens.*
+import org.fiume.sketch.test.support.DocumentsGens.given
 import org.http4s.{MediaType, *}
 import org.http4s.Method.*
 import org.http4s.circe.CirceEntityDecoder.*
@@ -22,23 +23,23 @@ import org.http4s.client.dsl.io.*
 import org.http4s.headers.`Content-Type`
 import org.http4s.implicits.*
 import org.http4s.multipart.{Boundary, Multipart, Part}
-import org.scalacheck.Shrink
+import org.scalacheck.{Shrink, ShrinkLowPriority}
 import org.scalacheck.effect.PropF.forAllF
+
+import java.{util as ju}
 
 class DocumentsRoutesSpec
     extends CatsEffectSuite
     with ScalaCheckEffectSuite
     with Http4sTestingRoutesDsl
     with FileContentContext
-    with DocumentsStoreContext:
+    with DocumentsStoreContext
+    with ShrinkLowPriority:
 
-  given noShrink[T]: Shrink[T] = Shrink.shrinkAny
-
-  // tests are slow, so run them less often
   override def scalaCheckTestParameters = super.scalaCheckTestParameters.withMinSuccessfulTests(3)
 
   test("Post document") {
-    forAllF(metadataG) { metadata =>
+    forAllF { (metadata: Metadata) =>
       val imageFile = getClass.getClassLoader.getResource("mountain-bike-liguria-ponent.jpg")
       val multipart = Multipart[IO](
         parts = Vector(
@@ -55,20 +56,21 @@ class DocumentsRoutesSpec
           .to(new DocumentsRoutes[IO, IO](store).routes)
 //
           .thenItReturns(Status.Created, withJsonPayload = metadata)
-        storedMetadata <- store.fetchMetadata(metadata.name)
-        uploadedBytes <- bytesFrom[IO]("mountain-bike-liguria-ponent.jpg").compile.toList
-        storedBytes <- OptionT(store.fetchBytes(metadata.name)).semiflatMap(_.compile.toList).value
-        _ <- IO {
-          assertEquals(storedMetadata, metadata.some)
-          assertEquals(storedBytes.map(_.toList), uploadedBytes.some)
-        }
+      // TODO Assert when implementing support to `thenItReturns` to return the payload
+      // storedMetadata <- store.fetchMetadata(document.uuid)
+      // uploadedBytes <- bytesFrom[IO]("mountain-bike-liguria-ponent.jpg").compile.toList
+      // storedBytes <- OptionT(store.fetchBytes(document.uuid)).semiflatMap(_.compile.toList).value
+      // _ <- IO {
+      //   assertEquals(storedMetadata, metadata.some)
+      //   assertEquals(storedBytes.map(_.toList), uploadedBytes.some)
+      // }
       yield ()
     }
   }
 
   test("Get document metadata") {
     forAllF(documents[IO]) { document =>
-      val request = GET(Uri.unsafeFromString(s"/documents/metadata?name=${document.metadata.name.value}"))
+      val request = GET(Uri.unsafeFromString(s"/documents/${document.uuid}/metadata"))
       for
         store <- makeDocumentsStore(state = document)
 
@@ -82,7 +84,7 @@ class DocumentsRoutesSpec
 
   test("Get document bytes") {
     forAllF(documents[IO]) { document =>
-      val request = GET(Uri.unsafeFromString(s"/documents?name=${document.metadata.name.value}"))
+      val request = GET(Uri.unsafeFromString(s"/documents/${document.uuid}/content"))
       for
         store <- makeDocumentsStore(state = document)
 
@@ -96,7 +98,7 @@ class DocumentsRoutesSpec
 
   test("Delete document") {
     forAllF(documents[IO]) { document =>
-      val request = DELETE(Uri.unsafeFromString(s"/documents?name=${document.metadata.name.value}"))
+      val request = DELETE(Uri.unsafeFromString(s"/documents/${document.uuid}"))
       for
         store <- makeDocumentsStore(state = document)
 
@@ -105,8 +107,8 @@ class DocumentsRoutesSpec
 //
           .thenItReturns(Status.NoContent)
         stored <- IO.both(
-          store.fetchMetadata(document.metadata.name),
-          OptionT(store.fetchBytes(document.metadata.name)).semiflatMap(_.compile.toList).value
+          store.fetchMetadata(document.uuid),
+          OptionT(store.fetchBytes(document.uuid)).semiflatMap(_.compile.toList).value
         )
         _ <- IO {
           assertEquals(stored._1, none)
@@ -187,7 +189,7 @@ class DocumentsRoutesSpec
 
   test("Delete unexistent document == not found") {
     forAllF(documents[IO]) { document =>
-      val request = DELETE(Uri.unsafeFromString(s"/documents?name=${document.metadata.name.value}"))
+      val request = DELETE(Uri.unsafeFromString(s"/documents/${document.uuid}"))
       for
         store <- makeDocumentsStore()
 
@@ -255,27 +257,60 @@ class DocumentsRoutesSpec
   }
 
 trait DocumentsStoreContext:
-  def makeDocumentsStore(): IO[DocumentsStore[IO, IO]] = makeDocumentsStore(state = Map.empty)
+  import fs2.Stream
+  import java.time.ZonedDateTime
+  import java.time.ZoneOffset
+  import java.util.UUID
 
-  def makeDocumentsStore(state: Document[IO]): IO[DocumentsStore[IO, IO]] = makeDocumentsStore(Map(state.metadata.name -> state))
+  def makeDocumentsStore(): IO[DocumentsStore[IO, IO]] = makeDocumentsStore(state = StorageState.empty)
 
-  private def makeDocumentsStore(state: Map[Metadata.Name, Document[IO]]): IO[DocumentsStore[IO, IO]] =
-    Ref.of[IO, Map[Metadata.Name, Document[IO]]](state).map { storage =>
+  def makeDocumentsStore(state: Document[IO]): IO[DocumentsStore[IO, IO]] = makeDocumentsStore(
+    StorageState(
+      allDocuments = Map(state.uuid -> state),
+      latestStored = state.uuid.some
+    )
+  )
+
+  case class StorageState(allDocuments: Map[UUID, Document[IO]], latestStored: Option[UUID])
+  object StorageState:
+    def empty: StorageState = StorageState(Map.empty, None)
+
+  private def makeDocumentsStore(state: StorageState): IO[DocumentsStore[IO, IO]] =
+
+    def newDocument(metadata: Metadata, bytes: Stream[IO, Byte]): Document[IO] = // not suspending side effect
+      Document[IO](UUID.randomUUID(), metadata, bytes, ZonedDateTime.now(ZoneOffset.UTC), ZonedDateTime.now(ZoneOffset.UTC))
+
+    Ref.of[IO, StorageState](state).map { storage =>
       new DocumentsStore[IO, IO]:
-        def store(doc: Document[IO]): IO[Unit] = storage.update { state =>
-          state.updated(doc.metadata.name, doc)
+
+        def store(metadata: Metadata, bytes: Stream[IO, Byte]): IO[UUID] = storage
+          .updateAndGet { state =>
+            val document = newDocument(metadata, bytes)
+            StorageState(state.allDocuments.updated(document.uuid, document), document.uuid.some)
+          }
+          .map(_.latestStored.get)
+
+        def update(uuid: UUID, metadata: Metadata, bytes: Stream[cats.effect.IO, Byte]): IO[Unit] = storage.update { state =>
+          StorageState(
+            state.allDocuments.updatedWith(uuid) {
+              case Some(document) =>
+                Document[IO](uuid, metadata, bytes, document.createdAt, ZonedDateTime.now(ZoneOffset.UTC)).some
+              case None => none
+            },
+            none
+          )
+        }.void
+
+        def fetchMetadata(uuid: UUID): IO[Option[Metadata]] = storage.get.map { state =>
+          state.allDocuments.find(s => s._1 === uuid).map(_._2.metadata)
         }
 
-        def fetchMetadata(name: Metadata.Name): IO[Option[Metadata]] = storage.get.map { state =>
-          state.find(s => s._1 === name).map(_._2.metadata)
+        def fetchBytes(uuid: UUID): IO[Option[fs2.Stream[IO, Byte]]] = storage.get.map { state =>
+          state.allDocuments.find(s => s._1 === uuid).map(_._2.bytes)
         }
 
-        def fetchBytes(name: Metadata.Name): IO[Option[fs2.Stream[IO, Byte]]] = storage.get.map { state =>
-          state.find(s => s._1 === name).map(_._2.bytes)
-        }
-
-        def delete(name: Metadata.Name): IO[Unit] = storage.update { state =>
-          state.removed(name)
+        def delete(uuid: UUID): IO[Unit] = storage.update { state =>
+          StorageState(state.allDocuments.removed(uuid), none)
         }
 
         val commit: [A] => IO[A] => IO[A] = [A] => (action: IO[A]) => action

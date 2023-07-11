@@ -6,6 +6,7 @@ import org.fiume.sketch.storage.postgres.Store
 
 trait UserStore[F[_], Txn[_]] extends Store[F, Txn]:
   def store(user: User, password: HashedPassword, salt: Salt): Txn[UserCredentials]
+  // TODO Consider fetching and updating by id instead of username
   def fetchCredentials(username: Username): Txn[Option[UserCredentials]]
   def fetchUser(username: Username): Txn[Option[User]]
   def updateUser(user: User): Txn[Unit]
