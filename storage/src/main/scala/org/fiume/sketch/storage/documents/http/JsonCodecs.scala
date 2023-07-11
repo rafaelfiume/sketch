@@ -1,6 +1,7 @@
 package org.fiume.sketch.storage.documents.http
 
-import io.circe.{Codec, Decoder, Encoder, HCursor, Json}
+import cats.implicits.*
+import io.circe.{Codec, Decoder, DecodingFailure, Encoder, HCursor, Json}
 import io.circe.Decoder.Result
 import io.circe.syntax.*
 import org.fiume.sketch.shared.app.ServiceStatus
@@ -8,6 +9,8 @@ import org.fiume.sketch.shared.app.algebras.{HealthCheck, Versions}
 import org.fiume.sketch.shared.app.algebras.Versions.Version
 import org.fiume.sketch.storage.documents.Model.Metadata
 import org.fiume.sketch.storage.documents.Model.Metadata.*
+
+import java.util.UUID
 
 object JsonCodecs:
   given Encoder[Metadata.Name] = Encoder.encodeString.contramap(_.value)
@@ -29,3 +32,14 @@ object JsonCodecs:
         name <- c.downField("name").as[Metadata.Name]
         description <- c.downField("description").as[Metadata.Description]
       yield Metadata(name, description)
+
+  given Encoder[UUID] = new Encoder[UUID]:
+    override def apply(uuid: UUID): Json = Json.obj(
+      "uuid" -> Json.fromString(uuid.toString)
+    )
+
+  given Decoder[UUID] = new Decoder[UUID]:
+    override def apply(c: HCursor): Result[UUID] =
+      c.downField("uuid").as[String].flatMap { uuid =>
+        Either.catchNonFatal(UUID.fromString(uuid)).leftMap { e => DecodingFailure(e.getMessage, c.history) }
+      }

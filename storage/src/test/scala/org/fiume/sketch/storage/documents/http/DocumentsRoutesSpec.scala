@@ -3,8 +3,10 @@ package org.fiume.sketch.storage.documents.http
 import cats.data.{EitherT, NonEmptyChain, OptionT}
 import cats.effect.{IO, Ref}
 import cats.implicits.*
+import io.circe.Json
 import io.circe.syntax.*
 import munit.{CatsEffectSuite, ScalaCheckEffectSuite}
+import munit.Assertions.*
 import org.fiume.sketch.shared.test.{FileContentContext, Http4sTestingRoutesDsl}
 import org.fiume.sketch.shared.test.EitherSyntax.*
 import org.fiume.sketch.storage.documents.Model.{Document, Metadata}
@@ -26,7 +28,7 @@ import org.http4s.multipart.{Boundary, Multipart, Part}
 import org.scalacheck.{Shrink, ShrinkLowPriority}
 import org.scalacheck.effect.PropF.forAllF
 
-import java.{util as ju}
+import java.util.UUID
 
 class DocumentsRoutesSpec
     extends CatsEffectSuite
@@ -36,7 +38,7 @@ class DocumentsRoutesSpec
     with DocumentsStoreContext
     with ShrinkLowPriority:
 
-  override def scalaCheckTestParameters = super.scalaCheckTestParameters.withMinSuccessfulTests(3)
+  override def scalaCheckTestParameters = super.scalaCheckTestParameters.withMinSuccessfulTests(10)
 
   test("Post document") {
     forAllF { (metadata: Metadata) =>
@@ -52,18 +54,19 @@ class DocumentsRoutesSpec
       for
         store <- makeDocumentsStore()
 
-        _ <- whenSending(request)
+        jsonResponse <- send(request)
           .to(new DocumentsRoutes[IO, IO](store).routes)
-//
-          .thenItReturns(Status.Created, withJsonPayload = metadata)
-      // TODO Assert when implementing support to `thenItReturns` to return the payload
-      // storedMetadata <- store.fetchMetadata(document.uuid)
-      // uploadedBytes <- bytesFrom[IO]("mountain-bike-liguria-ponent.jpg").compile.toList
-      // storedBytes <- OptionT(store.fetchBytes(document.uuid)).semiflatMap(_.compile.toList).value
-      // _ <- IO {
-      //   assertEquals(storedMetadata, metadata.some)
-      //   assertEquals(storedBytes.map(_.toList), uploadedBytes.some)
-      // }
+          .expectJsonResponseWith(Status.Created)
+
+        storedMetadata <- store.fetchMetadata(jsonResponse.as[UUID].rightValue)
+        uploadedContent <- bytesFrom[IO]("mountain-bike-liguria-ponent.jpg").compile.toList
+        storedBytes <- OptionT(
+          store.fetchBytes(jsonResponse.as[UUID].rightValue)
+        ).semiflatMap(_.compile.toList).value
+        _ <- IO {
+          assertEquals(storedMetadata, metadata.some)
+          assertEquals(storedBytes.map(_.toList), uploadedContent.some)
+        }
       yield ()
     }
   }
@@ -74,24 +77,32 @@ class DocumentsRoutesSpec
       for
         store <- makeDocumentsStore(state = document)
 
-        _ <- whenSending(request)
+        jsonResponse <- send(request)
           .to(new DocumentsRoutes[IO, IO](store).routes)
-//
-          .thenItReturns(Status.Ok, withJsonPayload = document.metadata)
+          .expectJsonResponseWith(Status.Ok)
+
+        _ <- IO {
+          assertEquals(jsonResponse.as[Metadata].rightValue, document.metadata)
+        }
       yield ()
     }
   }
 
-  test("Get document bytes") {
+  test("Get document content") {
     forAllF(documents[IO]) { document =>
       val request = GET(Uri.unsafeFromString(s"/documents/${document.uuid}/content"))
       for
         store <- makeDocumentsStore(state = document)
 
-        _ <- whenSending(request)
+        contentStream <- send(request)
           .to(new DocumentsRoutes[IO, IO](store).routes)
-//
-          .thenItReturns(Status.Ok, withPayload = document.bytes)
+          .expectByteStreamResponseWith(Status.Ok)
+
+        obtainedStream <- contentStream.compile.toList
+        expectedStream <- document.bytes.compile.toList
+        _ <- IO {
+          assertEquals(obtainedStream, expectedStream)
+        }
       yield ()
     }
   }
@@ -102,10 +113,10 @@ class DocumentsRoutesSpec
       for
         store <- makeDocumentsStore(state = document)
 
-        _ <- whenSending(request)
+        _ <- send(request)
           .to(new DocumentsRoutes[IO, IO](store).routes)
-//
-          .thenItReturns(Status.NoContent)
+          .expectEmptyResponseWith(Status.NoContent)
+
         stored <- IO.both(
           store.fetchMetadata(document.uuid),
           OptionT(store.fetchBytes(document.uuid)).semiflatMap(_.compile.toList).value
@@ -131,13 +142,13 @@ class DocumentsRoutesSpec
       for
         store <- makeDocumentsStore()
 
-        _ <- whenSending(request)
+        jsonResponse <- send(request)
           .to(new DocumentsRoutes[IO, IO](store).routes)
-//
-          .thenItReturns(
-            Status.BadRequest,
-            withJsonPayload = Incorrect("bytes".missing)
-          )
+          .expectJsonResponseWith(Status.BadRequest)
+
+        _ <- IO {
+          assertEquals(jsonResponse.as[Incorrect].rightValue, Incorrect("bytes".missing))
+        }
       yield ()
     }
   }
@@ -154,13 +165,13 @@ class DocumentsRoutesSpec
     for
       store <- makeDocumentsStore()
 
-      _ <- whenSending(request)
+      jsonResponse <- send(request)
         .to(new DocumentsRoutes[IO, IO](store).routes)
-//
-        .thenItReturns(
-          Status.BadRequest,
-          withJsonPayload = Incorrect("metadata".missing)
-        )
+        .expectJsonResponseWith(Status.BadRequest)
+
+      _ <- IO {
+        assertEquals(jsonResponse.as[Incorrect].rightValue, Incorrect("metadata".missing))
+      }
     yield ()
   }
 
@@ -177,13 +188,13 @@ class DocumentsRoutesSpec
     for
       store <- makeDocumentsStore()
 
-      _ <- whenSending(request)
+      jsonResponse <- send(request)
         .to(new DocumentsRoutes[IO, IO](store).routes)
-//
-        .thenItReturns(
-          Status.BadRequest,
-          withJsonPayload = Incorrect("Malformed message body: Invalid JSON".malformed)
-        )
+        .expectJsonResponseWith(Status.BadRequest)
+
+      _ <- IO {
+        assertEquals(jsonResponse.as[Incorrect].rightValue, Incorrect("Malformed message body: Invalid JSON".malformed))
+      }
     yield ()
   }
 
@@ -192,11 +203,9 @@ class DocumentsRoutesSpec
       val request = DELETE(Uri.unsafeFromString(s"/documents/${document.uuid}"))
       for
         store <- makeDocumentsStore()
-
-        _ <- whenSending(request)
+        _ <- send(request)
           .to(new DocumentsRoutes[IO, IO](store).routes)
-//
-          .thenItReturns(Status.NotFound)
+          .expectEmptyResponseWith(Status.NotFound)
       yield ()
     }
   }

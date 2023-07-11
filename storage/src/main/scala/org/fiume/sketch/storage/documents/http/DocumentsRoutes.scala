@@ -53,9 +53,11 @@ class DocumentsRoutes[F[_]: Async, Txn[_]](store: DocumentsStore[F, Txn]) extend
                   BadRequest(Incorrect(details))
 
               case Right((metadata, bytes)) =>
-                logger.info(s"Uploading document ${metadata.name}") *>
-                  store.commit { store.store(metadata, bytes) } >>
-                  Created(metadata)
+                for
+                  _ <- logger.info(s"Uploading document ${metadata.name}")
+                  uuid <- store.commit { store.store(metadata, bytes) }
+                  created <- Created(uuid)
+                yield created
           yield res
         }
 
