@@ -292,18 +292,18 @@ trait DocumentsStoreContext:
     Ref.of[IO, StorageState](state).map { storage =>
       new DocumentsStore[IO, IO]:
 
-        def store(metadata: Metadata, bytes: Stream[IO, Byte]): IO[UUID] = storage
+        def store(metadata: Metadata, content: Stream[IO, Byte]): IO[UUID] = storage
           .updateAndGet { state =>
-            val document = newDocument(metadata, bytes)
+            val document = newDocument(metadata, content)
             StorageState(state.allDocuments.updated(document.uuid, document), document.uuid.some)
           }
           .map(_.latestStored.get)
 
-        def update(uuid: UUID, metadata: Metadata, bytes: Stream[cats.effect.IO, Byte]): IO[Unit] = storage.update { state =>
+        def update(uuid: UUID, metadata: Metadata, content: Stream[cats.effect.IO, Byte]): IO[Unit] = storage.update { state =>
           StorageState(
             state.allDocuments.updatedWith(uuid) {
               case Some(document) =>
-                Document[IO](uuid, metadata, bytes, document.createdAt, ZonedDateTime.now(ZoneOffset.UTC)).some
+                Document[IO](uuid, metadata, content, document.createdAt, ZonedDateTime.now(ZoneOffset.UTC)).some
               case None => none
             },
             none

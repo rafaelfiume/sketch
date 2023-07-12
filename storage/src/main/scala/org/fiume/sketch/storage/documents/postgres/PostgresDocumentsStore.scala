@@ -15,7 +15,6 @@ import org.fiume.sketch.storage.documents.postgres.DoobieMappings
 import org.fiume.sketch.storage.documents.postgres.DoobieMappings.given
 import org.fiume.sketch.storage.postgres.{AbstractPostgresStore, Store}
 
-import java.{util as ju}
 import java.time.ZonedDateTime
 import java.util.UUID
 
@@ -27,11 +26,11 @@ private class PostgresDocumentsStore[F[_]: Async] private (l: F ~> ConnectionIO,
     extends AbstractPostgresStore[F](l, tx)
     with DocumentsStore[F, ConnectionIO]:
 
-  override def store(metadata: Metadata, bytes: Stream[F, Byte]): ConnectionIO[UUID] =
+  override def store(metadata: Metadata, content: Stream[F, Byte]): ConnectionIO[UUID] =
     for
       // it's a shame current implementation ends up loading all the bytes in memory here
       // maybe one day that will change?
-      content <- lift { bytes.compile.toVector.map(_.toArray) }
+      content <- lift { content.compile.toVector.map(_.toArray) }
       uuid <- Statements
         .insertDocument(metadata, content)
         .withUniqueGeneratedKeys[UUID](
@@ -39,9 +38,9 @@ private class PostgresDocumentsStore[F[_]: Async] private (l: F ~> ConnectionIO,
         )
     yield uuid
 
-  override def update(uuid: ju.UUID, metadata: Metadata, bytes: Stream[F, Byte]): ConnectionIO[Unit] =
+  override def update(uuid: UUID, metadata: Metadata, content: Stream[F, Byte]): ConnectionIO[Unit] =
     for
-      content <- lift { bytes.compile.toVector.map(_.toArray) }
+      content <- lift { content.compile.toVector.map(_.toArray) }
       _ <- Statements.update(uuid, metadata, content).run.void
     yield ()
 
@@ -60,7 +59,7 @@ private class PostgresDocumentsStore[F[_]: Async] private (l: F ~> ConnectionIO,
     Statements.delete(uuid).run.void
 
 private object Statements:
-  def insertDocument[F[_]](metadata: Metadata, bytes: Array[Byte]): Update0 =
+  def insertDocument[F[_]](metadata: Metadata, content: Array[Byte]): Update0 =
     sql"""
          |INSERT INTO documents(
          |  name,
@@ -70,17 +69,17 @@ private object Statements:
          |VALUES (
          |  ${metadata.name},
          |  ${metadata.description},
-         |  ${bytes}
+         |  ${content}
          |)
     """.stripMargin.update
 
-  def update(uuid: UUID, metadata: Metadata, bytes: Array[Byte]): Update0 =
+  def update(uuid: UUID, metadata: Metadata, content: Array[Byte]): Update0 =
     sql"""
          |UPDATE documents
          |SET
          |  name = ${metadata.name},
          |  description = ${metadata.description},
-         |  bytes = ${bytes}
+         |  bytes = ${content}
          |WHERE uuid = ${uuid}
     """.stripMargin.update
 
