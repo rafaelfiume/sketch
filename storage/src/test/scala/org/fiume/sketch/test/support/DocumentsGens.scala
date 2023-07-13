@@ -1,27 +1,38 @@
 package org.fiume.sketch.test.support
 
+import cats.effect.IO
 import fs2.Stream
+import org.fiume.sketch.shared.test.Gens
 import org.fiume.sketch.shared.test.Gens.Bytes.*
 import org.fiume.sketch.shared.test.Gens.Strings.*
 import org.fiume.sketch.storage.documents.Model.{Document, Metadata}
-import org.scalacheck.Gen
+import org.scalacheck.{Arbitrary, Gen}
 
-object DocumentsGens: // good candidate to be moved to a specific test-components module/lib
+import java.util.UUID
 
+object DocumentsGens:
+
+  given Arbitrary[Metadata.Name] = Arbitrary(names)
   def names: Gen[Metadata.Name] = alphaNumString.map(Metadata.Name.apply)
 
+  given Arbitrary[Metadata.Description] = Arbitrary(descriptions)
   def descriptions: Gen[Metadata.Description] = alphaNumString.map(Metadata.Description.apply)
 
+  given Arbitrary[Metadata] = Arbitrary(metadataG)
   def metadataG: Gen[Metadata] =
     for
       name <- names
       description <- descriptions
     yield Metadata(name, description)
 
+  given Arbitrary[Stream[IO, Byte]] = Arbitrary(bytesG[IO])
   def bytesG[F[_]]: Gen[Stream[F, Byte]] = Gen.nonEmptyListOf(bytes).map(Stream.emits)
 
   def documents[F[_]]: Gen[Document[F]] =
     for
+      uuid <- Gen.delay(UUID.randomUUID())
       metadata <- metadataG
       bytes <- bytesG[F]
-    yield Document(metadata, bytes)
+      createdAt <- Gens.DateAndTime.dateAndTime
+      updatedAt <- Gens.DateAndTime.dateAndTime.suchThat(_.isAfter(createdAt))
+    yield Document(uuid, metadata, bytes, createdAt, updatedAt)

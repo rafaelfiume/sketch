@@ -18,25 +18,20 @@ class HttpDocumentsStoreSpec extends CatsEffectSuite with Http4sContext with Fil
   test("store documents") {
     http { client =>
       for
-        upload <- client.expect[Json](fileUploadRequest(payload(docName, docDesc), pathToFile)).flatTap { res =>
-          IO {
-            assertEquals(res.docName, docName)
-            assertEquals(res.description, docDesc)
-          }
-        }
+        uuid <- client.expect[Json](fileUploadRequest(payload(docName, docDesc), pathToFile)).map(_.uuid)
 
-        _ <- client.expect[Json](s"http://localhost:8080/documents/metadata?name=${upload.docName}".get).map { res =>
+        _ <- client.expect[Json](s"http://localhost:8080/documents/$uuid/metadata".get).map { res =>
           assertEquals(res.docName, docName)
           assertEquals(res.description, docDesc)
         }
 
-        docBytes <- client
-          .stream(s"http://localhost:8080/documents?name=${upload.docName}".get)
+        content <- client
+          .stream(s"http://localhost:8080/documents/$uuid/content".get)
           .flatMap(_.body)
           .compile
           .toList
-        originalBytes <- bytesFrom[IO](pathToFile).compile.toList
-        _ <- IO { assertEquals(docBytes, originalBytes) }
+        originalContent <- bytesFrom[IO](pathToFile).compile.toList
+        _ <- IO { assertEquals(content, originalContent) }
       yield ()
     }
   }
@@ -44,17 +39,17 @@ class HttpDocumentsStoreSpec extends CatsEffectSuite with Http4sContext with Fil
   test("delete documents") {
     http { client =>
       for
-        upload <- client.expect[Json](fileUploadRequest(payload(docName, docDesc), pathToFile))
+        uuid <- client.expect[Json](fileUploadRequest(payload(docName, docDesc), pathToFile)).map(_.uuid)
 
-        _ <- client.status(s"http://localhost:8080/documents?name=${upload.docName}".delete).map { status =>
+        _ <- client.status(s"http://localhost:8080/documents/$uuid".delete).map { status =>
           assertEquals(status, NoContent)
         }
 
-        _ <- client.status(s"http://localhost:8080/documents/metadata?name=${upload.docName}".get).map { status =>
+        _ <- client.status(s"http://localhost:8080/documents/$uuid/metadata".get).map { status =>
           assertEquals(status, NotFound)
         }
 
-        _ <- client.status(s"http://localhost:8080/documents?name=${upload.docName}".get).map { status =>
+        _ <- client.status(s"http://localhost:8080/documents/$uuid/content".get).map { status =>
           assertEquals(status, NotFound)
         }
       yield ()
@@ -72,5 +67,6 @@ trait StoreDocumentsSpecContext:
       """.stripMargin
 
   extension (json: Json)
+    def uuid: String = json.hcursor.get[String]("uuid").getOrElse(fail("'uuid' field not found"))
     def docName: String = json.hcursor.get[String]("name").getOrElse(fail("'name' field not found"))
     def description: String = json.hcursor.get[String]("description").getOrElse(fail("'description' field not found"))

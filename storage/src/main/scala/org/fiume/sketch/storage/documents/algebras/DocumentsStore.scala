@@ -1,12 +1,16 @@
 package org.fiume.sketch.storage.documents.algebras
 
+import cats.instances.uuid
 import fs2.Stream
-import org.fiume.sketch.storage.documents.Model.{Document, Metadata}
+import org.fiume.sketch.storage.documents.Model.Metadata
 import org.fiume.sketch.storage.postgres.Store
+
+import java.util.UUID
 
 trait DocumentsStore[F[_], Txn[_]] extends Store[F, Txn]:
 
-  def store(doc: Document[F]): Txn[Unit]
-  def fetchMetadata(name: Metadata.Name): Txn[Option[Metadata]]
-  def fetchBytes(name: Metadata.Name): Txn[Option[Stream[F, Byte]]]
-  def delete(name: Metadata.Name): Txn[Unit]
+  def store(metadata: Metadata, content: Stream[F, Byte]): Txn[UUID]
+  def update(uuid: UUID, metadata: Metadata, content: Stream[F, Byte]): Txn[Unit]
+  def fetchMetadata(uuid: UUID): Txn[Option[Metadata]]
+  def fetchContent(uuid: UUID): Txn[Option[Stream[F, Byte]]]
+  def delete(uuid: UUID): Txn[Unit]

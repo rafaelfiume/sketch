@@ -5,6 +5,7 @@ SET timezone = 'UTC';
 CREATE TABLE users (
   id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
   -- same size as email
+  -- username and email should probably be unique across a buniness account not the entire system
   username VARCHAR(60) NOT NULL UNIQUE,
   -- supports 32 bytes Base64 encoded (padding '=' plus each char representing 6 bits) password = 1 + (32 * 8) / 6 = 44
   -- note that the actual password size depends on the algorithm used to generate it

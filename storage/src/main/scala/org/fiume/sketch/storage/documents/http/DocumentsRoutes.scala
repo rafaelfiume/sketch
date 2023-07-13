@@ -22,6 +22,8 @@ import org.http4s.server.Router
 import org.typelevel.log4cats.Logger
 import org.typelevel.log4cats.slf4j.Slf4jLogger
 
+import java.util.UUID
+
 import DocumentsRoutes.*
 
 class DocumentsRoutes[F[_]: Async, Txn[_]](store: DocumentsStore[F, Txn]) extends Http4sDsl[F]:
@@ -53,38 +55,40 @@ class DocumentsRoutes[F[_]: Async, Txn[_]](store: DocumentsStore[F, Txn]) extend
                   BadRequest(Incorrect(details))
 
               case Right((metadata, bytes)) =>
-                logger.info(s"Uploading document ${metadata.name}") *>
-                  store.commit { store.store(Document[F](metadata, bytes)) } >>
-                  Created(metadata)
+                for
+                  _ <- logger.info(s"Uploading document ${metadata.name}")
+                  uuid <- store.commit { store.store(metadata, bytes) }
+                  created <- Created(uuid)
+                yield created
           yield res
         }
 
-      case GET -> Root / "documents" / "metadata" :? NameQParam(name) =>
+      case GET -> Root / "documents" / UUIDVar(uuid) / "metadata" =>
         for
-          _ <- logger.info(s"Fetching document $name metadata")
-          result <- store.commit { store.fetchMetadata(name) }
+          _ <- logger.info(s"Fetching document metadata of $uuid")
+          result <- store.commit { store.fetchMetadata(uuid) }
           res <- result match
             case None           => NotFound()
             case Some(metadata) => Ok(metadata)
         yield res
 
-      case GET -> Root / "documents" :? NameQParam(name) =>
+      case GET -> Root / "documents" / UUIDVar(uuid) / "content" =>
         for
-          _ <- logger.info(s"Downloading file $name")
-          result <- store.commit { store.fetchBytes(name) }
+          _ <- logger.info(s"fetching content of document $uuid")
+          result <- store.commit { store.fetchContent(uuid) }
           res <- result match
             case None         => NotFound()
             case Some(stream) => Ok(stream)
         yield res
 
-      case DELETE -> Root / "documents" :? NameQParam(name) =>
+      case DELETE -> Root / "documents" / UUIDVar(uuid) =>
         for
-          _ <- logger.info(s"Deleting document $name")
-          metadata <- store.commit { store.fetchMetadata(name) }
+          _ <- logger.info(s"Deleting document $uuid")
+          metadata <- store.commit { store.fetchMetadata(uuid) }
           res <- metadata match
             case None => NotFound()
             case Some(_) =>
-              store.commit { store.delete(name) } >>
+              store.commit { store.delete(uuid) } >>
                 NoContent()
         yield res
     }
@@ -92,8 +96,11 @@ class DocumentsRoutes[F[_]: Async, Txn[_]](store: DocumentsStore[F, Txn]) extend
   val routes: HttpRoutes[F] = Router(prefix -> httpRoutes)
 
 private[http] object DocumentsRoutes:
-  given QueryParamDecoder[Metadata.Name] = QueryParamDecoder.stringQueryParamDecoder.map(Metadata.Name.apply)
-  object NameQParam extends QueryParamDecoderMatcher[Metadata.Name]("name")
+
+  object UUIDVar:
+    def unapply(str: String): Option[UUID] =
+      try Some(UUID.fromString(str))
+      catch case _: IllegalArgumentException => None
 
   extension [F[_]: MonadThrow: Concurrent](m: Multipart[F])
     def metadata: EitherT[F, NonEmptyChain[Incorrect.Detail], Metadata] = EitherT

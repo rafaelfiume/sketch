@@ -18,13 +18,13 @@ import org.fiume.sketch.shared.app.http.JsonCodecs.given
 import org.fiume.sketch.shared.test.{FileContentContext, Http4sTestingRoutesDsl}
 import org.fiume.sketch.shared.test.EitherSyntax.*
 import org.fiume.sketch.shared.test.Gens.Lists.*
-import org.fiume.sketch.test.support.SketchGens.*
+import org.fiume.sketch.test.support.SketchGens.given
 import org.http4s.Method.*
 import org.http4s.Status
 import org.http4s.circe.CirceEntityDecoder.*
 import org.http4s.client.dsl.io.*
 import org.http4s.implicits.*
-import org.scalacheck.Gen
+import org.scalacheck.{Arbitrary, Gen, ShrinkLowPriority}
 import org.scalacheck.effect.PropF.forAllF
 
 import scala.language.reflectiveCalls
@@ -35,45 +35,55 @@ class HealthStatusRoutesSpec
     with Http4sTestingRoutesDsl
     with VersionsContext
     with HealthCheckContext
-    with FileContentContext:
+    with FileContentContext
+    with ShrinkLowPriority:
 
   override def scalaCheckTestParameters = super.scalaCheckTestParameters.withMinSuccessfulTests(3)
 
   test("ping returns pong") {
-    forAllF(versions) { version =>
-      whenSending(GET(uri"/ping"))
-        .to(new HealthStatusRoutes[IO](makeVersions(returning = version), makeHealthCheck()).routes)
-        .thenItReturns(Status.Ok, withJsonPayload = "pong")
+    forAllF { (version: Version) =>
+      for
+        jsonResponse <- send(GET(uri"/ping"))
+          .to(new HealthStatusRoutes[IO](makeVersions(returning = version), makeHealthCheck()).routes)
+          .expectJsonResponseWith(Status.Ok)
+        _ <- IO {
+          assertEquals(jsonResponse.as[String].rightValue, "pong")
+        }
+      yield ()
     }
   }
 
   test("return healthy status when dependencies are available") {
-    def healthyInfras = Gen.const(Infra.Database).map(ServiceHealth.healthy(_))
-    forAllF(versions, healthyInfras) { (version, healthy) =>
-      whenSending(GET(uri"/status"))
-        .to(new HealthStatusRoutes[IO](makeVersions(returning = version), makeHealthCheck(healthy)).routes)
-        .thenItReturns(
-          Status.Ok,
-          withJsonPayload = ServiceStatus(version, healthy)
-        )
+    given Arbitrary[ServiceHealth] = Arbitrary(Gen.const(Infra.Database).map(ServiceHealth.healthy(_)))
+    forAllF { (version: Version, healthy: ServiceHealth) =>
+      for
+        jsonResponse <- send(GET(uri"/status"))
+          .to(new HealthStatusRoutes[IO](makeVersions(returning = version), makeHealthCheck(healthy)).routes)
+          .expectJsonResponseWith(Status.Ok)
+        _ <- IO {
+          assertEquals(jsonResponse.as[ServiceStatus].rightValue, ServiceStatus(version, healthy))
+        }
+      yield ()
     }
   }
 
   test("return faulty status when dependencies are unavailable") {
-    def faultyInfras = Gen.const(Infra.Database).map { infra => ServiceHealth.faulty(NonEmptyList.one(infra)) }
-    forAllF(versions, faultyInfras) { (version, faulty) =>
-      whenSending(GET(uri"/status"))
-        .to(
-          new HealthStatusRoutes[IO](
-            makeVersions(returning = version),
-            makeHealthCheck(faulty)
-          ).routes
-        )
-        .thenItReturns(
-          Status.Ok,
-          withJsonPayload = ServiceStatus(version, faulty),
-          debug = true
-        )
+    given Arbitrary[ServiceHealth] =
+      Arbitrary(Gen.const(Infra.Database).map { infra => ServiceHealth.faulty(NonEmptyList.one(infra)) })
+    forAllF { (version: Version, faulty: ServiceHealth) =>
+      for
+        jsonResponse <- send(GET(uri"/status"))
+          .to(
+            new HealthStatusRoutes[IO](
+              makeVersions(returning = version),
+              makeHealthCheck(faulty)
+            ).routes
+          )
+          .expectJsonResponseWith(Status.Ok)
+        _ <- IO {
+          assertEquals(jsonResponse.as[ServiceStatus].rightValue, ServiceStatus(version, faulty))
+        }
+      yield ()
     }
   }
 

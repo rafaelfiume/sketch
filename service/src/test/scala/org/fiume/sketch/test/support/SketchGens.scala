@@ -2,11 +2,13 @@ package org.fiume.sketch.test.support
 
 import org.fiume.sketch.shared.app.algebras.Versions.Version
 import org.fiume.sketch.shared.test.Gens.DateAndTime.*
-import org.scalacheck.Gen
+import org.scalacheck.{Arbitrary, Gen}
 
 object SketchGens:
 
-  // Could be moved to a specific test components module?
+  // TODO: Could be moved to a specific test components module?
+  // Maybe to shared-components test module?
+  given Arbitrary[Version] = Arbitrary(versions)
   def versions: Gen[Version] =
     def builds = Gen.frequency(
       1 -> "snapshot",

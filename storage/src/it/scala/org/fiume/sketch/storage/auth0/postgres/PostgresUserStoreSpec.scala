@@ -17,9 +17,9 @@ import org.scalacheck.effect.PropF.forAllF
 
 class PostgresUserStoreSpec
     extends ScalaCheckEffectSuite
-    with ShrinkLowPriority
     with DockerPostgresSuite
-    with PostgresUserStoreSpecContext:
+    with PostgresUserStoreSpecContext
+    with ShrinkLowPriority:
 
   test("store and fetch user credentials"):
     forAllF { (user: User, password: HashedPassword, salt: Salt) =>
@@ -59,6 +59,7 @@ class PostgresUserStoreSpec
       }
     }
 
+  // TODO Check updatedAt is being updated
   test("update user"):
     forAllF { (user: User, password: HashedPassword, salt: Salt, up: User) =>
       will(cleanUsers) {
@@ -73,8 +74,8 @@ class PostgresUserStoreSpec
             _ <- IO {
               assertEquals(result.map(_.user), updatedUser.some)
               assert(
-                result.exists(user => user.updatedAt.isAfter(user.createdAt)),
-                clue = "updatedAt should be after createdAt"
+                result.exists(creds => creds.updatedAt.isAfter(creds.createdAt)),
+                clue = s"updatedAt=${result.map(_.updatedAt)} should be after createdAt=${result.map(_.createdAt)}"
               )
             }
           yield ()
@@ -95,8 +96,8 @@ class PostgresUserStoreSpec
             _ <- IO {
               assertEquals(result.map(_.password), newPassword.some)
               assert(
-                result.exists(user => user.updatedAt.isAfter(user.createdAt)),
-                clue = "updatedAt should be after createdAt"
+                result.exists(creds => creds.updatedAt.isAfter(creds.createdAt)),
+                clue = s"updatedAt=${result.map(_.updatedAt)} should be after createdAt=${result.map(_.createdAt)}"
               )
             }
           yield ()
