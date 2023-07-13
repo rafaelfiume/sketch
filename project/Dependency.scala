@@ -14,7 +14,6 @@ object Dependency {
     val fs2                   = "3.7.0"
     val http4s                = "1.0.0-M39"
     val log4cats              = "2.6.0"
-    val monocle               = "3.2.0"
     val slf4j                 = "2.0.7"
 
     val munit                 = "0.7.29"
@@ -47,8 +46,6 @@ object Dependency {
   val http4sEmberServer           = "org.http4s"                 %% "http4s-ember-server"                 % Version.http4s
   val log4catsCore                = "org.typelevel"              %% "log4cats-core"                       % Version.log4cats
   val log4catsSlf4j               = "org.typelevel"              %% "log4cats-slf4j"                      % Version.log4cats
-  val monocleCore                 = "dev.optics"                 %% "monocle-core"                        % Version.monocle
-  val monocleMacro                = "dev.optics"                 %% "monocle-macro"                       % Version.monocle
   val slf4jSimple                 = "org.slf4j"                  %  "slf4j-simple"                        % Version.slf4j
 
   //// Test Dependencies

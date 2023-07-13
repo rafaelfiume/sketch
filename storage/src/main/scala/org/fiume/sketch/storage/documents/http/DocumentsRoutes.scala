@@ -73,7 +73,7 @@ class DocumentsRoutes[F[_]: Async, Txn[_]](store: DocumentsStore[F, Txn]) extend
       case GET -> Root / "documents" / UUIDVar(uuid) / "content" =>
         for
           _ <- logger.info(s"fetching content of document $uuid")
-          result <- store.commit { store.fetchBytes(uuid) }
+          result <- store.commit { store.fetchContent(uuid) }
           res <- result match
             case None         => NotFound()
             case Some(stream) => Ok(stream)

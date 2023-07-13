@@ -28,11 +28,13 @@ private class PostgresDocumentsStore[F[_]: Async] private (l: F ~> ConnectionIO,
 
   override def store(metadata: Metadata, content: Stream[F, Byte]): ConnectionIO[UUID] =
     for
-      // it's a shame current implementation ends up loading all the bytes in memory here
-      // maybe one day that will change?
-      content <- lift { content.compile.toVector.map(_.toArray) }
+      // Avoid reading all bytes into memory by using a large object?
+      // https://tpolecat.github.io/doobie-cats-0.4.2/15-Extensions-PostgreSQL.html
+      // https://github.com/tpolecat/doobie/blob/32838f90044f5c3acac6b9f4ae7a2be10b5f1bb0/modules/postgres/src/main/scala/doobie/postgres/hi/largeobjectmanager.scala#L34
+      // https://github.com/tpolecat/doobie/blob/32838f90044f5c3acac6b9f4ae7a2be10b5f1bb0/modules/example/src/main/scala/example/PostgresLargeObject.scala#L18
+      bytes <- lift { content.compile.toVector.map(_.toArray) }
       uuid <- Statements
-        .insertDocument(metadata, content)
+        .insertDocument(metadata, bytes)
         .withUniqueGeneratedKeys[UUID](
           "uuid"
         )
@@ -40,14 +42,14 @@ private class PostgresDocumentsStore[F[_]: Async] private (l: F ~> ConnectionIO,
 
   override def update(uuid: UUID, metadata: Metadata, content: Stream[F, Byte]): ConnectionIO[Unit] =
     for
-      content <- lift { content.compile.toVector.map(_.toArray) }
-      _ <- Statements.update(uuid, metadata, content).run.void
+      bytes <- lift { content.compile.toVector.map(_.toArray) }
+      _ <- Statements.update(uuid, metadata, bytes).run.void
     yield ()
 
   override def fetchMetadata(uuid: UUID): ConnectionIO[Option[Metadata]] =
     Statements.selectDocumentMetadata(uuid).option
 
-  override def fetchBytes(uuid: UUID): ConnectionIO[Option[Stream[F, Byte]]] =
+  override def fetchContent(uuid: UUID): ConnectionIO[Option[Stream[F, Byte]]] =
     // not the greatest implementation, since it will require bytes to be fully read from the db before the stream can start emiting bytes
     // this can be better optimised later (perhaps by storing/reading documents using a file sytem? or large objects?)
     // API is the most important part here.
@@ -69,7 +71,7 @@ private object Statements:
          |VALUES (
          |  ${metadata.name},
          |  ${metadata.description},
-         |  ${content}
+         |  $content
          |)
     """.stripMargin.update
 
@@ -79,17 +81,17 @@ private object Statements:
          |SET
          |  name = ${metadata.name},
          |  description = ${metadata.description},
-         |  bytes = ${content}
-         |WHERE uuid = ${uuid}
+         |  bytes = $content
+         |WHERE uuid = $uuid
     """.stripMargin.update
 
-  def selectDocumentMetadata(id: UUID): Query0[Metadata] =
+  def selectDocumentMetadata(uuid: UUID): Query0[Metadata] =
     sql"""
          |SELECT
          |  d.name,
          |  d.description
          |FROM documents d
-         |WHERE d.uuid = $id
+         |WHERE d.uuid = $uuid
     """.stripMargin.query[Metadata]
 
   def selectDocumentBytes(uuid: UUID): Query0[Array[Byte]] =
@@ -104,5 +106,5 @@ private object Statements:
     sql"""
          |DELETE
          |FROM documents d
-         |WHERE d.uuid = ${uuid}
+         |WHERE d.uuid = $uuid
     """.stripMargin.update

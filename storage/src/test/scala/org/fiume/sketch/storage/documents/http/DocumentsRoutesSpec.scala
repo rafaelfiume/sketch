@@ -61,7 +61,7 @@ class DocumentsRoutesSpec
         storedMetadata <- store.fetchMetadata(jsonResponse.as[UUID].rightValue)
         uploadedContent <- bytesFrom[IO]("mountain-bike-liguria-ponent.jpg").compile.toList
         storedBytes <- OptionT(
-          store.fetchBytes(jsonResponse.as[UUID].rightValue)
+          store.fetchContent(jsonResponse.as[UUID].rightValue)
         ).semiflatMap(_.compile.toList).value
         _ <- IO {
           assertEquals(storedMetadata, metadata.some)
@@ -119,7 +119,7 @@ class DocumentsRoutesSpec
 
         stored <- IO.both(
           store.fetchMetadata(document.uuid),
-          OptionT(store.fetchBytes(document.uuid)).semiflatMap(_.compile.toList).value
+          OptionT(store.fetchContent(document.uuid)).semiflatMap(_.compile.toList).value
         )
         _ <- IO {
           assertEquals(stored._1, none)
@@ -314,7 +314,7 @@ trait DocumentsStoreContext:
           state.allDocuments.find(s => s._1 === uuid).map(_._2.metadata)
         }
 
-        def fetchBytes(uuid: UUID): IO[Option[fs2.Stream[IO, Byte]]] = storage.get.map { state =>
+        def fetchContent(uuid: UUID): IO[Option[fs2.Stream[IO, Byte]]] = storage.get.map { state =>
           state.allDocuments.find(s => s._1 === uuid).map(_._2.bytes)
         }
 

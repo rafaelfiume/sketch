@@ -29,7 +29,6 @@ trait Http4sTestingRoutesDsl extends Assertions:
           .flatMap { _.as[Json] }
           .flatTap { jsonBody => IO { if debugJsonResponse then debugJson(jsonBody) else () } }
 
-
       def expectByteStreamResponseWith(expected: Status): IO[fs2.Stream[IO, Byte]] =
         routes.orNotFound
           .run(request)
