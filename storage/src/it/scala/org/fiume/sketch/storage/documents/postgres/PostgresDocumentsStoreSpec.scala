@@ -42,7 +42,6 @@ class PostgresDocumentsStoreSpec
 
             _ <- IO {
               assertEquals(result, metadata.some)
-              // TODO assertEquals(storedCredentials.createdAt, storedCredentials.updatedAt)
             }
           yield ()
         }

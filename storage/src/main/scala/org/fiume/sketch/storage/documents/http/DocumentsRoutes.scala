@@ -22,6 +22,8 @@ import org.http4s.server.Router
 import org.typelevel.log4cats.Logger
 import org.typelevel.log4cats.slf4j.Slf4jLogger
 
+import java.util.UUID
+
 import DocumentsRoutes.*
 
 class DocumentsRoutes[F[_]: Async, Txn[_]](store: DocumentsStore[F, Txn]) extends Http4sDsl[F]:
@@ -94,7 +96,7 @@ class DocumentsRoutes[F[_]: Async, Txn[_]](store: DocumentsStore[F, Txn]) extend
   val routes: HttpRoutes[F] = Router(prefix -> httpRoutes)
 
 private[http] object DocumentsRoutes:
-  import java.util.UUID
+
   object UUIDVar:
     def unapply(str: String): Option[UUID] =
       try Some(UUID.fromString(str))
