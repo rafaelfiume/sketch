@@ -15,6 +15,9 @@ import org.fiume.sketch.storage.test.support.DockerPostgresSuite
 import org.scalacheck.{Arbitrary, Gen, Shrink, ShrinkLowPriority}
 import org.scalacheck.effect.PropF.forAllF
 
+import java.time.Instant
+import java.util.UUID
+
 class PostgresUsersStoreSpec
     extends ScalaCheckEffectSuite
     with DockerPostgresSuite
@@ -41,7 +44,7 @@ class PostgresUsersStoreSpec
       }
     }
 
-  test("store and fetch user"):
+  test("store user credentials and fetch user"):
     forAllF { (user: User, password: HashedPassword, salt: Salt) =>
       will(cleanUsers) {
         PostgresUsersStore.make[IO](transactor()).use { store =>
@@ -77,7 +80,7 @@ class PostgresUsersStoreSpec
       }
     }
 
-  test("update password"):
+  test("update user password"):
     forAllF { (user: User, password: HashedPassword, salt: Salt, newPassword: HashedPassword) =>
       will(cleanUsers) {
         PostgresUsersStore.make[IO](transactor()).use { store =>
@@ -89,32 +92,85 @@ class PostgresUsersStoreSpec
             result <- store.fetchCredentials(uuid).ccommit
             _ <- IO {
               assertEquals(result.map(_.password), newPassword.some)
-              assert(
-                result.exists(creds => creds.updatedAt.isAfter(creds.createdAt)),
-                clue = s"updatedAt=${result.map(_.updatedAt)} should be after createdAt=${result.map(_.createdAt)}"
-              )
             }
           yield ()
         }
       }
     }
 
-  test("remove user then fetch returns none"):
+  test("delete user"):
+    given Arbitrary[(UserCredentials, UserCredentials)] = Arbitrary(
+      (for
+        fst <- userCredentials
+        snd <- userCredentials
+      yield (fst, snd)).suchThat { case (fst, snd) => fst.user.username != snd.user.username && fst.user.email != snd.user.email }
+    )
+    forAllF { (creds: (UserCredentials, UserCredentials)) =>
+      will(cleanUsers) {
+        PostgresUsersStore.make[IO](transactor()).use { store =>
+          val (fst, snd) = creds
+          for
+            fstUuid <- store.store(fst.user, fst.password, fst.salt).ccommit
+            sndUuid <- store.store(snd.user, snd.password, snd.salt).ccommit
+
+            _ <- store.delete(fstUuid).ccommit
+
+            fstResult <- IO.both(
+              store.fetchCredentials(fstUuid).ccommit,
+              store.fetchUser(fstUuid).ccommit
+            )
+            sndResult <- IO.both(
+              store.fetchCredentials(sndUuid).ccommit,
+              store.fetchUser(sndUuid).ccommit
+            )
+            _ <- IO {
+              assertEquals(fstResult._1, none)
+              assertEquals(fstResult._2, none)
+              assert(sndResult._1.isDefined)
+              assert(sndResult._2.isDefined)
+            }
+          yield ()
+        }
+      }
+    }
+
+  test("set user's `createdAt` and `updatedAt` field to the current timestamp during storage"):
     forAllF { (user: User, password: HashedPassword, salt: Salt) =>
       will(cleanUsers) {
         PostgresUsersStore.make[IO](transactor()).use { store =>
           for
             uuid <- store.store(user, password, salt).ccommit
 
-            _ <- store.remove(uuid).ccommit
+            createdAt <- store.fetchCreatedAt(uuid).ccommit
+            updatedAt <- store.fetchUpdatedAt(uuid).ccommit
 
-            result <- IO.both(
-              store.fetchCredentials(uuid).ccommit,
-              store.fetchUser(uuid).ccommit
-            )
             _ <- IO {
-              assertEquals(result._1, none)
-              assertEquals(result._2, none)
+              assertEquals(createdAt, updatedAt)
+            }
+          yield ()
+        }
+      }
+    }
+
+  test("set user's `updatedAt` field to the current timestamp during update"):
+    given Arbitrary[Int] = Arbitrary(Gen.choose(1, 2))
+    forAllF { (user: User, password: HashedPassword, salt: Salt, newUser: User, newPassword: HashedPassword, condition: Int) =>
+      will(cleanUsers) {
+        PostgresUsersStore.make[IO](transactor()).use { store =>
+          for
+            uuid <- store.store(user, password, salt).ccommit
+
+            _ <- condition match
+              case 1 => store.updateUser(uuid, newUser).ccommit
+              case 2 => store.updatePassword(uuid, newPassword).ccommit
+
+            createdAt <- store.fetchCreatedAt(uuid).ccommit
+            updatedAt <- store.fetchUpdatedAt(uuid).ccommit
+            _ <- IO {
+              assert(
+                updatedAt.isAfter(createdAt),
+                clue = s"updatedAt=${updatedAt} should be after createdAt=${createdAt}"
+              )
             }
           yield ()
         }
@@ -123,6 +179,12 @@ class PostgresUsersStoreSpec
 
 trait PostgresUsersStoreSpecContext:
   def cleanUsers: ConnectionIO[Unit] = sql"TRUNCATE TABLE users".update.run.void
+
+  extension (store: PostgresUsersStore[IO])
+    def fetchCreatedAt(uuid: UUID): ConnectionIO[Instant] =
+      sql"SELECT created_at FROM users WHERE uuid = ${uuid}".query[Instant].unique
+    def fetchUpdatedAt(uuid: UUID): ConnectionIO[Instant] =
+      sql"SELECT updated_at FROM users WHERE uuid = ${uuid}".query[Instant].unique
 
   given Arbitrary[User] = Arbitrary(users)
   def users: Gen[User] =

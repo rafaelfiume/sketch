@@ -13,8 +13,8 @@ import org.fiume.sketch.storage.auth0.algebras.UsersStore
 import org.fiume.sketch.storage.auth0.postgres.DoobieMappings.given
 import org.fiume.sketch.storage.auth0.postgres.Statements.*
 import org.fiume.sketch.storage.postgres.AbstractPostgresStore
+
 import java.util.UUID
-import cats.instances.uuid
 
 object PostgresUsersStore:
   def make[F[_]: Async](tx: Transactor[F]): Resource[F, PostgresUsersStore[F]] =
@@ -35,7 +35,7 @@ private class PostgresUsersStore[F[_]: Async] private (l: F ~> ConnectionIO, tx:
   def updateUser(uuid: UUID, user: User): ConnectionIO[Unit] = Statements.updateUser(uuid, user).run.void
   def updatePassword(uuid: UUID, password: HashedPassword): ConnectionIO[Unit] =
     Statements.updatePassword(uuid, password).run.void
-  def remove(uuid: UUID): ConnectionIO[Unit] = Statements.deleteUser(uuid).run.void
+  def delete(uuid: UUID): ConnectionIO[Unit] = Statements.deleteUser(uuid).run.void
 
 private object Statements:
   def insertUserCredentials(user: User, password: HashedPassword, salt: Salt): Update0 =

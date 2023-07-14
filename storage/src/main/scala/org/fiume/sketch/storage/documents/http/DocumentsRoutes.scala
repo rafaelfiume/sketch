@@ -63,6 +63,8 @@ class DocumentsRoutes[F[_]: Async, Txn[_]](store: DocumentsStore[F, Txn]) extend
           yield res
         }
 
+      // TODO Update documents
+
       case GET -> Root / "documents" / UUIDVar(uuid) / "metadata" =>
         for
           _ <- logger.info(s"Fetching document metadata of $uuid")

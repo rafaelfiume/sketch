@@ -31,7 +31,7 @@ class PostgresDocumentsStoreSpec
     with PostgresStoreSpecContext
     with ShrinkLowPriority:
 
-  test("store document and fetch metadata") {
+  test("store document and fetch metadata"):
     forAllF { (metadata: Metadata, content: Stream[IO, Byte]) =>
       will(cleanDocuments) {
         PostgresDocumentsStore.make[IO](transactor()).use { store =>
@@ -47,9 +47,8 @@ class PostgresDocumentsStoreSpec
         }
       }
     }
-  }
 
-  test("store document and fetch content") {
+  test("store document and fetch content"):
     forAllF { (metadata: Metadata, content: Stream[IO, Byte]) =>
       will(cleanDocuments) {
         PostgresDocumentsStore.make[IO](transactor()).use { store =>
@@ -68,9 +67,8 @@ class PostgresDocumentsStoreSpec
         }
       }
     }
-  }
 
-  test("update document content") {
+  test("update document content"):
     forAllF { (metadata: Metadata, content: Stream[IO, Byte], newMetadata: Metadata, newBytes: Stream[IO, Byte]) =>
       PostgresDocumentsStore.make[IO](transactor()).use { store =>
         for
@@ -88,38 +86,41 @@ class PostgresDocumentsStoreSpec
         yield ()
       }
     }
-  }
 
-  test("delete document") {
-    forAllF { (fstDoc: (Metadata, Stream[IO, Byte]), sndDoc: (Metadata, Stream[IO, Byte])) =>
-      will(cleanDocuments) {
-        PostgresDocumentsStore.make[IO](transactor()).use { store =>
-          for _ <- store.commit {
-              for
-                fstStoredUuid <- store.store(fstDoc._1, fstDoc._2)
-                sndStoredUuid <- store.store(sndDoc._1, sndDoc._2)
-                _ <- store.delete(fstStoredUuid)
+  test("delete document"):
+    forAllF {
+      (
+        fstDoc: (Metadata, Stream[IO, Byte]),
+        sndDoc: (Metadata, Stream[IO, Byte])
+      ) =>
+        will(cleanDocuments) {
+          PostgresDocumentsStore.make[IO](transactor()).use { store =>
+            for
+              fstUuid <- store.store(fstDoc._1, fstDoc._2).ccommit
+              sndUuid <- store.store(sndDoc._1, sndDoc._2).ccommit
 
-                fstMetadataResult <- store.fetchMetadata(fstStoredUuid)
-                fstBytesResult <- store.fetchContent(fstStoredUuid)
-                sndMetadataResult <- store.fetchMetadata(sndStoredUuid)
-                sndBytesResult <- store.fetchContent(sndStoredUuid)
+              _ <- store.delete(fstUuid).ccommit
 
-                _ <- store.lift(IO {
-                  assertEquals(fstMetadataResult, none)
-                  assertEquals(fstBytesResult, none)
-                  assert(sndMetadataResult.isDefined)
-                  assert(sndBytesResult.isDefined)
-                })
-              yield ()
-            }
-          yield ()
+              fstResult <- IO.both(
+                store.fetchMetadata(fstUuid).ccommit,
+                store.fetchContent(fstUuid).ccommit
+              )
+              sndResult <- IO.both(
+                store.fetchMetadata(sndUuid).ccommit,
+                store.fetchContent(sndUuid).ccommit
+              )
+              _ <- IO {
+                assertEquals(fstResult._1, none)
+                assertEquals(fstResult._2, none)
+                assert(sndResult._1.isDefined)
+                assert(sndResult._2.isDefined)
+              }
+            yield ()
+          }
         }
-      }
     }
-  }
 
-  test("set document's `createdAt` and `updatedAt` field to the current timestamp during storage") {
+  test("set document's `createdAt` and `updatedAt` field to the current timestamp during storage"):
     forAllF { (metadata: Metadata, content: Stream[IO, Byte]) =>
       will(cleanDocuments) {
         PostgresDocumentsStore.make[IO](transactor()).use { store =>
@@ -136,9 +137,8 @@ class PostgresDocumentsStoreSpec
         }
       }
     }
-  }
 
-  test("set document's `updatedAt` field to the current timestamp during update") {
+  test("set document's `updatedAt` field to the current timestamp during update"):
     forAllF { (metadata: Metadata, content: Stream[IO, Byte], newMetadata: Metadata) =>
       PostgresDocumentsStore.make[IO](transactor()).use { store =>
         for
@@ -154,9 +154,8 @@ class PostgresDocumentsStoreSpec
         yield ()
       }
     }
-  }
 
-  test("play it".ignore) { // good to see it in action
+  test("play it".ignore): // good to see it in action
     val filename = "mountain-bike-liguria-ponent.jpg"
     IO { bytesFrom[IO](filename) }.flatMap { content =>
       will(cleanDocuments) {
@@ -173,7 +172,6 @@ class PostgresDocumentsStoreSpec
         }
       }
     }
-  }
 
 trait PostgresStoreSpecContext:
   def cleanDocuments: ConnectionIO[Unit] = sql"TRUNCATE TABLE documents".update.run.void
