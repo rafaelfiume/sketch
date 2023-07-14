@@ -172,7 +172,6 @@ lazy val storage =
          Dependency.fs2Core,
          Dependency.http4sCirce,
          Dependency.http4sDsl,
-         Dependency.http4sEmberClient,
          Dependency.http4sEmberServer,
          Dependency.log4catsCore,
          Dependency.log4catsSlf4j,
