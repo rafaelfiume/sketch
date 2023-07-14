@@ -5,7 +5,7 @@ import org.fiume.sketch.storage.auth0.Passwords.{HashedPassword, Salt}
 import org.fiume.sketch.storage.postgres.Store
 import java.util.UUID
 
-trait UserStore[F[_], Txn[_]] extends Store[F, Txn]:
+trait UsersStore[F[_], Txn[_]] extends Store[F, Txn]:
   def store(user: User, password: HashedPassword, salt: Salt): Txn[UUID]
   // TODO Consider fetching and updating by id instead of username
   def fetchCredentials(uuid: UUID): Txn[Option[UserCredentials]]

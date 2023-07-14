@@ -9,20 +9,20 @@ import doobie.implicits.*
 import doobie.postgres.implicits.*
 import org.fiume.sketch.storage.auth0.Model.*
 import org.fiume.sketch.storage.auth0.Passwords.{HashedPassword, Salt}
-import org.fiume.sketch.storage.auth0.algebras.UserStore
+import org.fiume.sketch.storage.auth0.algebras.UsersStore
 import org.fiume.sketch.storage.auth0.postgres.DoobieMappings.given
 import org.fiume.sketch.storage.auth0.postgres.Statements.*
 import org.fiume.sketch.storage.postgres.AbstractPostgresStore
 import java.util.UUID
 import cats.instances.uuid
 
-object PostgresUserStore:
-  def make[F[_]: Async](tx: Transactor[F]): Resource[F, PostgresUserStore[F]] =
-    WeakAsync.liftK[F, ConnectionIO].map(l => new PostgresUserStore[F](l, tx))
+object PostgresUsersStore:
+  def make[F[_]: Async](tx: Transactor[F]): Resource[F, PostgresUsersStore[F]] =
+    WeakAsync.liftK[F, ConnectionIO].map(l => new PostgresUsersStore[F](l, tx))
 
-private class PostgresUserStore[F[_]: Async] private (l: F ~> ConnectionIO, tx: Transactor[F])
+private class PostgresUsersStore[F[_]: Async] private (l: F ~> ConnectionIO, tx: Transactor[F])
     extends AbstractPostgresStore[F](l, tx)
-    with UserStore[F, ConnectionIO]:
+    with UsersStore[F, ConnectionIO]:
 
   def store(user: User, password: HashedPassword, salt: Salt): ConnectionIO[UUID] =
     insertUserCredentials(user, password, salt)

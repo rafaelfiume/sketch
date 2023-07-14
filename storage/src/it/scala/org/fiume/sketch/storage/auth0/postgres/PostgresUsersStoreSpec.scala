@@ -9,22 +9,22 @@ import munit.ScalaCheckEffectSuite
 import org.fiume.sketch.shared.test.Gens
 import org.fiume.sketch.storage.auth0.Model.*
 import org.fiume.sketch.storage.auth0.Passwords.{HashedPassword, Salt}
-import org.fiume.sketch.storage.auth0.algebras.UserStore
-import org.fiume.sketch.storage.auth0.postgres.PostgresUserStore.*
+import org.fiume.sketch.storage.auth0.algebras.UsersStore
+import org.fiume.sketch.storage.auth0.postgres.PostgresUsersStore.*
 import org.fiume.sketch.storage.test.support.DockerPostgresSuite
 import org.scalacheck.{Arbitrary, Gen, Shrink, ShrinkLowPriority}
 import org.scalacheck.effect.PropF.forAllF
 
-class PostgresUserStoreSpec
+class PostgresUsersStoreSpec
     extends ScalaCheckEffectSuite
     with DockerPostgresSuite
-    with PostgresUserStoreSpecContext
+    with PostgresUsersStoreSpecContext
     with ShrinkLowPriority:
 
   test("store and fetch user credentials"):
     forAllF { (user: User, password: HashedPassword, salt: Salt) =>
       will(cleanUsers) {
-        PostgresUserStore.make[IO](transactor()).use { store =>
+        PostgresUsersStore.make[IO](transactor()).use { store =>
           for
             uuid <- store.store(user, password, salt).ccommit
 
@@ -44,7 +44,7 @@ class PostgresUserStoreSpec
   test("store and fetch user"):
     forAllF { (user: User, password: HashedPassword, salt: Salt) =>
       will(cleanUsers) {
-        PostgresUserStore.make[IO](transactor()).use { store =>
+        PostgresUsersStore.make[IO](transactor()).use { store =>
           for
             uuid <- store.store(user, password, salt).ccommit
 
@@ -62,7 +62,7 @@ class PostgresUserStoreSpec
   test("update user"):
     forAllF { (user: User, password: HashedPassword, salt: Salt, newUser: User) =>
       will(cleanUsers) {
-        PostgresUserStore.make[IO](transactor()).use { store =>
+        PostgresUsersStore.make[IO](transactor()).use { store =>
           for
             uuid <- store.store(user, password, salt).ccommit
 
@@ -80,7 +80,7 @@ class PostgresUserStoreSpec
   test("update password"):
     forAllF { (user: User, password: HashedPassword, salt: Salt, newPassword: HashedPassword) =>
       will(cleanUsers) {
-        PostgresUserStore.make[IO](transactor()).use { store =>
+        PostgresUsersStore.make[IO](transactor()).use { store =>
           for
             uuid <- store.store(user, password, salt).ccommit
 
@@ -102,7 +102,7 @@ class PostgresUserStoreSpec
   test("remove user then fetch returns none"):
     forAllF { (user: User, password: HashedPassword, salt: Salt) =>
       will(cleanUsers) {
-        PostgresUserStore.make[IO](transactor()).use { store =>
+        PostgresUsersStore.make[IO](transactor()).use { store =>
           for
             uuid <- store.store(user, password, salt).ccommit
 
@@ -121,7 +121,7 @@ class PostgresUserStoreSpec
       }
     }
 
-trait PostgresUserStoreSpecContext:
+trait PostgresUsersStoreSpecContext:
   def cleanUsers: ConnectionIO[Unit] = sql"TRUNCATE TABLE users".update.run.void
 
   given Arbitrary[User] = Arbitrary(users)
