@@ -26,16 +26,15 @@ class PostgresUserStoreSpec
       will(cleanUsers) {
         PostgresUserStore.make[IO](transactor()).use { store =>
           for
-            storedCredentials <- store.store(user, password, salt).ccommit
+            uuid <- store.store(user, password, salt).ccommit
 
-            result <- store.fetchCredentials(user.username).ccommit
+            result <- store.fetchCredentials(uuid).ccommit
 
             _ <- IO {
-              assertEquals(result, storedCredentials.some)
-              assertEquals(storedCredentials.user, user)
-              assertEquals(storedCredentials.salt, salt)
-              assertEquals(storedCredentials.password, password)
-              assertEquals(storedCredentials.createdAt, storedCredentials.updatedAt)
+              assertEquals(result.map(_.user), user.some)
+              assertEquals(result.map(_.salt), salt.some)
+              assertEquals(result.map(_.password), password.some)
+              assertEquals(result.map(_.createdAt), result.map(_.updatedAt))
             }
           yield ()
         }
@@ -47,9 +46,9 @@ class PostgresUserStoreSpec
       will(cleanUsers) {
         PostgresUserStore.make[IO](transactor()).use { store =>
           for
-            _ <- store.store(user, password, salt).ccommit
+            uuid <- store.store(user, password, salt).ccommit
 
-            result <- store.fetchUser(user.username).ccommit
+            result <- store.fetchUser(uuid).ccommit
 
             _ <- IO {
               assertEquals(result, user.some)
@@ -61,22 +60,17 @@ class PostgresUserStoreSpec
 
   // TODO Check updatedAt is being updated
   test("update user"):
-    forAllF { (user: User, password: HashedPassword, salt: Salt, up: User) =>
+    forAllF { (user: User, password: HashedPassword, salt: Salt, newUser: User) =>
       will(cleanUsers) {
         PostgresUserStore.make[IO](transactor()).use { store =>
           for
-            _ <- store.store(user, password, salt).ccommit
+            uuid <- store.store(user, password, salt).ccommit
 
-            updatedUser = up.copy(username = user.username)
-            _ <- store.updateUser(updatedUser).ccommit
+            _ <- store.updateUser(uuid, newUser).ccommit
 
-            result <- store.fetchCredentials(updatedUser.username).ccommit
+            result <- store.fetchUser(uuid).ccommit
             _ <- IO {
-              assertEquals(result.map(_.user), updatedUser.some)
-              assert(
-                result.exists(creds => creds.updatedAt.isAfter(creds.createdAt)),
-                clue = s"updatedAt=${result.map(_.updatedAt)} should be after createdAt=${result.map(_.createdAt)}"
-              )
+              assertEquals(result, newUser.some)
             }
           yield ()
         }
@@ -88,11 +82,11 @@ class PostgresUserStoreSpec
       will(cleanUsers) {
         PostgresUserStore.make[IO](transactor()).use { store =>
           for
-            _ <- store.store(user, password, salt).ccommit
+            uuid <- store.store(user, password, salt).ccommit
 
-            _ <- store.updatePassword(user.username, newPassword).ccommit
+            _ <- store.updatePassword(uuid, newPassword).ccommit
 
-            result <- store.fetchCredentials(user.username).ccommit
+            result <- store.fetchCredentials(uuid).ccommit
             _ <- IO {
               assertEquals(result.map(_.password), newPassword.some)
               assert(
@@ -110,13 +104,13 @@ class PostgresUserStoreSpec
       will(cleanUsers) {
         PostgresUserStore.make[IO](transactor()).use { store =>
           for
-            _ <- store.store(user, password, salt).ccommit
+            uuid <- store.store(user, password, salt).ccommit
 
-            _ <- store.remove(user.username).ccommit
+            _ <- store.remove(uuid).ccommit
 
             result <- IO.both(
-              store.fetchCredentials(user.username).ccommit,
-              store.fetchUser(user.username).ccommit
+              store.fetchCredentials(uuid).ccommit,
+              store.fetchUser(uuid).ccommit
             )
             _ <- IO {
               assertEquals(result._1, none)

@@ -10,8 +10,6 @@ import java.util.UUID
 
 private[postgres] object DoobieMappings:
 
-  given Read[UUID] = Read[String].map(UUID.fromString)
-
   given Meta[HashedPassword] = Meta[String].timap(HashedPassword.unsafeFromString)(_.base64Value)
 
   given Meta[Salt] = Meta[String].timap(Salt.unsafeFromString)(_.base64Value)

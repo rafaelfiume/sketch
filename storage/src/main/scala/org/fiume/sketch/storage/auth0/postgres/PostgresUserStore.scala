@@ -6,12 +6,15 @@ import cats.~>
 import doobie.*
 import doobie.free.connection.ConnectionIO
 import doobie.implicits.*
+import doobie.postgres.implicits.*
 import org.fiume.sketch.storage.auth0.Model.*
 import org.fiume.sketch.storage.auth0.Passwords.{HashedPassword, Salt}
 import org.fiume.sketch.storage.auth0.algebras.UserStore
 import org.fiume.sketch.storage.auth0.postgres.DoobieMappings.given
 import org.fiume.sketch.storage.auth0.postgres.Statements.*
 import org.fiume.sketch.storage.postgres.AbstractPostgresStore
+import java.util.UUID
+import cats.instances.uuid
 
 object PostgresUserStore:
   def make[F[_]: Async](tx: Transactor[F]): Resource[F, PostgresUserStore[F]] =
@@ -21,26 +24,18 @@ private class PostgresUserStore[F[_]: Async] private (l: F ~> ConnectionIO, tx: 
     extends AbstractPostgresStore[F](l, tx)
     with UserStore[F, ConnectionIO]:
 
-  def store(user: User, password: HashedPassword, salt: Salt): ConnectionIO[UserCredentials] =
+  def store(user: User, password: HashedPassword, salt: Salt): ConnectionIO[UUID] =
     insertUserCredentials(user, password, salt)
-      .withUniqueGeneratedKeys[UserCredentials](
-        "id",
-        "password_hash",
-        "salt",
-        "username",
-        "first_name",
-        "last_name",
-        "email",
-        "created_at",
-        "updated_at"
+      .withUniqueGeneratedKeys[UUID](
+        "uuid"
       )
 
-  def fetchCredentials(username: Username): ConnectionIO[Option[UserCredentials]] = selectUserCredentials(username).option
-  def fetchUser(username: Username): ConnectionIO[Option[User]] = Statements.selectUser(username).option
-  def updateUser(user: User): ConnectionIO[Unit] = Statements.updateUser(user).run.void
-  def updatePassword(username: Username, password: HashedPassword): ConnectionIO[Unit] =
-    Statements.updatePassword(username, password).run.void
-  def remove(username: Username): ConnectionIO[Unit] = Statements.deleteUser(username).run.void
+  def fetchCredentials(uuid: UUID): ConnectionIO[Option[UserCredentials]] = selectUserCredentials(uuid).option
+  def fetchUser(uuid: UUID): ConnectionIO[Option[User]] = Statements.selectUser(uuid).option
+  def updateUser(uuid: UUID, user: User): ConnectionIO[Unit] = Statements.updateUser(uuid, user).run.void
+  def updatePassword(uuid: UUID, password: HashedPassword): ConnectionIO[Unit] =
+    Statements.updatePassword(uuid, password).run.void
+  def remove(uuid: UUID): ConnectionIO[Unit] = Statements.deleteUser(uuid).run.void
 
 private object Statements:
   def insertUserCredentials(user: User, password: HashedPassword, salt: Salt): Update0 =
@@ -62,7 +57,7 @@ private object Statements:
          |)
     """.stripMargin.update
 
-  def selectUser(username: Username): Query0[User] =
+  def selectUser(uuid: UUID): Query0[User] =
     sql"""
          |SELECT
          |  username,
@@ -70,13 +65,13 @@ private object Statements:
          |  last_name,
          |  email
          |FROM users
-         |WHERE username = $username
+         |WHERE uuid = $uuid
     """.stripMargin.query
 
-  def selectUserCredentials(username: Username): Query0[UserCredentials] =
+  def selectUserCredentials(uuid: UUID): Query0[UserCredentials] =
     sql"""
          |SELECT
-         |  id,
+         |  uuid,
          |  password_hash,
          |  salt,
          |  username,
@@ -86,29 +81,30 @@ private object Statements:
          |  created_at,
          |  updated_at
          |FROM users
-         |WHERE username = $username
+         |WHERE uuid = $uuid
     """.stripMargin.query
 
-  def updateUser(user: User): Update0 =
+  def updateUser(uuid: UUID, user: User): Update0 =
     sql"""
          |UPDATE users
          |SET
+         |  username = ${user.username},
          |  first_name = ${user.name.first},
          |  last_name = ${user.name.last},
          |  email = ${user.email}
-         |WHERE username = ${user.username}
+         |WHERE uuid = $uuid
     """.stripMargin.update
 
-  def updatePassword(username: Username, password: HashedPassword): Update0 =
+  def updatePassword(uuid: UUID, password: HashedPassword): Update0 =
     sql"""
          |UPDATE users
          |SET
          |  password_hash = $password
-         |WHERE username = $username
+         |WHERE uuid = $uuid
     """.stripMargin.update
 
-  def deleteUser(username: Username): Update0 =
+  def deleteUser(uuid: UUID): Update0 =
     sql"""
          |DELETE FROM users
-         |WHERE username = $username
+         |WHERE uuid = $uuid
     """.stripMargin.update

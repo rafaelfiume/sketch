@@ -3,7 +3,7 @@ CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 SET timezone = 'UTC';
 
 CREATE TABLE users (
-  id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
+  uuid UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
   -- same size as email
   -- username and email should probably be unique across a buniness account not the entire system
   username VARCHAR(60) NOT NULL UNIQUE,
