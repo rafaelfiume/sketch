@@ -174,10 +174,10 @@ class PostgresDocumentsStoreSpec
     }
 
 trait PostgresStoreSpecContext:
-  def cleanDocuments: ConnectionIO[Unit] = sql"TRUNCATE TABLE documents".update.run.void
+  def cleanDocuments: ConnectionIO[Unit] = sql"TRUNCATE TABLE domain.documents".update.run.void
 
   extension (store: PostgresDocumentsStore[IO])
     def fetchCreatedAt(uuid: UUID): ConnectionIO[Instant] =
-      sql"SELECT created_at FROM documents WHERE uuid = ${uuid}".query[Instant].unique
+      sql"SELECT created_at FROM domain.documents WHERE uuid = ${uuid}".query[Instant].unique
     def fetchUpdatedAt(uuid: UUID): ConnectionIO[Instant] =
-      sql"SELECT updated_at FROM documents WHERE uuid = ${uuid}".query[Instant].unique
+      sql"SELECT updated_at FROM domain.documents WHERE uuid = ${uuid}".query[Instant].unique

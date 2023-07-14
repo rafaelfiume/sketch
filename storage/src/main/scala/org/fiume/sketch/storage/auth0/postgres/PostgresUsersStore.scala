@@ -40,7 +40,7 @@ private class PostgresUsersStore[F[_]: Async] private (l: F ~> ConnectionIO, tx:
 private object Statements:
   def insertUserCredentials(user: User, password: HashedPassword, salt: Salt): Update0 =
     sql"""
-         |INSERT INTO users (
+         |INSERT INTO auth.users (
          |  password_hash,
          |  salt,
          |  username,
@@ -64,7 +64,7 @@ private object Statements:
          |  first_name,
          |  last_name,
          |  email
-         |FROM users
+         |FROM auth.users
          |WHERE uuid = $uuid
     """.stripMargin.query
 
@@ -80,13 +80,13 @@ private object Statements:
          |  email,
          |  created_at,
          |  updated_at
-         |FROM users
+         |FROM auth.users
          |WHERE uuid = $uuid
     """.stripMargin.query
 
   def updateUser(uuid: UUID, user: User): Update0 =
     sql"""
-         |UPDATE users
+         |UPDATE auth.users
          |SET
          |  username = ${user.username},
          |  first_name = ${user.name.first},
@@ -97,7 +97,7 @@ private object Statements:
 
   def updatePassword(uuid: UUID, password: HashedPassword): Update0 =
     sql"""
-         |UPDATE users
+         |UPDATE auth.users
          |SET
          |  password_hash = $password
          |WHERE uuid = $uuid
@@ -105,6 +105,6 @@ private object Statements:
 
   def deleteUser(uuid: UUID): Update0 =
     sql"""
-         |DELETE FROM users
+         |DELETE FROM auth.users
          |WHERE uuid = $uuid
     """.stripMargin.update

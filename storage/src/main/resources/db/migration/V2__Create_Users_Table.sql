@@ -1,4 +1,6 @@
-CREATE TABLE users (
+CREATE SCHEMA auth;
+
+CREATE TABLE auth.users (
   uuid UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
   -- same size as email
   -- username and email should probably be unique across a buniness account not the entire system
@@ -19,11 +21,11 @@ CREATE TABLE users (
   updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
-CREATE INDEX idx_users_username ON users (username);
-CREATE INDEX idx_users_email ON users (email);
+CREATE INDEX idx_users_username ON auth.users (username);
+CREATE INDEX idx_users_email ON auth.users (email);
 
 -- Trigger to update `updated_at` timestamp on row update
 CREATE TRIGGER set_updated_at
-  BEFORE UPDATE ON users
+  BEFORE UPDATE ON auth.users
   FOR EACH ROW
   EXECUTE FUNCTION update_updated_at();

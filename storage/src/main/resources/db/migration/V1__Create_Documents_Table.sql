@@ -2,7 +2,9 @@ CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 
 SET timezone = 'UTC';
 
-CREATE TABLE documents (
+CREATE schema domain;
+
+CREATE TABLE domain.documents (
   uuid UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
   name VARCHAR NOT NULL,
   description VARCHAR,
@@ -11,7 +13,7 @@ CREATE TABLE documents (
   updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
-CREATE INDEX idx_documents_name ON documents (name);
+CREATE INDEX idx_documents_name ON domain.documents (name);
 
 -- Trigger to update `updated_at` timestamp on row update
 CREATE OR REPLACE FUNCTION update_updated_at()
@@ -24,6 +26,6 @@ $$ LANGUAGE plpgsql;
 
 -- Trigger to update `updated_at` timestamp on row update
 CREATE TRIGGER set_updated_at
-  BEFORE UPDATE ON documents
+  BEFORE UPDATE ON domain.documents
   FOR EACH ROW
   EXECUTE FUNCTION update_updated_at();

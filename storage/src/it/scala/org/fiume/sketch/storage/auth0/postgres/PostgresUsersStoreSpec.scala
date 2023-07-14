@@ -178,13 +178,13 @@ class PostgresUsersStoreSpec
     }
 
 trait PostgresUsersStoreSpecContext:
-  def cleanUsers: ConnectionIO[Unit] = sql"TRUNCATE TABLE users".update.run.void
+  def cleanUsers: ConnectionIO[Unit] = sql"TRUNCATE TABLE auth.users".update.run.void
 
   extension (store: PostgresUsersStore[IO])
     def fetchCreatedAt(uuid: UUID): ConnectionIO[Instant] =
-      sql"SELECT created_at FROM users WHERE uuid = ${uuid}".query[Instant].unique
+      sql"SELECT created_at FROM auth.users WHERE uuid = ${uuid}".query[Instant].unique
     def fetchUpdatedAt(uuid: UUID): ConnectionIO[Instant] =
-      sql"SELECT updated_at FROM users WHERE uuid = ${uuid}".query[Instant].unique
+      sql"SELECT updated_at FROM auth.users WHERE uuid = ${uuid}".query[Instant].unique
 
   given Arbitrary[User] = Arbitrary(users)
   def users: Gen[User] =

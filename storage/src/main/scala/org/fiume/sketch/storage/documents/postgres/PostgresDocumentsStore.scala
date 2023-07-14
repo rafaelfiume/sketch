@@ -63,7 +63,7 @@ private class PostgresDocumentsStore[F[_]: Async] private (l: F ~> ConnectionIO,
 private object Statements:
   def insertDocument[F[_]](metadata: Metadata, content: Array[Byte]): Update0 =
     sql"""
-         |INSERT INTO documents(
+         |INSERT INTO domain.documents(
          |  name,
          |  description,
          |  bytes
@@ -77,7 +77,7 @@ private object Statements:
 
   def update(uuid: UUID, metadata: Metadata, content: Array[Byte]): Update0 =
     sql"""
-         |UPDATE documents
+         |UPDATE domain.documents
          |SET
          |  name = ${metadata.name},
          |  description = ${metadata.description},
@@ -90,7 +90,7 @@ private object Statements:
          |SELECT
          |  d.name,
          |  d.description
-         |FROM documents d
+         |FROM domain.documents d
          |WHERE d.uuid = $uuid
     """.stripMargin.query[Metadata]
 
@@ -98,13 +98,13 @@ private object Statements:
     sql"""
          |SELECT
          |  d.bytes
-         |FROM documents d
+         |FROM domain.documents d
          |WHERE d.uuid = $uuid
     """.stripMargin.query[Array[Byte]]
 
   def delete(uuid: UUID): Update0 =
     sql"""
          |DELETE
-         |FROM documents d
+         |FROM domain.documents d
          |WHERE d.uuid = $uuid
     """.stripMargin.update
