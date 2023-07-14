@@ -13,7 +13,7 @@ import org.fiume.sketch.storage.documents.Model.{Document, Metadata}
 import org.fiume.sketch.storage.documents.algebras.DocumentsStore
 import org.fiume.sketch.storage.documents.postgres.DoobieMappings
 import org.fiume.sketch.storage.documents.postgres.DoobieMappings.given
-import org.fiume.sketch.storage.postgres.{AbstractPostgresStore, Store}
+import org.fiume.sketch.storage.postgres.AbstractPostgresStore
 
 import java.time.ZonedDateTime
 import java.util.UUID

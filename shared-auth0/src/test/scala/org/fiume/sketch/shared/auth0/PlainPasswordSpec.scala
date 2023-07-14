@@ -1,8 +1,9 @@
-package org.fiume.sketch.storage.auth0
+package org.fiume.sketch.shared.auth0
 
 import munit.{CatsEffectSuite, ScalaCheckEffectSuite, ScalaCheckSuite}
+import org.fiume.sketch.shared.auth0.Passwords
+import org.fiume.sketch.shared.auth0.Passwords.PlainPassword
 import org.fiume.sketch.shared.test.EitherSyntax.*
-import org.fiume.sketch.storage.auth0.Passwords.PlainPassword
 import org.scalacheck.{Arbitrary, Gen}
 import org.scalacheck.Prop.forAll
 

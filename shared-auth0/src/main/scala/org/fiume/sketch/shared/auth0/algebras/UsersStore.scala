@@ -1,8 +1,8 @@
-package org.fiume.sketch.storage.auth0.algebras
+package org.fiume.sketch.shared.auth0.algebras
 
-import org.fiume.sketch.storage.auth0.Model.*
-import org.fiume.sketch.storage.auth0.Passwords.{HashedPassword, Salt}
-import org.fiume.sketch.storage.postgres.Store
+import org.fiume.sketch.shared.app.algebras.Store
+import org.fiume.sketch.shared.auth0.Model.*
+import org.fiume.sketch.shared.auth0.Passwords.{HashedPassword, Salt}
 
 import java.util.UUID
 

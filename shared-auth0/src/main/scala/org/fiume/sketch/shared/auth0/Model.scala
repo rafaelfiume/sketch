@@ -1,7 +1,7 @@
-package org.fiume.sketch.storage.auth0
+package org.fiume.sketch.shared.auth0
 
 import cats.Show
-import org.fiume.sketch.storage.auth0.Passwords.{HashedPassword, Salt}
+import org.fiume.sketch.shared.auth0.Passwords.{HashedPassword, Salt}
 
 import java.time.ZonedDateTime
 import java.util.UUID

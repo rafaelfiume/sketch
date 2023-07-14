@@ -35,6 +35,40 @@ lazy val commonSettings = Seq(
 // See https://eed3si9n.com/sbt-1.9.0
 val IntegrationTests = config("it").extend(Test)
 
+lazy val auth0 =
+   project.in(file("auth0"))
+     .dependsOn(sharedAuth0)
+     .dependsOn(sharedTestComponents % Test)
+     //.dependsOn(storage) // TODO Not yet....
+     .disablePlugins(plugins.JUnitXmlReportPlugin)
+     .settings(commonSettings: _*)
+     .configs(IntegrationTests)
+     .settings(
+       inConfig(IntegrationTests)(Defaults.testSettings ++ scalafixConfigSettings(IntegrationTests))
+     )
+     .settings(
+       name := "auth0",
+       libraryDependencies ++= Seq(
+         Dependency.cats,
+         Dependency.catsEffect,
+         Dependency.circeCore,
+         Dependency.circeGeneric,
+         Dependency.circeParser,
+         Dependency.ciris,
+         Dependency.fs2Core,
+         Dependency.http4sCirce,
+         Dependency.http4sDsl,
+         Dependency.http4sEmberServer,
+         Dependency.log4catsCore,
+         Dependency.log4catsSlf4j,
+         Dependency.slf4jSimple,
+         Dependency.munit % "test,it",
+         Dependency.munitCatsEffect % "test,it",
+         Dependency.munitScalaCheck % "test,it",
+         Dependency.munitScalaCheckEffect % "test,it"
+       )
+     )
+
 lazy val service =
    project.in(file("service"))
      .dependsOn(sharedComponents)
@@ -92,6 +126,29 @@ lazy val service =
        dockerRepository := Some("docker.io")
      )
 
+lazy val sharedAuth0 =
+    project.in(file("shared-auth0"))
+    .dependsOn(sharedComponents)
+    .dependsOn(sharedTestComponents % Test)
+    .disablePlugins(plugins.JUnitXmlReportPlugin)
+    .settings(commonSettings: _*)
+    .configs(IntegrationTest)
+    .settings(Defaults.itSettings: _*)
+    .settings(
+      name := "shared-auth0",
+      libraryDependencies ++= Seq(
+        Dependency.jbcrypt,
+        Dependency.cats,
+        Dependency.circeCore,
+        Dependency.circeParser,
+        Dependency.fs2Core,
+        Dependency.munit % "test,it",
+        Dependency.munitCatsEffect % "test,it",
+        Dependency.munitScalaCheck % "test,it",
+        Dependency.munitScalaCheckEffect % "test,it"
+      )
+    )
+
 lazy val sharedComponents =
     project.in(file("shared-components"))
     .dependsOn(sharedTestComponents % Test)
@@ -139,13 +196,16 @@ lazy val sharedTestComponents =
 lazy val sketch =
    project.in(file("."))
     .settings(commonSettings: _*)
+    .aggregate(auth0)
     .aggregate(service)
+    .aggregate(sharedAuth0)
     .aggregate(sharedComponents)
     .aggregate(sharedTestComponents)
     .aggregate(storage)
 
 lazy val storage =
    project.in(file("storage"))
+     .dependsOn(sharedAuth0)
      .dependsOn(sharedComponents)
      .dependsOn(sharedTestComponents % Test)
      .disablePlugins(plugins.JUnitXmlReportPlugin)
@@ -157,7 +217,6 @@ lazy val storage =
      .settings(
        name := "storage",
        libraryDependencies ++= Seq(
-         Dependency.jbcrypt, // TODO To be moved to a separate module
          Dependency.cats,
          Dependency.catsEffect,
          Dependency.circeCore,
