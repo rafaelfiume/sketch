@@ -7,7 +7,6 @@ import java.util.UUID
 
 object Model:
   case class Username(value: String) extends AnyVal
-  case class LastName(value: String) extends AnyVal
 
   case class User(
     id: UUID,

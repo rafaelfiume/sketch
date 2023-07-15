@@ -43,7 +43,6 @@ class PostgresUsersStoreSpec
       }
     }
 
-  // TODO Check updatedAt is being updated
   test("update user"):
     forAllF { (username: Username, password: HashedPassword, salt: Salt, newUsername: Username) =>
       will(cleanUsers) {
