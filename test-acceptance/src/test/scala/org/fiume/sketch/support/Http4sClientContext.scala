@@ -34,7 +34,7 @@ trait Http4sClientContext:
 
   private def retry = Retry[IO](
     policy = RetryPolicy(
-      RetryPolicy.exponentialBackoff(maxWait = 1.second, maxRetry = 20)
+      RetryPolicy.exponentialBackoff(maxWait = 2.second, maxRetry = 30)
     )
   )
 
