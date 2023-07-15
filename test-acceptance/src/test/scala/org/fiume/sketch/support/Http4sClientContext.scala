@@ -14,7 +14,7 @@ import org.http4s.multipart.{Boundary, Multipart, Part}
 
 import scala.concurrent.duration.*
 
-trait Http4sContext:
+trait Http4sClientContext:
   def http(exec: Client[IO] => IO[Unit]): IO[Unit] = EmberClientBuilder
     .default[IO]
     .build

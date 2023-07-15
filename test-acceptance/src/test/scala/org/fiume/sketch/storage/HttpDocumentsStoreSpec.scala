@@ -5,11 +5,15 @@ import io.circe.Json
 import munit.Assertions.*
 import munit.CatsEffectSuite
 import org.fiume.sketch.shared.test.FileContentContext
-import org.fiume.sketch.support.Http4sContext
+import org.fiume.sketch.support.Http4sClientContext
 import org.http4s.Status.*
 import org.http4s.circe.*
 
-class HttpDocumentsStoreSpec extends CatsEffectSuite with Http4sContext with FileContentContext with StoreDocumentsSpecContext:
+class HttpDocumentsStoreSpec
+    extends CatsEffectSuite
+    with Http4sClientContext
+    with FileContentContext
+    with StoreDocumentsSpecContext:
 
   val docName = "a-unique-name-for-altamural.jpg"
   val docDesc = "La bella Altamura in Puglia <3"
