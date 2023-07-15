@@ -49,6 +49,7 @@ lazy val auth0 =
      .settings(
        name := "auth0",
        libraryDependencies ++= Seq(
+         Dependency.bouncycastle,
          Dependency.cats,
          Dependency.catsEffect,
          Dependency.circeCore,
@@ -59,6 +60,7 @@ lazy val auth0 =
          Dependency.http4sCirce,
          Dependency.http4sDsl,
          Dependency.http4sEmberServer,
+         Dependency.jwtCirce,
          Dependency.log4catsCore,
          Dependency.log4catsSlf4j,
          Dependency.slf4jSimple,
