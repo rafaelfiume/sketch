@@ -9,7 +9,7 @@ object Model:
   case class Username(value: String) extends AnyVal
 
   case class User(
-    id: UUID,
+    uuid: UUID,
     username: Username
   )
 
