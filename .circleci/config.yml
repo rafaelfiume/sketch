@@ -34,7 +34,7 @@ jobs:
       - run:
           name: Compile and run linter
           command: |
-            sbt "scalafixAll --check; sharedComponents/scalafixAll --check; sharedTestComponents/scalafixAll --check; testAcceptance/scalafixAll --check"
+            sbt "scalafixAll --check; testAcceptance/scalafixAll --check"
 
       - save_cache:
           paths:

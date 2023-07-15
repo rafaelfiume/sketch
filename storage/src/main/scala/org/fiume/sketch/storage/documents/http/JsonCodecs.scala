@@ -5,8 +5,6 @@ import io.circe.{Codec, Decoder, DecodingFailure, Encoder, HCursor, Json}
 import io.circe.Decoder.Result
 import io.circe.syntax.*
 import org.fiume.sketch.shared.app.ServiceStatus
-import org.fiume.sketch.shared.app.algebras.{HealthCheck, Versions}
-import org.fiume.sketch.shared.app.algebras.Versions.Version
 import org.fiume.sketch.storage.documents.Model.Metadata
 import org.fiume.sketch.storage.documents.Model.Metadata.*
 

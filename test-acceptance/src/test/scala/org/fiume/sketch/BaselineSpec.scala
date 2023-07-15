@@ -2,9 +2,9 @@ package org.fiume.sketch
 
 import munit.Assertions.*
 import munit.CatsEffectSuite
-import org.fiume.sketch.support.Http4sContext
+import org.fiume.sketch.support.Http4sClientContext
 
-class BaselineSpec extends CatsEffectSuite with Http4sContext:
+class BaselineSpec extends CatsEffectSuite with Http4sClientContext:
 
   test("ping returns pong") {
     http { client =>

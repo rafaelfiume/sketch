@@ -1,4 +1,4 @@
-package org.fiume.sketch.storage.auth0
+package org.fiume.sketch.shared.auth0
 
 import cats.{Eq, Show}
 import cats.data.{EitherNec, Validated}
