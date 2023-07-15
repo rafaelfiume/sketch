@@ -14,15 +14,11 @@ CREATE TABLE auth.users (
   -- jbcrypt uses 16 bytes salt, and its actual size is 29 chars length
   -- UNIQUE salts helps to prevent precomputed hash attacks
   salt VARCHAR(50) NOT NULL UNIQUE,
-  first_name VARCHAR(45) NOT NULL,
-  last_name VARCHAR(45) NOT NULL,
-  email VARCHAR(60) NOT NULL UNIQUE,
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
 CREATE INDEX idx_users_username ON auth.users (username);
-CREATE INDEX idx_users_email ON auth.users (email);
 
 -- Trigger to update `updated_at` timestamp on row update
 CREATE TRIGGER set_updated_at

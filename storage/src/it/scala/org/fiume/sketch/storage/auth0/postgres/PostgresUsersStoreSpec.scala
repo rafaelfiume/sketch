@@ -11,6 +11,7 @@ import org.fiume.sketch.shared.auth0.Passwords
 import org.fiume.sketch.shared.auth0.Passwords.{HashedPassword, Salt}
 import org.fiume.sketch.shared.auth0.algebras.UsersStore
 import org.fiume.sketch.shared.test.Gens
+import org.fiume.sketch.storage.auth0.postgres.DoobieMappings.given
 import org.fiume.sketch.storage.auth0.postgres.PostgresUsersStore.*
 import org.fiume.sketch.storage.test.support.DockerPostgresSuite
 import org.scalacheck.{Arbitrary, Gen, Shrink, ShrinkLowPriority}
@@ -25,37 +26,17 @@ class PostgresUsersStoreSpec
     with PostgresUsersStoreSpecContext
     with ShrinkLowPriority:
 
-  test("store and fetch user credentials"):
-    forAllF { (user: User, password: HashedPassword, salt: Salt) =>
-      will(cleanUsers) {
-        PostgresUsersStore.make[IO](transactor()).use { store =>
-          for
-            uuid <- store.store(user, password, salt).ccommit
-
-            result <- store.fetchCredentials(uuid).ccommit
-
-            _ <- IO {
-              assertEquals(result.map(_.user), user.some)
-              assertEquals(result.map(_.salt), salt.some)
-              assertEquals(result.map(_.password), password.some)
-              assertEquals(result.map(_.createdAt), result.map(_.updatedAt))
-            }
-          yield ()
-        }
-      }
-    }
-
   test("store user credentials and fetch user"):
-    forAllF { (user: User, password: HashedPassword, salt: Salt) =>
+    forAllF { (username: Username, password: HashedPassword, salt: Salt) =>
       will(cleanUsers) {
         PostgresUsersStore.make[IO](transactor()).use { store =>
           for
-            uuid <- store.store(user, password, salt).ccommit
+            uuid <- store.store(username, password, salt).ccommit
 
             result <- store.fetchUser(uuid).ccommit
 
             _ <- IO {
-              assertEquals(result, user.some)
+              assertEquals(result, User(uuid, username).some)
             }
           yield ()
         }
@@ -64,17 +45,17 @@ class PostgresUsersStoreSpec
 
   // TODO Check updatedAt is being updated
   test("update user"):
-    forAllF { (user: User, password: HashedPassword, salt: Salt, newUser: User) =>
+    forAllF { (username: Username, password: HashedPassword, salt: Salt, newUsername: Username) =>
       will(cleanUsers) {
         PostgresUsersStore.make[IO](transactor()).use { store =>
           for
-            uuid <- store.store(user, password, salt).ccommit
+            uuid <- store.store(username, password, salt).ccommit
 
-            _ <- store.updateUser(uuid, newUser).ccommit
+            _ <- store.updateUsername(uuid, newUsername).ccommit
 
             result <- store.fetchUser(uuid).ccommit
             _ <- IO {
-              assertEquals(result, newUser.some)
+              assertEquals(result, User(uuid, newUsername).some)
             }
           yield ()
         }
@@ -82,17 +63,17 @@ class PostgresUsersStoreSpec
     }
 
   test("update user password"):
-    forAllF { (user: User, password: HashedPassword, salt: Salt, newPassword: HashedPassword) =>
+    forAllF { (username: Username, password: HashedPassword, salt: Salt, newPassword: HashedPassword) =>
       will(cleanUsers) {
         PostgresUsersStore.make[IO](transactor()).use { store =>
           for
-            uuid <- store.store(user, password, salt).ccommit
+            uuid <- store.store(username, password, salt).ccommit
 
             _ <- store.updatePassword(uuid, newPassword).ccommit
 
-            result <- store.fetchCredentials(uuid).ccommit
+            result <- store.fetchPassword(uuid).ccommit
             _ <- IO {
-              assertEquals(result.map(_.password), newPassword.some)
+              assertEquals(result, newPassword)
             }
           yield ()
         }
@@ -100,35 +81,27 @@ class PostgresUsersStoreSpec
     }
 
   test("delete user"):
-    given Arbitrary[(UserCredentials, UserCredentials)] = Arbitrary(
+    given Arbitrary[(Username, Username)] = Arbitrary(
       (for
-        fst <- userCredentials
-        snd <- userCredentials
-      yield (fst, snd)).suchThat { case (fst, snd) => fst.user.username != snd.user.username && fst.user.email != snd.user.email }
+        fst <- usernames
+        snd <- usernames
+      yield (fst, snd)).suchThat { case (fst, snd) => fst != snd }
     )
-    forAllF { (creds: (UserCredentials, UserCredentials)) =>
+    forAllF { (users: (Username, Username), fstPass: HashedPassword, fstSalt: Salt, sndPass: HashedPassword, sndSalt: Salt) =>
       will(cleanUsers) {
         PostgresUsersStore.make[IO](transactor()).use { store =>
-          val (fst, snd) = creds
+          val (fstUsername, sndUsername) = users
           for
-            fstUuid <- store.store(fst.user, fst.password, fst.salt).ccommit
-            sndUuid <- store.store(snd.user, snd.password, snd.salt).ccommit
+            fstUuid <- store.store(fstUsername, fstPass, fstSalt).ccommit
+            sndUuid <- store.store(sndUsername, sndPass, sndSalt).ccommit
 
             _ <- store.delete(fstUuid).ccommit
 
-            fstResult <- IO.both(
-              store.fetchCredentials(fstUuid).ccommit,
-              store.fetchUser(fstUuid).ccommit
-            )
-            sndResult <- IO.both(
-              store.fetchCredentials(sndUuid).ccommit,
-              store.fetchUser(sndUuid).ccommit
-            )
+            fstUser <- store.fetchUser(fstUuid).ccommit
+            sndUser <- store.fetchUser(sndUuid).ccommit
             _ <- IO {
-              assertEquals(fstResult._1, none)
-              assertEquals(fstResult._2, none)
-              assert(sndResult._1.isDefined)
-              assert(sndResult._2.isDefined)
+              assertEquals(fstUser, none)
+              assertEquals(sndUser, User(sndUuid, sndUsername).some)
             }
           yield ()
         }
@@ -136,11 +109,11 @@ class PostgresUsersStoreSpec
     }
 
   test("set user's `createdAt` and `updatedAt` field to the current timestamp during storage"):
-    forAllF { (user: User, password: HashedPassword, salt: Salt) =>
+    forAllF { (username: Username, password: HashedPassword, salt: Salt) =>
       will(cleanUsers) {
         PostgresUsersStore.make[IO](transactor()).use { store =>
           for
-            uuid <- store.store(user, password, salt).ccommit
+            uuid <- store.store(username, password, salt).ccommit
 
             createdAt <- store.fetchCreatedAt(uuid).ccommit
             updatedAt <- store.fetchUpdatedAt(uuid).ccommit
@@ -155,46 +128,56 @@ class PostgresUsersStoreSpec
 
   test("set user's `updatedAt` field to the current timestamp during update"):
     given Arbitrary[Int] = Arbitrary(Gen.choose(1, 2))
-    forAllF { (user: User, password: HashedPassword, salt: Salt, newUser: User, newPassword: HashedPassword, condition: Int) =>
-      will(cleanUsers) {
-        PostgresUsersStore.make[IO](transactor()).use { store =>
-          for
-            uuid <- store.store(user, password, salt).ccommit
+    forAllF {
+      (username: Username,
+       password: HashedPassword,
+       salt: Salt,
+       newUsername: Username,
+       newPassword: HashedPassword,
+       condition: Int
+      ) =>
+        will(cleanUsers) {
+          PostgresUsersStore.make[IO](transactor()).use { store =>
+            for
+              uuid <- store.store(username, password, salt).ccommit
 
-            _ <- condition match
-              case 1 => store.updateUser(uuid, newUser).ccommit
-              case 2 => store.updatePassword(uuid, newPassword).ccommit
+              _ <- condition match
+                case 1 => store.updateUsername(uuid, newUsername).ccommit
+                case 2 => store.updatePassword(uuid, newPassword).ccommit
 
-            createdAt <- store.fetchCreatedAt(uuid).ccommit
-            updatedAt <- store.fetchUpdatedAt(uuid).ccommit
-            _ <- IO {
-              assert(
-                updatedAt.isAfter(createdAt),
-                clue = s"updatedAt=${updatedAt} should be after createdAt=${createdAt}"
-              )
-            }
-          yield ()
+              createdAt <- store.fetchCreatedAt(uuid).ccommit
+              updatedAt <- store.fetchUpdatedAt(uuid).ccommit
+              _ <- IO {
+                assert(
+                  updatedAt.isAfter(createdAt),
+                  clue = s"updatedAt=${updatedAt} should be after createdAt=${createdAt}"
+                )
+              }
+            yield ()
+          }
         }
-      }
     }
 
 trait PostgresUsersStoreSpecContext:
   def cleanUsers: ConnectionIO[Unit] = sql"TRUNCATE TABLE auth.users".update.run.void
 
   extension (store: PostgresUsersStore[IO])
+    def fetchPassword(uuid: UUID): ConnectionIO[HashedPassword] =
+      sql"SELECT password_hash FROM auth.users WHERE uuid = ${uuid}".query[HashedPassword].unique
     def fetchCreatedAt(uuid: UUID): ConnectionIO[Instant] =
       sql"SELECT created_at FROM auth.users WHERE uuid = ${uuid}".query[Instant].unique
     def fetchUpdatedAt(uuid: UUID): ConnectionIO[Instant] =
       sql"SELECT updated_at FROM auth.users WHERE uuid = ${uuid}".query[Instant].unique
 
+  given Arbitrary[Username] = Arbitrary(usernames)
+  def usernames: Gen[Username] = Gens.Strings.alphaNumString(1, 60).map(Username(_))
+
   given Arbitrary[User] = Arbitrary(users)
   def users: Gen[User] =
     for
-      username <- Gens.Strings.alphaNumString(1, 60).map(Username(_))
-      first <- Gens.Strings.alphaNumString(1, 45).map(FirstName(_))
-      last <- Gens.Strings.alphaNumString(1, 45).map(LastName(_))
-      email <- Gens.Strings.alphaNumString(1, 60).map(Email(_))
-    yield User(username, Name(first, last), email)
+      uuid <- Gen.uuid
+      username <- usernames
+    yield User(uuid, username)
 
   // a bcrypt hash approximation for efficience (store assumes correctness)
   given Arbitrary[HashedPassword] = Arbitrary(hashedPassword)
@@ -212,13 +195,3 @@ trait PostgresUsersStoreSpecContext:
     Gen.const('.'),
     Gen.const('/')
   )
-
-  def userCredentials: Gen[UserCredentials] =
-    for
-      id <- Gen.uuid
-      password <- hashedPassword
-      salt <- salts
-      user <- users
-      createdAt <- Gens.DateAndTime.dateAndTime
-      updatedAt <- Gens.DateAndTime.dateAndTime.suchThat(_.isAfter(createdAt))
-    yield UserCredentials(id, password, salt, user, createdAt, updatedAt)
