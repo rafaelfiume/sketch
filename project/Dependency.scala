@@ -4,6 +4,8 @@ import sbt._
 object Dependency {
   private object Version {
     val jbcrypt               = "0.4"
+    val jwtCirce              = "9.4.1"
+    val bouncycastle          = "1.70"
 
     val cats                  = "2.9.0"
     val catsEffect            = "3.5.0"
@@ -25,6 +27,8 @@ object Dependency {
 
   // auth
   val jbcrypt                     = "org.mindrot"                %  "jbcrypt"                             % Version.jbcrypt
+  val jwtCirce                    = "com.github.jwt-scala"       %% "jwt-circe"                           % Version.jwtCirce
+  val bouncycastle                = "org.bouncycastle"           %  "bcprov-jdk15on"                      % Version.bouncycastle
 
   // common
   val cats                        = "org.typelevel"              %% "cats-free"                           % Version.cats

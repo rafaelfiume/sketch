@@ -18,7 +18,9 @@ trait ClockContext:
 
       override def applicative: cats.Applicative[IO] = Applicative.apply
 
-      // As far as I know, Java 8 doesn't provide Instant w/ nanoseconds resolution
-      override def monotonic: IO[FiniteDuration] = ???
+      override def monotonic: IO[FiniteDuration] = IO
+        // does this work?
+        .delay(ZonedDateTime.now().toInstant.getEpochSecond * 1000000000L + ZonedDateTime.now().getNano)
+        .map(FiniteDuration(_, TimeUnit.NANOSECONDS))
 
   def anyTime: Clock[IO] = makeFrozenTime(ZonedDateTime.now(ZoneOffset.UTC))

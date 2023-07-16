@@ -16,4 +16,4 @@ private[postgres] object DoobieMappings:
 
   given Meta[Username] = Meta[String].timap(Username.apply)(_.value)
 
-  given Read[User] = Read[(UUID, Username)].map { case (id, username) => User(id, username) }
+  given Read[User] = Read[(UUID, Username)].map { case (uuid, username) => User(uuid, username) }
