@@ -56,4 +56,4 @@ object JwtToken:
 
     given Decoder[Content] = new Decoder[Content]:
       final def apply(c: HCursor): Decoder.Result[Content] =
-        c.downField("preferred_username").as[String].map(username => Content(Username(username)))
+        c.downField("preferred_username").as[String].map(value => Content(Username(value)))
