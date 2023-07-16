@@ -23,7 +23,7 @@ class JwtSpec extends CatsEffectSuite with ScalaCheckEffectSuite with ClockConte
         (privateKey, publicKey) = (keys._1, keys._2)
         jwtToken <- JwtToken.createJwtToken[IO](privateKey, user)
         result = JwtToken.verifyJwtToken(jwtToken, publicKey).rightValue
-        _ <- IO { assertEquals(result, user) } // TODO Check other fields
+        _ <- IO { assertEquals(result, user) }
         _ <- IO {
           println("jwtToken:")
           println(jwtToken)

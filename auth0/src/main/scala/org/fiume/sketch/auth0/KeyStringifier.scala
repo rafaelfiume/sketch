@@ -6,9 +6,6 @@ import io.circe.syntax.*
 import java.security.interfaces.{ECPrivateKey, ECPublicKey}
 import java.util.Base64
 
-/*
- * Experimetal code, particularly the JWK part. It's not supposed to be used in production.
- */
 object KeyStringifier:
   def toPemString(privateKey: ECPrivateKey): String =
     val privateKeyBase64 = Base64.getEncoder.encodeToString(privateKey.getEncoded)
@@ -18,6 +15,10 @@ object KeyStringifier:
     val publicKeyBase64 = Base64.getEncoder.encodeToString(publicKey.getEncoded)
     s"-----BEGIN PUBLIC KEY-----\n$publicKeyBase64\n-----END PUBLIC KEY-----"
 
+  
+  /*
+   * Experimetal code, particularly the JWK part. It's not supposed to be used in production.
+   */
   def toJwkString(key: ECPublicKey): String =
     val jwk = Json.obj(
       "kty" -> "EC".asJson,
