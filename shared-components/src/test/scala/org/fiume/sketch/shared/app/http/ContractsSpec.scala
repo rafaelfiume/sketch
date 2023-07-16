@@ -17,6 +17,8 @@ import org.scalacheck.effect.PropF.forAllF
  * Checks encode and decode functions are isomorphic:
  * f . g = id
  * g . f = id
+ *
+ * That is, serialisation and deserialisation maintain a bidirectional mapping that preserves the original json's structure and values
  */
 class ContractsSpec extends CatsEffectSuite with ScalaCheckEffectSuite with FileContentContext:
 
