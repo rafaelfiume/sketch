@@ -15,7 +15,7 @@ import java.util.UUID
 import scala.concurrent.duration.Duration
 import scala.util.{Failure, Success, Try}
 
-case class JwtToken(value: String) extends AnyVal
+sealed abstract case class JwtToken(value: String)
 
 object JwtToken:
   // offset: a shift in time from a reference point
@@ -34,7 +34,7 @@ object JwtToken:
         issuedAt = now.getEpochSecond.some,
         expiration = now.plusSeconds(expirationOffset.toSeconds).getEpochSecond.some
       )
-    yield JwtToken(value = JwtCirce.encode(claim, privateKey, JwtAlgorithm.ES256))
+    yield new JwtToken(value = JwtCirce.encode(claim, privateKey, JwtAlgorithm.ES256)) {}
 
   def verifyJwtToken(token: JwtToken, publicKey: PublicKey): Either[String, User] =
     for
