@@ -13,13 +13,11 @@ import java.time.Instant
 import java.util.UUID
 import scala.util.{Failure, Success, Try}
 
-case class JwtToken(user: User, issuedAt: Long, expires: Long)
-
+case class JwtToken(value: String) extends AnyVal
 object JwtToken:
-  def createJwtToken[F[_]](privateKey: PrivateKey, user: User)(using F: Sync[F], clock: Clock[F]): F[String] =
+  def createJwtToken[F[_]](privateKey: PrivateKey, user: User)(using F: Sync[F], clock: Clock[F]): F[JwtToken] =
     for
       now <- clock.realTimeInstant
-      token = createJwtToken(privateKey, user)
       content = Content.from(user)
       claim = JwtClaim(
         subject = Some(user.uuid.toString),
@@ -27,15 +25,15 @@ object JwtToken:
         issuedAt = now.getEpochSecond.some,
         expiration = now.plusSeconds(60 * 60).getEpochSecond.some
       )
-    yield JwtCirce.encode(claim, privateKey, JwtAlgorithm.ES256)
+    yield JwtToken(value = JwtCirce.encode(claim, privateKey, JwtAlgorithm.ES256))
 
-  def verifyJwtToken(token: String, publicKey: PublicKey): Either[String, User] =
+  def verifyJwtToken(token: JwtToken, publicKey: PublicKey): Either[String, User] =
     for
-      claim <- (JwtCirce.decode(token, publicKey, Seq(JwtAlgorithm.ES256)).toEither.leftMap(_.getMessage))
-      uuid <- claim.subject
+      claims <- (JwtCirce.decode(token.value, publicKey, Seq(JwtAlgorithm.ES256)).toEither.leftMap(_.getMessage))
+      uuid <- claims.subject
         .toRight("subject is missing")
         .flatMap(value => Try(UUID.fromString(value)).toEither.leftMap(_.getMessage))
-      content <- parse(claim.content).flatMap(_.as[Content]).leftMap(_.getMessage)
+      content <- parse(claims.content).flatMap(_.as[Content]).leftMap(_.getMessage)
     yield User(uuid, content.preferredUsername)
 
   // see https://www.iana.org/assignments/jwt/jwt.xhtml
