@@ -1,4 +1,4 @@
-package org.fiume.sketch.shared.auth0.support
+package org.fiume.sketch.shared.auth0.test
 
 import org.fiume.sketch.shared.auth0.Model.{User, Username}
 import org.fiume.sketch.shared.test.Gens

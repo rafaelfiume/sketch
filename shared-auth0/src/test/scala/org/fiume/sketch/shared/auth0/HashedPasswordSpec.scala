@@ -2,7 +2,7 @@ package org.fiume.sketch.shared.auth0
 
 import munit.ScalaCheckSuite
 import org.fiume.sketch.shared.auth0.Passwords.{HashedPassword, PlainPassword, Salt}
-import org.fiume.sketch.shared.auth0.support.PasswordGens
+import org.fiume.sketch.shared.auth0.test.PasswordGens
 import org.fiume.sketch.shared.test.Gens
 import org.scalacheck.{Arbitrary, Gen, Prop, ShrinkLowPriority}
 import org.scalacheck.Prop.{forAll, propBoolean}

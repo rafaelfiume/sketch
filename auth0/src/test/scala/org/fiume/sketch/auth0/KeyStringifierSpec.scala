@@ -1,7 +1,7 @@
 package org.fiume.sketch.auth0
 
 import munit.ScalaCheckSuite
-import org.fiume.sketch.auth0.support.EcKeysGens
+import org.fiume.sketch.auth0.test.EcKeysGens
 import org.fiume.sketch.shared.test.EitherSyntax.*
 import org.scalacheck.Gen
 import org.scalacheck.Prop.forAll
