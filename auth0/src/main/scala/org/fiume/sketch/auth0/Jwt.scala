@@ -13,7 +13,7 @@ import java.security.{PrivateKey, PublicKey}
 import java.time.Instant
 import java.util.UUID
 import scala.concurrent.duration.Duration
-import scala.util.{Failure, Success, Try}
+import scala.util.Try
 
 sealed abstract case class JwtToken(value: String)
 
@@ -29,7 +29,7 @@ object JwtToken:
         preferredUsername = user.username
       )
       claim = JwtClaim(
-        subject = Some(user.uuid.toString),
+        subject = user.uuid.toString.some,
         content = content.asJson.noSpaces,
         issuedAt = now.getEpochSecond.some,
         expiration = now.plusSeconds(expirationOffset.toSeconds).getEpochSecond.some

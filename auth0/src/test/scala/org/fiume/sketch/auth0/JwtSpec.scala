@@ -29,14 +29,6 @@ class JwtSpec
         jwtToken <- JwtToken.createJwtToken[IO](privateKey, user, expirationOffset)
         result = JwtToken.verifyJwtToken(jwtToken, publicKey).rightValue
         _ <- IO { assertEquals(result, user) }
-        _ <- IO {
-          println("jwtToken:")
-          println(jwtToken)
-          println("publicKey:")
-          println(KeyStringifier.toPemString(publicKey))
-          println("privateKey:")
-          println(KeyStringifier.toPemString(privateKey))
-        }
       yield ()
     }
 

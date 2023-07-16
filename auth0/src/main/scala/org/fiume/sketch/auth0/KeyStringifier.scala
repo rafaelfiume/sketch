@@ -8,6 +8,7 @@ import java.security.KeyFactory
 import java.security.interfaces.{ECPrivateKey, ECPublicKey}
 import java.security.spec.{PKCS8EncodedKeySpec, X509EncodedKeySpec}
 import java.util.Base64
+import scala.util.Try
 
 object KeyStringifier:
   def toPemString(privateKey: ECPrivateKey): String =
@@ -18,23 +19,21 @@ object KeyStringifier:
     val publicKeyBase64 = Base64.getEncoder.encodeToString(publicKey.getEncoded)
     s"-----BEGIN PUBLIC KEY-----\n$publicKeyBase64\n-----END PUBLIC KEY-----"
 
-  def ecPrivateKeyFromPem(pemString: String): Either[String, ECPrivateKey] = Either
-    .catchNonFatal {
+  def ecPrivateKeyFromPem(pemString: String): Either[String, ECPrivateKey] =
+    Try {
       val stripped = pemString.stripPrefix("-----BEGIN PRIVATE KEY-----\n").stripSuffix("\n-----END PRIVATE KEY-----")
       val bytes = Base64.getDecoder.decode(stripped)
       val keyFactory = KeyFactory.getInstance("EC", "BC")
       keyFactory.generatePrivate(new PKCS8EncodedKeySpec(bytes)).asInstanceOf[ECPrivateKey]
-    }
-    .leftMap(_.getMessage)
+    }.toEither.leftMap(_.getMessage)
 
-  def ecPublicKeyFromPem(pemString: String): Either[String, ECPublicKey] = Either
-    .catchNonFatal {
+  def ecPublicKeyFromPem(pemString: String): Either[String, ECPublicKey] =
+    Try {
       val stripped = pemString.stripPrefix("-----BEGIN PUBLIC KEY-----\n").stripSuffix("\n-----END PUBLIC KEY-----")
       val bytes = Base64.getDecoder.decode(stripped)
       val keyFactory = KeyFactory.getInstance("EC", "BC")
       keyFactory.generatePublic(new X509EncodedKeySpec(bytes)).asInstanceOf[ECPublicKey]
-    }
-    .leftMap(_.getMessage)
+    }.toEither.leftMap(_.getMessage)
 
   /*
    * JWK is experimetal code. It's not supposed to be used in production.

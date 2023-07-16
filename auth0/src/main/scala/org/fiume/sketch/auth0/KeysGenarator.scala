@@ -13,8 +13,8 @@ object KeysGenerator:
   Security.addProvider(new BouncyCastleProvider())
 
   def makeEcKeyPairs[F[_]]()(using F: Sync[F]): F[(ECPrivateKey, ECPublicKey)] =
-    F.blocking {
-      /* Ensure thread-safety by instantiating a new KeyPairGenerator every time asymetric keys are created (cpu-bound) */
+    F.blocking { // potentially cpu-bound blocking operation
+      /* Ensure thread-safety by instantiating a new KeyPairGenerator every time asymetric keys are created */
       val keyPairGenerator = KeyPairGenerator.getInstance("EC", "BC")
       keyPairGenerator.initialize(new ECGenParameterSpec("P-256"))
       val keyPair = keyPairGenerator.generateKeyPair()
