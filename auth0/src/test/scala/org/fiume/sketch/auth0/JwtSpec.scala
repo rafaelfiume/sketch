@@ -4,23 +4,26 @@ import cats.effect.IO
 import cats.implicits.*
 import munit.{CatsEffectSuite, ScalaCheckEffectSuite}
 import munit.Assertions.*
-import org.fiume.sketch.shared.auth0.Model.*
+import org.fiume.sketch.auth0.support.EcKeysGens
+import org.fiume.sketch.shared.auth0.Model.User
 import org.fiume.sketch.shared.test.ClockContext
 import org.fiume.sketch.shared.test.EitherSyntax.*
 import org.scalacheck.ShrinkLowPriority
 import org.scalacheck.effect.PropF.forAllF
 
-import java.security.interfaces.{ECPrivateKey, ECPublicKey}
 import java.time.ZonedDateTime
-import java.util.Base64
 
-class JwtSpec extends CatsEffectSuite with ScalaCheckEffectSuite with ClockContext with JwtSpecContext with ShrinkLowPriority:
+class JwtSpec
+    extends CatsEffectSuite
+    with ScalaCheckEffectSuite
+    with ClockContext
+    with EcKeysGens
+    with JwtSpecContext
+    with ShrinkLowPriority:
 
   test("create and parse jwt token"):
-    forAllF { (user: User, asymetricKeyPair: IO[(ECPrivateKey, ECPublicKey)]) =>
+    forAllF(ecKeyPairs, users) { case ((privateKey, publicKey), user) =>
       for
-        keys <- asymetricKeyPair
-        (privateKey, publicKey) = (keys._1, keys._2)
         jwtToken <- JwtToken.createJwtToken[IO](privateKey, user)
         result = JwtToken.verifyJwtToken(jwtToken, publicKey).rightValue
         _ <- IO { assertEquals(result, user) }
@@ -36,11 +39,9 @@ class JwtSpec extends CatsEffectSuite with ScalaCheckEffectSuite with ClockConte
     }
 
   test("expired jwt token"):
-    forAllF { (user: User, asymetricKeyPair: IO[(ECPrivateKey, ECPublicKey)]) =>
+    forAllF(ecKeyPairs, users) { case ((privateKey, publicKey), user) =>
       given cats.effect.Clock[IO] = makeFrozenTime(ZonedDateTime.now().minusDays(2))
       for
-        keys <- asymetricKeyPair
-        (privateKey, publicKey) = (keys._1, keys._2)
         jwtToken <- JwtToken.createJwtToken[IO](privateKey, user)
         result = JwtToken.verifyJwtToken(jwtToken, publicKey).leftValue
         _ <- IO { assert(result.contains("The token is expired since ")) }
@@ -48,11 +49,9 @@ class JwtSpec extends CatsEffectSuite with ScalaCheckEffectSuite with ClockConte
     }
 
   test("wrong public key"):
-    forAllF { (user: User, asymetricKeyPair: IO[(ECPrivateKey, ECPublicKey)], strangeKeyPair: IO[(ECPrivateKey, ECPublicKey)]) =>
+    forAllF(ecKeyPairs, ecKeyPairs, users) { case ((privateKey, _), (_, strangePublicKey), user) =>
       given cats.effect.Clock[IO] = makeFrozenTime(ZonedDateTime.now().minusDays(2))
       for
-        privateKey <- asymetricKeyPair.map(_._1)
-        strangePublicKey <- strangeKeyPair.map(_._2)
         jwtToken <- JwtToken.createJwtToken[IO](privateKey, user)
         result = JwtToken.verifyJwtToken(jwtToken, strangePublicKey).leftValue
         _ <- IO { assertEquals(result, "Invalid signature for this token or wrong algorithm.") }
@@ -64,6 +63,7 @@ trait JwtSpecContext:
   // TODO Duplicated from PostgresUsersStoreSpecContext. Extract them to somewhere
   import org.fiume.sketch.shared.test.Gens
   import org.scalacheck.{Arbitrary, Gen}
+  import org.fiume.sketch.shared.auth0.Model.{Username}
   given Arbitrary[Username] = Arbitrary(usernames)
   def usernames: Gen[Username] = Gens.Strings.alphaNumString(1, 60).map(Username(_))
 
@@ -73,6 +73,3 @@ trait JwtSpecContext:
       uuid <- Gen.uuid
       username <- usernames
     yield User(uuid, username)
-
-  given Arbitrary[IO[(ECPrivateKey, ECPublicKey)]] = Arbitrary(asymetricKeyPairs)
-  def asymetricKeyPairs: Gen[IO[(ECPrivateKey, ECPublicKey)]] = Gen.delay(KeysGenerator.makeEcKeyPairs[IO]())
