@@ -2,11 +2,12 @@ package org.fiume.sketch.shared.auth0
 
 import munit.ScalaCheckSuite
 import org.fiume.sketch.shared.auth0.Passwords.{HashedPassword, PlainPassword, Salt}
+import org.fiume.sketch.shared.auth0.support.PasswordGens
 import org.fiume.sketch.shared.test.Gens
 import org.scalacheck.{Arbitrary, Gen, Prop, ShrinkLowPriority}
 import org.scalacheck.Prop.{forAll, propBoolean}
 
-class HashedPasswordSpec extends ScalaCheckSuite with ShrinkLowPriority:
+class HashedPasswordSpec extends ScalaCheckSuite with PasswordGens with ShrinkLowPriority:
 
   // tests are very expensive to run
   override def scalaCheckTestParameters = super.scalaCheckTestParameters
@@ -65,13 +66,6 @@ class HashedPasswordSpec extends ScalaCheckSuite with ShrinkLowPriority:
       println("salt: " + salt.base64Value)
       true
     }
-
-  def bcryptSalts: Gen[Salt] =
-    import cats.effect.IO
-    import cats.effect.unsafe.IORuntime
-    given IORuntime = IORuntime.global
-    Gen.delay(Salt.generate[IO]().unsafeRunSync())
-  given Arbitrary[Salt] = Arbitrary(bcryptSalts)
 
   // TODO Improve this to conform to the password policy
   def passwords: Gen[PlainPassword] = Gens.Strings.alphaNumString(8, 64).map(PlainPassword.unsafeFromString)

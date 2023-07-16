@@ -10,7 +10,7 @@ import org.fiume.sketch.shared.auth0.Model.*
 import org.fiume.sketch.shared.auth0.Passwords
 import org.fiume.sketch.shared.auth0.Passwords.{HashedPassword, Salt}
 import org.fiume.sketch.shared.auth0.algebras.UsersStore
-import org.fiume.sketch.shared.auth0.support.UserGens
+import org.fiume.sketch.shared.auth0.support.{PasswordGens, UserGens}
 import org.fiume.sketch.shared.test.Gens
 import org.fiume.sketch.storage.auth0.postgres.DoobieMappings.given
 import org.fiume.sketch.storage.auth0.postgres.PostgresUsersStore.*
@@ -24,6 +24,7 @@ import java.util.UUID
 class PostgresUsersStoreSpec
     extends ScalaCheckEffectSuite
     with DockerPostgresSuite
+    with PasswordGens
     with UserGens
     with PostgresUsersStoreSpecContext
     with ShrinkLowPriority:
@@ -170,15 +171,10 @@ trait PostgresUsersStoreSpecContext:
     def fetchUpdatedAt(uuid: UUID): ConnectionIO[Instant] =
       sql"SELECT updated_at FROM auth.users WHERE uuid = ${uuid}".query[Instant].unique
 
-
   // a bcrypt hash approximation for efficience (store assumes correctness)
   given Arbitrary[HashedPassword] = Arbitrary(hashedPasswords)
   def hashedPasswords: Gen[HashedPassword] =
     Gen.listOfN(60, bcryptBase64Char).map(_.mkString).map(HashedPassword.unsafeFromString)
-
-  // a bcrypt salt approximation for efficience (store assumes correctness)
-  given Arbitrary[Salt] = Arbitrary(salts)
-  def salts: Gen[Salt] = Gen.listOfN(29, bcryptBase64Char).map(_.mkString).map(Salt.unsafeFromString)
 
   private def bcryptBase64Char: Gen[Char] = Gen.oneOf(
     Gen.choose('A', 'Z'),
