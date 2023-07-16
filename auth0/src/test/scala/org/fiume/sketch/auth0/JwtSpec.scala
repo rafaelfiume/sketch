@@ -6,6 +6,7 @@ import munit.{CatsEffectSuite, ScalaCheckEffectSuite}
 import munit.Assertions.*
 import org.fiume.sketch.auth0.support.EcKeysGens
 import org.fiume.sketch.shared.auth0.Model.User
+import org.fiume.sketch.shared.auth0.support.UserGens
 import org.fiume.sketch.shared.test.ClockContext
 import org.fiume.sketch.shared.test.EitherSyntax.*
 import org.scalacheck.ShrinkLowPriority
@@ -18,7 +19,7 @@ class JwtSpec
     with ScalaCheckEffectSuite
     with ClockContext
     with EcKeysGens
-    with JwtSpecContext
+    with UserGens
     with ShrinkLowPriority:
 
   test("create and parse jwt token"):
@@ -58,18 +59,4 @@ class JwtSpec
       yield ()
     }
 
-trait JwtSpecContext:
-
   // TODO Duplicated from PostgresUsersStoreSpecContext. Extract them to somewhere
-  import org.fiume.sketch.shared.test.Gens
-  import org.scalacheck.{Arbitrary, Gen}
-  import org.fiume.sketch.shared.auth0.Model.{Username}
-  given Arbitrary[Username] = Arbitrary(usernames)
-  def usernames: Gen[Username] = Gens.Strings.alphaNumString(1, 60).map(Username(_))
-
-  given Arbitrary[User] = Arbitrary(users)
-  def users: Gen[User] =
-    for
-      uuid <- Gen.uuid
-      username <- usernames
-    yield User(uuid, username)
