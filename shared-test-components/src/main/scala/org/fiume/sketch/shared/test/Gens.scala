@@ -6,6 +6,7 @@ import org.scalacheck.{Arbitrary, Gen}
 
 import java.time.{ZoneId, ZoneOffset, ZonedDateTime}
 import java.time.temporal.ChronoUnit.MILLIS
+import scala.concurrent.duration.*
 
 object Gens:
 
@@ -24,6 +25,15 @@ object Gens:
         second <- Gen.choose(0, 59)
         nanoOfSecond = 0
       yield ZonedDateTime.of(year, month, day, hour, minute, second, nanoOfSecond, ZoneOffset.UTC)
+
+    // Should be part of a Duration module?
+    given Arbitrary[Duration] = Arbitrary(shortDurations)
+    def shortDurations: Gen[Duration] =
+      def timeUnits: Gen[TimeUnit] = Gen.oneOf(SECONDS, MINUTES, HOURS, DAYS)
+      for
+        length <- Gen.choose[Long](1, 100)
+        unit <- timeUnits
+      yield Duration(length, unit)
 
   object Strings:
     def alphaNumString(min: Int, max: Int): Gen[String] =

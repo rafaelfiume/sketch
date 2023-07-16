@@ -1,6 +1,7 @@
 package org.fiume.sketch.auth0
 
-import cats.effect.{Clock, Sync}
+import cats.FlatMap
+import cats.effect.Clock
 import cats.implicits.*
 import io.circe.{Decoder, Encoder, HCursor, Json}
 import io.circe.parser.parse
@@ -11,19 +12,27 @@ import pdi.jwt.{JwtAlgorithm, JwtCirce, JwtClaim}
 import java.security.{PrivateKey, PublicKey}
 import java.time.Instant
 import java.util.UUID
+import scala.concurrent.duration.Duration
 import scala.util.{Failure, Success, Try}
 
 case class JwtToken(value: String) extends AnyVal
+
 object JwtToken:
-  def createJwtToken[F[_]](privateKey: PrivateKey, user: User)(using F: Sync[F], clock: Clock[F]): F[JwtToken] =
+  // offset: a shift in time from a reference point
+  def createJwtToken[F[_]](privateKey: PrivateKey, user: User, expirationOffset: Duration)(using
+    F: FlatMap[F],
+    clock: Clock[F]
+  ): F[JwtToken] =
     for
       now <- clock.realTimeInstant
-      content = Content.from(user)
+      content = Content(
+        preferredUsername = user.username
+      )
       claim = JwtClaim(
         subject = Some(user.uuid.toString),
         content = content.asJson.noSpaces,
         issuedAt = now.getEpochSecond.some,
-        expiration = now.plusSeconds(60 * 60).getEpochSecond.some
+        expiration = now.plusSeconds(expirationOffset.toSeconds).getEpochSecond.some
       )
     yield JwtToken(value = JwtCirce.encode(claim, privateKey, JwtAlgorithm.ES256))
 
@@ -38,9 +47,8 @@ object JwtToken:
 
   // see https://www.iana.org/assignments/jwt/jwt.xhtml
   private case class Content(preferredUsername: Username)
-  private object Content:
-    def from(user: User): Content = Content(preferredUsername = user.username)
 
+  private object Content:
     given Encoder[Content] = new Encoder[Content]:
       final def apply(a: Content): Json = Json.obj(
         "preferred_username" -> a.preferredUsername.value.asJson
