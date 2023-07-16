@@ -172,8 +172,8 @@ trait PostgresUsersStoreSpecContext:
 
 
   // a bcrypt hash approximation for efficience (store assumes correctness)
-  given Arbitrary[HashedPassword] = Arbitrary(hashedPassword)
-  def hashedPassword: Gen[HashedPassword] =
+  given Arbitrary[HashedPassword] = Arbitrary(hashedPasswords)
+  def hashedPasswords: Gen[HashedPassword] =
     Gen.listOfN(60, bcryptBase64Char).map(_.mkString).map(HashedPassword.unsafeFromString)
 
   // a bcrypt salt approximation for efficience (store assumes correctness)
