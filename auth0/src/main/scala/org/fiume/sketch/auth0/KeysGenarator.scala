@@ -16,7 +16,7 @@ object KeysGenerator:
     F.blocking {
       /* Ensure thread-safety by instantiating a new KeyPairGenerator every time asymetric keys are created (cpu-bound) */
       val keyPairGenerator = KeyPairGenerator.getInstance("EC", "BC")
-      keyPairGenerator.initialize(new ECGenParameterSpec("P-521"))
+      keyPairGenerator.initialize(new ECGenParameterSpec("P-256"))
       val keyPair = keyPairGenerator.generateKeyPair()
       (keyPair.getPrivate().asInstanceOf[ECPrivateKey], keyPair.getPublic().asInstanceOf[ECPublicKey])
     }
