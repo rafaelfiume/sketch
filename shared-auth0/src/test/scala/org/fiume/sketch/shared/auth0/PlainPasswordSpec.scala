@@ -3,13 +3,14 @@ package org.fiume.sketch.shared.auth0
 import munit.{CatsEffectSuite, ScalaCheckEffectSuite, ScalaCheckSuite}
 import org.fiume.sketch.shared.auth0.Passwords
 import org.fiume.sketch.shared.auth0.Passwords.PlainPassword
+import org.fiume.sketch.shared.auth0.test.PasswordGens
 import org.fiume.sketch.shared.test.EitherSyntax.*
 import org.scalacheck.{Arbitrary, Gen}
 import org.scalacheck.Prop.forAll
 
 import scala.util.Random
 
-class PlainPasswordSpec extends ScalaCheckSuite:
+class PlainPasswordSpec extends ScalaCheckSuite with PasswordGens:
 
   test("valid passwords"):
     forAll { (password: PlainPassword) =>
@@ -118,21 +119,6 @@ class PlainPasswordSpec extends ScalaCheckSuite:
   extension (password: PlainPassword)
     def modify(f: String => String): PlainPassword =
       PlainPassword.unsafeFromString(f(password.value))
-
-  given Arbitrary[PlainPassword] = Arbitrary(plainPasswords)
-  def plainPasswords: Gen[PlainPassword] =
-    val lowercaseGen = Gen.alphaLowerChar.map(_.toString)
-    val uppercaseGen = Gen.alphaUpperChar.map(_.toString)
-    val digitGen = Gen.numChar.map(_.toString)
-    val specialCharGen = Gen.oneOf(PlainPassword.specialChars).map(_.toString)
-    for
-      length <- Gen.chooseNum(PlainPassword.minLength, PlainPassword.maxLength)
-      lowercase <- Gen.listOfN(length / 4, lowercaseGen)
-      uppercase <- Gen.listOfN(length / 4, uppercaseGen)
-      digit <- Gen.listOfN(length / 4, digitGen)
-      specialChar <- Gen.listOfN(length / 4, specialCharGen)
-      password = scala.util.Random.shuffle(lowercase ++ uppercase ++ digit ++ specialChar).take(length).mkString
-    yield PlainPassword.unsafeFromString(password)
 
   def invalidSpecialChars: Gen[Char] = Gen.oneOf(PlainPassword.invalidSpecialChars)
 

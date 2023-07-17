@@ -66,7 +66,3 @@ class HashedPasswordSpec extends ScalaCheckSuite with PasswordGens with ShrinkLo
       println("salt: " + salt.base64Value)
       true
     }
-
-  // TODO Improve this to conform to the password policy
-  def passwords: Gen[PlainPassword] = Gens.Strings.alphaNumString(8, 64).map(PlainPassword.unsafeFromString)
-  given Arbitrary[PlainPassword] = Arbitrary(passwords)

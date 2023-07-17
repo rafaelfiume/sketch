@@ -190,4 +190,3 @@ trait PostgresUsersStoreSpecContext:
       sql"SELECT created_at FROM auth.users WHERE uuid = ${uuid}".query[Instant].unique
     def fetchUpdatedAt(uuid: UUID): ConnectionIO[Instant] =
       sql"SELECT updated_at FROM auth.users WHERE uuid = ${uuid}".query[Instant].unique
-
