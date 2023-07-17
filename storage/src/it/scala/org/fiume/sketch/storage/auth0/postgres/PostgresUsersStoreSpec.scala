@@ -11,11 +11,10 @@ import org.fiume.sketch.shared.auth0.Passwords
 import org.fiume.sketch.shared.auth0.Passwords.{HashedPassword, Salt}
 import org.fiume.sketch.shared.auth0.algebras.UsersStore
 import org.fiume.sketch.shared.auth0.test.{PasswordGens, UserGens}
-import org.fiume.sketch.shared.test.Gens
 import org.fiume.sketch.storage.auth0.postgres.DoobieMappings.given
 import org.fiume.sketch.storage.auth0.postgres.PostgresUsersStore.*
 import org.fiume.sketch.storage.test.support.DockerPostgresSuite
-import org.scalacheck.{Arbitrary, Gen, Shrink, ShrinkLowPriority}
+import org.scalacheck.{Arbitrary, Gen, ShrinkLowPriority}
 import org.scalacheck.effect.PropF.forAllF
 
 import java.time.Instant
@@ -192,15 +191,3 @@ trait PostgresUsersStoreSpecContext:
     def fetchUpdatedAt(uuid: UUID): ConnectionIO[Instant] =
       sql"SELECT updated_at FROM auth.users WHERE uuid = ${uuid}".query[Instant].unique
 
-  // a bcrypt hash approximation for efficience (store assumes correctness)
-  given Arbitrary[HashedPassword] = Arbitrary(hashedPasswords)
-  def hashedPasswords: Gen[HashedPassword] =
-    Gen.listOfN(60, bcryptBase64Char).map(_.mkString).map(HashedPassword.unsafeFromString)
-
-  private def bcryptBase64Char: Gen[Char] = Gen.oneOf(
-    Gen.choose('A', 'Z'),
-    Gen.choose('a', 'z'),
-    Gen.choose('0', '9'),
-    Gen.const('.'),
-    Gen.const('/')
-  )
