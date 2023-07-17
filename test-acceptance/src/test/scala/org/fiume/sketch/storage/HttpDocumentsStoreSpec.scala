@@ -24,8 +24,7 @@ class HttpDocumentsStoreSpec
   test("store documents") {
     http { client =>
       for
-        uuid <- IO.sleep(500.milliseconds) *>
-          client.expect[Json](fileUploadRequest(payload(docName, docDesc), pathToFile)).map(_.uuid)
+        uuid <- client.expect[Json](fileUploadRequest(payload(docName, docDesc), pathToFile)).map(_.uuid)
 
         _ <- client.expect[Json](s"http://localhost:8080/documents/$uuid/metadata".get).map { res =>
           assertEquals(res.docName, docName)
