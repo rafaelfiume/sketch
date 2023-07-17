@@ -9,6 +9,8 @@ import org.fiume.sketch.support.Http4sClientContext
 import org.http4s.Status.*
 import org.http4s.circe.*
 
+import scala.concurrent.duration.*
+
 class HttpDocumentsStoreSpec
     extends CatsEffectSuite
     with Http4sClientContext
@@ -22,7 +24,8 @@ class HttpDocumentsStoreSpec
   test("store documents") {
     http { client =>
       for
-        uuid <- client.expect[Json](fileUploadRequest(payload(docName, docDesc), pathToFile)).map(_.uuid)
+        uuid <- IO.sleep(500.milliseconds) *>
+          client.expect[Json](fileUploadRequest(payload(docName, docDesc), pathToFile)).map(_.uuid)
 
         _ <- client.expect[Json](s"http://localhost:8080/documents/$uuid/metadata".get).map { res =>
           assertEquals(res.docName, docName)
