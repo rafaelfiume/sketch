@@ -13,6 +13,12 @@ object Model:
     username: Username
   )
 
+  case class Credentials(
+    uuid: UUID,
+    username: Username,
+    hashedPassword: HashedPassword
+  )
+
   given Show[UUID] = Show.fromToString
   given Show[Username] = Show.fromToString
   given Show[User] = Show.fromToString

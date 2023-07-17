@@ -29,7 +29,7 @@ class PostgresUsersStoreSpec
     with PostgresUsersStoreSpecContext
     with ShrinkLowPriority:
 
-  test("store user credentials and fetch user"):
+  test("store and fetch user"):
     forAllF { (username: Username, password: HashedPassword, salt: Salt) =>
       will(cleanUsers) {
         PostgresUsersStore.make[IO](transactor()).use { store =>
@@ -40,6 +40,23 @@ class PostgresUsersStoreSpec
 
             _ <- IO {
               assertEquals(result, User(uuid, username).some)
+            }
+          yield ()
+        }
+      }
+    }
+
+  test("store and fetch credentials"):
+    forAllF { (username: Username, password: HashedPassword, salt: Salt) =>
+      will(cleanUsers) {
+        PostgresUsersStore.make[IO](transactor()).use { store =>
+          for
+            uuid <- store.store(username, password, salt).ccommit
+
+            result <- store.fetchCredential(username).ccommit
+
+            _ <- IO {
+              assertEquals(result, Credentials(uuid, username, password).some)
             }
           yield ()
         }
@@ -100,10 +117,14 @@ class PostgresUsersStoreSpec
             _ <- store.delete(fstUuid).ccommit
 
             fstUser <- store.fetchUser(fstUuid).ccommit
+            fstCreds <- store.fetchCredential(fstUsername).ccommit
             sndUser <- store.fetchUser(sndUuid).ccommit
+            sndCredentials <- store.fetchCredential(sndUsername).ccommit
             _ <- IO {
               assertEquals(fstUser, none)
+              assertEquals(fstCreds, none)
               assertEquals(sndUser, User(sndUuid, sndUsername).some)
+              assertEquals(sndCredentials, Credentials(sndUuid, sndUsername, sndPass).some)
             }
           yield ()
         }
