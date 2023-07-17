@@ -3,14 +3,14 @@ package org.fiume.sketch.shared.auth0
 import munit.{CatsEffectSuite, ScalaCheckEffectSuite, ScalaCheckSuite}
 import org.fiume.sketch.shared.auth0.Passwords
 import org.fiume.sketch.shared.auth0.Passwords.PlainPassword
-import org.fiume.sketch.shared.auth0.test.PasswordGens
+import org.fiume.sketch.shared.auth0.test.PasswordsGens
 import org.fiume.sketch.shared.test.EitherSyntax.*
 import org.scalacheck.{Arbitrary, Gen}
 import org.scalacheck.Prop.forAll
 
 import scala.util.Random
 
-class PlainPasswordSpec extends ScalaCheckSuite with PasswordGens:
+class PlainPasswordSpec extends ScalaCheckSuite with PasswordsGens:
 
   test("valid passwords"):
     forAll { (password: PlainPassword) =>

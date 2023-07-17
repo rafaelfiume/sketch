@@ -5,7 +5,7 @@ import cats.effect.unsafe.IORuntime
 import org.fiume.sketch.shared.auth0.Passwords.{HashedPassword, PlainPassword, Salt}
 import org.scalacheck.{Arbitrary, Gen}
 
-trait PasswordGens:
+trait PasswordsGens:
 
   given Arbitrary[PlainPassword] = Arbitrary(plainPasswords)
   def plainPasswords: Gen[PlainPassword] =

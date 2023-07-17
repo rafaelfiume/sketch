@@ -10,7 +10,7 @@ import org.fiume.sketch.shared.auth0.Model.*
 import org.fiume.sketch.shared.auth0.Passwords
 import org.fiume.sketch.shared.auth0.Passwords.{HashedPassword, Salt}
 import org.fiume.sketch.shared.auth0.algebras.UsersStore
-import org.fiume.sketch.shared.auth0.test.{PasswordGens, UserGens}
+import org.fiume.sketch.shared.auth0.test.{PasswordsGens, UserGens}
 import org.fiume.sketch.storage.auth0.postgres.DoobieMappings.given
 import org.fiume.sketch.storage.auth0.postgres.PostgresUsersStore.*
 import org.fiume.sketch.storage.test.support.DockerPostgresSuite
@@ -23,7 +23,7 @@ import java.util.UUID
 class PostgresUsersStoreSpec
     extends ScalaCheckEffectSuite
     with DockerPostgresSuite
-    with PasswordGens
+    with PasswordsGens
     with UserGens
     with PostgresUsersStoreSpecContext
     with ShrinkLowPriority:
