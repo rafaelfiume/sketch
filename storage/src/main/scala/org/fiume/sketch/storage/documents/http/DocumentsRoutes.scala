@@ -98,12 +98,6 @@ class DocumentsRoutes[F[_]: Async, Txn[_]](store: DocumentsStore[F, Txn]) extend
   val routes: HttpRoutes[F] = Router(prefix -> httpRoutes)
 
 private[http] object DocumentsRoutes:
-
-  object UUIDVar:
-    def unapply(str: String): Option[UUID] =
-      try Some(UUID.fromString(str))
-      catch case _: IllegalArgumentException => None
-
   extension [F[_]: MonadThrow: Concurrent](m: Multipart[F])
     def metadata: EitherT[F, NonEmptyChain[Incorrect.Detail], Metadata] = EitherT
       .fromEither {
