@@ -17,7 +17,7 @@ import scala.util.Try
 
 sealed abstract case class JwtToken(value: String)
 
-object JwtToken:
+private[auth0] object JwtToken:
   // offset: a shift in time from a reference point
   def createJwtToken[F[_]](privateKey: PrivateKey, user: User, expirationOffset: Duration)(using
     F: FlatMap[F],
@@ -44,6 +44,8 @@ object JwtToken:
         .flatMap(value => Try(UUID.fromString(value)).toEither.leftMap(_.getMessage))
       content <- parse(claims.content).flatMap(_.as[Content]).leftMap(_.getMessage)
     yield User(uuid, content.preferredUsername)
+
+  def unsafeFromString(value: String): JwtToken = new JwtToken(value) {}
 
   // see https://www.iana.org/assignments/jwt/jwt.xhtml
   private case class Content(preferredUsername: Username)

@@ -1,17 +1,19 @@
 package org.fiume.sketch.auth0
 
-import cats.effect.IO
+import cats.effect.{Clock, IO}
 import munit.{CatsEffectSuite, ScalaCheckEffectSuite}
 import org.fiume.sketch.auth0.test.EcKeysGens
 import org.fiume.sketch.shared.auth0.Model.{Credentials, User, Username}
 import org.fiume.sketch.shared.auth0.Passwords.{HashedPassword, PlainPassword, Salt}
 import org.fiume.sketch.shared.auth0.test.{PasswordsGens, UserGens}
+import org.fiume.sketch.shared.test.ClockContext
 import org.fiume.sketch.shared.test.EitherSyntax.*
 import org.fiume.sketch.shared.test.Gens.DateAndTime.shortDurations
 import org.scalacheck.{Gen, ShrinkLowPriority}
 import org.scalacheck.effect.PropF.forAllF
 
 import java.security.interfaces.{ECPrivateKey, ECPublicKey}
+import java.time.ZonedDateTime
 import scala.concurrent.duration.*
 
 class AuthenticatorSpec
@@ -20,24 +22,121 @@ class AuthenticatorSpec
     with EcKeysGens
     with PasswordsGens
     with UserGens
+    with ClockContext
     with UsersStoreContext
+    with AuthenticatorSpecContext
     with ShrinkLowPriority:
 
   override def scalaCheckTestParameters =
     super.scalaCheckTestParameters.withMinSuccessfulTests(1)
 
-  test("Authenticator should authenticate a user with valid credentials"):
+  test("authenticate and verify user with valid credentials"):
     forAllF(usersInfo, ecKeyPairs, shortDurations) {
-      case ((uuid, username, plainPassword, hashedPassword, salt), (privateKey, _), expirationOffset) =>
+      case ((uuid, username, plainPassword, hashedPassword, salt), (privateKey, publicKey), expirationOffset) =>
         for
           store <- makeUsersStore(Map(uuid -> (username, hashedPassword, salt)))
 
-          authenticator <- Authenticator.make[IO, IO](store, privateKey, expirationOffset)
+          authenticator <- Authenticator.make[IO, IO](store, privateKey, publicKey, expirationOffset)
+          result <- authenticator.authenticate(username, plainPassword).map(_.rightValue)
 
-          result <- authenticator.authenticate(username, plainPassword)
-          _ <- IO { assert(result.isRight) }
+          user = authenticator.verify(result)
+          _ <- IO { assertEquals(user.rightValue, User(uuid, username)) }
         yield ()
     }
+
+  test("do not authenticate a user with invalid credentials"):
+    forAllF(usersInfo, ecKeyPairs, shortDurations) {
+      case ((uuid, username, plainPassword, hashedPassword, salt), (privateKey, publicKey), expirationOffset) =>
+        for
+          store <- makeUsersStore(Map(uuid -> (username, hashedPassword, salt)))
+
+          authenticator <- Authenticator.make[IO, IO](store, privateKey, publicKey, expirationOffset)
+
+          result <- authenticator.authenticate(username, plainPassword.reverse)
+          _ <- IO { assertEquals(result.leftValue, "Invalid password") }
+        yield ()
+    }
+
+  test("do not not authenticate a user with invalid username"):
+    forAllF(usersInfo, ecKeyPairs, shortDurations) {
+      case ((uuid, username, plainPassword, hashedPassword, salt), (privateKey, publicKey), expirationOffset) =>
+        for
+          store <- makeUsersStore(Map(uuid -> (username, hashedPassword, salt)))
+
+          authenticator <- Authenticator.make[IO, IO](store, privateKey, publicKey, expirationOffset)
+          result <- authenticator.authenticate(username.reverse, plainPassword)
+
+          _ <- IO { assertEquals(result.leftValue, "User not found") }
+        yield ()
+    }
+
+  test("verify expired token"):
+    forAllF(usersInfo, ecKeyPairs, shortDurations) {
+      case ((uuid, username, plainPassword, hashedPassword, salt), (privateKey, publicKey), expirationOffset) =>
+        given Clock[IO] = makeFrozenTime(ZonedDateTime.now().minusSeconds(expirationOffset.toSeconds))
+        for
+          store <- makeUsersStore(Map(uuid -> (username, hashedPassword, salt)))
+
+          authenticator <- Authenticator.make[IO, IO](store, privateKey, publicKey, expirationOffset)
+          jwtToken <- authenticator.authenticate(username, plainPassword).map(_.rightValue)
+
+          result = authenticator.verify(jwtToken)
+          _ <- IO.println(result)
+          _ <- IO { assert(result.leftValue.contains("The token is expired since")) }
+        yield ()
+    }
+
+  test("verify tampered token"):
+    forAllF(usersInfo, ecKeyPairs, shortDurations) {
+      case ((uuid, username, plainPassword, hashedPassword, salt), (privateKey, publicKey), expirationOffset) =>
+        for
+          store <- makeUsersStore(Map(uuid -> (username, hashedPassword, salt)))
+          authenticator <- Authenticator.make[IO, IO](store, privateKey, publicKey, expirationOffset)
+          token <- authenticator.authenticate(username, plainPassword)
+
+          result = authenticator.verify(token.rightValue.tampered)
+
+          _ <- IO { assertEquals(result.leftValue, "No signature found inside the token while trying to verify it with a key.") }
+        yield ()
+    }
+
+  test("verify invalid token"):
+    forAllF(usersInfo, ecKeyPairs, shortDurations) {
+      case ((uuid, username, plainPassword, hashedPassword, salt), (privateKey, publicKey), expirationOffset) =>
+        for
+          store <- makeUsersStore(Map(uuid -> (username, hashedPassword, salt)))
+          authenticator <- Authenticator.make[IO, IO](store, privateKey, publicKey, expirationOffset)
+          jwtToken <- authenticator.authenticate(username, plainPassword).map(_.rightValue)
+
+          result = authenticator.verify(jwtToken.reverse)
+
+          _ <- IO { assert(result.isLeft) } // ugly string message
+        yield ()
+    }
+
+  test("verify fails with invalid public key"):
+    forAllF(usersInfo, ecKeyPairs, ecKeyPairs, shortDurations) {
+      case ((uuid, username, plainPassword, hashedPassword, salt), (privateKey, _), (_, strangePublicKey), expirationOffset) =>
+        for
+          store <- makeUsersStore(Map(uuid -> (username, hashedPassword, salt)))
+          authenticator <- Authenticator.make[IO, IO](store, privateKey, strangePublicKey, expirationOffset)
+          jwtToken <- authenticator.authenticate(username, plainPassword).map(_.rightValue)
+
+          result = authenticator.verify(jwtToken)
+
+          _ <- IO { assertEquals(result.leftValue, "Invalid signature for this token or wrong algorithm.") }
+        yield ()
+    }
+
+trait AuthenticatorSpecContext:
+  extension (plainPassword: PlainPassword)
+    def reverse: PlainPassword = PlainPassword.unsafeFromString(plainPassword.value.reverse)
+
+  extension (username: Username) def reverse: Username = Username(username.value.reverse)
+
+  extension (token: JwtToken)
+    def reverse: JwtToken = JwtToken.unsafeFromString(token.value.reverse)
+    def tampered: JwtToken = JwtToken.unsafeFromString(token.value.split('.').dropRight(1).mkString("."))
 
 trait UsersStoreContext:
   import cats.effect.Ref

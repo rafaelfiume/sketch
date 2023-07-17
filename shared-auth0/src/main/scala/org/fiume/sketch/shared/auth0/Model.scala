@@ -6,6 +6,7 @@ import org.fiume.sketch.shared.auth0.Passwords.{HashedPassword, Salt}
 import java.util.UUID
 
 object Model:
+  // TODO Define rules for username creation
   case class Username(value: String) extends AnyVal
 
   case class User(

@@ -11,7 +11,7 @@ import java.util.UUID
 trait UserGens:
 
   given Arbitrary[Username] = Arbitrary(usernames)
-  def usernames: Gen[Username] = Gens.Strings.alphaNumString(1, 60).map(Username(_))
+  def usernames: Gen[Username] = Gens.Strings.alphaNumString(6, 60).map(Username(_))
 
   given Arbitrary[User] = Arbitrary(users)
   def users: Gen[User] =
