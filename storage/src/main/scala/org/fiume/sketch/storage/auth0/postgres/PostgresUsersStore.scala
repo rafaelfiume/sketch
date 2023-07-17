@@ -33,7 +33,7 @@ private class PostgresUsersStore[F[_]: Async] private (l: F ~> ConnectionIO, tx:
 
   def fetchUser(uuid: UUID): ConnectionIO[Option[User]] = selectUser(uuid).option
 
-  def fetchCredential(username: Username): ConnectionIO[Option[Credentials]] =
+  def fetchCredentials(username: Username): ConnectionIO[Option[Credentials]] =
     Statements.selectUserCredential(username).option
 
   def updateUsername(uuid: UUID, username: Username): ConnectionIO[Unit] = Statements.updateUsername(uuid, username).run.void

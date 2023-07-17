@@ -25,7 +25,7 @@ object Authenticator:
     new Authenticator[F]:
       override def authenticate(username: Username, password: PlainPassword): F[Either[String, JwtToken]] =
         for
-          credentials <- store.commit { store.fetchCredential(username) } // TODO User ccommit syntax
+          credentials <- store.commit { store.fetchCredentials(username) } // TODO User ccommit syntax
           jwtToken <- credentials match
             case None =>
               Sync[F].pure(Left("User not found"))

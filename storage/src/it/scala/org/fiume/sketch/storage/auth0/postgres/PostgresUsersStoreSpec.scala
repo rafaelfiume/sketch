@@ -52,7 +52,7 @@ class PostgresUsersStoreSpec
           for
             uuid <- store.store(username, password, salt).ccommit
 
-            result <- store.fetchCredential(username).ccommit
+            result <- store.fetchCredentials(username).ccommit
 
             _ <- IO {
               assertEquals(result, Credentials(uuid, username, password).some)
@@ -116,9 +116,9 @@ class PostgresUsersStoreSpec
             _ <- store.delete(fstUuid).ccommit
 
             fstUser <- store.fetchUser(fstUuid).ccommit
-            fstCreds <- store.fetchCredential(fstUsername).ccommit
+            fstCreds <- store.fetchCredentials(fstUsername).ccommit
             sndUser <- store.fetchUser(sndUuid).ccommit
-            sndCredentials <- store.fetchCredential(sndUsername).ccommit
+            sndCredentials <- store.fetchCredentials(sndUsername).ccommit
             _ <- IO {
               assertEquals(fstUser, none)
               assertEquals(fstCreds, none)
