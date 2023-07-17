@@ -281,11 +281,13 @@ trait DocumentsStoreContext:
 
         def store(metadata: Metadata, content: Stream[IO, Byte]): IO[UUID] =
           IO.randomUUID.flatMap { uuid =>
-            storage.update {
-              val document =
-                new Document[IO](uuid, metadata, content, ZonedDateTime.now(ZoneOffset.UTC), ZonedDateTime.now(ZoneOffset.UTC))
-              _.updated(document.uuid, document)
-            }.as(uuid)
+            storage
+              .update {
+                val document =
+                  new Document[IO](uuid, metadata, content, ZonedDateTime.now(ZoneOffset.UTC), ZonedDateTime.now(ZoneOffset.UTC))
+                _.updated(document.uuid, document)
+              }
+              .as(uuid)
           }
 
         def update(uuid: UUID, metadata: Metadata, content: Stream[cats.effect.IO, Byte]): IO[Unit] =

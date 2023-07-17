@@ -13,6 +13,7 @@ object Model:
     username: Username
   )
 
+  // set of information required to authenticate a user
   case class Credentials(
     uuid: UUID,
     username: Username,

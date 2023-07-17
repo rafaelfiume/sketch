@@ -5,6 +5,8 @@ import cats.effect.unsafe.IORuntime
 import org.fiume.sketch.shared.auth0.Passwords.{HashedPassword, PlainPassword, Salt}
 import org.scalacheck.{Arbitrary, Gen}
 
+object PasswordsGens extends PasswordsGens
+
 trait PasswordsGens:
 
   given Arbitrary[PlainPassword] = Arbitrary(plainPasswords)
@@ -27,10 +29,17 @@ trait PasswordsGens:
     given IORuntime = IORuntime.global
     Gen.delay(Salt.generate[IO]().unsafeRunSync())
 
-  given Arbitrary[HashedPassword] = Arbitrary(hashedPasswords)
-  def hashedPasswords: Gen[HashedPassword] =
-    // a bcrypt hash approximation for efficience (store assumes correctness)
+  // a bcrypt hash approximation for efficience (store assumes correctness)
+  given Arbitrary[HashedPassword] = Arbitrary(fakeHashedPasswords)
+  def fakeHashedPasswords: Gen[HashedPassword] =
     Gen.listOfN(60, bcryptBase64Char).map(_.mkString).map(HashedPassword.unsafeFromString)
+
+  def passwordsInfo: Gen[(PlainPassword, HashedPassword, Salt)] =
+    for
+      plainPassword <- plainPasswords
+      salt <- salts
+      hashedPassword = HashedPassword.hashPassword(plainPassword, salt)
+    yield (plainPassword, hashedPassword, salt)
 
   private def bcryptBase64Char: Gen[Char] = Gen.oneOf(
     Gen.choose('A', 'Z'),
