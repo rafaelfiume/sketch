@@ -28,7 +28,7 @@ trait UserGens:
       hashedPassword <- fakeHashedPasswords
     yield Credentials(uuid, username, hashedPassword)
 
-  def usersInfo: Gen[(UUID, Username, PlainPassword, HashedPassword, Salt)] =
+  def usersAuthenticationInfo: Gen[(UUID, Username, PlainPassword, HashedPassword, Salt)] =
     for
       uuid <- Gen.uuid
       username <- usernames
