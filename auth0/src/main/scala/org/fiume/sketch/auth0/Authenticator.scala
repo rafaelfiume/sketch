@@ -15,7 +15,7 @@ import scala.concurrent.duration.Duration
 trait Authenticator[F[_]]:
   // TODO More refined error types than String
   def authenticate(username: Username, password: PlainPassword): F[Either[String, JwtToken]]
-  def verify(jwtToken: JwtToken): Either[String, User]
+  def verify(jwtToken: JwtToken): Either[Throwable, User]
 
 object Authenticator:
   def make[F[_], Txn[_]: FlatMap](
@@ -37,6 +37,6 @@ object Authenticator:
               else Sync[F].pure(Left("Invalid password"))
         yield jwtToken
 
-      override def verify(jwtToken: JwtToken): Either[String, User] =
+      override def verify(jwtToken: JwtToken): Either[Throwable, User] =
         JwtToken.verifyJwtToken(jwtToken, publicKey)
   }

@@ -53,7 +53,7 @@ class AuthenticatorSpec
           authenticator <- Authenticator.make[IO, IO](store, privateKey, publicKey, expirationOffset)
 
           result <- authenticator.authenticate(username, plainPassword.reverse)
-          _ <- IO { assertEquals(result.leftValue, "Invalid password") }
+          _ <- IO { assertEquals(result.leftValue, "Invalid password") } // String
         yield ()
     }
 
@@ -66,7 +66,7 @@ class AuthenticatorSpec
           authenticator <- Authenticator.make[IO, IO](store, privateKey, publicKey, expirationOffset)
           result <- authenticator.authenticate(username.reverse, plainPassword)
 
-          _ <- IO { assertEquals(result.leftValue, "User not found") }
+          _ <- IO { assertEquals(result.leftValue, "User not found") } // String
         yield ()
     }
 
@@ -81,8 +81,7 @@ class AuthenticatorSpec
 
           result = authenticator.verify(jwtToken)
 
-          _ <- IO.println(result)
-          _ <- IO { assert(result.leftValue.contains("The token is expired since")) }
+          _ <- IO { assert(result.leftValue.getMessage().contains("The token is expired since")) } // JwtExpirationException
         yield ()
     }
 
@@ -96,7 +95,12 @@ class AuthenticatorSpec
 
           result = authenticator.verify(token.tampered)
 
-          _ <- IO { assertEquals(result.leftValue, "No signature found inside the token while trying to verify it with a key.") }
+          // JwtEmptySignatureException
+          _ <- IO {
+            assertEquals(result.leftValue.getMessage(),
+                         "No signature found inside the token while trying to verify it with a key."
+            )
+          }
         yield ()
     }
 
@@ -110,7 +114,7 @@ class AuthenticatorSpec
 
           result = authenticator.verify(jwtToken.reverse)
 
-          _ <- IO { assert(result.isLeft) } // ugly string message
+          _ <- IO { assert(result.isLeft) } // ugly string message //  circe ParsingFailure
         yield ()
     }
 
@@ -124,7 +128,8 @@ class AuthenticatorSpec
 
           result = authenticator.verify(jwtToken)
 
-          _ <- IO { assertEquals(result.leftValue, "Invalid signature for this token or wrong algorithm.") }
+          // JwtValidationException
+          _ <- IO { assertEquals(result.leftValue.getMessage(), "Invalid signature for this token or wrong algorithm.") }
         yield ()
     }
 
