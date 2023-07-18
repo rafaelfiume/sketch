@@ -271,56 +271,46 @@ trait DocumentsStoreContext:
   import java.time.ZoneOffset
   import java.util.UUID
 
-  def makeDocumentsStore(): IO[DocumentsStore[IO, IO]] = makeDocumentsStore(state = StorageState.empty)
+  def makeDocumentsStore(): IO[DocumentsStore[IO, IO]] = makeDocumentsStore(state = Map.empty)
 
-  def makeDocumentsStore(state: Document[IO]): IO[DocumentsStore[IO, IO]] = makeDocumentsStore(
-    StorageState(
-      allDocuments = Map(state.uuid -> state),
-      latestStored = state.uuid.some
-    )
-  )
+  def makeDocumentsStore(state: Document[IO]): IO[DocumentsStore[IO, IO]] = makeDocumentsStore(Map(state.uuid -> state))
 
-  case class StorageState(allDocuments: Map[UUID, Document[IO]], latestStored: Option[UUID])
-  object StorageState:
-    def empty: StorageState = StorageState(Map.empty, None)
-
-  private def makeDocumentsStore(state: StorageState): IO[DocumentsStore[IO, IO]] =
-
-    def newDocument(metadata: Metadata, bytes: Stream[IO, Byte]): Document[IO] = // not suspending side effect
-      Document[IO](UUID.randomUUID(), metadata, bytes, ZonedDateTime.now(ZoneOffset.UTC), ZonedDateTime.now(ZoneOffset.UTC))
-
-    Ref.of[IO, StorageState](state).map { storage =>
+  private def makeDocumentsStore(state: Map[UUID, Document[IO]]): IO[DocumentsStore[IO, IO]] =
+    Ref.of[IO, Map[UUID, Document[IO]]](state).map { storage =>
       new DocumentsStore[IO, IO]:
 
-        def store(metadata: Metadata, content: Stream[IO, Byte]): IO[UUID] = storage
-          .updateAndGet { state =>
-            val document = newDocument(metadata, content)
-            StorageState(state.allDocuments.updated(document.uuid, document), document.uuid.some)
+        def store(metadata: Metadata, content: Stream[IO, Byte]): IO[UUID] =
+          IO.randomUUID.flatMap { uuid =>
+            storage
+              .update {
+                val document =
+                  new Document[IO](uuid, metadata, content, ZonedDateTime.now(ZoneOffset.UTC), ZonedDateTime.now(ZoneOffset.UTC))
+                _.updated(document.uuid, document)
+              }
+              .as(uuid)
           }
-          .map(_.latestStored.get)
 
-        def update(uuid: UUID, metadata: Metadata, content: Stream[cats.effect.IO, Byte]): IO[Unit] = storage.update { state =>
-          StorageState(
-            state.allDocuments.updatedWith(uuid) {
+        def update(uuid: UUID, metadata: Metadata, content: Stream[cats.effect.IO, Byte]): IO[Unit] =
+          storage.update {
+            _.updatedWith(uuid) {
               case Some(document) =>
                 Document[IO](uuid, metadata, content, document.createdAt, ZonedDateTime.now(ZoneOffset.UTC)).some
               case None => none
-            },
-            none
-          )
-        }.void
+            }
+          }.void
 
-        def fetchMetadata(uuid: UUID): IO[Option[Metadata]] = storage.get.map { state =>
-          state.allDocuments.find(s => s._1 === uuid).map(_._2.metadata)
-        }
+        def fetchMetadata(uuid: UUID): IO[Option[Metadata]] =
+          storage.get.map(_.collectFirst {
+            case (storedUuid, document) if storedUuid === uuid => document.metadata
+          })
 
-        def fetchContent(uuid: UUID): IO[Option[fs2.Stream[IO, Byte]]] = storage.get.map { state =>
-          state.allDocuments.find(s => s._1 === uuid).map(_._2.bytes)
-        }
+        def fetchContent(uuid: UUID): IO[Option[fs2.Stream[IO, Byte]]] =
+          storage.get.map(_.collectFirst {
+            case (storedUuid, document) if storedUuid === uuid => document.bytes
+          })
 
-        def delete(uuid: UUID): IO[Unit] = storage.update { state =>
-          StorageState(state.allDocuments.removed(uuid), none)
-        }
+        def delete(uuid: UUID): IO[Unit] =
+          storage.update { _.removed(uuid) }
 
         val commit: [A] => IO[A] => IO[A] = [A] => (action: IO[A]) => action
 

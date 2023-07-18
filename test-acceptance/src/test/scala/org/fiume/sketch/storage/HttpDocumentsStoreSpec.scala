@@ -9,6 +9,8 @@ import org.fiume.sketch.support.Http4sClientContext
 import org.http4s.Status.*
 import org.http4s.circe.*
 
+import scala.concurrent.duration.*
+
 class HttpDocumentsStoreSpec
     extends CatsEffectSuite
     with Http4sClientContext

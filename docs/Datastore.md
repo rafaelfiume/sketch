@@ -1,4 +1,4 @@
-# Datastore - Design
+# Datastore - Design (Draft)
 
 Despite of the disadvantages of storing binaries (images, pdf's, etc) in a database,
 we are doing that anyway for the following reasons:

@@ -10,12 +10,11 @@ import org.fiume.sketch.shared.auth0.Model.*
 import org.fiume.sketch.shared.auth0.Passwords
 import org.fiume.sketch.shared.auth0.Passwords.{HashedPassword, Salt}
 import org.fiume.sketch.shared.auth0.algebras.UsersStore
-import org.fiume.sketch.shared.auth0.test.{PasswordGens, UserGens}
-import org.fiume.sketch.shared.test.Gens
+import org.fiume.sketch.shared.auth0.test.{PasswordsGens, UserGens}
 import org.fiume.sketch.storage.auth0.postgres.DoobieMappings.given
 import org.fiume.sketch.storage.auth0.postgres.PostgresUsersStore.*
 import org.fiume.sketch.storage.test.support.DockerPostgresSuite
-import org.scalacheck.{Arbitrary, Gen, Shrink, ShrinkLowPriority}
+import org.scalacheck.{Arbitrary, Gen, ShrinkLowPriority}
 import org.scalacheck.effect.PropF.forAllF
 
 import java.time.Instant
@@ -24,12 +23,12 @@ import java.util.UUID
 class PostgresUsersStoreSpec
     extends ScalaCheckEffectSuite
     with DockerPostgresSuite
-    with PasswordGens
+    with PasswordsGens
     with UserGens
     with PostgresUsersStoreSpecContext
     with ShrinkLowPriority:
 
-  test("store user credentials and fetch user"):
+  test("store and fetch user"):
     forAllF { (username: Username, password: HashedPassword, salt: Salt) =>
       will(cleanUsers) {
         PostgresUsersStore.make[IO](transactor()).use { store =>
@@ -40,6 +39,23 @@ class PostgresUsersStoreSpec
 
             _ <- IO {
               assertEquals(result, User(uuid, username).some)
+            }
+          yield ()
+        }
+      }
+    }
+
+  test("store and fetch credentials"):
+    forAllF { (username: Username, password: HashedPassword, salt: Salt) =>
+      will(cleanUsers) {
+        PostgresUsersStore.make[IO](transactor()).use { store =>
+          for
+            uuid <- store.store(username, password, salt).ccommit
+
+            result <- store.fetchCredentials(username).ccommit
+
+            _ <- IO {
+              assertEquals(result, Credentials(uuid, username, password).some)
             }
           yield ()
         }
@@ -100,10 +116,14 @@ class PostgresUsersStoreSpec
             _ <- store.delete(fstUuid).ccommit
 
             fstUser <- store.fetchUser(fstUuid).ccommit
+            fstCreds <- store.fetchCredentials(fstUsername).ccommit
             sndUser <- store.fetchUser(sndUuid).ccommit
+            sndCredentials <- store.fetchCredentials(sndUsername).ccommit
             _ <- IO {
               assertEquals(fstUser, none)
+              assertEquals(fstCreds, none)
               assertEquals(sndUser, User(sndUuid, sndUsername).some)
+              assertEquals(sndCredentials, Credentials(sndUuid, sndUsername, sndPass).some)
             }
           yield ()
         }
@@ -170,16 +190,3 @@ trait PostgresUsersStoreSpecContext:
       sql"SELECT created_at FROM auth.users WHERE uuid = ${uuid}".query[Instant].unique
     def fetchUpdatedAt(uuid: UUID): ConnectionIO[Instant] =
       sql"SELECT updated_at FROM auth.users WHERE uuid = ${uuid}".query[Instant].unique
-
-  // a bcrypt hash approximation for efficience (store assumes correctness)
-  given Arbitrary[HashedPassword] = Arbitrary(hashedPasswords)
-  def hashedPasswords: Gen[HashedPassword] =
-    Gen.listOfN(60, bcryptBase64Char).map(_.mkString).map(HashedPassword.unsafeFromString)
-
-  private def bcryptBase64Char: Gen[Char] = Gen.oneOf(
-    Gen.choose('A', 'Z'),
-    Gen.choose('a', 'z'),
-    Gen.choose('0', '9'),
-    Gen.const('.'),
-    Gen.const('/')
-  )
