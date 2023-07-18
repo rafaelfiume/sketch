@@ -171,14 +171,6 @@ trait UsersStoreContext:
               Credentials(uuid, storedUsername, hashedPassword)
           })
 
-        override def updateUsername(uuid: UUID, user: Username): IO[Unit] =
-          storage.update {
-            _.updatedWith(uuid) {
-              case Some((_, password, salt)) => (user, password, salt).some
-              case None                      => none
-            }
-          }
-
         override def updatePassword(uuid: UUID, password: HashedPassword): IO[Unit] =
           storage.update {
             _.updatedWith(uuid) {

@@ -62,24 +62,6 @@ class PostgresUsersStoreSpec
       }
     }
 
-  test("update user"):
-    forAllF { (username: Username, password: HashedPassword, salt: Salt, newUsername: Username) =>
-      will(cleanUsers) {
-        PostgresUsersStore.make[IO](transactor()).use { store =>
-          for
-            uuid <- store.store(username, password, salt).ccommit
-
-            _ <- store.updateUsername(uuid, newUsername).ccommit
-
-            result <- store.fetchUser(uuid).ccommit
-            _ <- IO {
-              assertEquals(result, User(uuid, newUsername).some)
-            }
-          yield ()
-        }
-      }
-    }
-
   test("update user password"):
     forAllF { (username: Username, password: HashedPassword, salt: Salt, newPassword: HashedPassword) =>
       will(cleanUsers) {
@@ -149,35 +131,25 @@ class PostgresUsersStoreSpec
     }
 
   test("set user's `updatedAt` field to the current timestamp during update"):
-    given Arbitrary[Int] = Arbitrary(Gen.choose(1, 2))
-    forAllF {
-      (username: Username,
-       password: HashedPassword,
-       salt: Salt,
-       newUsername: Username,
-       newPassword: HashedPassword,
-       condition: Int
-      ) =>
-        will(cleanUsers) {
-          PostgresUsersStore.make[IO](transactor()).use { store =>
-            for
-              uuid <- store.store(username, password, salt).ccommit
+    forAllF { (username: Username, password: HashedPassword, salt: Salt, newPassword: HashedPassword) =>
+      will(cleanUsers) {
+        PostgresUsersStore.make[IO](transactor()).use { store =>
+          for
+            uuid <- store.store(username, password, salt).ccommit
 
-              _ <- condition match
-                case 1 => store.updateUsername(uuid, newUsername).ccommit
-                case 2 => store.updatePassword(uuid, newPassword).ccommit
+            _ <- store.updatePassword(uuid, newPassword).ccommit
 
-              createdAt <- store.fetchCreatedAt(uuid).ccommit
-              updatedAt <- store.fetchUpdatedAt(uuid).ccommit
-              _ <- IO {
-                assert(
-                  updatedAt.isAfter(createdAt),
-                  clue = s"updatedAt=${updatedAt} should be after createdAt=${createdAt}"
-                )
-              }
-            yield ()
-          }
+            createdAt <- store.fetchCreatedAt(uuid).ccommit
+            updatedAt <- store.fetchUpdatedAt(uuid).ccommit
+            _ <- IO {
+              assert(
+                updatedAt.isAfter(createdAt),
+                clue = s"updatedAt=${updatedAt} should be after createdAt=${createdAt}"
+              )
+            }
+          yield ()
         }
+      }
     }
 
 trait PostgresUsersStoreSpecContext:
