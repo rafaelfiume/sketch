@@ -42,12 +42,8 @@ jobs:
           key: v1-dependencies--{{ checksum "build.sbt" }}
 
       - run:
-          name: Run unit tests
-          command: cat /dev/null | sbt test:test
-
-      - run:
-          name: Run integration tests
-          command: cat /dev/null | sbt it:test
+          name: Run unit and integration tests
+          command: cat /dev/null | sbt "test:test; it:test"
 
       - run:
           name: Publish service docker image
