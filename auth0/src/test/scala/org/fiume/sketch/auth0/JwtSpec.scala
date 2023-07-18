@@ -27,8 +27,10 @@ class JwtSpec
     forAllF(ecKeyPairs, users, shortDurations) { case ((privateKey, publicKey), user, expirationOffset) =>
       for
         jwtToken <- JwtToken.createJwtToken[IO](privateKey, user, expirationOffset)
-        result = JwtToken.verifyJwtToken(jwtToken, publicKey).rightValue
-        _ <- IO { assertEquals(result, user) }
+
+        result = JwtToken.verifyJwtToken(jwtToken, publicKey)
+
+        _ <- IO { assertEquals(result.rightValue, user) }
       yield ()
     }
 
@@ -37,8 +39,10 @@ class JwtSpec
       given Clock[IO] = makeFrozenTime(ZonedDateTime.now().minusSeconds(expirationOffset.toSeconds))
       for
         jwtToken <- JwtToken.createJwtToken[IO](privateKey, user, expirationOffset)
-        result = JwtToken.verifyJwtToken(jwtToken, publicKey).leftValue
-        _ <- IO { assert(result.contains("The token is expired since ")) }
+
+        result = JwtToken.verifyJwtToken(jwtToken, publicKey)
+
+        _ <- IO { assert(result.leftValue.getMessage().contains("The token is expired since ")) }
       yield ()
     }
 
@@ -47,7 +51,10 @@ class JwtSpec
       case ((privateKey, _), (_, strangePublicKey), user, expirationOffset) =>
         for
           jwtToken <- JwtToken.createJwtToken[IO](privateKey, user, expirationOffset)
-          result = JwtToken.verifyJwtToken(jwtToken, strangePublicKey).leftValue
-          _ <- IO { assertEquals(result, "Invalid signature for this token or wrong algorithm.") }
+
+          result = JwtToken.verifyJwtToken(jwtToken, strangePublicKey)
+          _ <- IO {
+            assertEquals(result.leftValue.getMessage(), "Invalid signature for this token or wrong algorithm.")
+          }
         yield ()
     }

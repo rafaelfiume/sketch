@@ -2,6 +2,7 @@ package org.fiume.sketch.auth0
 
 import cats.effect.{Clock, IO}
 import munit.{CatsEffectSuite, ScalaCheckEffectSuite}
+import org.fiume.sketch.auth0.Authenticator.*
 import org.fiume.sketch.auth0.test.EcKeysGens
 import org.fiume.sketch.shared.auth0.Model.{Credentials, User, Username}
 import org.fiume.sketch.shared.auth0.Passwords.{HashedPassword, PlainPassword, Salt}
@@ -53,7 +54,7 @@ class AuthenticatorSpec
           authenticator <- Authenticator.make[IO, IO](store, privateKey, publicKey, expirationOffset)
 
           result <- authenticator.authenticate(username, plainPassword.reverse)
-          _ <- IO { assertEquals(result.leftValue, "Invalid password") }
+          _ <- IO { assertEquals(result.leftValue, InvalidPasswordError) }
         yield ()
     }
 
@@ -66,7 +67,7 @@ class AuthenticatorSpec
           authenticator <- Authenticator.make[IO, IO](store, privateKey, publicKey, expirationOffset)
           result <- authenticator.authenticate(username.reverse, plainPassword)
 
-          _ <- IO { assertEquals(result.leftValue, "User not found") }
+          _ <- IO { assertEquals(result.leftValue, UserNotFoundError) }
         yield ()
     }
 
@@ -81,8 +82,8 @@ class AuthenticatorSpec
 
           result = authenticator.verify(jwtToken)
 
-          _ <- IO.println(result)
-          _ <- IO { assert(result.leftValue.contains("The token is expired since")) }
+          _ <- IO { assert(result.leftValue.isInstanceOf[JwtExpirationError]) }
+          _ <- IO { assert(result.leftValue.details.startsWith("The token is expired since")) }
         yield ()
     }
 
@@ -96,7 +97,11 @@ class AuthenticatorSpec
 
           result = authenticator.verify(token.tampered)
 
-          _ <- IO { assertEquals(result.leftValue, "No signature found inside the token while trying to verify it with a key.") }
+          _ <- IO {
+            assertEquals(result.leftValue,
+                         JwtEmptySignatureError("No signature found inside the token while trying to verify it with a key.")
+            )
+          }
         yield ()
     }
 
@@ -110,7 +115,8 @@ class AuthenticatorSpec
 
           result = authenticator.verify(jwtToken.reverse)
 
-          _ <- IO { assert(result.isLeft) } // ugly string message
+          _ <- IO { assert(result.leftValue.isInstanceOf[JwtInvalidTokenError]) }
+          _ <- IO { assert(result.leftValue.details.startsWith("Invalid Jwt token:")) }
         yield ()
     }
 
@@ -124,7 +130,7 @@ class AuthenticatorSpec
 
           result = authenticator.verify(jwtToken)
 
-          _ <- IO { assertEquals(result.leftValue, "Invalid signature for this token or wrong algorithm.") }
+          _ <- IO { assertEquals(result.leftValue, JwtValidationError("Invalid signature for this token or wrong algorithm.")) }
         yield ()
     }
 
@@ -170,14 +176,6 @@ trait UsersStoreContext:
             case (uuid, (storedUsername, hashedPassword, salt)) if storedUsername == username =>
               Credentials(uuid, storedUsername, hashedPassword)
           })
-
-        override def updateUsername(uuid: UUID, user: Username): IO[Unit] =
-          storage.update {
-            _.updatedWith(uuid) {
-              case Some((_, password, salt)) => (user, password, salt).some
-              case None                      => none
-            }
-          }
 
         override def updatePassword(uuid: UUID, password: HashedPassword): IO[Unit] =
           storage.update {

@@ -36,8 +36,6 @@ private class PostgresUsersStore[F[_]: Async] private (l: F ~> ConnectionIO, tx:
   def fetchCredentials(username: Username): ConnectionIO[Option[Credentials]] =
     Statements.selectUserCredential(username).option
 
-  def updateUsername(uuid: UUID, username: Username): ConnectionIO[Unit] = Statements.updateUsername(uuid, username).run.void
-
   def updatePassword(uuid: UUID, password: HashedPassword): ConnectionIO[Unit] =
     Statements.updatePassword(uuid, password).run.void
   def delete(uuid: UUID): ConnectionIO[Unit] = Statements.deleteUser(uuid).run.void
@@ -74,14 +72,6 @@ private object Statements:
          |FROM auth.users
          |WHERE username = $username
     """.stripMargin.query
-
-  def updateUsername(uuid: UUID, username: Username): Update0 =
-    sql"""
-         |UPDATE auth.users
-         |SET
-         |  username = $username
-         |WHERE uuid = $uuid
-    """.stripMargin.update
 
   def updatePassword(uuid: UUID, password: HashedPassword): Update0 =
     sql"""

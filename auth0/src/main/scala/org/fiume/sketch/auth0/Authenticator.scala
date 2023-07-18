@@ -3,21 +3,39 @@ package org.fiume.sketch.auth0
 import cats.FlatMap
 import cats.effect.{Clock, Sync}
 import cats.implicits.*
+import io.circe.ParsingFailure
+import org.fiume.sketch.auth0.Authenticator.*
 import org.fiume.sketch.auth0.JwtToken
 import org.fiume.sketch.shared.auth0.Model.{User, Username}
 import org.fiume.sketch.shared.auth0.Passwords.{HashedPassword, PlainPassword}
 import org.fiume.sketch.shared.auth0.algebras.UsersStore
+import pdi.jwt.exceptions.*
 
 import java.security.{PrivateKey, PublicKey}
 import scala.concurrent.ExecutionContext
 import scala.concurrent.duration.Duration
+import scala.util.control.NoStackTrace
 
 trait Authenticator[F[_]]:
-  // TODO More refined error types than String
-  def authenticate(username: Username, password: PlainPassword): F[Either[String, JwtToken]]
-  def verify(jwtToken: JwtToken): Either[String, User]
+  def authenticate(username: Username, password: PlainPassword): F[Either[AuthenticationError, JwtToken]]
+  def verify(jwtToken: JwtToken): Either[AuthenticationError, User]
 
 object Authenticator:
+  sealed trait AuthenticationError extends Throwable with NoStackTrace:
+    def details: String
+
+  case object UserNotFoundError extends AuthenticationError:
+    override def details: String = "User not found"
+
+  case object InvalidPasswordError extends AuthenticationError:
+    override def details: String = "Invalid password"
+
+  case class JwtExpirationError(details: String) extends AuthenticationError
+  case class JwtEmptySignatureError(details: String) extends AuthenticationError
+  case class JwtInvalidTokenError(details: String) extends AuthenticationError
+  case class JwtValidationError(details: String) extends AuthenticationError
+  case class JwtUnknownError(details: String) extends AuthenticationError
+
   def make[F[_], Txn[_]: FlatMap](
     store: UsersStore[F, Txn],
     privateKey: PrivateKey,
@@ -25,18 +43,26 @@ object Authenticator:
     expirationOffset: Duration
   )(using F: Sync[F], clock: Clock[F]): F[Authenticator[F]] = F.delay {
     new Authenticator[F]:
-      override def authenticate(username: Username, password: PlainPassword): F[Either[String, JwtToken]] =
+      override def authenticate(username: Username, password: PlainPassword): F[Either[AuthenticationError, JwtToken]] =
         for
           credentials <- store.commit { store.fetchCredentials(username) } // TODO User ccommit syntax
           jwtToken <- credentials match
             case None =>
-              Sync[F].pure(Left("User not found"))
+              UserNotFoundError.asLeft.pure[F]
             case Some(creds) =>
               if HashedPassword.verifyPassword(password, creds.hashedPassword) then
                 JwtToken.createJwtToken(privateKey, User(creds.uuid, username), expirationOffset)(using F, clock).map(_.asRight)
-              else Sync[F].pure(Left("Invalid password"))
+              else InvalidPasswordError.asLeft.pure[F]
         yield jwtToken
 
-      override def verify(jwtToken: JwtToken): Either[String, User] =
-        JwtToken.verifyJwtToken(jwtToken, publicKey)
+      override def verify(jwtToken: JwtToken): Either[AuthenticationError, User] =
+        JwtToken.verifyJwtToken(jwtToken, publicKey).leftMap(mapJwtErrors)
+
+      private def mapJwtErrors(jwtError: Throwable): AuthenticationError =
+        jwtError match
+          case e: JwtEmptySignatureException => JwtEmptySignatureError(e.getMessage)
+          case e: ParsingFailure         => JwtInvalidTokenError(s"Invalid Jwt token: ${e.getMessage}")
+          case e: JwtValidationException => JwtValidationError(e.getMessage)
+          case e: JwtExpirationException => JwtExpirationError(e.getMessage)
+          case e                         => JwtUnknownError(e.getMessage)
   }

@@ -36,13 +36,13 @@ private[auth0] object JwtToken:
       )
     yield new JwtToken(value = JwtCirce.encode(claim, privateKey, JwtAlgorithm.ES256)) {}
 
-  def verifyJwtToken(token: JwtToken, publicKey: PublicKey): Either[String, User] =
+  def verifyJwtToken(token: JwtToken, publicKey: PublicKey): Either[Throwable, User] =
     for
-      claims <- (JwtCirce.decode(token.value, publicKey, Seq(JwtAlgorithm.ES256)).toEither.leftMap(_.getMessage))
+      claims <- JwtCirce.decode(token.value, publicKey, Seq(JwtAlgorithm.ES256)).toEither
       uuid <- claims.subject
-        .toRight("subject is missing")
-        .flatMap(value => Try(UUID.fromString(value)).toEither.leftMap(_.getMessage))
-      content <- parse(claims.content).flatMap(_.as[Content]).leftMap(_.getMessage)
+        .toRight(new RuntimeException("verifyJwtToken: subject is missing"))
+        .flatMap(value => Try(UUID.fromString(value)).toEither)
+      content <- parse(claims.content).flatMap(_.as[Content])
     yield User(uuid, content.preferredUsername)
 
   def unsafeFromString(value: String): JwtToken = new JwtToken(value) {}
