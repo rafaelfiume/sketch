@@ -4,9 +4,9 @@
 
 Endpoits should be protected:
  * Only authenticated and authorisaded clients and users should be able to access resources
- * Ensures the request body is under a specific length. See [EntityLimiter]I(https://http4s.org/v1/docs/server-middleware.html#entitylimiter)
- * Limit the number of active requests? Perhaps by business? See [MaxActiveRequests](https://http4s.org/v1/docs/server-middleware.html#maxactiverequests) or [Throttle](https://http4s.org/v1/docs/server-middleware.html#maxactiverequests)
- * 
+ * Authentication endpoints should have rate limiting and brute-force protection
+ * See [MaxActiveRequests](https://http4s.org/v1/docs/server-middleware.html#maxactiverequests) or [Throttle](https://http4s.org/v1/docs/server-middleware.html#maxactiverequests)
+ * [EntityLimiter]I(https://http4s.org/v1/docs/server-middleware.html#entitylimiter) ensures the request body is under a specific length. Could be useful to prevent huge documents being uploaded to the storage.
 
 ## Metrics
 

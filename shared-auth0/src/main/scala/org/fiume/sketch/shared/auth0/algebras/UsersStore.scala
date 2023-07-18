@@ -11,6 +11,5 @@ trait UsersStore[F[_], Txn[_]] extends Store[F, Txn]:
   def fetchUser(uuid: UUID): Txn[Option[User]]
   def fetchCredentials(username: Username): Txn[Option[Credentials]]
   def updateUsername(uuid: UUID, user: Username): Txn[Unit] // Is there a use case for updating username?
-  // Salt must be retained and used during password update. One for the service layer.
   def updatePassword(uuid: UUID, password: HashedPassword): Txn[Unit]
   def delete(uuid: UUID): Txn[Unit]

@@ -19,6 +19,7 @@ object Model:
     uuid: UUID,
     username: Username,
     hashedPassword: HashedPassword
+    // salt: Salt
   )
 
   given Show[UUID] = Show.fromToString

@@ -132,8 +132,7 @@ trait AuthenticatorSpecContext:
   extension (plainPassword: PlainPassword)
     def reverse: PlainPassword = PlainPassword.unsafeFromString(plainPassword.value.reverse)
 
-  extension (username: Username)
-    def reverse: Username = Username(username.value.reverse)
+  extension (username: Username) def reverse: Username = Username(username.value.reverse)
 
   extension (token: JwtToken)
     def reverse: JwtToken = JwtToken.unsafeFromString(token.value.reverse)
