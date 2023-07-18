@@ -31,7 +31,7 @@ class AuthenticatorSpec
   override def scalaCheckTestParameters =
     super.scalaCheckTestParameters.withMinSuccessfulTests(1)
 
-  test("authenticate and verify user with valid credentials".ignore):
+  test("authenticate and verify user with valid credentials"):
     forAllF(usersAuthenticationInfo, ecKeyPairs, shortDurations) {
       case ((uuid, username, plainPassword, hashedPassword, salt), (privateKey, publicKey), expirationOffset) =>
         for
