@@ -38,7 +38,7 @@ private[auth0] object JwtToken:
 
   def verifyJwtToken(token: JwtToken, publicKey: PublicKey): Either[Throwable, User] =
     for
-      claims <- (JwtCirce.decode(token.value, publicKey, Seq(JwtAlgorithm.ES256)).toEither)
+      claims <- JwtCirce.decode(token.value, publicKey, Seq(JwtAlgorithm.ES256)).toEither
       uuid <- claims.subject
         .toRight(new RuntimeException("verifyJwtToken: subject is missing"))
         .flatMap(value => Try(UUID.fromString(value)).toEither)

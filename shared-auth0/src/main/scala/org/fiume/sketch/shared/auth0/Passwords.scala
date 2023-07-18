@@ -87,6 +87,7 @@ object Passwords:
   object Salt:
     val logRounds = 12
 
+    /* Suspend the effect of being randomly generated */
     def generate[F[_]]()(using F: Sync[F]): F[Salt] = F.delay { BCrypt.gensalt(logRounds) }.map(Salt.unsafeFromString)
 
     def unsafeFromString(base64Value: String): Salt = new Salt(base64Value) {}

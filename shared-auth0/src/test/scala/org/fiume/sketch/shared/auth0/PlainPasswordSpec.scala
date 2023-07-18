@@ -103,7 +103,7 @@ class PlainPasswordSpec extends ScalaCheckSuite with PasswordsGens:
     given Arbitrary[PlainPassword] = Arbitrary(
       (plainPasswords, whitespaces, invalidSpecialChars, invalidChars).mapN {
         case (password, whitespace, invalidSpeciaChar, invalidChar) =>
-          password.modify { value => (Random.shuffle(value + whitespace :+ invalidSpeciaChar :+ invalidChar).mkString) }
+          password.modify { value => Random.shuffle(value + whitespace :+ invalidSpeciaChar :+ invalidChar).mkString }
       }
     )
     forAll { (withInvalidChar: PlainPassword) =>
