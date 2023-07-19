@@ -31,6 +31,8 @@ class DocumentsRoutes[F[_]: Async, Txn[_]](store: DocumentsStore[F, Txn]) extend
 
   private val prefix = "/"
 
+  def router(): HttpRoutes[F] = Router(prefix -> httpRoutes)
+
   private val httpRoutes: HttpRoutes[F] =
     HttpRoutes.of[F] {
       /*
@@ -94,8 +96,6 @@ class DocumentsRoutes[F[_]: Async, Txn[_]](store: DocumentsStore[F, Txn]) extend
                 NoContent()
         yield res
     }
-
-  val routes: HttpRoutes[F] = Router(prefix -> httpRoutes)
 
 private[http] object DocumentsRoutes:
   extension [F[_]: MonadThrow: Concurrent](m: Multipart[F])

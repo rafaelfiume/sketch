@@ -45,6 +45,7 @@ private[auth0] object JwtToken:
       content <- parse(claims.content).flatMap(_.as[Content])
     yield User(uuid, content.preferredUsername)
 
+  // TODO Rename it to noValidationFromString ?
   def unsafeFromString(value: String): JwtToken = new JwtToken(value) {}
 
   // see https://www.iana.org/assignments/jwt/jwt.xhtml

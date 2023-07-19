@@ -39,7 +39,7 @@ class HealthStatusRoutesSpec
     forAllF { (version: Version) =>
       for
         jsonResponse <- send(GET(uri"/ping"))
-          .to(new HealthStatusRoutes[IO](makeVersions(returning = version), makeHealthCheck()).routes)
+          .to(new HealthStatusRoutes[IO](makeVersions(returning = version), makeHealthCheck()).router())
           .expectJsonResponseWith(Status.Ok)
         _ <- IO {
           assertEquals(jsonResponse.as[String].rightValue, "pong")
@@ -53,7 +53,7 @@ class HealthStatusRoutesSpec
     forAllF { (version: Version, healthy: ServiceHealth) =>
       for
         jsonResponse <- send(GET(uri"/status"))
-          .to(new HealthStatusRoutes[IO](makeVersions(returning = version), makeHealthCheck(healthy)).routes)
+          .to(new HealthStatusRoutes[IO](makeVersions(returning = version), makeHealthCheck(healthy)).router())
           .expectJsonResponseWith(Status.Ok)
         _ <- IO {
           assertEquals(jsonResponse.as[ServiceStatus].rightValue, ServiceStatus(version, healthy))
@@ -72,7 +72,7 @@ class HealthStatusRoutesSpec
             new HealthStatusRoutes[IO](
               makeVersions(returning = version),
               makeHealthCheck(faulty)
-            ).routes
+            ).router()
           )
           .expectJsonResponseWith(Status.Ok)
         _ <- IO {

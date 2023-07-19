@@ -8,6 +8,8 @@ import org.scalacheck.{Arbitrary, Gen}
 
 import java.util.UUID
 
+object UserGens extends UserGens
+
 trait UserGens:
 
   given Arbitrary[Username] = Arbitrary(usernames)

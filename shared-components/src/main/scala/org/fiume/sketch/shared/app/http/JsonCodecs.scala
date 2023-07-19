@@ -12,30 +12,9 @@ import org.fiume.sketch.shared.app.http.Model.{ErrorCode, ErrorDetails, ErrorInf
 import java.time.ZonedDateTime
 
 object JsonCodecs:
-  object ServiceStatusCodecs:
-    given Encoder[ServiceHealth.Infra] = Encoder.encodeString.contramap(_.toString)
-    given Decoder[ServiceHealth.Infra] = Decoder.decodeString.map(ServiceHealth.Infra.valueOf(_))
-    given Codec.AsObject[ServiceHealth] = Codec.codecForEither("Fail", "Ok")
-
-    given Encoder[ServiceStatus] = new Encoder[ServiceStatus]:
-      override def apply(service: ServiceStatus): Json =
-        Json.obj(
-          "build" -> service.version.build.asJson,
-          "commit" -> service.version.commit.asJson,
-          "health" -> service.health.asJson
-        )
-
-    given Decoder[ServiceStatus] = new Decoder[ServiceStatus]:
-      override def apply(c: HCursor): Result[ServiceStatus] =
-        for
-          build <- c.downField("build").as[String]
-          commit <- c.downField("commit").as[String]
-          health <- c.downField("health").as[ServiceHealth]
-        yield ServiceStatus(Version(build, commit), health)
-
   object ErrorInfoCodecs:
-    given Encoder[ErrorCode] = Encoder.encodeString.contramap(_.value)
-    given Decoder[ErrorCode] = Decoder.decodeString.map(ErrorCode.apply)
+    given Encoder[ErrorCode] = Encoder.encodeString.contramap(_.toString)
+    given Decoder[ErrorCode] = Decoder.decodeString.map(ErrorCode.valueOf(_))
 
     given Encoder[ErrorMessage] = Encoder.encodeString.contramap(_.value)
     given Decoder[ErrorMessage] = Decoder.decodeString.map(ErrorMessage.apply)
@@ -60,3 +39,24 @@ object JsonCodecs:
           details <- c.downField("details").as[Option[ErrorDetails]]
           timestamp <- c.downField("timestamp").as[Option[ZonedDateTime]]
         yield ErrorInfo(code, message, details, timestamp)
+
+  object ServiceStatusCodecs:
+    given Encoder[ServiceHealth.Infra] = Encoder.encodeString.contramap(_.toString)
+    given Decoder[ServiceHealth.Infra] = Decoder.decodeString.map(ServiceHealth.Infra.valueOf(_))
+    given Codec.AsObject[ServiceHealth] = Codec.codecForEither("Fail", "Ok")
+
+    given Encoder[ServiceStatus] = new Encoder[ServiceStatus]:
+      override def apply(service: ServiceStatus): Json =
+        Json.obj(
+          "build" -> service.version.build.asJson,
+          "commit" -> service.version.commit.asJson,
+          "health" -> service.health.asJson
+        )
+
+    given Decoder[ServiceStatus] = new Decoder[ServiceStatus]:
+      override def apply(c: HCursor): Result[ServiceStatus] =
+        for
+          build <- c.downField("build").as[String]
+          commit <- c.downField("commit").as[String]
+          health <- c.downField("health").as[ServiceHealth]
+        yield ServiceStatus(Version(build, commit), health)

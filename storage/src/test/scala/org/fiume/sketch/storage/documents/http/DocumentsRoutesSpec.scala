@@ -25,7 +25,7 @@ import org.http4s.client.dsl.io.*
 import org.http4s.headers.`Content-Type`
 import org.http4s.implicits.*
 import org.http4s.multipart.{Boundary, Multipart, Part}
-import org.scalacheck.{Shrink, ShrinkLowPriority}
+import org.scalacheck.ShrinkLowPriority
 import org.scalacheck.effect.PropF.forAllF
 
 import java.util.UUID
@@ -55,7 +55,7 @@ class DocumentsRoutesSpec
         store <- makeDocumentsStore()
 
         jsonResponse <- send(request)
-          .to(new DocumentsRoutes[IO, IO](store).routes)
+          .to(new DocumentsRoutes[IO, IO](store).router())
           .expectJsonResponseWith(Status.Created)
 
         storedMetadata <- store.fetchMetadata(jsonResponse.as[UUID].rightValue)
@@ -78,7 +78,7 @@ class DocumentsRoutesSpec
         store <- makeDocumentsStore(state = document)
 
         jsonResponse <- send(request)
-          .to(new DocumentsRoutes[IO, IO](store).routes)
+          .to(new DocumentsRoutes[IO, IO](store).router())
           .expectJsonResponseWith(Status.Ok)
 
         _ <- IO {
@@ -95,7 +95,7 @@ class DocumentsRoutesSpec
         store <- makeDocumentsStore(state = document)
 
         contentStream <- send(request)
-          .to(new DocumentsRoutes[IO, IO](store).routes)
+          .to(new DocumentsRoutes[IO, IO](store).router())
           .expectByteStreamResponseWith(Status.Ok)
 
         obtainedStream <- contentStream.compile.toList
@@ -114,7 +114,7 @@ class DocumentsRoutesSpec
         store <- makeDocumentsStore(state = document)
 
         _ <- send(request)
-          .to(new DocumentsRoutes[IO, IO](store).routes)
+          .to(new DocumentsRoutes[IO, IO](store).router())
           .expectEmptyResponseWith(Status.NoContent)
 
         stored <- IO.both(
@@ -143,7 +143,7 @@ class DocumentsRoutesSpec
         store <- makeDocumentsStore()
 
         jsonResponse <- send(request)
-          .to(new DocumentsRoutes[IO, IO](store).routes)
+          .to(new DocumentsRoutes[IO, IO](store).router())
           .expectJsonResponseWith(Status.BadRequest)
 
         _ <- IO {
@@ -166,7 +166,7 @@ class DocumentsRoutesSpec
       store <- makeDocumentsStore()
 
       jsonResponse <- send(request)
-        .to(new DocumentsRoutes[IO, IO](store).routes)
+        .to(new DocumentsRoutes[IO, IO](store).router())
         .expectJsonResponseWith(Status.BadRequest)
 
       _ <- IO {
@@ -189,7 +189,7 @@ class DocumentsRoutesSpec
       store <- makeDocumentsStore()
 
       jsonResponse <- send(request)
-        .to(new DocumentsRoutes[IO, IO](store).routes)
+        .to(new DocumentsRoutes[IO, IO](store).router())
         .expectJsonResponseWith(Status.BadRequest)
 
       _ <- IO {
@@ -204,7 +204,7 @@ class DocumentsRoutesSpec
       for
         store <- makeDocumentsStore()
         _ <- send(request)
-          .to(new DocumentsRoutes[IO, IO](store).routes)
+          .to(new DocumentsRoutes[IO, IO](store).router())
           .expectEmptyResponseWith(Status.NotFound)
       yield ()
     }

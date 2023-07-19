@@ -14,6 +14,8 @@ import org.http4s.server.Router
 class HealthStatusRoutes[F[_]: MonadThrow](versions: Versions[F], healthCheck: HealthCheck[F]) extends Http4sDsl[F]:
   private val prefix = "/"
 
+  def router(): HttpRoutes[F] = Router(prefix -> httpRoutes)
+
   private val httpRoutes: HttpRoutes[F] =
     HttpRoutes.of[F] {
       case (GET | HEAD) -> Root / "ping" =>
@@ -26,5 +28,3 @@ class HealthStatusRoutes[F[_]: MonadThrow](versions: Versions[F], healthCheck: H
           resp <- Ok(ServiceStatus(version, health))
         yield resp
     }
-
-  val routes: HttpRoutes[F] = Router(prefix -> httpRoutes)
