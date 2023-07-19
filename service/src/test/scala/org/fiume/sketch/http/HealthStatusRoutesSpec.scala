@@ -14,7 +14,7 @@ import org.fiume.sketch.shared.app.algebras.{HealthCheck, Versions}
 import org.fiume.sketch.shared.app.algebras.HealthCheck.ServiceHealth
 import org.fiume.sketch.shared.app.algebras.HealthCheck.ServiceHealth.Infra
 import org.fiume.sketch.shared.app.algebras.Versions.Version
-import org.fiume.sketch.shared.app.http.JsonCodecs.given
+import org.fiume.sketch.shared.app.http.JsonCodecs.ServiceStatusCodecs.given
 import org.fiume.sketch.shared.test.{FileContentContext, Http4sTestingRoutesDsl}
 import org.fiume.sketch.shared.test.EitherSyntax.*
 import org.fiume.sketch.shared.test.Gens.Lists.*

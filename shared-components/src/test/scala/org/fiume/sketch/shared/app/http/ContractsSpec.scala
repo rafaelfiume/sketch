@@ -8,7 +8,7 @@ import io.circe.parser.{decode, parse}
 import io.circe.syntax.*
 import munit.{CatsEffectSuite, ScalaCheckEffectSuite}
 import org.fiume.sketch.shared.app.ServiceStatus
-import org.fiume.sketch.shared.app.http.JsonCodecs.given
+import org.fiume.sketch.shared.app.http.JsonCodecs.ServiceStatusCodecs.given
 import org.fiume.sketch.shared.test.EitherSyntax.*
 import org.fiume.sketch.shared.test.FileContentContext
 import org.scalacheck.Gen
