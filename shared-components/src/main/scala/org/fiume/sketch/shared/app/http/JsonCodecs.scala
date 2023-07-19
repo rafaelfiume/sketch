@@ -7,6 +7,9 @@ import org.fiume.sketch.shared.app.ServiceStatus
 import org.fiume.sketch.shared.app.algebras.HealthCheck.ServiceHealth
 import org.fiume.sketch.shared.app.algebras.Versions
 import org.fiume.sketch.shared.app.algebras.Versions.Version
+import org.fiume.sketch.shared.app.http.Model.{ErrorCode, ErrorDetails, ErrorInfo, ErrorMessage}
+
+import java.time.ZonedDateTime
 
 object JsonCodecs:
   object ServiceStatusCodecs:
@@ -29,3 +32,31 @@ object JsonCodecs:
           commit <- c.downField("commit").as[String]
           health <- c.downField("health").as[ServiceHealth]
         yield ServiceStatus(Version(build, commit), health)
+
+  object ErrorInfoCodecs:
+    given Encoder[ErrorCode] = Encoder.encodeString.contramap(_.value)
+    given Decoder[ErrorCode] = Decoder.decodeString.map(ErrorCode.apply)
+
+    given Encoder[ErrorMessage] = Encoder.encodeString.contramap(_.value)
+    given Decoder[ErrorMessage] = Decoder.decodeString.map(ErrorMessage.apply)
+
+    given Encoder[ErrorDetails] = Encoder.encodeString.contramap(_.value)
+    given Decoder[ErrorDetails] = Decoder.decodeString.map(ErrorDetails.apply)
+
+    given Encoder[ErrorInfo] = new Encoder[ErrorInfo]:
+      override def apply(errorInfo: ErrorInfo): Json =
+        Json.obj(
+          "code" -> errorInfo.code.asJson,
+          "message" -> errorInfo.message.asJson,
+          "details" -> errorInfo.details.asJson,
+          "timestamp" -> errorInfo.timestamp.asJson
+        )
+
+    given Decoder[ErrorInfo] = new Decoder[ErrorInfo]:
+      override def apply(c: HCursor): Result[ErrorInfo] =
+        for
+          code <- c.downField("code").as[ErrorCode]
+          message <- c.downField("message").as[ErrorMessage]
+          details <- c.downField("details").as[Option[ErrorDetails]]
+          timestamp <- c.downField("timestamp").as[Option[ZonedDateTime]]
+        yield ErrorInfo(code, message, details, timestamp)

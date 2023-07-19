@@ -7,7 +7,7 @@ import io.circe.Json
 import io.circe.syntax.*
 import munit.{CatsEffectSuite, ScalaCheckEffectSuite}
 import munit.Assertions.*
-import org.fiume.sketch.shared.test.{FileContentContext, Http4sTestingRoutesDsl}
+import org.fiume.sketch.shared.test.{ContractContext, FileContentContext, Http4sTestingRoutesDsl}
 import org.fiume.sketch.shared.test.EitherSyntax.*
 import org.fiume.sketch.storage.documents.Model.{Document, Metadata}
 import org.fiume.sketch.storage.documents.algebras.DocumentsStore
@@ -34,7 +34,7 @@ class DocumentsRoutesSpec
     extends CatsEffectSuite
     with ScalaCheckEffectSuite
     with Http4sTestingRoutesDsl
-    with FileContentContext
+    with ContractContext
     with DocumentsStoreContext
     with ShrinkLowPriority:
 
@@ -209,6 +209,15 @@ class DocumentsRoutesSpec
       yield ()
     }
   }
+
+  /*
+   * Contracts
+   */
+
+  test("bijective relationship between encoded and decoded Documents.Metadata"):
+    assertBijectiveRelationshipBetweenEncoderAndDecoder[Metadata](
+      "contract/documents/http/metadata.json"
+    )
 
   /* Validation */
 

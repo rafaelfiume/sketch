@@ -1,0 +1,6 @@
+{
+  "code": "InvalidCredentials",
+  "details": null,
+  "message": "The username or password provided is incorrect.",
+  "timestamp": null
+}

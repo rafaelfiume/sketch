@@ -4,10 +4,6 @@ import cats.Applicative
 import cats.data.NonEmptyList
 import cats.effect.IO
 import cats.implicits.*
-import io.circe.{Decoder, HCursor}
-import io.circe.Decoder.Result
-import io.circe.parser.decode
-import io.circe.syntax.*
 import munit.{CatsEffectSuite, ScalaCheckEffectSuite}
 import org.fiume.sketch.shared.app.ServiceStatus
 import org.fiume.sketch.shared.app.algebras.{HealthCheck, Versions}
@@ -15,9 +11,9 @@ import org.fiume.sketch.shared.app.algebras.HealthCheck.ServiceHealth
 import org.fiume.sketch.shared.app.algebras.HealthCheck.ServiceHealth.Infra
 import org.fiume.sketch.shared.app.algebras.Versions.Version
 import org.fiume.sketch.shared.app.http.JsonCodecs.ServiceStatusCodecs.given
-import org.fiume.sketch.shared.test.{FileContentContext, Http4sTestingRoutesDsl}
 import org.fiume.sketch.shared.test.EitherSyntax.*
 import org.fiume.sketch.shared.test.Gens.Lists.*
+import org.fiume.sketch.shared.test.Http4sTestingRoutesDsl
 import org.fiume.sketch.test.support.SketchGens.given
 import org.http4s.Method.*
 import org.http4s.Status
@@ -35,7 +31,6 @@ class HealthStatusRoutesSpec
     with Http4sTestingRoutesDsl
     with VersionsContext
     with HealthCheckContext
-    with FileContentContext
     with ShrinkLowPriority:
 
   override def scalaCheckTestParameters = super.scalaCheckTestParameters.withMinSuccessfulTests(3)
