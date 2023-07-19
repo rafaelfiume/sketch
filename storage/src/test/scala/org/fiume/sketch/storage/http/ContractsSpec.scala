@@ -2,8 +2,6 @@ package org.fiume.sketch.storage.http
 
 import cats.effect.IO
 import cats.implicits.*
-import io.circe.{Decoder, HCursor}
-import io.circe.Decoder.Result
 import io.circe.parser.{decode, parse}
 import io.circe.syntax.*
 import munit.CatsEffectSuite

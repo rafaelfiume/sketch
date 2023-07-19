@@ -61,8 +61,8 @@ object Authenticator:
       private def mapJwtErrors(jwtError: Throwable): AuthenticationError =
         jwtError match
           case e: JwtEmptySignatureException => JwtEmptySignatureError(e.getMessage)
-          case e: ParsingFailure         => JwtInvalidTokenError(s"Invalid Jwt token: ${e.getMessage}")
-          case e: JwtValidationException => JwtValidationError(e.getMessage)
-          case e: JwtExpirationException => JwtExpirationError(e.getMessage)
-          case e                         => JwtUnknownError(e.getMessage)
+          case e: ParsingFailure             => JwtInvalidTokenError(s"Invalid Jwt token: ${e.getMessage}")
+          case e: JwtValidationException     => JwtValidationError(e.getMessage)
+          case e: JwtExpirationException     => JwtExpirationError(e.getMessage)
+          case e                             => JwtUnknownError(e.getMessage)
   }
