@@ -3,7 +3,6 @@ package org.fiume.sketch.shared.auth0.test
 import org.fiume.sketch.shared.auth0.Model.{Credentials, User, Username}
 import org.fiume.sketch.shared.auth0.Passwords.{HashedPassword, PlainPassword, Salt}
 import org.fiume.sketch.shared.auth0.test.PasswordsGens.*
-import org.fiume.sketch.shared.test.Gens
 import org.scalacheck.{Arbitrary, Gen}
 
 import java.util.UUID
@@ -13,7 +12,14 @@ object UserGens extends UserGens
 trait UserGens:
 
   given Arbitrary[Username] = Arbitrary(usernames)
-  def usernames: Gen[Username] = Gens.Strings.alphaNumString(6, 60).map(Username(_))
+  def usernames: Gen[Username] = Gen
+    .choose(Username.minLength, Username.maxLength)
+    .flatMap { usernamesWithSize(_) }
+
+  def usernamesWithSize(size: Int): Gen[Username] = Gen
+    .listOfN(size, Gen.oneOf(Gen.alphaNumChar, Gen.const("_"), Gen.const("-")))
+    .map(_.mkString)
+    .map(Username.notValidatedFromString)
 
   given Arbitrary[User] = Arbitrary(users)
   def users: Gen[User] =

@@ -14,6 +14,6 @@ private[postgres] object DoobieMappings:
 
   given Meta[Salt] = Meta[String].timap(Salt.unsafeFromString)(_.base64Value)
 
-  given Meta[Username] = Meta[String].timap(Username.apply)(_.value)
+  given Meta[Username] = Meta[String].timap(Username.notValidatedFromString)(_.value)
 
   given Read[User] = Read[(UUID, Username)].map { case (uuid, username) => User(uuid, username) }

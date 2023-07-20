@@ -35,7 +35,7 @@ object JsonCodecs:
 
   object UserCodecs:
     given Encoder[Username] = Encoder.encodeString.contramap(_.value)
-    given Decoder[Username] = Decoder.decodeString.map(Username.apply)
+    given Decoder[Username] = Decoder.decodeString.map(Username.notValidatedFromString)
 
   object PasswordCodecs:
     given Encoder[PlainPassword] = Encoder.encodeString.contramap(_.value)

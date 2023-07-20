@@ -124,7 +124,8 @@ trait AuthRoutesSpecContext:
   extension (loginRequest: LoginRequest)
     def withInvalidPassword: LoginRequest =
       loginRequest.copy(password = PlainPassword.unsafeFromString(loginRequest.password.value.reverse))
-    def withInvalidUsername: LoginRequest = loginRequest.copy(username = Username(loginRequest.username.value.reverse))
+    def withInvalidUsername: LoginRequest =
+      loginRequest.copy(username = Username.notValidatedFromString(loginRequest.username.value.reverse))
 
   given Arbitrary[(User, LoginRequest)] = Arbitrary(loginRequests)
   def loginRequests: Gen[(User, LoginRequest)] =

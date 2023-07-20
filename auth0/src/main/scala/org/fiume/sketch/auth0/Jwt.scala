@@ -45,7 +45,7 @@ private[auth0] object JwtToken:
       content <- parse(claims.content).flatMap(_.as[Content])
     yield User(uuid, content.preferredUsername)
 
-  // TODO Rename it to noValidationFromString ?
+  // TODO Rename it to notValidatedFromString ?
   def unsafeFromString(value: String): JwtToken = new JwtToken(value) {}
 
   // see https://www.iana.org/assignments/jwt/jwt.xhtml
@@ -59,4 +59,4 @@ private[auth0] object JwtToken:
 
     given Decoder[Content] = new Decoder[Content]:
       final def apply(c: HCursor): Decoder.Result[Content] =
-        c.downField("preferred_username").as[String].map(value => Content(Username(value)))
+        c.downField("preferred_username").as[String].map(value => Content(Username.notValidatedFromString(value)))
