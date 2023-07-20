@@ -3,18 +3,18 @@ package org.fiume.sketch.shared.app.http
 import io.circe.{Codec, Decoder, Encoder, HCursor, Json}
 import io.circe.Decoder.Result
 import io.circe.syntax.*
-import org.fiume.sketch.shared.app.ServiceStatus
+import org.fiume.sketch.shared.app.{ErrorCode, ServiceStatus}
 import org.fiume.sketch.shared.app.algebras.HealthCheck.ServiceHealth
 import org.fiume.sketch.shared.app.algebras.Versions
 import org.fiume.sketch.shared.app.algebras.Versions.Version
-import org.fiume.sketch.shared.app.http.Model.{ErrorCode, ErrorDetails, ErrorInfo, ErrorMessage}
+import org.fiume.sketch.shared.app.http.Model.{ErrorDetails, ErrorInfo, ErrorMessage}
 
 import java.time.ZonedDateTime
 
 object JsonCodecs:
   object ErrorInfoCodecs:
-    given Encoder[ErrorCode] = Encoder.encodeString.contramap(_.toString)
-    given Decoder[ErrorCode] = Decoder.decodeString.map(ErrorCode.valueOf(_))
+    given Encoder[ErrorCode] = Encoder.encodeString.contramap(errorCodeToHumanString)
+    given Decoder[ErrorCode] = Decoder.decodeString.map(humanStringToErrorCode)
 
     given Encoder[ErrorMessage] = Encoder.encodeString.contramap(_.value)
     given Decoder[ErrorMessage] = Decoder.decodeString.map(ErrorMessage.apply)
@@ -39,6 +39,10 @@ object JsonCodecs:
           details <- c.downField("details").as[Option[ErrorDetails]]
           timestamp <- c.downField("timestamp").as[Option[ZonedDateTime]]
         yield ErrorInfo(code, message, details, timestamp)
+
+    /* To be included in the response body when an error occurs */
+    private val errorCodeToHumanString: Map[ErrorCode, String] = Map(ErrorCode.InvalidCredentials -> "INVALID_CREDENTIALS")
+    private val humanStringToErrorCode: Map[String, ErrorCode] = errorCodeToHumanString.map(_.swap)
 
   object ServiceStatusCodecs:
     given Encoder[ServiceHealth.Infra] = Encoder.encodeString.contramap(_.toString)

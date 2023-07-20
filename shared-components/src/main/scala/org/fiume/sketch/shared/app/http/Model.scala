@@ -1,11 +1,11 @@
 package org.fiume.sketch.shared.app.http
 
+import org.fiume.sketch.shared.app.ErrorCode
+import org.fiume.sketch.shared.app.ErrorCode.*
+
 import java.time.ZonedDateTime
 
 object Model:
-  enum ErrorCode:
-    case INVALID_CREDENTIALS
-
   case class ErrorMessage(value: String) extends AnyVal
   case class ErrorDetails(value: String) extends AnyVal
   case class ErrorInfo(code: ErrorCode, message: ErrorMessage, details: Option[ErrorDetails], timestamp: Option[ZonedDateTime])

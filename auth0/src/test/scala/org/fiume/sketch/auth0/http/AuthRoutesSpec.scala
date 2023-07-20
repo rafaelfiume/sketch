@@ -6,9 +6,9 @@ import munit.{CatsEffectSuite, ScalaCheckEffectSuite}
 import org.fiume.sketch.auth0.{AuthenticationError, Authenticator, InvalidPasswordError, JwtToken, UserNotFoundError}
 import org.fiume.sketch.auth0.http.AuthRoutes.Model.{LoginRequest, LoginResponse}
 import org.fiume.sketch.auth0.http.JsonCodecs.RequestResponsesCodecs.given
+import org.fiume.sketch.shared.app.ErrorCode.InvalidCredentials
 import org.fiume.sketch.shared.app.http.JsonCodecs.ErrorInfoCodecs.given
 import org.fiume.sketch.shared.app.http.Model.{ErrorInfo, ErrorMessage}
-import org.fiume.sketch.shared.app.http.Model.ErrorCode.INVALID_CREDENTIALS
 import org.fiume.sketch.shared.auth0.Model.{User, Username}
 import org.fiume.sketch.shared.auth0.Passwords.PlainPassword
 import org.fiume.sketch.shared.auth0.test.PasswordsGens.*
@@ -76,7 +76,7 @@ class AuthRoutesSpec
           assertEquals(
             jsonResponse.as[ErrorInfo].rightValue,
             ErrorInfo(
-              code = INVALID_CREDENTIALS,
+              code = InvalidCredentials,
               message = ErrorMessage("The username or password provided is incorrect.")
             )
           )
@@ -103,7 +103,7 @@ class AuthRoutesSpec
           assertEquals(
             jsonResponse.as[ErrorInfo].rightValue,
             ErrorInfo(
-              code = INVALID_CREDENTIALS,
+              code = InvalidCredentials,
               message = ErrorMessage("The username or password provided is incorrect.")
             )
           )
@@ -112,7 +112,7 @@ class AuthRoutesSpec
     }
 
   /*
-   * Contracts
+   * ContractSpec
    */
 
   test("bijective relationship between decoded and encoded LoginResponse"):
@@ -139,6 +139,7 @@ trait AuthRoutesSpecContext:
       "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiaWF0IjoxNTE2MjM5MDIyfQ.SflKxwRJSMeKKF2QT4fwpMeJf36POk6yJV_adQssw5c"
     )
     .map(JwtToken.unsafeFromString)
+
 trait AuthenticatorContext:
   def makeAuthenticator(signee: (User, PlainPassword), signeeAuthToken: JwtToken): IO[Authenticator[IO]] = IO.delay {
     new Authenticator[IO]:
