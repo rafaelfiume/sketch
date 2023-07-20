@@ -186,6 +186,7 @@ lazy val sharedTestComponents =
        libraryDependencies ++= Seq(
          Dependency.cats,
          Dependency.catsEffect,
+         Dependency.circeParser,
          Dependency.fs2Core,
          Dependency.fs2Io,
          Dependency.http4sCirce,

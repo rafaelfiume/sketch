@@ -7,7 +7,7 @@ import io.circe.Json
 import io.circe.syntax.*
 import munit.{CatsEffectSuite, ScalaCheckEffectSuite}
 import munit.Assertions.*
-import org.fiume.sketch.shared.test.{FileContentContext, Http4sTestingRoutesDsl}
+import org.fiume.sketch.shared.test.{ContractContext, FileContentContext, Http4sTestingRoutesDsl}
 import org.fiume.sketch.shared.test.EitherSyntax.*
 import org.fiume.sketch.storage.documents.Model.{Document, Metadata}
 import org.fiume.sketch.storage.documents.algebras.DocumentsStore
@@ -25,7 +25,7 @@ import org.http4s.client.dsl.io.*
 import org.http4s.headers.`Content-Type`
 import org.http4s.implicits.*
 import org.http4s.multipart.{Boundary, Multipart, Part}
-import org.scalacheck.{Shrink, ShrinkLowPriority}
+import org.scalacheck.ShrinkLowPriority
 import org.scalacheck.effect.PropF.forAllF
 
 import java.util.UUID
@@ -34,7 +34,7 @@ class DocumentsRoutesSpec
     extends CatsEffectSuite
     with ScalaCheckEffectSuite
     with Http4sTestingRoutesDsl
-    with FileContentContext
+    with ContractContext
     with DocumentsStoreContext
     with ShrinkLowPriority:
 
@@ -55,7 +55,7 @@ class DocumentsRoutesSpec
         store <- makeDocumentsStore()
 
         jsonResponse <- send(request)
-          .to(new DocumentsRoutes[IO, IO](store).routes)
+          .to(new DocumentsRoutes[IO, IO](store).router())
           .expectJsonResponseWith(Status.Created)
 
         storedMetadata <- store.fetchMetadata(jsonResponse.as[UUID].rightValue)
@@ -78,7 +78,7 @@ class DocumentsRoutesSpec
         store <- makeDocumentsStore(state = document)
 
         jsonResponse <- send(request)
-          .to(new DocumentsRoutes[IO, IO](store).routes)
+          .to(new DocumentsRoutes[IO, IO](store).router())
           .expectJsonResponseWith(Status.Ok)
 
         _ <- IO {
@@ -95,7 +95,7 @@ class DocumentsRoutesSpec
         store <- makeDocumentsStore(state = document)
 
         contentStream <- send(request)
-          .to(new DocumentsRoutes[IO, IO](store).routes)
+          .to(new DocumentsRoutes[IO, IO](store).router())
           .expectByteStreamResponseWith(Status.Ok)
 
         obtainedStream <- contentStream.compile.toList
@@ -114,7 +114,7 @@ class DocumentsRoutesSpec
         store <- makeDocumentsStore(state = document)
 
         _ <- send(request)
-          .to(new DocumentsRoutes[IO, IO](store).routes)
+          .to(new DocumentsRoutes[IO, IO](store).router())
           .expectEmptyResponseWith(Status.NoContent)
 
         stored <- IO.both(
@@ -143,7 +143,7 @@ class DocumentsRoutesSpec
         store <- makeDocumentsStore()
 
         jsonResponse <- send(request)
-          .to(new DocumentsRoutes[IO, IO](store).routes)
+          .to(new DocumentsRoutes[IO, IO](store).router())
           .expectJsonResponseWith(Status.BadRequest)
 
         _ <- IO {
@@ -166,7 +166,7 @@ class DocumentsRoutesSpec
       store <- makeDocumentsStore()
 
       jsonResponse <- send(request)
-        .to(new DocumentsRoutes[IO, IO](store).routes)
+        .to(new DocumentsRoutes[IO, IO](store).router())
         .expectJsonResponseWith(Status.BadRequest)
 
       _ <- IO {
@@ -189,7 +189,7 @@ class DocumentsRoutesSpec
       store <- makeDocumentsStore()
 
       jsonResponse <- send(request)
-        .to(new DocumentsRoutes[IO, IO](store).routes)
+        .to(new DocumentsRoutes[IO, IO](store).router())
         .expectJsonResponseWith(Status.BadRequest)
 
       _ <- IO {
@@ -204,11 +204,20 @@ class DocumentsRoutesSpec
       for
         store <- makeDocumentsStore()
         _ <- send(request)
-          .to(new DocumentsRoutes[IO, IO](store).routes)
+          .to(new DocumentsRoutes[IO, IO](store).router())
           .expectEmptyResponseWith(Status.NotFound)
       yield ()
     }
   }
+
+  /*
+   * Contracts
+   */
+
+  test("bijective relationship between encoded and decoded Documents.Metadata"):
+    assertBijectiveRelationshipBetweenEncoderAndDecoder[Metadata](
+      "contract/documents/http/metadata.json"
+    )
 
   /* Validation */
 

@@ -6,13 +6,15 @@ import org.fiume.sketch.shared.app.ServiceStatus
 import org.fiume.sketch.shared.app.algebras.{HealthCheck, Versions}
 import org.fiume.sketch.shared.app.algebras.HealthCheck.ServiceHealth
 import org.fiume.sketch.shared.app.algebras.Versions.Version
-import org.fiume.sketch.shared.app.http.JsonCodecs.given
+import org.fiume.sketch.shared.app.http.JsonCodecs.ServiceStatusCodecs.given
 import org.http4s.HttpRoutes
 import org.http4s.circe.CirceEntityEncoder.*
 import org.http4s.dsl.Http4sDsl
 import org.http4s.server.Router
 class HealthStatusRoutes[F[_]: MonadThrow](versions: Versions[F], healthCheck: HealthCheck[F]) extends Http4sDsl[F]:
   private val prefix = "/"
+
+  def router(): HttpRoutes[F] = Router(prefix -> httpRoutes)
 
   private val httpRoutes: HttpRoutes[F] =
     HttpRoutes.of[F] {
@@ -26,5 +28,3 @@ class HealthStatusRoutes[F[_]: MonadThrow](versions: Versions[F], healthCheck: H
           resp <- Ok(ServiceStatus(version, health))
         yield resp
     }
-
-  val routes: HttpRoutes[F] = Router(prefix -> httpRoutes)

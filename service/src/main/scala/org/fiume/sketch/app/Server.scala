@@ -64,8 +64,8 @@ object HttpApi:
     healthCheck: HealthCheck[F],
     documentStore: DocumentsStore[F, ConnectionIO]
   ): HttpRoutes[F] =
-    val documentsStorageRoute = new DocumentsRoutes[F, ConnectionIO](documentStore).routes
-    val healthStatusRoutes = new HealthStatusRoutes[F](versions, healthCheck).routes
+    val documentsStorageRoute = new DocumentsRoutes[F, ConnectionIO](documentStore).router()
+    val healthStatusRoutes = new HealthStatusRoutes[F](versions, healthCheck).router()
 
     // TODO pass origin over config
     val corsRoutes = corsPolicy(

@@ -53,7 +53,7 @@ class AuthenticatorSpec
 
           authenticator <- Authenticator.make[IO, IO](store, privateKey, publicKey, expirationOffset)
 
-          result <- authenticator.authenticate(username, plainPassword.reverse)
+          result <- authenticator.authenticate(username, plainPassword.reversed)
           _ <- IO { assertEquals(result.leftValue, InvalidPasswordError) }
         yield ()
     }
@@ -65,7 +65,7 @@ class AuthenticatorSpec
           store <- makeUsersStore(Map(uuid -> (username, hashedPassword, salt)))
 
           authenticator <- Authenticator.make[IO, IO](store, privateKey, publicKey, expirationOffset)
-          result <- authenticator.authenticate(username.reverse, plainPassword)
+          result <- authenticator.authenticate(username.reversed, plainPassword)
 
           _ <- IO { assertEquals(result.leftValue, UserNotFoundError) }
         yield ()
@@ -113,7 +113,7 @@ class AuthenticatorSpec
           authenticator <- Authenticator.make[IO, IO](store, privateKey, publicKey, expirationOffset)
           jwtToken <- authenticator.authenticate(username, plainPassword).map(_.rightValue)
 
-          result = authenticator.verify(jwtToken.reverse)
+          result = authenticator.verify(jwtToken.reversed)
 
           _ <- IO { assert(result.leftValue.isInstanceOf[JwtInvalidTokenError]) }
           _ <- IO { assert(result.leftValue.details.startsWith("Invalid Jwt token:")) }
@@ -136,12 +136,12 @@ class AuthenticatorSpec
 
 trait AuthenticatorSpecContext:
   extension (plainPassword: PlainPassword)
-    def reverse: PlainPassword = PlainPassword.unsafeFromString(plainPassword.value.reverse)
+    def reversed: PlainPassword = PlainPassword.unsafeFromString(plainPassword.value.reverse)
 
-  extension (username: Username) def reverse: Username = Username(username.value.reverse)
+  extension (username: Username) def reversed: Username = Username(username.value.reverse)
 
   extension (token: JwtToken)
-    def reverse: JwtToken = JwtToken.unsafeFromString(token.value.reverse)
+    def reversed: JwtToken = JwtToken.unsafeFromString(token.value.reverse)
     def tampered: JwtToken = JwtToken.unsafeFromString(token.value.split('.').dropRight(1).mkString("."))
 
 trait UsersStoreContext:

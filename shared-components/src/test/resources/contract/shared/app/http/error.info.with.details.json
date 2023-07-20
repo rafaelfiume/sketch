@@ -1,0 +1,6 @@
+{
+  "code": "INVALID_CREDENTIALS",
+  "message": "The username or password provided is incorrect.",
+  "details": "Please check your credentials and try again.",
+  "timestamp": "2023-07-19T12:34:56Z"
+}
