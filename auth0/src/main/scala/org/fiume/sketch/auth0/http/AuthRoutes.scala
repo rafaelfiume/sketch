@@ -51,14 +51,3 @@ object AuthRoutes:
   object Model:
     case class LoginRequest(username: Username, password: PlainPassword)
     case class LoginResponse(token: String)
-
-/*
-
-
-Instead of returning....
-
-To be returned by the middleware when authentication fails.
-Unauthorized(`WWW-Authenticate`(Challenge(scheme = "Bearer", realm = "sketch")))
-
-We should hide the resouce and return a 404 instead
- */

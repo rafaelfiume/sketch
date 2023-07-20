@@ -13,10 +13,10 @@ import org.scalacheck.Gen
 /*
  * A note regarding bijective relationship an isomorphism.
  *
- * AFAIK bijective relationship and isomorphism are equivalent for ADTs but not other structures.
+ * AFAIK bijective relationship and isomorphism are equivalent for ADTs, but not necessarily for other structures.
  *
  * Roughly, two structures are isomorphic if they have their structure preserved, which includes data and operations.
- * Serialisation might preserve the data but not the operations after encoding and decoding.
+ * Serialisation might preserve the data but not the operations during encoding and decoding.
  *
  * Bijective relationship is a weaker condition, denoting a one-to-one mapping between two structures, with no loss of information.
  *
