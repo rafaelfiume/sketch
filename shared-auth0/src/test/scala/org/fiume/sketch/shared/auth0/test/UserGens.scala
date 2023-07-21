@@ -20,10 +20,10 @@ trait UserGens:
   def usernamesWithSize(size: Int): Gen[Username] = Gen
     .listOfN(size, usernameChars)
     .map(_.mkString)
-    .suchThat(Username.validated(_).isRight)
     .map(Username.notValidatedFromString)
 
-  def usernameChars: Gen[Char] = Gen.oneOf(Gen.alphaNumChar, Gen.const('_'), Gen.const('-'))
+  // frequency is important here avoiding user names like "___", as we want to generate more valid passwords than invalid ones.
+  def usernameChars: Gen[Char] = Gen.frequency(9 -> Gen.alphaNumChar, 1 -> Gen.const('_'), 1 -> Gen.const('-'))
 
   given Arbitrary[User] = Arbitrary(users)
   def users: Gen[User] =

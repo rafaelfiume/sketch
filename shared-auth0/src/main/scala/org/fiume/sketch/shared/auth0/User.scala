@@ -41,7 +41,7 @@ object User:
     case object ExcessiveRepeatedChars extends InvalidUsername:
       override val message: String = "must not contain excessive repeated characters"
 
-    val minLength = 3
+    val minLength = 8
     val maxLength = 40
     val reservedWords = Set("admin", "administrator", "root", "superuser", "super", "su", "sudo", "god", "moderator", "mod")
     val maxRepeatedCharsPercentage = 0.7f

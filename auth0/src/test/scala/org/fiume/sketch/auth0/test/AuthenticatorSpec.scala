@@ -11,6 +11,7 @@ import org.fiume.sketch.shared.auth0.test.{PasswordsGens, UserGens}
 import org.fiume.sketch.shared.test.ClockContext
 import org.fiume.sketch.shared.test.EitherSyntax.*
 import org.fiume.sketch.shared.test.Gens.DateAndTime.shortDurations
+import org.fiume.sketch.shared.test.StringSyntax.*
 import org.scalacheck.{Gen, ShrinkLowPriority}
 import org.scalacheck.effect.PropF.forAllF
 
@@ -54,7 +55,7 @@ class AuthenticatorSpec
 
           authenticator <- Authenticator.make[IO, IO](store, privateKey, publicKey, expirationOffset)
 
-          result <- authenticator.authenticate(username, plainPassword.reversed)
+          result <- authenticator.authenticate(username, plainPassword.shuffled)
           _ <- IO { assertEquals(result.leftValue, InvalidPasswordError) }
         yield ()
     }
@@ -66,7 +67,7 @@ class AuthenticatorSpec
           store <- makeUsersStore(Map(uuid -> (username, hashedPassword, salt)))
 
           authenticator <- Authenticator.make[IO, IO](store, privateKey, publicKey, expirationOffset)
-          result <- authenticator.authenticate(username.reversed, plainPassword)
+          result <- authenticator.authenticate(username.shuffled, plainPassword)
 
           _ <- IO { assertEquals(result.leftValue, UserNotFoundError) }
         yield ()
@@ -114,7 +115,7 @@ class AuthenticatorSpec
           authenticator <- Authenticator.make[IO, IO](store, privateKey, publicKey, expirationOffset)
           jwtToken <- authenticator.authenticate(username, plainPassword).map(_.rightValue)
 
-          result = authenticator.verify(jwtToken.reversed)
+          result = authenticator.verify(jwtToken.shuffled)
 
           _ <- IO { assert(result.leftValue.isInstanceOf[JwtInvalidTokenError]) }
           _ <- IO { assert(result.leftValue.details.startsWith("Invalid Jwt token:")) }
@@ -137,12 +138,12 @@ class AuthenticatorSpec
 
 trait AuthenticatorSpecContext:
   extension (plainPassword: PlainPassword)
-    def reversed: PlainPassword = PlainPassword.notValidatedFromString(plainPassword.value.reverse)
+    def shuffled: PlainPassword = PlainPassword.notValidatedFromString(plainPassword.value._shuffled)
 
-  extension (username: Username) def reversed: Username = Username.notValidatedFromString(username.value.reverse)
+  extension (username: Username) def shuffled: Username = Username.notValidatedFromString(username.value._shuffled)
 
   extension (token: JwtToken)
-    def reversed: JwtToken = JwtToken.notValidatedFromString(token.value.reverse)
+    def shuffled: JwtToken = JwtToken.notValidatedFromString(token.value._shuffled)
     def tampered: JwtToken = JwtToken.notValidatedFromString(token.value.split('.').dropRight(1).mkString("."))
 
 trait UsersStoreContext:

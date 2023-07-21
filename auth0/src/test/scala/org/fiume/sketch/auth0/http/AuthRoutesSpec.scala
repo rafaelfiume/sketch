@@ -16,6 +16,7 @@ import org.fiume.sketch.shared.auth0.test.PasswordsGens.*
 import org.fiume.sketch.shared.auth0.test.UserGens.*
 import org.fiume.sketch.shared.test.{ContractContext, Http4sTestingRoutesDsl}
 import org.fiume.sketch.shared.test.EitherSyntax.*
+import org.fiume.sketch.shared.test.StringSyntax.*
 import org.http4s.Method.*
 import org.http4s.Status
 import org.http4s.circe.CirceEntityDecoder.*
@@ -58,7 +59,7 @@ class AuthRoutesSpec
       yield ()
     }
 
-  test("return an error for an invalid login request with an invalid password"):
+  test("return an error for a login request with an invalid password"):
     forAllF(loginRequests, authTokens) { case (user -> loginRequest -> authToken) =>
       for
         authenticator <- makeAuthenticator(
@@ -67,7 +68,7 @@ class AuthRoutesSpec
         )
 
         request = POST(uri"/login").withEntity(
-          loginRequest.withInvalidPassword
+          loginRequest.withShuffledPassword
         )
         jsonResponse <- send(request)
           .to(new AuthRoutes[IO](authenticator).router())
@@ -85,7 +86,7 @@ class AuthRoutesSpec
       yield ()
     }
 
-  test("return an error for an invalid loging request with an invalid username"):
+  test("return an error for a login request with an invalid username"):
     forAllF(loginRequests, authTokens) { case (user -> loginRequest -> authToken) =>
       for
         authenticator <- makeAuthenticator(
@@ -94,7 +95,7 @@ class AuthRoutesSpec
         )
 
         request = POST(uri"/login").withEntity(
-          loginRequest.withInvalidUsername
+          loginRequest.withShuffledUsername
         )
         jsonResponse <- send(request)
           .to(new AuthRoutes[IO](authenticator).router())
@@ -123,10 +124,10 @@ class AuthRoutesSpec
 
 trait AuthRoutesSpecContext:
   extension (loginRequest: LoginRequest)
-    def withInvalidPassword: LoginRequest =
-      loginRequest.copy(password = PlainPassword.notValidatedFromString(loginRequest.password.value.reverse))
-    def withInvalidUsername: LoginRequest =
-      loginRequest.copy(username = Username.notValidatedFromString(loginRequest.username.value.reverse))
+    def withShuffledPassword: LoginRequest =
+      loginRequest.copy(password = PlainPassword.notValidatedFromString(loginRequest.password.value._shuffled))
+    def withShuffledUsername: LoginRequest =
+      loginRequest.copy(username = Username.notValidatedFromString(loginRequest.username.value._shuffled))
 
   given Arbitrary[(User, LoginRequest)] = Arbitrary(loginRequests)
   def loginRequests: Gen[(User, LoginRequest)] =
