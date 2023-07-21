@@ -10,8 +10,8 @@ import org.fiume.sketch.shared.app.ErrorCode
 import org.fiume.sketch.shared.app.ErrorCode.InvalidCredentials
 import org.fiume.sketch.shared.app.http.JsonCodecs.ErrorInfoCodecs.given
 import org.fiume.sketch.shared.app.http.Model.{ErrorInfo, ErrorMessage}
-import org.fiume.sketch.shared.auth0.Model.Username
 import org.fiume.sketch.shared.auth0.Passwords.PlainPassword
+import org.fiume.sketch.shared.auth0.User.Username
 import org.http4s.{Challenge, HttpRoutes, Response}
 import org.http4s.circe.CirceEntityDecoder.*
 import org.http4s.circe.CirceEntityEncoder.*

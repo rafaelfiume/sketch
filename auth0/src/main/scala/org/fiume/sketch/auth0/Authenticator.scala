@@ -6,8 +6,9 @@ import cats.implicits.*
 import io.circe.ParsingFailure
 import org.fiume.sketch.auth0.Authenticator.*
 import org.fiume.sketch.auth0.JwtToken
-import org.fiume.sketch.shared.auth0.Model.{User, Username}
 import org.fiume.sketch.shared.auth0.Passwords.{HashedPassword, PlainPassword}
+import org.fiume.sketch.shared.auth0.User
+import org.fiume.sketch.shared.auth0.User.Username
 import org.fiume.sketch.shared.auth0.algebras.UsersStore
 import pdi.jwt.exceptions.*
 

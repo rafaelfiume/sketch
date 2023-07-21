@@ -4,8 +4,9 @@ import cats.effect.{Clock, IO}
 import munit.{CatsEffectSuite, ScalaCheckEffectSuite}
 import org.fiume.sketch.auth0.Authenticator.*
 import org.fiume.sketch.auth0.test.EcKeysGens
-import org.fiume.sketch.shared.auth0.Model.{Credentials, User, Username}
 import org.fiume.sketch.shared.auth0.Passwords.{HashedPassword, PlainPassword, Salt}
+import org.fiume.sketch.shared.auth0.User
+import org.fiume.sketch.shared.auth0.User.{Credentials, Username}
 import org.fiume.sketch.shared.auth0.test.{PasswordsGens, UserGens}
 import org.fiume.sketch.shared.test.ClockContext
 import org.fiume.sketch.shared.test.EitherSyntax.*

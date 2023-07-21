@@ -6,7 +6,8 @@ import cats.implicits.*
 import io.circe.{Decoder, Encoder, HCursor, Json}
 import io.circe.parser.parse
 import io.circe.syntax.*
-import org.fiume.sketch.shared.auth0.Model.{User, Username}
+import org.fiume.sketch.shared.auth0.User
+import org.fiume.sketch.shared.auth0.User.Username
 import pdi.jwt.{JwtAlgorithm, JwtCirce, JwtClaim}
 
 import java.security.{PrivateKey, PublicKey}

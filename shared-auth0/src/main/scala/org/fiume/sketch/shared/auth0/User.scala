@@ -3,17 +3,15 @@ package org.fiume.sketch.shared.auth0
 import cats.{Eq, Show}
 import cats.data.{EitherNec, Validated}
 import cats.implicits.*
-import org.fiume.sketch.shared.auth0.Model.Username.InvalidUsername
 import org.fiume.sketch.shared.auth0.Passwords.{HashedPassword, Salt}
+import org.fiume.sketch.shared.auth0.User.Username
+import org.fiume.sketch.shared.auth0.User.Username.InvalidUsername
 
 import java.util.UUID
 
-object Model: // TODO Rename it to Users
-  case class User(
-    uuid: UUID,
-    username: Username
-  )
+case class User(uuid: UUID, username: Username)
 
+object User:
   // set of information required to authenticate a user
   case class Credentials(
     uuid: UUID,

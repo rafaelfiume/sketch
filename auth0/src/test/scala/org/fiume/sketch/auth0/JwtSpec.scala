@@ -5,7 +5,7 @@ import cats.implicits.*
 import munit.{CatsEffectSuite, ScalaCheckEffectSuite}
 import munit.Assertions.*
 import org.fiume.sketch.auth0.test.EcKeysGens
-import org.fiume.sketch.shared.auth0.Model.User
+import org.fiume.sketch.shared.auth0.User
 import org.fiume.sketch.shared.auth0.test.UserGens
 import org.fiume.sketch.shared.test.ClockContext
 import org.fiume.sketch.shared.test.EitherSyntax.*

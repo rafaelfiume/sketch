@@ -1,7 +1,7 @@
 package org.fiume.sketch.shared.auth0
 
 import munit.ScalaCheckSuite
-import org.fiume.sketch.shared.auth0.Model.Username
+import org.fiume.sketch.shared.auth0.User.Username
 import org.fiume.sketch.shared.auth0.test.UserGens.*
 import org.fiume.sketch.shared.auth0.test.UserGens.given
 import org.fiume.sketch.shared.test.EitherSyntax.*

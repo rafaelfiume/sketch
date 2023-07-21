@@ -2,8 +2,9 @@ package org.fiume.sketch.storage.auth0.postgres
 
 import doobie.{Meta, Read}
 import doobie.postgres.implicits.*
-import org.fiume.sketch.shared.auth0.Model.*
 import org.fiume.sketch.shared.auth0.Passwords.{HashedPassword, Salt}
+import org.fiume.sketch.shared.auth0.User
+import org.fiume.sketch.shared.auth0.User.Username
 
 import java.time.ZonedDateTime
 import java.util.UUID

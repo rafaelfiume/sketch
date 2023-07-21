@@ -6,8 +6,9 @@ import org.fiume.sketch.auth0.http.AuthRoutes.Model.{LoginRequest, LoginResponse
 import org.fiume.sketch.auth0.http.JsonCodecs.PasswordCodecs.given
 import org.fiume.sketch.auth0.http.JsonCodecs.RequestResponsesCodecs.given
 import org.fiume.sketch.auth0.http.JsonCodecs.UserCodecs.given
-import org.fiume.sketch.shared.auth0.Model.{User, Username}
 import org.fiume.sketch.shared.auth0.Passwords.PlainPassword
+import org.fiume.sketch.shared.auth0.User
+import org.fiume.sketch.shared.auth0.User.Username
 
 object JsonCodecs:
   object RequestResponsesCodecs:

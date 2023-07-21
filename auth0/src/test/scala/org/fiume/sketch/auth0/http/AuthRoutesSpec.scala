@@ -9,8 +9,9 @@ import org.fiume.sketch.auth0.http.JsonCodecs.RequestResponsesCodecs.given
 import org.fiume.sketch.shared.app.ErrorCode.InvalidCredentials
 import org.fiume.sketch.shared.app.http.JsonCodecs.ErrorInfoCodecs.given
 import org.fiume.sketch.shared.app.http.Model.{ErrorInfo, ErrorMessage}
-import org.fiume.sketch.shared.auth0.Model.{User, Username}
 import org.fiume.sketch.shared.auth0.Passwords.PlainPassword
+import org.fiume.sketch.shared.auth0.User
+import org.fiume.sketch.shared.auth0.User.Username
 import org.fiume.sketch.shared.auth0.test.PasswordsGens.*
 import org.fiume.sketch.shared.auth0.test.UserGens.*
 import org.fiume.sketch.shared.test.{ContractContext, Http4sTestingRoutesDsl}
