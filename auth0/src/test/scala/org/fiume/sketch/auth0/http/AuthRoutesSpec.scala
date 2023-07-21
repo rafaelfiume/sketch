@@ -124,7 +124,7 @@ class AuthRoutesSpec
 trait AuthRoutesSpecContext:
   extension (loginRequest: LoginRequest)
     def withInvalidPassword: LoginRequest =
-      loginRequest.copy(password = PlainPassword.unsafeFromString(loginRequest.password.value.reverse))
+      loginRequest.copy(password = PlainPassword.notValidatedFromString(loginRequest.password.value.reverse))
     def withInvalidUsername: LoginRequest =
       loginRequest.copy(username = Username.notValidatedFromString(loginRequest.username.value.reverse))
 
@@ -140,7 +140,7 @@ trait AuthRoutesSpecContext:
     .const(
       "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiaWF0IjoxNTE2MjM5MDIyfQ.SflKxwRJSMeKKF2QT4fwpMeJf36POk6yJV_adQssw5c"
     )
-    .map(JwtToken.unsafeFromString)
+    .map(JwtToken.notValidatedFromString)
 
 trait AuthenticatorContext:
   def makeAuthenticator(signee: (User, PlainPassword), signeeAuthToken: JwtToken): IO[Authenticator[IO]] = IO.delay {

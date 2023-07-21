@@ -118,7 +118,7 @@ class PlainPasswordSpec extends ScalaCheckSuite with PasswordsGens:
 
   extension (password: PlainPassword)
     def modify(f: String => String): PlainPassword =
-      PlainPassword.unsafeFromString(f(password.value))
+      PlainPassword.notValidatedFromString(f(password.value))
 
   def invalidSpecialChars: Gen[Char] = Gen.oneOf(PlainPassword.invalidSpecialChars)
 

@@ -40,4 +40,4 @@ object JsonCodecs:
 
   object PasswordCodecs:
     given Encoder[PlainPassword] = Encoder.encodeString.contramap(_.value)
-    given Decoder[PlainPassword] = Decoder.decodeString.map(PlainPassword.unsafeFromString)
+    given Decoder[PlainPassword] = Decoder.decodeString.map(PlainPassword.notValidatedFromString)

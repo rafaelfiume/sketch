@@ -22,7 +22,7 @@ trait PasswordsGens:
       digit <- Gen.listOfN(length / 4, digitGen)
       specialChar <- Gen.listOfN(length / 4, specialCharGen)
       password = scala.util.Random.shuffle(lowercase ++ uppercase ++ digit ++ specialChar).take(length).mkString
-    yield PlainPassword.unsafeFromString(password)
+    yield PlainPassword.notValidatedFromString(password)
 
   given Arbitrary[Salt] = Arbitrary(salts)
   def salts: Gen[Salt] =
@@ -32,7 +32,7 @@ trait PasswordsGens:
   // a bcrypt hash approximation for efficience (store assumes correctness)
   given Arbitrary[HashedPassword] = Arbitrary(fakeHashedPasswords)
   def fakeHashedPasswords: Gen[HashedPassword] =
-    Gen.listOfN(60, bcryptBase64Char).map(_.mkString).map(HashedPassword.unsafeFromString)
+    Gen.listOfN(60, bcryptBase64Char).map(_.mkString).map(HashedPassword.notValidatedFromString)
 
   def passwordsInfo: Gen[(PlainPassword, HashedPassword, Salt)] =
     for
