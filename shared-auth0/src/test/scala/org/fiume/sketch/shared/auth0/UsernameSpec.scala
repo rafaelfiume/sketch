@@ -5,12 +5,12 @@ import org.fiume.sketch.shared.auth0.Model.Username
 import org.fiume.sketch.shared.auth0.test.UserGens.*
 import org.fiume.sketch.shared.auth0.test.UserGens.given
 import org.fiume.sketch.shared.test.EitherSyntax.*
-import org.scalacheck.{Arbitrary, Gen}
+import org.scalacheck.{Arbitrary, Gen, ShrinkLowPriority}
 import org.scalacheck.Prop.forAll
 
 import scala.util.Random
 
-class UsernameSpec extends ScalaCheckSuite:
+class UsernameSpec extends ScalaCheckSuite with ShrinkLowPriority:
 
   test("valid usernames"):
     forAll { (username: Username) =>
@@ -63,4 +63,19 @@ class UsernameSpec extends ScalaCheckSuite:
     )
     forAll { (usernameWithReservedWords: String) =>
       Username.validated(usernameWithReservedWords).leftValue.contains(Username.ReservedWords)
+    }
+
+  test("usernames with excessive repeated characters"):
+    given Arbitrary[String] = Arbitrary(
+      for
+        atMostSize <- Gen.oneOf(Username.minLength, Username.maxLength)
+        username <- usernamesWithSize(atMostSize).map(_.value)
+        repeatedChar <- usernameChars
+        repeatedCharLength = math.ceil(username.length * Username.maxRepeatedCharsPercentage).toInt
+        repeatedCharString = repeatedChar.toString * repeatedCharLength
+        repeatedUsername = username.dropRight(repeatedCharLength) ++ repeatedCharString
+      yield repeatedUsername
+    )
+    forAll { (usernameWithExcessiveRepeatedChars: String) =>
+      Username.validated(usernameWithExcessiveRepeatedChars).leftValue.contains(Username.ExcessiveRepeatedChars)
     }

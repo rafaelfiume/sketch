@@ -17,9 +17,12 @@ trait UserGens:
     .flatMap { usernamesWithSize(_) }
 
   def usernamesWithSize(size: Int): Gen[Username] = Gen
-    .listOfN(size, Gen.oneOf(Gen.alphaNumChar, Gen.const("_"), Gen.const("-")))
+    .listOfN(size, usernameChars)
     .map(_.mkString)
+    .suchThat(Username.validated(_).isRight)
     .map(Username.notValidatedFromString)
+
+  def usernameChars: Gen[Char] = Gen.oneOf(Gen.alphaNumChar, Gen.const('_'), Gen.const('-'))
 
   given Arbitrary[User] = Arbitrary(users)
   def users: Gen[User] =
