@@ -6,7 +6,7 @@ import munit.{CatsEffectSuite, ScalaCheckEffectSuite}
 import munit.Assertions.*
 import org.fiume.sketch.auth0.test.EcKeysGens
 import org.fiume.sketch.shared.auth0.User
-import org.fiume.sketch.shared.auth0.test.UserGens
+import org.fiume.sketch.shared.auth0.test.UserGens.*
 import org.fiume.sketch.shared.test.ClockContext
 import org.fiume.sketch.shared.test.EitherSyntax.*
 import org.fiume.sketch.shared.test.Gens.DateAndTime.*
@@ -15,13 +15,7 @@ import org.scalacheck.effect.PropF.forAllF
 
 import java.time.ZonedDateTime
 
-class JwtSpec
-    extends CatsEffectSuite
-    with ScalaCheckEffectSuite
-    with ClockContext
-    with EcKeysGens
-    with UserGens
-    with ShrinkLowPriority:
+class JwtSpec extends CatsEffectSuite with ScalaCheckEffectSuite with ClockContext with EcKeysGens with ShrinkLowPriority:
 
   test("create and parse jwt token"):
     forAllF(ecKeyPairs, users, shortDurations) { case ((privateKey, publicKey), user, expirationOffset) =>

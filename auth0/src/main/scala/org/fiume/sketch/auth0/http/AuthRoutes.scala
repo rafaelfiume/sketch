@@ -39,9 +39,9 @@ class AuthRoutes[F[_]: Async](authenticator: Authenticator[F]) extends Http4sDsl
       logger.info(s"Attempt to authenticate username ${loginRequest.username}") *>
         validate(loginRequest).fold(
           invalidLoginRequest =>
-            logger.info(s"1) Failed login attempt for username ${loginRequest.username}") *>
+            logger.info(s"(AUTH001) Failed login attempt for username ${loginRequest.username}") *>
               // TODO invalidLoginRequest should be a list of errors
-              Ok(
+              BadRequest(
                 ErrorInfo(
                   code = InvalidCredentials,
                   message = ErrorMessage("The username or password provided is incorrect.")
@@ -53,7 +53,7 @@ class AuthRoutes[F[_]: Async](authenticator: Authenticator[F]) extends Http4sDsl
                 logger.info(s"Successful login attempt for username ${loginRequest.username}") *>
                   Ok(LoginResponse(token.value))
               case Left(failure) =>
-                logger.info(s"2) Failed login attempt for username ${loginRequest.username}") *>
+                logger.info(s"(AUTH002) Failed login attempt for username ${loginRequest.username}") *>
                   Ok(
                     ErrorInfo(
                       code = InvalidCredentials,

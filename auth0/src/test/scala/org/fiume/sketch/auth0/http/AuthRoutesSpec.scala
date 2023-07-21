@@ -12,8 +12,9 @@ import org.fiume.sketch.shared.app.http.Model.{ErrorInfo, ErrorMessage}
 import org.fiume.sketch.shared.auth0.Passwords.PlainPassword
 import org.fiume.sketch.shared.auth0.User
 import org.fiume.sketch.shared.auth0.User.Username
-import org.fiume.sketch.shared.auth0.test.PasswordsGens.*
+import org.fiume.sketch.shared.auth0.test.PasswordsGens.PlainPasswords.*
 import org.fiume.sketch.shared.auth0.test.UserGens.*
+import org.fiume.sketch.shared.auth0.test.UserGens.Usernames.*
 import org.fiume.sketch.shared.test.{ContractContext, Http4sTestingRoutesDsl}
 import org.fiume.sketch.shared.test.EitherSyntax.*
 import org.fiume.sketch.shared.test.StringSyntax.*
@@ -60,7 +61,7 @@ class AuthRoutesSpec
       yield ()
     }
 
-  test("return an error for a login request with an invalid password"):
+  test("return error for a login request with wrong password"):
     forAllF(loginRequests, authTokens) { case (user -> loginRequest -> authToken) =>
       val plainPassword = PlainPassword.notValidatedFromString(loginRequest.password)
       for
@@ -88,7 +89,7 @@ class AuthRoutesSpec
       yield ()
     }
 
-  test("return an error for a login request with an invalid username"):
+  test("return error for a login request with unknown username"):
     forAllF(loginRequests, authTokens) { case (user -> loginRequest -> authToken) =>
       for
         authenticator <- makeAuthenticator(
@@ -102,6 +103,55 @@ class AuthRoutesSpec
         jsonResponse <- send(request)
           .to(new AuthRoutes[IO](authenticator).router())
           .expectJsonResponseWith(Status.Ok)
+
+        _ <- IO {
+          assertEquals(
+            jsonResponse.as[ErrorInfo].rightValue,
+            ErrorInfo(
+              code = InvalidCredentials,
+              message = ErrorMessage("The username or password provided is incorrect.")
+            )
+          )
+        }
+      yield ()
+    }
+
+  test("return an error for a login request with an invalid username or password"):
+    def invalids: Gen[(User, LoginRequest)] =
+      for
+        user <- users
+        username <- Gen.oneOf(
+          shortUsernames,
+          longUsernames,
+          usernamesWithInvalidChars,
+          usernamesWithReservedWords,
+          usernamesWithRepeatedChars
+        )
+        password <- Gen.oneOf(
+          shortPasswords,
+          longPasswords,
+          invalidPasswordsWithoutUppercase,
+          invalidPasswordsWithoutLowercase,
+          invalidPasswordsWithoutDigit,
+          invalidPasswordsWithoutSpecialChar,
+          invalidPasswordsWithWhitespace,
+          invalidPasswordsWithInvalidSpecialChars,
+          passwordsWithControlCharsOrEmojis
+        )
+      yield user.copy(username = Username.notValidatedFromString(username)) -> LoginRequest(username, password.value)
+
+    forAllF(invalids, authTokens) { case (user -> loginRequest -> authToken) =>
+      println(s"this has to be a short one: $user")
+      for
+        authenticator <- makeAuthenticator(
+          signee = user -> PlainPassword.notValidatedFromString(loginRequest.password),
+          signeeAuthToken = authToken
+        )
+
+        request = POST(uri"/login").withEntity(loginRequest)
+        jsonResponse <- send(request)
+          .to(new AuthRoutes[IO](authenticator).router())
+          .expectJsonResponseWith(Status.BadRequest)
 
         _ <- IO {
           assertEquals(

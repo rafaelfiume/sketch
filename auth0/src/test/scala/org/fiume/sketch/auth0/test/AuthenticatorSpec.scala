@@ -8,6 +8,7 @@ import org.fiume.sketch.shared.auth0.Passwords.{HashedPassword, PlainPassword, S
 import org.fiume.sketch.shared.auth0.User
 import org.fiume.sketch.shared.auth0.User.{Credentials, Username}
 import org.fiume.sketch.shared.auth0.test.{PasswordsGens, UserGens}
+import org.fiume.sketch.shared.auth0.test.UserGens.*
 import org.fiume.sketch.shared.test.ClockContext
 import org.fiume.sketch.shared.test.EitherSyntax.*
 import org.fiume.sketch.shared.test.Gens.DateAndTime.shortDurations
@@ -23,8 +24,6 @@ class AuthenticatorSpec
     extends CatsEffectSuite
     with ScalaCheckEffectSuite
     with EcKeysGens
-    with PasswordsGens
-    with UserGens
     with ClockContext
     with UsersStoreContext
     with AuthenticatorSpecContext
