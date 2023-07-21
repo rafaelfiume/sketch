@@ -39,9 +39,10 @@ class AuthRoutesSpec
 
   test("return a Jwt token for a valid loging request"):
     forAllF(loginRequests, authTokens) { case (user -> loginRequest -> authToken) =>
+      val plainPassword = PlainPassword.notValidatedFromString(loginRequest.password)
       for
         authenticator <- makeAuthenticator(
-          signee = user -> loginRequest.password,
+          signee = user -> plainPassword,
           signeeAuthToken = authToken
         )
 
@@ -61,9 +62,10 @@ class AuthRoutesSpec
 
   test("return an error for a login request with an invalid password"):
     forAllF(loginRequests, authTokens) { case (user -> loginRequest -> authToken) =>
+      val plainPassword = PlainPassword.notValidatedFromString(loginRequest.password)
       for
         authenticator <- makeAuthenticator(
-          signee = user -> loginRequest.password,
+          signee = user -> plainPassword,
           signeeAuthToken = authToken
         )
 
@@ -90,7 +92,7 @@ class AuthRoutesSpec
     forAllF(loginRequests, authTokens) { case (user -> loginRequest -> authToken) =>
       for
         authenticator <- makeAuthenticator(
-          signee = user -> loginRequest.password,
+          signee = user -> PlainPassword.notValidatedFromString(loginRequest.password),
           signeeAuthToken = authToken
         )
 
@@ -124,17 +126,15 @@ class AuthRoutesSpec
 
 trait AuthRoutesSpecContext:
   extension (loginRequest: LoginRequest)
-    def withShuffledPassword: LoginRequest =
-      loginRequest.copy(password = PlainPassword.notValidatedFromString(loginRequest.password.value._shuffled))
-    def withShuffledUsername: LoginRequest =
-      loginRequest.copy(username = Username.notValidatedFromString(loginRequest.username.value._shuffled))
+    def withShuffledPassword: LoginRequest = loginRequest.copy(password = loginRequest.password._shuffled)
+    def withShuffledUsername: LoginRequest = loginRequest.copy(username = loginRequest.username._shuffled)
 
   given Arbitrary[(User, LoginRequest)] = Arbitrary(loginRequests)
   def loginRequests: Gen[(User, LoginRequest)] =
     for
       user <- users
       password <- plainPasswords
-    yield user -> LoginRequest(user.username, password)
+    yield user -> LoginRequest(user.username.value, password.value)
 
   given Arbitrary[JwtToken] = Arbitrary(authTokens)
   def authTokens: Gen[JwtToken] = Gen

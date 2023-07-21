@@ -115,7 +115,7 @@ class AuthenticatorSpec
           authenticator <- Authenticator.make[IO, IO](store, privateKey, publicKey, expirationOffset)
           jwtToken <- authenticator.authenticate(username, plainPassword).map(_.rightValue)
 
-          result = authenticator.verify(jwtToken.shuffled)
+          result = authenticator.verify(jwtToken.reversed)
 
           _ <- IO { assert(result.leftValue.isInstanceOf[JwtInvalidTokenError]) }
           _ <- IO { assert(result.leftValue.details.startsWith("Invalid Jwt token:")) }
@@ -143,7 +143,7 @@ trait AuthenticatorSpecContext:
   extension (username: Username) def shuffled: Username = Username.notValidatedFromString(username.value._shuffled)
 
   extension (token: JwtToken)
-    def shuffled: JwtToken = JwtToken.notValidatedFromString(token.value._shuffled)
+    def reversed: JwtToken = JwtToken.notValidatedFromString(token.value._reversed)
     def tampered: JwtToken = JwtToken.notValidatedFromString(token.value.split('.').dropRight(1).mkString("."))
 
 trait UsersStoreContext:

@@ -43,7 +43,7 @@ object User:
 
     val minLength = 8
     val maxLength = 40
-    val reservedWords = Set("admin", "administrator", "root", "superuser", "super", "su", "sudo", "god", "moderator", "mod")
+    val reservedWords = Set("administrator", "superuser", "moderator")
     val maxRepeatedCharsPercentage = 0.7f
 
     /* must be used during user sign up */
