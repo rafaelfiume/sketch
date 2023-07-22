@@ -20,7 +20,7 @@ class SaltSpec extends CatsEffectSuite with ScalaCheckEffectSuite with ShrinkLow
   test("generate a salt from a string"):
     forAllF(Gen.choose(1, 100)) { (_: Int) =>
       for salt <- Salt.generate[IO]()
-      yield assertEquals(Salt.unsafeFromString(salt.base64Value), salt)
+      yield assertEquals(Salt.notValidatedFromString(salt.base64Value), salt)
     }
 
   test("salt is 29 characters long"):

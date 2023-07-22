@@ -4,12 +4,15 @@ import cats.effect.{Clock, IO}
 import munit.{CatsEffectSuite, ScalaCheckEffectSuite}
 import org.fiume.sketch.auth0.Authenticator.*
 import org.fiume.sketch.auth0.test.EcKeysGens
-import org.fiume.sketch.shared.auth0.Model.{Credentials, User, Username}
 import org.fiume.sketch.shared.auth0.Passwords.{HashedPassword, PlainPassword, Salt}
+import org.fiume.sketch.shared.auth0.User
+import org.fiume.sketch.shared.auth0.User.{Credentials, Username}
 import org.fiume.sketch.shared.auth0.test.{PasswordsGens, UserGens}
+import org.fiume.sketch.shared.auth0.test.UserGens.*
 import org.fiume.sketch.shared.test.ClockContext
 import org.fiume.sketch.shared.test.EitherSyntax.*
 import org.fiume.sketch.shared.test.Gens.DateAndTime.shortDurations
+import org.fiume.sketch.shared.test.StringSyntax.*
 import org.scalacheck.{Gen, ShrinkLowPriority}
 import org.scalacheck.effect.PropF.forAllF
 
@@ -21,8 +24,6 @@ class AuthenticatorSpec
     extends CatsEffectSuite
     with ScalaCheckEffectSuite
     with EcKeysGens
-    with PasswordsGens
-    with UserGens
     with ClockContext
     with UsersStoreContext
     with AuthenticatorSpecContext
@@ -53,7 +54,7 @@ class AuthenticatorSpec
 
           authenticator <- Authenticator.make[IO, IO](store, privateKey, publicKey, expirationOffset)
 
-          result <- authenticator.authenticate(username, plainPassword.reversed)
+          result <- authenticator.authenticate(username, plainPassword.shuffled)
           _ <- IO { assertEquals(result.leftValue, InvalidPasswordError) }
         yield ()
     }
@@ -65,7 +66,7 @@ class AuthenticatorSpec
           store <- makeUsersStore(Map(uuid -> (username, hashedPassword, salt)))
 
           authenticator <- Authenticator.make[IO, IO](store, privateKey, publicKey, expirationOffset)
-          result <- authenticator.authenticate(username.reversed, plainPassword)
+          result <- authenticator.authenticate(username.shuffled, plainPassword)
 
           _ <- IO { assertEquals(result.leftValue, UserNotFoundError) }
         yield ()
@@ -136,13 +137,13 @@ class AuthenticatorSpec
 
 trait AuthenticatorSpecContext:
   extension (plainPassword: PlainPassword)
-    def reversed: PlainPassword = PlainPassword.unsafeFromString(plainPassword.value.reverse)
+    def shuffled: PlainPassword = PlainPassword.notValidatedFromString(plainPassword.value._shuffled)
 
-  extension (username: Username) def reversed: Username = Username(username.value.reverse)
+  extension (username: Username) def shuffled: Username = Username.notValidatedFromString(username.value._shuffled)
 
   extension (token: JwtToken)
-    def reversed: JwtToken = JwtToken.unsafeFromString(token.value.reverse)
-    def tampered: JwtToken = JwtToken.unsafeFromString(token.value.split('.').dropRight(1).mkString("."))
+    def reversed: JwtToken = JwtToken.notValidatedFromString(token.value._reversed)
+    def tampered: JwtToken = JwtToken.notValidatedFromString(token.value.split('.').dropRight(1).mkString("."))
 
 trait UsersStoreContext:
   import cats.effect.Ref

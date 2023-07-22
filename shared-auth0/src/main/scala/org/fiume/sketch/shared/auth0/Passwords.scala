@@ -74,10 +74,10 @@ object Passwords:
        hasNoWhitespace,
        hasNoUnexpectedChar
       ).mapN { case (_, _, _, _, _, _, _, _, _) =>
-        PlainPassword.unsafeFromString(value)
+        new PlainPassword(value) {}
       }.toEither
 
-    def unsafeFromString(value: String): PlainPassword = new PlainPassword(value) {}
+    def notValidatedFromString(value: String): PlainPassword = new PlainPassword(value) {}
 
     given Show[PlainPassword] = Show.fromToString
     given Eq[WeakPassword] = Eq.fromUniversalEquals[WeakPassword]
@@ -88,9 +88,9 @@ object Passwords:
     val logRounds = 12
 
     /* Suspend the effect of being randomly generated */
-    def generate[F[_]]()(using F: Sync[F]): F[Salt] = F.delay { BCrypt.gensalt(logRounds) }.map(Salt.unsafeFromString)
+    def generate[F[_]]()(using F: Sync[F]): F[Salt] = F.delay { BCrypt.gensalt(logRounds) }.map(new Salt(_) {})
 
-    def unsafeFromString(base64Value: String): Salt = new Salt(base64Value) {}
+    def notValidatedFromString(base64Value: String): Salt = new Salt(base64Value) {}
 
     given Show[Salt] = Show.fromToString
 
@@ -100,9 +100,9 @@ object Passwords:
   object HashedPassword:
     def hashPassword(password: PlainPassword, salt: Salt): HashedPassword =
       val hashedPassword = BCrypt.hashpw(password.value, salt.base64Value)
-      HashedPassword.unsafeFromString(hashedPassword)
+      new HashedPassword(hashedPassword) {}
 
-    def unsafeFromString(base64Value: String): HashedPassword = new HashedPassword(base64Value) {}
+    def notValidatedFromString(base64Value: String): HashedPassword = new HashedPassword(base64Value) {}
 
     def verifyPassword(password: PlainPassword, hashedPassword: HashedPassword): Boolean =
       BCrypt.checkpw(password.value, hashedPassword.base64Value)

@@ -9,12 +9,15 @@ import org.fiume.sketch.auth0.http.JsonCodecs.RequestResponsesCodecs.given
 import org.fiume.sketch.shared.app.ErrorCode.InvalidCredentials
 import org.fiume.sketch.shared.app.http.JsonCodecs.ErrorInfoCodecs.given
 import org.fiume.sketch.shared.app.http.Model.{ErrorInfo, ErrorMessage}
-import org.fiume.sketch.shared.auth0.Model.{User, Username}
 import org.fiume.sketch.shared.auth0.Passwords.PlainPassword
-import org.fiume.sketch.shared.auth0.test.PasswordsGens.*
+import org.fiume.sketch.shared.auth0.User
+import org.fiume.sketch.shared.auth0.User.Username
+import org.fiume.sketch.shared.auth0.test.PasswordsGens.PlainPasswords.*
 import org.fiume.sketch.shared.auth0.test.UserGens.*
+import org.fiume.sketch.shared.auth0.test.UserGens.Usernames.*
 import org.fiume.sketch.shared.test.{ContractContext, Http4sTestingRoutesDsl}
 import org.fiume.sketch.shared.test.EitherSyntax.*
+import org.fiume.sketch.shared.test.StringSyntax.*
 import org.http4s.Method.*
 import org.http4s.Status
 import org.http4s.circe.CirceEntityDecoder.*
@@ -37,9 +40,10 @@ class AuthRoutesSpec
 
   test("return a Jwt token for a valid loging request"):
     forAllF(loginRequests, authTokens) { case (user -> loginRequest -> authToken) =>
+      val plainPassword = PlainPassword.notValidatedFromString(loginRequest.password)
       for
         authenticator <- makeAuthenticator(
-          signee = user -> loginRequest.password,
+          signee = user -> plainPassword,
           signeeAuthToken = authToken
         )
 
@@ -57,16 +61,17 @@ class AuthRoutesSpec
       yield ()
     }
 
-  test("return an error for an invalid login request with an invalid password"):
+  test("return error for a login request with wrong password"):
     forAllF(loginRequests, authTokens) { case (user -> loginRequest -> authToken) =>
+      val plainPassword = PlainPassword.notValidatedFromString(loginRequest.password)
       for
         authenticator <- makeAuthenticator(
-          signee = user -> loginRequest.password,
+          signee = user -> plainPassword,
           signeeAuthToken = authToken
         )
 
         request = POST(uri"/login").withEntity(
-          loginRequest.withInvalidPassword
+          loginRequest.withShuffledPassword
         )
         jsonResponse <- send(request)
           .to(new AuthRoutes[IO](authenticator).router())
@@ -84,20 +89,69 @@ class AuthRoutesSpec
       yield ()
     }
 
-  test("return an error for an invalid loging request with an invalid username"):
+  test("return error for a login request with unknown username"):
     forAllF(loginRequests, authTokens) { case (user -> loginRequest -> authToken) =>
       for
         authenticator <- makeAuthenticator(
-          signee = user -> loginRequest.password,
+          signee = user -> PlainPassword.notValidatedFromString(loginRequest.password),
           signeeAuthToken = authToken
         )
 
         request = POST(uri"/login").withEntity(
-          loginRequest.withInvalidUsername
+          loginRequest.withShuffledUsername
         )
         jsonResponse <- send(request)
           .to(new AuthRoutes[IO](authenticator).router())
           .expectJsonResponseWith(Status.Ok)
+
+        _ <- IO {
+          assertEquals(
+            jsonResponse.as[ErrorInfo].rightValue,
+            ErrorInfo(
+              code = InvalidCredentials,
+              message = ErrorMessage("The username or password provided is incorrect.")
+            )
+          )
+        }
+      yield ()
+    }
+
+  test("return an error for a login request with an invalid username or password"):
+    def invalids: Gen[(User, LoginRequest)] =
+      for
+        user <- users
+        username <- Gen.oneOf(
+          shortUsernames,
+          longUsernames,
+          usernamesWithInvalidChars,
+          usernamesWithReservedWords,
+          usernamesWithRepeatedChars
+        )
+        password <- Gen.oneOf(
+          shortPasswords,
+          longPasswords,
+          invalidPasswordsWithoutUppercase,
+          invalidPasswordsWithoutLowercase,
+          invalidPasswordsWithoutDigit,
+          invalidPasswordsWithoutSpecialChar,
+          invalidPasswordsWithWhitespace,
+          invalidPasswordsWithInvalidSpecialChars,
+          passwordsWithControlCharsOrEmojis
+        )
+      yield user.copy(username = Username.notValidatedFromString(username)) -> LoginRequest(username, password.value)
+
+    forAllF(invalids, authTokens) { case (user -> loginRequest -> authToken) =>
+      println(s"this has to be a short one: $user")
+      for
+        authenticator <- makeAuthenticator(
+          signee = user -> PlainPassword.notValidatedFromString(loginRequest.password),
+          signeeAuthToken = authToken
+        )
+
+        request = POST(uri"/login").withEntity(loginRequest)
+        jsonResponse <- send(request)
+          .to(new AuthRoutes[IO](authenticator).router())
+          .expectJsonResponseWith(Status.BadRequest)
 
         _ <- IO {
           assertEquals(
@@ -122,23 +176,22 @@ class AuthRoutesSpec
 
 trait AuthRoutesSpecContext:
   extension (loginRequest: LoginRequest)
-    def withInvalidPassword: LoginRequest =
-      loginRequest.copy(password = PlainPassword.unsafeFromString(loginRequest.password.value.reverse))
-    def withInvalidUsername: LoginRequest = loginRequest.copy(username = Username(loginRequest.username.value.reverse))
+    def withShuffledPassword: LoginRequest = loginRequest.copy(password = loginRequest.password._shuffled)
+    def withShuffledUsername: LoginRequest = loginRequest.copy(username = loginRequest.username._shuffled)
 
   given Arbitrary[(User, LoginRequest)] = Arbitrary(loginRequests)
   def loginRequests: Gen[(User, LoginRequest)] =
     for
       user <- users
       password <- plainPasswords
-    yield user -> LoginRequest(user.username, password)
+    yield user -> LoginRequest(user.username.value, password.value)
 
   given Arbitrary[JwtToken] = Arbitrary(authTokens)
   def authTokens: Gen[JwtToken] = Gen
     .const(
       "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiaWF0IjoxNTE2MjM5MDIyfQ.SflKxwRJSMeKKF2QT4fwpMeJf36POk6yJV_adQssw5c"
     )
-    .map(JwtToken.unsafeFromString)
+    .map(JwtToken.notValidatedFromString)
 
 trait AuthenticatorContext:
   def makeAuthenticator(signee: (User, PlainPassword), signeeAuthToken: JwtToken): IO[Authenticator[IO]] = IO.delay {
