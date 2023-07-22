@@ -45,8 +45,7 @@ object UserGens:
             Gen.oneOf(" ", "\t", "\n", "\r", "\f", "*", "(", ")", "[", "]", "{", "}", "|", "\\", "'", "\"", "<", ">", "/")
           )
           .map(_.mkString)
-        invalidUsername = Random.shuffle(usernames.value ++ invalidChars).mkString
-      yield invalidUsername) :| "invalid chars"
+      yield Random.shuffle(usernames.value ++ invalidChars).mkString) :| "invalid chars"
 
     def usernamesWithReservedWords: Gen[String] =
       (for
