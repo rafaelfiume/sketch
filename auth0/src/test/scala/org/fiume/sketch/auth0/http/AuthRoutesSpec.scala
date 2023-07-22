@@ -91,9 +91,10 @@ class AuthRoutesSpec
 
   test("return error for a login request with unknown username"):
     forAllF(loginRequests, authTokens) { case (user -> loginRequest -> authToken) =>
+      val plainPassword = PlainPassword.notValidatedFromString(loginRequest.password)
       for
         authenticator <- makeAuthenticator(
-          signee = user -> PlainPassword.notValidatedFromString(loginRequest.password),
+          signee = user -> plainPassword,
           signeeAuthToken = authToken
         )
 
@@ -141,10 +142,10 @@ class AuthRoutesSpec
       yield user.copy(username = Username.notValidatedFromString(username)) -> LoginRequest(username, password.value)
 
     forAllF(invalids, authTokens) { case (user -> loginRequest -> authToken) =>
-      println(s"this has to be a short one: $user")
+      val plainPassword = PlainPassword.notValidatedFromString(loginRequest.password)
       for
         authenticator <- makeAuthenticator(
-          signee = user -> PlainPassword.notValidatedFromString(loginRequest.password),
+          signee = user -> plainPassword,
           signeeAuthToken = authToken
         )
 

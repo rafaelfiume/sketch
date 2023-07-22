@@ -57,7 +57,6 @@ object User:
         .mapN((_, _, _, _, _) => notValidatedFromString(value))
         .toEither
 
-    /* safe to be used except during user sign up */
     def notValidatedFromString(value: String): Username = new Username(value) {}
 
     private def hasExcessiveRepeatedChars(value: String, maxRepeatedCharsPercentage: Float): Boolean =

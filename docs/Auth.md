@@ -38,10 +38,4 @@ This hybrid approach tries to strike a balance between security and usability.
 Please, check [this](https://github.com/rafaelfiume/sketch/pull/111) out for more details on Jwt token generation and verification.
 
 
-Note:
-
-https://github.com/jwt-scala/jwt-scala
-libraryDependencies += "com.github.jwt-scala" %% "jwt-circe" % "9.4.0
-
-RS256 to encode jwt?
-
+Feito com ❤️ por Artigiani.
