@@ -19,8 +19,8 @@ object JsonCodecs:
     given Encoder[ErrorMessage] = Encoder.encodeString.contramap(_.value)
     given Decoder[ErrorMessage] = Decoder.decodeString.map(ErrorMessage.apply)
 
-    given Encoder[ErrorDetails] = Encoder.encodeString.contramap(_.value)
-    given Decoder[ErrorDetails] = Decoder.decodeString.map(ErrorDetails.apply)
+    given Encoder[ErrorDetails] = Encoder.encodeMap[String, String].contramap(_.values)
+    given Decoder[ErrorDetails] = Decoder.decodeMap[String, String].map(ErrorDetails.apply)
 
     given Encoder[ErrorInfo] = new Encoder[ErrorInfo]:
       override def apply(errorInfo: ErrorInfo): Json =

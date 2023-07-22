@@ -1,6 +1,9 @@
 {
   "code": "INVALID_CREDENTIALS",
   "message": "The username or password provided is incorrect.",
-  "details": "Please check your credentials and try again.",
+  "details": {
+    "username.too.short": "A specific message for the username.too.short error",
+    "password.too.long": "A specific message for the password.too.long error"
+  },
   "timestamp": "2023-07-19T12:34:56Z"
 }

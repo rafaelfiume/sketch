@@ -8,12 +8,10 @@ case class ErrorInfo(code: ErrorCode, message: ErrorMessage, details: Option[Err
 
 object ErrorInfo:
   case class ErrorMessage(value: String) extends AnyVal
-  case class ErrorDetails(value: String) extends AnyVal
+  case class ErrorDetails(values: Map[String, String]) extends AnyVal
 
   // TODO Rethink these factory functions
   def apply(code: ErrorCode, message: ErrorMessage): ErrorInfo = ErrorInfo(code, message, None, None)
-  def withDetails(code: ErrorCode, message: ErrorMessage, details: ErrorDetails): ErrorInfo =
-    ErrorInfo(code, message, Some(details), None)
 
   enum ErrorCode:
     case InvalidCredentials
