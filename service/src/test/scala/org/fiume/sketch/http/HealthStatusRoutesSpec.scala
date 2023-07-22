@@ -5,12 +5,12 @@ import cats.data.NonEmptyList
 import cats.effect.IO
 import cats.implicits.*
 import munit.{CatsEffectSuite, ScalaCheckEffectSuite}
-import org.fiume.sketch.shared.app.ServiceStatus
 import org.fiume.sketch.shared.app.algebras.{HealthCheck, Versions}
 import org.fiume.sketch.shared.app.algebras.HealthCheck.ServiceHealth
 import org.fiume.sketch.shared.app.algebras.HealthCheck.ServiceHealth.Infra
 import org.fiume.sketch.shared.app.algebras.Versions.Version
-import org.fiume.sketch.shared.app.http.JsonCodecs.ServiceStatusCodecs.given
+import org.fiume.sketch.shared.app.troubleshooting.ServiceStatus
+import org.fiume.sketch.shared.app.troubleshooting.http.JsonCodecs.ServiceStatusCodecs.given
 import org.fiume.sketch.shared.test.EitherSyntax.*
 import org.fiume.sketch.shared.test.Gens.Lists.*
 import org.fiume.sketch.shared.test.Http4sTestingRoutesDsl

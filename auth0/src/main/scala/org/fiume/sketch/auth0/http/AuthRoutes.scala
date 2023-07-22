@@ -6,10 +6,9 @@ import io.circe.generic.auto.*
 import org.fiume.sketch.auth0.Authenticator
 import org.fiume.sketch.auth0.http.AuthRoutes.Model.{LoginRequest, LoginResponse}
 import org.fiume.sketch.auth0.http.JsonCodecs.RequestResponsesCodecs.given
-import org.fiume.sketch.shared.app.ErrorCode
-import org.fiume.sketch.shared.app.ErrorCode.InvalidCredentials
-import org.fiume.sketch.shared.app.http.JsonCodecs.ErrorInfoCodecs.given
-import org.fiume.sketch.shared.app.http.Model.{ErrorInfo, ErrorMessage}
+import org.fiume.sketch.shared.app.troubleshooting.ErrorInfo
+import org.fiume.sketch.shared.app.troubleshooting.ErrorInfo.{ErrorCode, ErrorDetails, ErrorMessage}
+import org.fiume.sketch.shared.app.troubleshooting.http.JsonCodecs.ErrorInfoCodecs.given
 import org.fiume.sketch.shared.auth0.Passwords.PlainPassword
 import org.fiume.sketch.shared.auth0.User.Username
 import org.http4s.{Challenge, HttpRoutes, Response}
@@ -43,7 +42,7 @@ class AuthRoutes[F[_]: Async](authenticator: Authenticator[F]) extends Http4sDsl
               // TODO invalidLoginRequest should be a list of errors
               BadRequest(
                 ErrorInfo(
-                  code = InvalidCredentials,
+                  code = ErrorCode.InvalidCredentials,
                   message = ErrorMessage("The username or password provided is incorrect.")
                 )
               ),
@@ -56,7 +55,7 @@ class AuthRoutes[F[_]: Async](authenticator: Authenticator[F]) extends Http4sDsl
                 logger.info(s"(AUTH002) Failed login attempt for username ${loginRequest.username}") *>
                   Ok(
                     ErrorInfo(
-                      code = InvalidCredentials,
+                      code = ErrorCode.InvalidCredentials,
                       message = ErrorMessage("The username or password provided is incorrect.")
                     )
                   )

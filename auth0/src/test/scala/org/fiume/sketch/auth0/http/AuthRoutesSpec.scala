@@ -6,9 +6,9 @@ import munit.{CatsEffectSuite, ScalaCheckEffectSuite}
 import org.fiume.sketch.auth0.{AuthenticationError, Authenticator, InvalidPasswordError, JwtToken, UserNotFoundError}
 import org.fiume.sketch.auth0.http.AuthRoutes.Model.{LoginRequest, LoginResponse}
 import org.fiume.sketch.auth0.http.JsonCodecs.RequestResponsesCodecs.given
-import org.fiume.sketch.shared.app.ErrorCode.InvalidCredentials
-import org.fiume.sketch.shared.app.http.JsonCodecs.ErrorInfoCodecs.given
-import org.fiume.sketch.shared.app.http.Model.{ErrorInfo, ErrorMessage}
+import org.fiume.sketch.shared.app.troubleshooting.ErrorInfo
+import org.fiume.sketch.shared.app.troubleshooting.ErrorInfo.{ErrorCode, ErrorDetails, ErrorMessage}
+import org.fiume.sketch.shared.app.troubleshooting.http.JsonCodecs.ErrorInfoCodecs.given
 import org.fiume.sketch.shared.auth0.Passwords.PlainPassword
 import org.fiume.sketch.shared.auth0.User
 import org.fiume.sketch.shared.auth0.User.Username
@@ -81,7 +81,7 @@ class AuthRoutesSpec
           assertEquals(
             jsonResponse.as[ErrorInfo].rightValue,
             ErrorInfo(
-              code = InvalidCredentials,
+              code = ErrorCode.InvalidCredentials,
               message = ErrorMessage("The username or password provided is incorrect.")
             )
           )
@@ -109,7 +109,7 @@ class AuthRoutesSpec
           assertEquals(
             jsonResponse.as[ErrorInfo].rightValue,
             ErrorInfo(
-              code = InvalidCredentials,
+              code = ErrorCode.InvalidCredentials,
               message = ErrorMessage("The username or password provided is incorrect.")
             )
           )
@@ -158,7 +158,7 @@ class AuthRoutesSpec
           assertEquals(
             jsonResponse.as[ErrorInfo].rightValue,
             ErrorInfo(
-              code = InvalidCredentials,
+              code = ErrorCode.InvalidCredentials,
               message = ErrorMessage("The username or password provided is incorrect.")
             )
           )

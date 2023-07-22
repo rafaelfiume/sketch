@@ -1,13 +1,13 @@
-package org.fiume.sketch.shared.app.http
+package org.fiume.sketch.shared.app.troubleshooting.http
 
 import io.circe.{Codec, Decoder, Encoder, HCursor, Json}
 import io.circe.Decoder.Result
 import io.circe.syntax.*
-import org.fiume.sketch.shared.app.{ErrorCode, ServiceStatus}
 import org.fiume.sketch.shared.app.algebras.HealthCheck.ServiceHealth
 import org.fiume.sketch.shared.app.algebras.Versions
 import org.fiume.sketch.shared.app.algebras.Versions.Version
-import org.fiume.sketch.shared.app.http.Model.{ErrorDetails, ErrorInfo, ErrorMessage}
+import org.fiume.sketch.shared.app.troubleshooting.{ErrorInfo, ServiceStatus}
+import org.fiume.sketch.shared.app.troubleshooting.ErrorInfo.*
 
 import java.time.ZonedDateTime
 
