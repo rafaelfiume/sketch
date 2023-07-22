@@ -9,8 +9,6 @@ import org.fiume.sketch.shared.app.algebras.Versions.Version
 import org.fiume.sketch.shared.app.troubleshooting.{ErrorInfo, ServiceStatus}
 import org.fiume.sketch.shared.app.troubleshooting.ErrorInfo.*
 
-import java.time.ZonedDateTime
-
 object JsonCodecs:
   object ErrorInfoCodecs:
     given Encoder[ErrorCode] = Encoder.encodeString.contramap(errorCodeToHumanString)
@@ -27,8 +25,7 @@ object JsonCodecs:
         Json.obj(
           "code" -> errorInfo.code.asJson,
           "message" -> errorInfo.message.asJson,
-          "details" -> errorInfo.details.asJson,
-          "timestamp" -> errorInfo.timestamp.asJson
+          "details" -> errorInfo.details.asJson
         )
 
     given Decoder[ErrorInfo] = new Decoder[ErrorInfo]:
@@ -37,8 +34,7 @@ object JsonCodecs:
           code <- c.downField("code").as[ErrorCode]
           message <- c.downField("message").as[ErrorMessage]
           details <- c.downField("details").as[Option[ErrorDetails]]
-          timestamp <- c.downField("timestamp").as[Option[ZonedDateTime]]
-        yield ErrorInfo(code, message, details, timestamp)
+        yield ErrorInfo(code, message, details)
 
     /* To be included in the response body when an error occurs */
     private val errorCodeToHumanString: Map[ErrorCode, String] = Map(ErrorCode.InvalidCredentials -> "INVALID_CREDENTIALS")
