@@ -140,7 +140,7 @@ class AuthRoutesSpec
           invalidPasswordsWithInvalidSpecialChars,
           passwordsWithControlCharsOrEmojis
         )
-      yield user.copy(username = Username.notValidatedFromString(username)) -> LoginRequest(username, password.value)
+      yield user.copy(username = Username.notValidatedFromString(username)) -> LoginRequest(username, password)
 
     forAllF(invalids, authTokens) { case (user -> loginRequest -> authToken) =>
       val plainPassword = PlainPassword.notValidatedFromString(loginRequest.password)
@@ -186,7 +186,7 @@ trait AuthRoutesSpecContext:
     for
       user <- users
       password <- plainPasswords
-    yield user -> LoginRequest(user.username.value, password.value)
+    yield user -> LoginRequest(user.username.value, password)
 
   given Arbitrary[JwtToken] = Arbitrary(authTokens)
   def authTokens: Gen[JwtToken] = Gen

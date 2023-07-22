@@ -2,9 +2,11 @@ package org.fiume.sketch.shared.auth0.test
 
 import cats.effect.IO
 import cats.effect.unsafe.IORuntime
+import cats.syntax.*
 import org.fiume.sketch.shared.auth0.Passwords.{HashedPassword, PlainPassword, Salt}
 import org.fiume.sketch.shared.auth0.test.PasswordsGens.PlainPasswords.*
 import org.fiume.sketch.shared.auth0.test.PasswordsGens.Salts.*
+import org.fiume.sketch.shared.test.Gens.given
 import org.scalacheck.{Arbitrary, Gen}
 
 import scala.util.Random
@@ -12,8 +14,11 @@ import scala.util.Random
 object PasswordsGens:
 
   object PlainPasswords:
-    given Arbitrary[PlainPassword] = Arbitrary(plainPasswords)
-    def plainPasswords: Gen[PlainPassword] =
+    given Arbitrary[PlainPassword] = Arbitrary(validPlainPasswords)
+    def validPlainPasswords: Gen[PlainPassword] = plainPasswords.map(PlainPassword.notValidatedFromString)
+
+    given Arbitrary[String] = Arbitrary(plainPasswords)
+    def plainPasswords: Gen[String] =
       val lowercaseGen = Gen.alphaLowerChar.map(_.toString)
       val uppercaseGen = Gen.alphaUpperChar.map(_.toString)
       val digitGen = Gen.numChar.map(_.toString)
@@ -25,50 +30,60 @@ object PasswordsGens:
         digit <- Gen.listOfN(length / 4, digitGen)
         specialChar <- Gen.listOfN(length / 4, specialCharGen)
         password = scala.util.Random.shuffle(lowercase ++ uppercase ++ digit ++ specialChar).take(length).mkString
-      yield PlainPassword.notValidatedFromString(password)) :| "valid passwords"
+      yield password) :| "valid passwords"
 
-    def shortPasswords: Gen[PlainPassword] =
+    def shortPasswords: Gen[String] =
       (for
         password <- plainPasswords
         shortSize <- Gen.choose(0, PlainPassword.minLength - 1)
-      yield password.modify(_.take(shortSize))) :| "short passwords"
+      yield password.take(shortSize)) :| "short passwords"
 
-    def longPasswords: Gen[PlainPassword] =
+    def longPasswords: Gen[String] =
       (for
         password <- plainPasswords
         extraSize <- Gen.choose(PlainPassword.maxLength, 100)
         extraChars <- Gen.listOfN(extraSize, Gen.alphaNumChar).map(_.mkString)
-      yield password.modify(_ + extraChars)) :| "long passwords"
+      yield password + extraChars) :| "long passwords"
 
-    def invalidPasswordsWithoutUppercase: Gen[PlainPassword] =
-      plainPasswords.map(_.modify(_.toLowerCase())) :| "passwords without uppercase"
+    def invalidPasswordsWithoutUppercase: Gen[String] =
+      plainPasswords.map(_.toLowerCase()) :| "passwords without uppercase"
 
-    def invalidPasswordsWithoutLowercase: Gen[PlainPassword] =
-      plainPasswords.map(_.modify(_.toUpperCase)) :| "passwords without lowercase"
+    def invalidPasswordsWithoutLowercase: Gen[String] =
+      plainPasswords.map(_.toUpperCase) :| "passwords without lowercase"
 
-    def invalidPasswordsWithoutDigit: Gen[PlainPassword] =
-      plainPasswords.map(_.modify(_.filterNot(_.isDigit))) :| "passwords without digit"
+    def invalidPasswordsWithoutDigit: Gen[String] =
+      plainPasswords.map(_.filterNot(_.isDigit)) :| "passwords without digit"
 
-    def invalidPasswordsWithoutSpecialChar: Gen[PlainPassword] =
-      plainPasswords.map(_.modify(_.filter(_.isLetterOrDigit))) :| "passwords without special character"
+    def invalidPasswordsWithoutSpecialChar: Gen[String] =
+      plainPasswords.map(_.filter(_.isLetterOrDigit)) :| "passwords without special character"
 
-    def invalidPasswordsWithWhitespace: Gen[PlainPassword] =
+    def invalidPasswordsWithWhitespace: Gen[String] =
       (for
         password <- plainPasswords
         whitespace <- whitespaces
-      yield password.modify(whitespace +: _).modify(Random.shuffle(_).mkString)) :| "passwords with whitespace"
+      yield Random.shuffle(whitespace +: password).mkString) :| "passwords with whitespace"
 
-    def invalidPasswordsWithInvalidSpecialChars: Gen[PlainPassword] =
+    def invalidPasswordsWithInvalidSpecialChars: Gen[String] =
       (for
         password <- plainPasswords
         invalidChar <- invalidSpecialChars
-      yield password.modify(invalidChar +: _).modify(Random.shuffle(_).mkString)) :| "passwords with invalid special character"
+      yield Random.shuffle(invalidChar +: password).mkString) :| "passwords with invalid special character"
 
-    def passwordsWithControlCharsOrEmojis: Gen[PlainPassword] =
+    def passwordsWithControlCharsOrEmojis: Gen[String] =
       (for
         password <- plainPasswords
         invalidChar <- invalidChars
-      yield password.modify(invalidChar +: _).modify(Random.shuffle(_).mkString)) :| "passwords with control chars or emojis"
+      yield Random.shuffle(invalidChar +: password).mkString) :| "passwords with control chars or emojis"
+
+    def combinedPasswordErrors: Gen[String] =
+      (for
+        plainPassword <- plainPasswords
+        whitespace <- whitespaces
+        invalidSpecialChar <- invalidSpecialChars
+        invalidChar <- invalidChars
+      yield Random
+        .shuffle(whitespace +: invalidSpecialChar +: invalidChar +: plainPassword)
+        .mkString) :| "passwords with multiple errors"
 
     def whitespaces: Gen[Char] = Gen.oneOf(' ', '\t', '\n', '\r')
 
@@ -149,11 +164,6 @@ object PasswordsGens:
       0x1f640.toChar
     )
 
-    // TODO MOve it to a separated package?
-    extension (password: PlainPassword)
-      def modify(f: String => String): PlainPassword =
-        PlainPassword.notValidatedFromString(f(password.value))
-
   object Salts:
     given Arbitrary[Salt] = Arbitrary(salts)
     def salts: Gen[Salt] =
@@ -168,7 +178,7 @@ object PasswordsGens:
 
     def passwordsInfo: Gen[(PlainPassword, HashedPassword, Salt)] =
       for
-        plainPassword <- plainPasswords
+        plainPassword <- plainPasswords.map(PlainPassword.notValidatedFromString)
         salt <- salts
         hashedPassword = HashedPassword.hashPassword(plainPassword, salt)
       yield (plainPassword, hashedPassword, salt)

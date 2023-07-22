@@ -86,8 +86,8 @@ class PostgresUsersStoreSpec
   test("delete user"):
     given Arbitrary[(Username, Username)] = Arbitrary(
       (for
-        fst <- usernames
-        snd <- usernames
+        fst <- validUsernames
+        snd <- validUsernames
       yield (fst, snd)).suchThat { case (fst, snd) => fst != snd }
     )
     forAllF { (users: (Username, Username), fstPass: HashedPassword, fstSalt: Salt, sndPass: HashedPassword, sndSalt: Salt) =>
