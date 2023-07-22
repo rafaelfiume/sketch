@@ -29,7 +29,7 @@ class UsernameSpec extends ScalaCheckSuite with ShrinkLowPriority:
 
   test("usernames with invalid characters"):
     forAll(usernamesWithInvalidChars) { usernameWithInvalidChars =>
-      Username.validated(usernameWithInvalidChars).leftValue.contains(Username.InvalidChar)
+      Username.validated(usernameWithInvalidChars).leftValue.contains(Username.InvalidCharater)
     }
 
   test("usernames with reserved words"):
