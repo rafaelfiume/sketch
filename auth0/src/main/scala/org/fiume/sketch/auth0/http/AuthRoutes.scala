@@ -43,7 +43,6 @@ class AuthRoutes[F[_]: Async](authenticator: Authenticator[F]) extends Http4sDsl
         validate(loginRequest).fold(
           inputErrors =>
             logger.info(s"(AUTH001) Failed login attempt for username ${loginRequest.username}") *>
-              Async[F].delay(println(s"inputErrors: $inputErrors")) *>
               BadRequest(
                 ErrorInfo.withDetails(
                   code = ErrorCode.InvalidCredentials,
