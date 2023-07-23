@@ -6,12 +6,12 @@ import cats.effect.{Concurrent, Sync}
 import cats.effect.kernel.Async
 import cats.implicits.*
 import fs2.Stream
+import org.fiume.sketch.shared.app.troubleshooting.ErrorInfo
+import org.fiume.sketch.shared.app.troubleshooting.ErrorInfo.*
+import org.fiume.sketch.shared.app.troubleshooting.http.JsonCodecs.ErrorInfoCodecs.given
 import org.fiume.sketch.storage.documents.Model.{Document, Metadata}
 import org.fiume.sketch.storage.documents.algebras.DocumentsStore
 import org.fiume.sketch.storage.documents.http.JsonCodecs.given
-import org.fiume.sketch.storage.http.JsonCodecs.Incorrects.given
-import org.fiume.sketch.storage.http.Model.Incorrect
-import org.fiume.sketch.storage.http.Model.IncorrectOps.*
 import org.http4s.{HttpRoutes, QueryParamDecoder, *}
 import org.http4s.circe.CirceEntityDecoder.*
 import org.http4s.circe.CirceEntityEncoder.*
@@ -48,13 +48,22 @@ class DocumentsRoutes[F[_]: Async, Txn[_]](store: DocumentsStore[F, Txn]) extend
        */
       case req @ POST -> Root / "documents" =>
         req.decode { (m: Multipart[F]) =>
+          // TODO Check bytes size
           val payload = (m.metadata, m.bytes).parTupled // warning: errors won't accumulate by default: see validation tests
+            .leftMap(ErrorDetails.apply)
           for
             value <- payload.value
             res <- value match
-              case Left(details) =>
-                logger.info(s"Bad request to upload document: $details") *>
-                  BadRequest(Incorrect(details))
+              case Left(inputErrors) =>
+                // TODO Log username
+                logger.info("Bad request to upload document") *>
+                  BadRequest(
+                    ErrorInfo.withDetails(
+                      code = ErrorCode.InvalidDocument,
+                      message = ErrorMessage("The provided document is invalid."),
+                      details = inputErrors
+                    )
+                  )
 
               case Right((metadata, bytes)) =>
                 for
@@ -99,18 +108,23 @@ class DocumentsRoutes[F[_]: Async, Txn[_]](store: DocumentsStore[F, Txn]) extend
 
 private[http] object DocumentsRoutes:
   extension [F[_]: MonadThrow: Concurrent](m: Multipart[F])
-    def metadata: EitherT[F, NonEmptyChain[Incorrect.Detail], Metadata] = EitherT
+    def metadata: EitherT[F, Map[String, String], Metadata] = EitherT
       .fromEither {
-        m.parts.find { _.name == Some("metadata") }.orMissing("metadata")
+        m.parts
+          .find { _.name == Some("metadata") }
+          .toRight(Map("document.missing.metadata" -> "metadata is mandatory"))
       }
       .flatMap { json =>
         json
           .as[Metadata]
           .attemptT
-          .leftMap { _.getMessage.malformed }
+          .leftMap { e => Map("document.malformed" -> e.getMessage) }
       }
 
-    def bytes: EitherT[F, NonEmptyChain[Incorrect.Detail], Stream[F, Byte]] = EitherT
+    def bytes: EitherT[F, Map[String, String], Stream[F, Byte]] = EitherT
       .fromEither {
-        m.parts.find { _.name == Some("bytes") }.orMissing("bytes").map(_.body)
+        m.parts
+          .find { _.name == Some("bytes") }
+          .toRight(Map("document.missing.content" -> "no document provided for upload"))
+          .map(_.body)
       }

@@ -7,15 +7,15 @@ import io.circe.Json
 import io.circe.syntax.*
 import munit.{CatsEffectSuite, ScalaCheckEffectSuite}
 import munit.Assertions.*
+import org.fiume.sketch.shared.app.troubleshooting.ErrorInfo
+import org.fiume.sketch.shared.app.troubleshooting.ErrorInfo.{ErrorCode, ErrorDetails, ErrorMessage}
+import org.fiume.sketch.shared.app.troubleshooting.http.JsonCodecs.ErrorInfoCodecs.given
 import org.fiume.sketch.shared.test.{ContractContext, FileContentContext, Http4sTestingRoutesDsl}
 import org.fiume.sketch.shared.test.EitherSyntax.*
 import org.fiume.sketch.storage.documents.Model.{Document, Metadata}
 import org.fiume.sketch.storage.documents.algebras.DocumentsStore
 import org.fiume.sketch.storage.documents.http.DocumentsRoutes.*
 import org.fiume.sketch.storage.documents.http.JsonCodecs.given
-import org.fiume.sketch.storage.http.JsonCodecs.Incorrects.given
-import org.fiume.sketch.storage.http.Model.Incorrect
-import org.fiume.sketch.storage.http.Model.IncorrectOps.*
 import org.fiume.sketch.test.support.DocumentsGens.*
 import org.fiume.sketch.test.support.DocumentsGens.given
 import org.http4s.{MediaType, *}
@@ -25,7 +25,7 @@ import org.http4s.client.dsl.io.*
 import org.http4s.headers.`Content-Type`
 import org.http4s.implicits.*
 import org.http4s.multipart.{Boundary, Multipart, Part}
-import org.scalacheck.ShrinkLowPriority
+import org.scalacheck.{Gen, ShrinkLowPriority}
 import org.scalacheck.effect.PropF.forAllF
 
 import java.util.UUID
@@ -36,6 +36,7 @@ class DocumentsRoutesSpec
     with Http4sTestingRoutesDsl
     with ContractContext
     with DocumentsStoreContext
+    with DocumentsRoutesSpecContext
     with ShrinkLowPriority:
 
   override def scalaCheckTestParameters = super.scalaCheckTestParameters.withMinSuccessfulTests(10)
@@ -131,71 +132,28 @@ class DocumentsRoutesSpec
 
   /* Sad Path */
 
-  test("Post document with no file == bad request") {
-    forAllF(metadataG) { metadata =>
-      val multipart = Multipart[IO](
-        // no file mamma!
-        parts = Vector(Part.formData("metadata", metadata.asJson.spaces2SortKeys)),
-        boundary = Boundary("boundary")
-      )
+  test("Post document with malformed metadata == bad request") {
+    forAllF(invalidDocumentRequests) { multipart =>
       val request = POST(uri"/documents").withEntity(multipart).withHeaders(multipart.headers)
       for
         store <- makeDocumentsStore()
 
-        jsonResponse <- send(request)
+        result <- send(request)
           .to(new DocumentsRoutes[IO, IO](store).router())
           .expectJsonResponseWith(Status.BadRequest)
+          .map(_.as[ErrorInfo].rightValue)
 
         _ <- IO {
-          assertEquals(jsonResponse.as[Incorrect].rightValue, Incorrect("bytes".missing))
+          assertEquals(result.code, ErrorCode.InvalidDocument)
+          assertEquals(result.message, ErrorMessage("The provided document is invalid."))
+          val allInputErrors = Set("document.missing.metadata", "document.malformed", "document.missing.content")
+          val actualInputErrors = result.details.get.values.keys.toSet
+          assert(actualInputErrors.subsetOf(allInputErrors),
+                 clue = s"actualInputErrors: $actualInputErrors\nallInputErrors: $allInputErrors"
+          )
         }
       yield ()
     }
-  }
-
-  // TODO Can be merged with test above
-  test("Post document with no metadata == bad request") {
-    val imageFile = getClass.getClassLoader.getResource("mountain-bike-liguria-ponent.jpg")
-    val multipart = Multipart[IO](
-      // no metadata mamma!
-      parts = Vector(Part.fileData("bytes", imageFile, `Content-Type`(MediaType.image.jpeg))),
-      boundary = Boundary("boundary")
-    )
-    val request = POST(uri"/documents").withEntity(multipart).withHeaders(multipart.headers)
-    for
-      store <- makeDocumentsStore()
-
-      jsonResponse <- send(request)
-        .to(new DocumentsRoutes[IO, IO](store).router())
-        .expectJsonResponseWith(Status.BadRequest)
-
-      _ <- IO {
-        assertEquals(jsonResponse.as[Incorrect].rightValue, Incorrect("metadata".missing))
-      }
-    yield ()
-  }
-
-  test("Post document with malformed metadata == bad request") {
-    val imageFile = getClass.getClassLoader.getResource("mountain-bike-liguria-ponent.jpg")
-    val multipart = Multipart[IO](
-      parts = Vector(
-        Part.formData("metadata", """ { \"bananas\" : \"apples\" } """),
-        Part.fileData("bytes", imageFile, `Content-Type`(MediaType.image.jpeg))
-      ),
-      boundary = Boundary("boundary")
-    )
-    val request = POST(uri"/documents").withEntity(multipart).withHeaders(multipart.headers)
-    for
-      store <- makeDocumentsStore()
-
-      jsonResponse <- send(request)
-        .to(new DocumentsRoutes[IO, IO](store).router())
-        .expectJsonResponseWith(Status.BadRequest)
-
-      _ <- IO {
-        assertEquals(jsonResponse.as[Incorrect].rightValue, Incorrect("Malformed message body: Invalid JSON".malformed))
-      }
-    yield ()
   }
 
   test("Delete unexistent document == not found") {
@@ -219,59 +177,64 @@ class DocumentsRoutesSpec
       "contract/documents/http/metadata.json"
     )
 
-  /* Validation */
+  // TODO Coming soon
+  // test("validation accumulates") {
+  //   /*
+  //    * Needs an alternative instance of Parallel to accumulate error
+  //    * More details here: https://github.com/typelevel/cats/pull/3777/files
+  //    */
+  //   given accumulatingParallel: cats.Parallel[EitherT[IO, NonEmptyChain[Incorrect.Detail], *]] =
+  //     EitherT.accumulatingParallel
 
-  List(
-    "missing" ->
-      Multipart[IO](parts = Vector.empty, boundary = Boundary("boundary")) ->
-      "metadata".missing,
-    "malformed" ->
+  //   val multipart = Multipart[IO](
+  //     parts = Vector.empty,
+  //     boundary = Boundary("boundary")
+  //   )
+
+  //   val result: EitherT[IO, NonEmptyChain[Incorrect.Detail], (Metadata, fs2.Stream[IO, Byte])] =
+  //     (multipart.metadata, multipart.bytes).parTupled
+
+  //   result
+  //     .map { _ => fail("expected left") }
+  //     .leftMap { result => assertEquals(result.toList, ("metadata".missing |+| "bytes".missing).toList) }
+  //     .value
+  // }
+
+trait DocumentsRoutesSpecContext:
+  def invalidDocumentRequests: Gen[Multipart[IO]] = Gen.oneOf(
+    invalidDocumentRequestWithNoContent,
+    invalidMultipartsWithNoMetadata,
+    invalidDocumentRequestWithMalformedMetadata
+  )
+
+  def invalidDocumentRequestWithNoContent: Gen[Multipart[IO]] = metadataG.flatMap { metadata =>
+    Gen.delay {
       Multipart[IO](
-        parts = Vector(Part.formData("metadata", """ { \"bananas\" : \"apples\" } """)),
+        // no file mamma!
+        parts = Vector(Part.formData("metadata", metadata.asJson.spaces2SortKeys)),
         boundary = Boundary("boundary")
-      ) -> "Malformed message body: Invalid JSON".malformed
-  )
-    .foreach { case ((description, multipart), expected) =>
-      test(s"validate metadata: $description") {
-        multipart.metadata
-          .map { _ => fail("expected left") }
-          .leftMap { result => assertEquals(result, expected) }
-          .value
-      }
+      )
     }
+  }
 
-  List(
-    "missing" -> Multipart[IO](parts = Vector.empty, boundary = Boundary("boundary")) -> "bytes".missing
-  )
-    .foreach { case ((description, multipart), expected) =>
-      test(s"validate document bytes: $description") {
-        multipart.bytes
-          .map { _ => fail("expected left") }
-          .leftMap { result => assertEquals(result, expected) }
-          .value
-      }
-    }
-
-  test("validation accumulates") {
-    /*
-     * Needs an alternative instance of Parallel to accumulate error
-     * More details here: https://github.com/typelevel/cats/pull/3777/files
-     */
-    given accumulatingParallel: cats.Parallel[EitherT[IO, NonEmptyChain[Incorrect.Detail], *]] =
-      EitherT.accumulatingParallel
-
-    val multipart = Multipart[IO](
-      parts = Vector.empty,
+  def invalidMultipartsWithNoMetadata: Gen[Multipart[IO]] = Gen.delay {
+    val imageFile = getClass.getClassLoader.getResource("mountain-bike-liguria-ponent.jpg")
+    Multipart[IO](
+      // no metadata mamma!
+      parts = Vector(Part.fileData("bytes", imageFile, `Content-Type`(MediaType.image.jpeg))),
       boundary = Boundary("boundary")
     )
+  }
 
-    val result: EitherT[IO, NonEmptyChain[Incorrect.Detail], (Metadata, fs2.Stream[IO, Byte])] =
-      (multipart.metadata, multipart.bytes).parTupled
-
-    result
-      .map { _ => fail("expected left") }
-      .leftMap { result => assertEquals(result.toList, ("metadata".missing |+| "bytes".missing).toList) }
-      .value
+  def invalidDocumentRequestWithMalformedMetadata: Gen[Multipart[IO]] = Gen.delay {
+    val imageFile = getClass.getClassLoader.getResource("mountain-bike-liguria-ponent.jpg")
+    Multipart[IO](
+      parts = Vector(
+        Part.formData("metadata", """ { \"bananas\" : \"apples\" } """),
+        Part.fileData("bytes", imageFile, `Content-Type`(MediaType.image.jpeg))
+      ),
+      boundary = Boundary("boundary")
+    )
   }
 
 trait DocumentsStoreContext:

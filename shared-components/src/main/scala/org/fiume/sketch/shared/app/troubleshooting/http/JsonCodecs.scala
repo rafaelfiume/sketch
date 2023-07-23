@@ -37,7 +37,10 @@ object JsonCodecs:
         yield ErrorInfo(code, message, details)
 
     /* To be included in the response body when an error occurs */
-    private val errorCodeToHumanString: Map[ErrorCode, String] = Map(ErrorCode.InvalidCredentials -> "INVALID_CREDENTIALS")
+    private val errorCodeToHumanString: Map[ErrorCode, String] = Map(
+      ErrorCode.InvalidCredentials -> "INVALID_CREDENTIALS",
+      ErrorCode.InvalidDocument -> "INVALID_DOCUMENT"
+    )
     private val humanStringToErrorCode: Map[String, ErrorCode] = errorCodeToHumanString.map(_.swap)
 
   object ServiceStatusCodecs:
