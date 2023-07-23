@@ -6,7 +6,7 @@ import cats.effect.{Concurrent, Sync}
 import cats.effect.kernel.Async
 import cats.implicits.*
 import fs2.Stream
-import org.fiume.sketch.shared.app.troubleshooting.ErrorInfo
+import org.fiume.sketch.shared.app.troubleshooting.{ErrorInfo, InvariantError}
 import org.fiume.sketch.shared.app.troubleshooting.ErrorInfo.*
 import org.fiume.sketch.shared.app.troubleshooting.http.JsonCodecs.ErrorInfoCodecs.given
 import org.fiume.sketch.storage.documents.Model.{Document, Metadata}
@@ -57,7 +57,7 @@ class DocumentsRoutes[F[_]: Async, Txn[_]](store: DocumentsStore[F, Txn]) extend
             // warning: errors won't accumulate by default: see validation tests
             .parTupled
             .leftMap(_.toList)
-            .leftMap(inputErrorsToMap)
+            .leftMap(InvariantError.inputErrorsToMap)
             .leftMap(ErrorDetails.apply)
           for
             value <- payload.value
@@ -113,9 +113,7 @@ class DocumentsRoutes[F[_]: Async, Txn[_]](store: DocumentsStore[F, Txn]) extend
     }
 
 private[http] object DocumentsRoutes:
-  trait InvalidDocument:
-    def uniqueCode: String
-    def message: String
+  trait InvalidDocument extends InvariantError
 
   case object MissingMetadata extends InvalidDocument:
     def uniqueCode = "document.missing.metadata"
@@ -131,9 +129,6 @@ private[http] object DocumentsRoutes:
 
   val invalidDocuments: Set[InvalidDocument] =
     Set(MissingMetadata, MissingContent, MalformedDocumentMetadata)
-
-  def inputErrorsToMap(inputErrors: List[InvalidDocument]): Map[String, String] =
-    inputErrors.map(e => e.uniqueCode -> e.message).toMap
 
   extension [F[_]: MonadThrow: Concurrent](m: Multipart[F])
     def metadata: EitherT[F, NonEmptyChain[InvalidDocument], Metadata] = EitherT

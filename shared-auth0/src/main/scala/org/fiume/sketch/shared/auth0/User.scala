@@ -3,6 +3,7 @@ package org.fiume.sketch.shared.auth0
 import cats.{Eq, Show}
 import cats.data.{EitherNec, Validated}
 import cats.implicits.*
+import org.fiume.sketch.shared.app.troubleshooting.InvariantError
 import org.fiume.sketch.shared.auth0.Passwords.{HashedPassword, Salt}
 import org.fiume.sketch.shared.auth0.User.Username
 import org.fiume.sketch.shared.auth0.User.Username.WeakUsername
@@ -23,9 +24,7 @@ object User:
   sealed abstract case class Username(value: String)
 
   object Username:
-    sealed trait WeakUsername:
-      def uniqueCode: String
-      def message: String
+    sealed trait WeakUsername extends InvariantError
 
     case object TooShort extends WeakUsername:
       override def uniqueCode: String = "username.too.short"
@@ -65,9 +64,6 @@ object User:
         .toEither
 
     def notValidatedFromString(value: String): Username = new Username(value) {}
-
-    def inputErrorsToMap(inputErrors: List[WeakUsername]): Map[String, String] =
-      inputErrors.map(e => e.uniqueCode -> e.message).toMap
 
     private def hasExcessiveRepeatedChars(value: String, maxRepeatedCharsPercentage: Float): Boolean =
       val repeatedCharsCount = value.groupBy(identity).view.mapValues(_.length)

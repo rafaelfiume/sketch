@@ -177,7 +177,7 @@ class DocumentsRoutesSpec
       "contract/documents/http/metadata.json"
     )
 
-  test("validation accumulates") {
+  test("validation accumulates") { // more like a demonstration of accumulating error with Parallel and EitherT
     /*
      * Needs an alternative instance of Parallel to accumulate error
      * More details here: https://github.com/typelevel/cats/pull/3777/files
@@ -189,12 +189,11 @@ class DocumentsRoutesSpec
       parts = Vector.empty,
       boundary = Boundary("boundary")
     )
-    val result: EitherT[IO, NonEmptyChain[DocumentsRoutes.InvalidDocument], (Metadata, fs2.Stream[IO, Byte])] =
-      (multipart.metadata, multipart.bytes).parTupled
+    val result = (multipart.metadata, multipart.bytes).parTupled
 
-    result
-      .leftMap { result => assertEquals(result.toList, NonEmptyChain.of(MissingMetadata, MissingContent).toList) }
-      .value
+    result.leftMap { inputErrors =>
+      assertEquals(inputErrors.toList, List(MissingMetadata, MissingContent))
+    }.value
   }
 
 trait DocumentsRoutesSpecContext:

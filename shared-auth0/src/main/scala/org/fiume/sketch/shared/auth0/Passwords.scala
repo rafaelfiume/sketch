@@ -4,6 +4,7 @@ import cats.{Eq, Show}
 import cats.data.{EitherNec, Validated}
 import cats.effect.Sync
 import cats.implicits.*
+import org.fiume.sketch.shared.app.troubleshooting.InvariantError
 import org.mindrot.jbcrypt.BCrypt
 
 import java.util.Base64
@@ -13,9 +14,7 @@ object Passwords:
   sealed abstract case class PlainPassword(value: String)
 
   object PlainPassword:
-    sealed trait WeakPassword:
-      def uniqueCode: String
-      def message: String
+    sealed trait WeakPassword extends InvariantError
 
     case object TooShort extends WeakPassword:
       override val uniqueCode: String = "password.too.short"
@@ -90,9 +89,6 @@ object Passwords:
       }.toEither
 
     def notValidatedFromString(value: String): PlainPassword = new PlainPassword(value) {}
-
-    def inputErrorsToMap(inputErrors: List[WeakPassword]): Map[String, String] =
-      inputErrors.map(e => e.uniqueCode -> e.message).toMap
 
     given Show[PlainPassword] = Show.fromToString
     given Eq[WeakPassword] = Eq.fromUniversalEquals[WeakPassword]
