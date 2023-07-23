@@ -146,7 +146,7 @@ class DocumentsRoutesSpec
         _ <- IO {
           assertEquals(result.code, ErrorCode.InvalidDocument)
           assertEquals(result.message, ErrorMessage("The provided document is invalid."))
-          val allInputErrors = Set("document.missing.metadata", "document.malformed", "document.missing.content")
+          val allInputErrors = DocumentsRoutes.invalidDocuments.map(_.uniqueCode)
           val actualInputErrors = result.details.get.values.keys.toSet
           assert(actualInputErrors.subsetOf(allInputErrors),
                  clue = s"actualInputErrors: $actualInputErrors\nallInputErrors: $allInputErrors"
@@ -177,28 +177,25 @@ class DocumentsRoutesSpec
       "contract/documents/http/metadata.json"
     )
 
-  // TODO Coming soon
-  // test("validation accumulates") {
-  //   /*
-  //    * Needs an alternative instance of Parallel to accumulate error
-  //    * More details here: https://github.com/typelevel/cats/pull/3777/files
-  //    */
-  //   given accumulatingParallel: cats.Parallel[EitherT[IO, NonEmptyChain[Incorrect.Detail], *]] =
-  //     EitherT.accumulatingParallel
+  test("validation accumulates") {
+    /*
+     * Needs an alternative instance of Parallel to accumulate error
+     * More details here: https://github.com/typelevel/cats/pull/3777/files
+     */
+    given accumulatingParallel: cats.Parallel[EitherT[IO, NonEmptyChain[DocumentsRoutes.InvalidDocument], *]] =
+      EitherT.accumulatingParallel
 
-  //   val multipart = Multipart[IO](
-  //     parts = Vector.empty,
-  //     boundary = Boundary("boundary")
-  //   )
+    val multipart = Multipart[IO](
+      parts = Vector.empty,
+      boundary = Boundary("boundary")
+    )
+    val result: EitherT[IO, NonEmptyChain[DocumentsRoutes.InvalidDocument], (Metadata, fs2.Stream[IO, Byte])] =
+      (multipart.metadata, multipart.bytes).parTupled
 
-  //   val result: EitherT[IO, NonEmptyChain[Incorrect.Detail], (Metadata, fs2.Stream[IO, Byte])] =
-  //     (multipart.metadata, multipart.bytes).parTupled
-
-  //   result
-  //     .map { _ => fail("expected left") }
-  //     .leftMap { result => assertEquals(result.toList, ("metadata".missing |+| "bytes".missing).toList) }
-  //     .value
-  // }
+    result
+      .leftMap { result => assertEquals(result.toList, NonEmptyChain.of(MissingMetadata, MissingContent).toList) }
+      .value
+  }
 
 trait DocumentsRoutesSpecContext:
   def invalidDocumentRequests: Gen[Multipart[IO]] = Gen.oneOf(
@@ -206,6 +203,8 @@ trait DocumentsRoutesSpecContext:
     invalidMultipartsWithNoMetadata,
     invalidDocumentRequestWithMalformedMetadata
   )
+
+  // TODO What if document name is empty?
 
   def invalidDocumentRequestWithNoContent: Gen[Multipart[IO]] = metadataG.flatMap { metadata =>
     Gen.delay {

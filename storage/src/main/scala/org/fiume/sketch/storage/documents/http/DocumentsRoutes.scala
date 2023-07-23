@@ -49,7 +49,11 @@ class DocumentsRoutes[F[_]: Async, Txn[_]](store: DocumentsStore[F, Txn]) extend
       case req @ POST -> Root / "documents" =>
         req.decode { (m: Multipart[F]) =>
           // TODO Check bytes size
-          val payload = (m.metadata, m.bytes).parTupled // warning: errors won't accumulate by default: see validation tests
+          val payload = (m.metadata, m.bytes)
+            // warning: errors won't accumulate by default: see validation tests
+            .parTupled
+            .leftMap(_.toList)
+            .leftMap(inputErrorsToMap)
             .leftMap(ErrorDetails.apply)
           for
             value <- payload.value
@@ -107,24 +111,46 @@ class DocumentsRoutes[F[_]: Async, Txn[_]](store: DocumentsStore[F, Txn]) extend
     }
 
 private[http] object DocumentsRoutes:
+  trait InvalidDocument:
+    def uniqueCode: String
+    def message: String
+
+  case object MissingMetadata extends InvalidDocument:
+    def uniqueCode = "document.missing.metadata"
+    def message = "metadata is mandatory"
+
+  case object MissingContent extends InvalidDocument:
+    def uniqueCode = "document.missing.content"
+    def message = "no document provided for upload"
+
+  case object MalformedDocumentMetadata extends InvalidDocument:
+    def uniqueCode = "document.metadata.malformed"
+    def message = "the provided document is malformed"
+
+  val invalidDocuments: Set[InvalidDocument] =
+    Set(MissingMetadata, MissingContent, MalformedDocumentMetadata)
+
+  def inputErrorsToMap(inputErrors: List[InvalidDocument]): Map[String, String] =
+    inputErrors.map(e => e.uniqueCode -> e.message).toMap
+
   extension [F[_]: MonadThrow: Concurrent](m: Multipart[F])
-    def metadata: EitherT[F, Map[String, String], Metadata] = EitherT
+    def metadata: EitherT[F, NonEmptyChain[InvalidDocument], Metadata] = EitherT
       .fromEither {
         m.parts
           .find { _.name == Some("metadata") }
-          .toRight(Map("document.missing.metadata" -> "metadata is mandatory"))
+          .toRight(NonEmptyChain.one(MissingMetadata))
       }
       .flatMap { json =>
         json
           .as[Metadata]
           .attemptT
-          .leftMap { e => Map("document.malformed" -> e.getMessage) }
+          .leftMap(_ => NonEmptyChain.one(MalformedDocumentMetadata))
       }
 
-    def bytes: EitherT[F, Map[String, String], Stream[F, Byte]] = EitherT
+    def bytes: EitherT[F, NonEmptyChain[InvalidDocument], Stream[F, Byte]] = EitherT
       .fromEither {
         m.parts
           .find { _.name == Some("bytes") }
-          .toRight(Map("document.missing.content" -> "no document provided for upload"))
+          .toRight(NonEmptyChain.one(MissingContent))
           .map(_.body)
       }
