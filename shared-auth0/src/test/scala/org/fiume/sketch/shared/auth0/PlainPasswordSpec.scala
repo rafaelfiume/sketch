@@ -64,8 +64,8 @@ class PlainPasswordSpec extends ScalaCheckSuite:
     }
 
   test("accumulate validation errors"):
-    forAll(combinedPasswordErrors) { combineErrors =>
-      val result = PlainPassword.validated(combineErrors)
+    forAll(passwordWithMultipleInputErrors) { inputErrors =>
+      val result = PlainPassword.validated(inputErrors)
       Set[PlainPassword.WeakPassword](
         PlainPassword.Whitespace,
         PlainPassword.InvalidSpecialChar,

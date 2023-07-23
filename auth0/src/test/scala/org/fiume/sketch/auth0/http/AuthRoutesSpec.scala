@@ -120,25 +120,8 @@ class AuthRoutesSpec
   test("return an error for a login request with an invalid username or password"):
     def invalidInputs: Gen[(User, LoginRequest)] =
       for
-        // TODO Combined errors
-        username <- Gen.oneOf(
-          shortUsernames,
-          longUsernames,
-          usernamesWithInvalidChars,
-          usernamesWithReservedWords,
-          usernamesWithRepeatedChars
-        )
-        password <- Gen.oneOf(
-          shortPasswords,
-          longPasswords,
-          invalidPasswordsWithoutUppercase,
-          invalidPasswordsWithoutLowercase,
-          invalidPasswordsWithoutDigit,
-          invalidPasswordsWithoutSpecialChar,
-          invalidPasswordsWithWhitespace,
-          invalidPasswordsWithInvalidSpecialChars,
-          passwordsWithControlCharsOrEmojis
-        )
+        username <- oneOfUsernameInputErrors
+        password <- oneOfPasswordInputErrors
         user <- users.map { _.copy(username = Username.notValidatedFromString(username)) }
       yield user -> LoginRequest(username, password)
 
@@ -153,16 +136,17 @@ class AuthRoutesSpec
         request = POST(uri"/login").withEntity(loginRequest)
         result <- send(request)
           .to(new AuthRoutes[IO](authenticator).router())
-          .expectJsonResponseWith(Status.BadRequest).map(_.as[ErrorInfo].rightValue)
+          .expectJsonResponseWith(Status.BadRequest)
+          .map(_.as[ErrorInfo].rightValue)
 
         _ <- IO {
           assertEquals(result.code, ErrorCode.InvalidCredentials)
           assertEquals(result.message, ErrorMessage("The username or password provided is incorrect."))
           val allInputErrors = Username.inputErrors.map(_.uniqueCode) ++ PlainPassword.inputErrors.map(_.uniqueCode)
           val actualInputErrors = result.details.get.values.keys.toSet
-          assert(
-            actualInputErrors.subsetOf(allInputErrors),
-            clue = s"actualInputErrors: $actualInputErrors\nallInputErrors: $allInputErrors")
+          assert(actualInputErrors.subsetOf(allInputErrors),
+                 clue = s"actualInputErrors: $actualInputErrors\nallInputErrors: $allInputErrors"
+          )
         }
       yield ()
     }

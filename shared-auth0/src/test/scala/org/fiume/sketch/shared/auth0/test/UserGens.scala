@@ -65,8 +65,16 @@ object UserGens:
         repeatedUsername = username.dropRight(repeatedCharLength) ++ repeatedCharString
       yield repeatedUsername) :| "repeated chars"
 
+    def oneOfUsernameInputErrors: Gen[String] = Gen.oneOf(
+      shortUsernames,
+      longUsernames,
+      usernamesWithInvalidChars,
+      usernamesWithReservedWords,
+      usernamesWithRepeatedChars
+    ) :| "one of username input errors"
+
     // frequency is important here avoiding user names like "___", as we want to generate more valid passwords than invalid ones.
-    def usernameChars: Gen[Char] = Gen.frequency(9 -> Gen.alphaNumChar, 1 -> Gen.const('_'), 1 -> Gen.const('-'))
+    private def usernameChars: Gen[Char] = Gen.frequency(9 -> Gen.alphaNumChar, 1 -> Gen.const('_'), 1 -> Gen.const('-'))
 
   given Arbitrary[User] = Arbitrary(users)
   def users: Gen[User] =

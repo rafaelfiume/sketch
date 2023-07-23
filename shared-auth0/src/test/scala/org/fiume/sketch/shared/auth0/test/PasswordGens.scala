@@ -75,7 +75,7 @@ object PasswordsGens:
         invalidChar <- invalidChars
       yield Random.shuffle(invalidChar +: password).mkString) :| "passwords with control chars or emojis"
 
-    def combinedPasswordErrors: Gen[String] =
+    def passwordWithMultipleInputErrors: Gen[String] =
       (for
         plainPassword <- plainPasswords
         whitespace <- whitespaces
@@ -83,20 +83,32 @@ object PasswordsGens:
         invalidChar <- invalidChars
       yield Random
         .shuffle(whitespace +: invalidSpecialChar +: invalidChar +: plainPassword)
-        .mkString) :| "passwords with multiple errors"
+        .mkString) :| "passwords with multiple input errors"
 
-    def whitespaces: Gen[Char] = Gen.oneOf(' ', '\t', '\n', '\r')
+    def oneOfPasswordInputErrors: Gen[String] = Gen.oneOf(
+      shortPasswords,
+      longPasswords,
+      invalidPasswordsWithoutUppercase,
+      invalidPasswordsWithoutLowercase,
+      invalidPasswordsWithoutDigit,
+      invalidPasswordsWithoutSpecialChar,
+      invalidPasswordsWithWhitespace,
+      invalidPasswordsWithInvalidSpecialChars,
+      passwordsWithControlCharsOrEmojis
+    ) :| "one of password input errors"
 
-    def invalidSpecialChars: Gen[Char] = Gen.oneOf(PlainPassword.invalidSpecialChars)
+    private def whitespaces: Gen[Char] = Gen.oneOf(' ', '\t', '\n', '\r')
 
-    def invalidChars: Gen[Char] = Gen.oneOf(asciiControlChars, unicodeControlChars, emojis)
+    private def invalidSpecialChars: Gen[Char] = Gen.oneOf(PlainPassword.invalidSpecialChars)
 
-    def asciiControlChars: Gen[Char] = Gen.frequency(10 -> Gen.chooseNum(0, 31), 1 -> Gen.const(127)).map(_.toChar)
+    private def invalidChars: Gen[Char] = Gen.oneOf(asciiControlChars, unicodeControlChars, emojis)
+
+    private def asciiControlChars: Gen[Char] = Gen.frequency(10 -> Gen.chooseNum(0, 31), 1 -> Gen.const(127)).map(_.toChar)
 
     // see https://en.wikipedia.org/wiki/Control_character#In_Unicode
-    def unicodeControlChars: Gen[Char] = Gen.choose(0x0080.toChar, 0x009f.toChar)
+    private def unicodeControlChars: Gen[Char] = Gen.choose(0x0080.toChar, 0x009f.toChar)
 
-    def emojis: Gen[Char] = Gen.oneOf(
+    private def emojis: Gen[Char] = Gen.oneOf(
       0x1f600.toChar,
       0x1f601.toChar,
       0x1f602.toChar,

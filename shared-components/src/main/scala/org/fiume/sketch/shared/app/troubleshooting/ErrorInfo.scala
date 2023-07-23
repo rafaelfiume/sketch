@@ -12,7 +12,8 @@ object ErrorInfo:
 
   // TODO Rename apply? (simple, short?)
   def apply(code: ErrorCode, message: ErrorMessage): ErrorInfo = ErrorInfo(code, message, None)
-  def withDetails(code: ErrorCode, message: ErrorMessage, details: ErrorDetails): ErrorInfo = ErrorInfo(code, message, Some(details))
+  def withDetails(code: ErrorCode, message: ErrorMessage, details: ErrorDetails): ErrorInfo =
+    ErrorInfo(code, message, Some(details))
 
   enum ErrorCode:
     case InvalidCredentials
