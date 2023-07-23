@@ -12,3 +12,6 @@ Endpoits should be protected:
 ## Metrics
 
 Shall we use [http4s-prometheus-metrics](https://http4s.github.io/http4s-prometheus-metrics/) to collect metrics?
+
+
+Feito com ❤️ por Artigiani.

@@ -6,9 +6,9 @@ import munit.{CatsEffectSuite, ScalaCheckEffectSuite}
 import org.fiume.sketch.auth0.{AuthenticationError, Authenticator, InvalidPasswordError, JwtToken, UserNotFoundError}
 import org.fiume.sketch.auth0.http.AuthRoutes.Model.{LoginRequest, LoginResponse}
 import org.fiume.sketch.auth0.http.JsonCodecs.RequestResponsesCodecs.given
-import org.fiume.sketch.shared.app.ErrorCode.InvalidCredentials
-import org.fiume.sketch.shared.app.http.JsonCodecs.ErrorInfoCodecs.given
-import org.fiume.sketch.shared.app.http.Model.{ErrorInfo, ErrorMessage}
+import org.fiume.sketch.shared.app.troubleshooting.ErrorInfo
+import org.fiume.sketch.shared.app.troubleshooting.ErrorInfo.{ErrorCode, ErrorDetails, ErrorMessage}
+import org.fiume.sketch.shared.app.troubleshooting.http.JsonCodecs.ErrorInfoCodecs.given
 import org.fiume.sketch.shared.auth0.Passwords.PlainPassword
 import org.fiume.sketch.shared.auth0.User
 import org.fiume.sketch.shared.auth0.User.Username
@@ -81,7 +81,7 @@ class AuthRoutesSpec
           assertEquals(
             jsonResponse.as[ErrorInfo].rightValue,
             ErrorInfo(
-              code = InvalidCredentials,
+              code = ErrorCode.InvalidCredentials,
               message = ErrorMessage("The username or password provided is incorrect.")
             )
           )
@@ -91,9 +91,10 @@ class AuthRoutesSpec
 
   test("return error for a login request with unknown username"):
     forAllF(loginRequests, authTokens) { case (user -> loginRequest -> authToken) =>
+      val plainPassword = PlainPassword.notValidatedFromString(loginRequest.password)
       for
         authenticator <- makeAuthenticator(
-          signee = user -> PlainPassword.notValidatedFromString(loginRequest.password),
+          signee = user -> plainPassword,
           signeeAuthToken = authToken
         )
 
@@ -108,7 +109,7 @@ class AuthRoutesSpec
           assertEquals(
             jsonResponse.as[ErrorInfo].rightValue,
             ErrorInfo(
-              code = InvalidCredentials,
+              code = ErrorCode.InvalidCredentials,
               message = ErrorMessage("The username or password provided is incorrect.")
             )
           )
@@ -117,49 +118,34 @@ class AuthRoutesSpec
     }
 
   test("return an error for a login request with an invalid username or password"):
-    def invalids: Gen[(User, LoginRequest)] =
+    def invalidInputs: Gen[(User, LoginRequest)] =
       for
-        user <- users
-        username <- Gen.oneOf(
-          shortUsernames,
-          longUsernames,
-          usernamesWithInvalidChars,
-          usernamesWithReservedWords,
-          usernamesWithRepeatedChars
-        )
-        password <- Gen.oneOf(
-          shortPasswords,
-          longPasswords,
-          invalidPasswordsWithoutUppercase,
-          invalidPasswordsWithoutLowercase,
-          invalidPasswordsWithoutDigit,
-          invalidPasswordsWithoutSpecialChar,
-          invalidPasswordsWithWhitespace,
-          invalidPasswordsWithInvalidSpecialChars,
-          passwordsWithControlCharsOrEmojis
-        )
-      yield user.copy(username = Username.notValidatedFromString(username)) -> LoginRequest(username, password.value)
+        username <- oneOfUsernameInputErrors
+        password <- oneOfPasswordInputErrors
+        user <- users.map { _.copy(username = Username.notValidatedFromString(username)) }
+      yield user -> LoginRequest(username, password)
 
-    forAllF(invalids, authTokens) { case (user -> loginRequest -> authToken) =>
-      println(s"this has to be a short one: $user")
+    forAllF(invalidInputs, authTokens) { case (user -> loginRequest -> authToken) =>
+      val plainPassword = PlainPassword.notValidatedFromString(loginRequest.password)
       for
         authenticator <- makeAuthenticator(
-          signee = user -> PlainPassword.notValidatedFromString(loginRequest.password),
+          signee = user -> plainPassword,
           signeeAuthToken = authToken
         )
 
         request = POST(uri"/login").withEntity(loginRequest)
-        jsonResponse <- send(request)
+        result <- send(request)
           .to(new AuthRoutes[IO](authenticator).router())
           .expectJsonResponseWith(Status.BadRequest)
+          .map(_.as[ErrorInfo].rightValue)
 
         _ <- IO {
-          assertEquals(
-            jsonResponse.as[ErrorInfo].rightValue,
-            ErrorInfo(
-              code = InvalidCredentials,
-              message = ErrorMessage("The username or password provided is incorrect.")
-            )
+          assertEquals(result.code, ErrorCode.InvalidCredentials)
+          assertEquals(result.message, ErrorMessage("The username or password provided is incorrect."))
+          val allInputErrors = Username.inputErrors.map(_.uniqueCode) ++ PlainPassword.inputErrors.map(_.uniqueCode)
+          val actualInputErrors = result.details.get.values.keys.toSet
+          assert(actualInputErrors.subsetOf(allInputErrors),
+                 clue = s"actualInputErrors: $actualInputErrors\nallInputErrors: $allInputErrors"
           )
         }
       yield ()
@@ -184,7 +170,7 @@ trait AuthRoutesSpecContext:
     for
       user <- users
       password <- plainPasswords
-    yield user -> LoginRequest(user.username.value, password.value)
+    yield user -> LoginRequest(user.username.value, password)
 
   given Arbitrary[JwtToken] = Arbitrary(authTokens)
   def authTokens: Gen[JwtToken] = Gen

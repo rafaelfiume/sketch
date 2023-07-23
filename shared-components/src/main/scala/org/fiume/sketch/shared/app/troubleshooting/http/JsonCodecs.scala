@@ -1,15 +1,13 @@
-package org.fiume.sketch.shared.app.http
+package org.fiume.sketch.shared.app.troubleshooting.http
 
 import io.circe.{Codec, Decoder, Encoder, HCursor, Json}
 import io.circe.Decoder.Result
 import io.circe.syntax.*
-import org.fiume.sketch.shared.app.{ErrorCode, ServiceStatus}
 import org.fiume.sketch.shared.app.algebras.HealthCheck.ServiceHealth
 import org.fiume.sketch.shared.app.algebras.Versions
 import org.fiume.sketch.shared.app.algebras.Versions.Version
-import org.fiume.sketch.shared.app.http.Model.{ErrorDetails, ErrorInfo, ErrorMessage}
-
-import java.time.ZonedDateTime
+import org.fiume.sketch.shared.app.troubleshooting.{ErrorInfo, ServiceStatus}
+import org.fiume.sketch.shared.app.troubleshooting.ErrorInfo.*
 
 object JsonCodecs:
   object ErrorInfoCodecs:
@@ -19,16 +17,15 @@ object JsonCodecs:
     given Encoder[ErrorMessage] = Encoder.encodeString.contramap(_.value)
     given Decoder[ErrorMessage] = Decoder.decodeString.map(ErrorMessage.apply)
 
-    given Encoder[ErrorDetails] = Encoder.encodeString.contramap(_.value)
-    given Decoder[ErrorDetails] = Decoder.decodeString.map(ErrorDetails.apply)
+    given Encoder[ErrorDetails] = Encoder.encodeMap[String, String].contramap(_.values)
+    given Decoder[ErrorDetails] = Decoder.decodeMap[String, String].map(ErrorDetails.apply)
 
     given Encoder[ErrorInfo] = new Encoder[ErrorInfo]:
       override def apply(errorInfo: ErrorInfo): Json =
         Json.obj(
           "code" -> errorInfo.code.asJson,
           "message" -> errorInfo.message.asJson,
-          "details" -> errorInfo.details.asJson,
-          "timestamp" -> errorInfo.timestamp.asJson
+          "details" -> errorInfo.details.asJson
         )
 
     given Decoder[ErrorInfo] = new Decoder[ErrorInfo]:
@@ -37,8 +34,7 @@ object JsonCodecs:
           code <- c.downField("code").as[ErrorCode]
           message <- c.downField("message").as[ErrorMessage]
           details <- c.downField("details").as[Option[ErrorDetails]]
-          timestamp <- c.downField("timestamp").as[Option[ZonedDateTime]]
-        yield ErrorInfo(code, message, details, timestamp)
+        yield ErrorInfo(code, message, details)
 
     /* To be included in the response body when an error occurs */
     private val errorCodeToHumanString: Map[ErrorCode, String] = Map(ErrorCode.InvalidCredentials -> "INVALID_CREDENTIALS")

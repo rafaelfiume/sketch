@@ -1,17 +1,20 @@
 package org.fiume.sketch.auth0.http
 
-import cats.effect.kernel.Async
+import cats.data.NonEmptyChain
+import cats.effect.Async
 import cats.implicits.*
 import io.circe.generic.auto.*
 import org.fiume.sketch.auth0.Authenticator
+import org.fiume.sketch.auth0.http.AuthRoutes.*
 import org.fiume.sketch.auth0.http.AuthRoutes.Model.{LoginRequest, LoginResponse}
 import org.fiume.sketch.auth0.http.JsonCodecs.RequestResponsesCodecs.given
-import org.fiume.sketch.shared.app.ErrorCode
-import org.fiume.sketch.shared.app.ErrorCode.InvalidCredentials
-import org.fiume.sketch.shared.app.http.JsonCodecs.ErrorInfoCodecs.given
-import org.fiume.sketch.shared.app.http.Model.{ErrorInfo, ErrorMessage}
+import org.fiume.sketch.shared.app.troubleshooting.ErrorInfo
+import org.fiume.sketch.shared.app.troubleshooting.ErrorInfo.{ErrorCode, ErrorDetails, ErrorMessage}
+import org.fiume.sketch.shared.app.troubleshooting.http.JsonCodecs.ErrorInfoCodecs.given
 import org.fiume.sketch.shared.auth0.Passwords.PlainPassword
+import org.fiume.sketch.shared.auth0.Passwords.PlainPassword.WeakPassword
 import org.fiume.sketch.shared.auth0.User.Username
+import org.fiume.sketch.shared.auth0.User.Username.WeakUsername
 import org.http4s.{Challenge, HttpRoutes, Response}
 import org.http4s.circe.CirceEntityDecoder.*
 import org.http4s.circe.CirceEntityEncoder.*
@@ -30,21 +33,22 @@ class AuthRoutes[F[_]: Async](authenticator: Authenticator[F]) extends Http4sDsl
 
   private val httpRoutes: HttpRoutes[F] = HttpRoutes.of[F] { case req @ POST -> Root / "login" =>
     def validate(request: LoginRequest) =
-      for
-        username <- Username.validated(request.username).leftMap(_.toString())
-        password <- PlainPassword.validated(request.password).leftMap(_.toString())
-      yield (username, password)
+      (
+        Username.validated(request.username).leftMap(_.toList).leftMap(Username.inputErrorsToMap),
+        PlainPassword.validated(request.password).leftMap(_.toList).leftMap(PlainPassword.inputErrorsToMap),
+      ).parMapN((_, _)).leftMap(ErrorDetails.apply)
 
     req.decode { (loginRequest: LoginRequest) =>
       logger.info(s"Attempt to authenticate username ${loginRequest.username}") *>
         validate(loginRequest).fold(
-          invalidLoginRequest =>
+          inputErrors =>
             logger.info(s"(AUTH001) Failed login attempt for username ${loginRequest.username}") *>
-              // TODO invalidLoginRequest should be a list of errors
+              Async[F].delay(println(s"inputErrors: $inputErrors")) *>
               BadRequest(
-                ErrorInfo(
-                  code = InvalidCredentials,
-                  message = ErrorMessage("The username or password provided is incorrect.")
+                ErrorInfo.withDetails(
+                  code = ErrorCode.InvalidCredentials,
+                  message = ErrorMessage("The username or password provided is incorrect."),
+                  details = inputErrors
                 )
               ),
           (username, password) =>
@@ -56,7 +60,7 @@ class AuthRoutes[F[_]: Async](authenticator: Authenticator[F]) extends Http4sDsl
                 logger.info(s"(AUTH002) Failed login attempt for username ${loginRequest.username}") *>
                   Ok(
                     ErrorInfo(
-                      code = InvalidCredentials,
+                      code = ErrorCode.InvalidCredentials,
                       message = ErrorMessage("The username or password provided is incorrect.")
                     )
                   )
