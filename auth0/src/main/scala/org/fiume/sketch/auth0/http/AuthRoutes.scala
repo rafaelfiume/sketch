@@ -34,8 +34,8 @@ class AuthRoutes[F[_]: Async](authenticator: Authenticator[F]) extends Http4sDsl
   private val httpRoutes: HttpRoutes[F] = HttpRoutes.of[F] { case req @ POST -> Root / "login" =>
     def validate(request: LoginRequest) =
       (
-        Username.validated(request.username).leftMap(weakUsernamesToErrorDetails),
-        PlainPassword.validated(request.password).leftMap(weakPasswordsToErrorDetails)
+        Username.validated(request.username).leftMap(_.toList).leftMap(Username.inputErrorsToMap),
+        PlainPassword.validated(request.password).leftMap(_.toList).leftMap(PlainPassword.inputErrorsToMap),
       ).parMapN((_, _)).leftMap(ErrorDetails.apply)
 
     req.decode { (loginRequest: LoginRequest) =>
@@ -73,31 +73,3 @@ object AuthRoutes:
   object Model:
     case class LoginRequest(username: String, password: String)
     case class LoginResponse(token: String)
-
-  def weakUsernamesToErrorDetails(errors: NonEmptyChain[WeakUsername]): Map[String, String] =
-    import org.fiume.sketch.shared.auth0.User.Username.*
-    def toDetail(invalid: WeakUsername) =
-      (invalid match
-        case _: TooShort            => "username.too.short"
-        case _: TooLong             => "username.too.long"
-        case InvalidCharater        => "username.invalid.characters"
-        case ReservedWords          => "username.reserved.words"
-        case ExcessiveRepeatedChars => "username.excessive.repeated.characters"
-      ) -> invalid.message
-    errors.map(toDetail).toList.toMap
-
-  def weakPasswordsToErrorDetails(errors: NonEmptyChain[WeakPassword]): Map[String, String] =
-    import org.fiume.sketch.shared.auth0.Passwords.PlainPassword.*
-    def toDetail(invalid: WeakPassword): (String, String) =
-      (invalid match
-        case _: TooShort        => "password.too.short"
-        case _: TooLong         => "password.too.long"
-        case NoUpperCase        => "password.no.uppercase"
-        case NoLowerCase        => "password.no.lowercase"
-        case NoDigit            => "password.no.digit"
-        case NoSpecialChar      => "password.no.special.character"
-        case InvalidSpecialChar => "password.invalid.special.character"
-        case Whitespace         => "password.whitespace"
-        case InvalidCharater    => "password.invalid.characters"
-      ) -> invalid.message
-    errors.map(toDetail).toList.toMap

@@ -118,9 +118,8 @@ class AuthRoutesSpec
     }
 
   test("return an error for a login request with an invalid username or password".ignore):
-    def invalids: Gen[(User, LoginRequest)] =
+    def invalidInputs: Gen[(User, LoginRequest)] =
       for
-        user <- users
         // TODO Combined errors
         username <- Gen.oneOf(
           shortUsernames,
@@ -140,9 +139,10 @@ class AuthRoutesSpec
           invalidPasswordsWithInvalidSpecialChars,
           passwordsWithControlCharsOrEmojis
         )
-      yield user.copy(username = Username.notValidatedFromString(username)) -> LoginRequest(username, password)
+        user <- users.map { _.copy(username = Username.notValidatedFromString(username)) }
+      yield user -> LoginRequest(username, password)
 
-    forAllF(invalids, authTokens) { case (user -> loginRequest -> authToken) =>
+    forAllF(invalidInputs, authTokens) { case (user -> loginRequest -> authToken) =>
       val plainPassword = PlainPassword.notValidatedFromString(loginRequest.password)
       for
         authenticator <- makeAuthenticator(

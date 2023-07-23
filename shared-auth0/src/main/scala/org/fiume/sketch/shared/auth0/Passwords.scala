@@ -14,34 +14,44 @@ object Passwords:
 
   object PlainPassword:
     sealed trait WeakPassword:
+      def uniqueCode: String
       def message: String
 
-    case class TooShort(minLength: Int) extends WeakPassword:
+    case object TooShort extends WeakPassword:
+      override val uniqueCode: String = "password.too.short"
       override val message: String = s"must be at least $minLength characters long"
 
-    case class TooLong(maxLength: Int) extends WeakPassword:
+    case object TooLong extends WeakPassword:
+      override val uniqueCode: String = "password.too.long"
       override val message: String = s"must be at most $maxLength characters long"
 
     case object NoUpperCase extends WeakPassword:
+      override def uniqueCode: String = "password.no.uppercase"
       override val message: String = "must contain at least one uppercase letter"
 
     case object NoLowerCase extends WeakPassword:
+      override def uniqueCode: String = "password.no.lowercase"
       override val message: String = "must contain at least one lowercase letter"
 
     case object NoDigit extends WeakPassword:
+      override def uniqueCode: String = "password.no.digit"
       override val message: String = "must contain at least one digit"
 
     case object NoSpecialChar extends WeakPassword:
+      override def uniqueCode: String = "password.no.special.character"
       override val message: String = s"must contain at least one special character: ${specialChars.mkString("'", "', '", "'")}"
 
     case object InvalidSpecialChar extends WeakPassword:
+      override def uniqueCode: String = "password.invalid.special.character"
       override val message: String =
         s"must not contain any of the following characters: ${invalidSpecialChars.mkString("'", "', '", "'")}"
 
     case object Whitespace extends WeakPassword:
+      override def uniqueCode: String = "password.whitespace"
       override val message: String = "must not contain any whitespace"
 
     case object InvalidCharater extends WeakPassword:
+      override def uniqueCode: String = "password.invalid.characters"
       override def message: String = "must not contain control characters or emojis"
 
     val minLength = 12
@@ -50,8 +60,8 @@ object Passwords:
     val invalidSpecialChars = Set('(', ')', '[', ']', '{', '}', '|', '\\', '\'', '"', '<', '>', '/')
 
     def validated(value: String): EitherNec[WeakPassword, PlainPassword] =
-      val hasMinLength = Validated.condNec[WeakPassword, Unit](value.length >= minLength, (), TooShort(value.length))
-      val hasMaxLength = Validated.condNec(value.length <= maxLength, (), TooLong(value.length))
+      val hasMinLength = Validated.condNec[WeakPassword, Unit](value.length >= minLength, (), TooShort)
+      val hasMaxLength = Validated.condNec(value.length <= maxLength, (), TooLong)
       val hasUppercase = Validated.condNec(value.exists(_.isUpper), (), NoUpperCase)
       val hasLowercase = Validated.condNec(value.exists(_.isLower), (), NoLowerCase)
       val hasDigit = Validated.condNec(value.exists(_.isDigit), (), NoDigit)
@@ -78,6 +88,9 @@ object Passwords:
       }.toEither
 
     def notValidatedFromString(value: String): PlainPassword = new PlainPassword(value) {}
+
+    def inputErrorsToMap(inputErrors: List[WeakPassword]): Map[String, String] =
+      inputErrors.map(e => e.uniqueCode -> e.message).toMap
 
     given Show[PlainPassword] = Show.fromToString
     given Eq[WeakPassword] = Eq.fromUniversalEquals[WeakPassword]

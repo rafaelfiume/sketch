@@ -20,12 +20,12 @@ class PlainPasswordSpec extends ScalaCheckSuite:
 
   test("short passwords"):
     forAll(shortPasswords) { shortPassword =>
-      PlainPassword.validated(shortPassword).leftValue.contains(PlainPassword.TooShort(shortPassword.length))
+      PlainPassword.validated(shortPassword).leftValue.contains(PlainPassword.TooShort)
     }
 
   test("long passwords"):
     forAll(longPasswords) { longPassword =>
-      PlainPassword.validated(longPassword).leftValue.contains(PlainPassword.TooLong(longPassword.length))
+      PlainPassword.validated(longPassword).leftValue.contains(PlainPassword.TooLong)
     }
 
   test("passwords without uppercase"):
