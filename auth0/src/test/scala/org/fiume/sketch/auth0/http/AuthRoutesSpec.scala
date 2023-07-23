@@ -117,7 +117,7 @@ class AuthRoutesSpec
       yield ()
     }
 
-  test("return an error for a login request with an invalid username or password".ignore):
+  test("return an error for a login request with an invalid username or password"):
     def invalidInputs: Gen[(User, LoginRequest)] =
       for
         // TODO Combined errors
@@ -151,18 +151,18 @@ class AuthRoutesSpec
         )
 
         request = POST(uri"/login").withEntity(loginRequest)
-        jsonResponse <- send(request)
+        result <- send(request)
           .to(new AuthRoutes[IO](authenticator).router())
-          .expectJsonResponseWith(Status.BadRequest)
+          .expectJsonResponseWith(Status.BadRequest).map(_.as[ErrorInfo].rightValue)
 
         _ <- IO {
-          assertEquals(
-            jsonResponse.as[ErrorInfo].rightValue,
-            ErrorInfo(
-              code = ErrorCode.InvalidCredentials,
-              message = ErrorMessage("The username or password provided is incorrect.")
-            )
-          )
+          assertEquals(result.code, ErrorCode.InvalidCredentials)
+          assertEquals(result.message, ErrorMessage("The username or password provided is incorrect."))
+          val allInputErrors = Username.inputErrors.map(_.uniqueCode) ++ PlainPassword.inputErrors.map(_.uniqueCode)
+          val actualInputErrors = result.details.get.values.keys.toSet
+          assert(
+            actualInputErrors.subsetOf(allInputErrors),
+            clue = s"actualInputErrors: $actualInputErrors\nallInputErrors: $allInputErrors")
         }
       yield ()
     }

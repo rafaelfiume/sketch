@@ -58,6 +58,7 @@ object Passwords:
     val maxLength = 64
     val specialChars = Set('!', '@', '#', '$', '%', '^', '&', '*', '_', '+', '=', '~', ';', ':', ',', '.', '?')
     val invalidSpecialChars = Set('(', ')', '[', ']', '{', '}', '|', '\\', '\'', '"', '<', '>', '/')
+    val inputErrors = Set(TooShort, TooLong, NoUpperCase, NoLowerCase, NoDigit, NoSpecialChar, InvalidSpecialChar, Whitespace, InvalidCharater)
 
     def validated(value: String): EitherNec[WeakPassword, PlainPassword] =
       val hasMinLength = Validated.condNec[WeakPassword, Unit](value.length >= minLength, (), TooShort)

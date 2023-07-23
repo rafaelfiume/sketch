@@ -51,6 +51,7 @@ object User:
     val maxLength = 40
     val reservedWords = Set("administrator", "superuser", "moderator")
     val maxRepeatedCharsPercentage = 0.7f
+    val inputErrors = Set(TooShort, TooLong, InvalidCharater, ReservedWords, ExcessiveRepeatedChars)
 
     /* must be used during user sign up */
     def validated(value: String): EitherNec[WeakUsername, Username] =
@@ -67,8 +68,6 @@ object User:
 
     def inputErrorsToMap(inputErrors: List[WeakUsername]): Map[String, String] =
       inputErrors.map(e => e.uniqueCode -> e.message).toMap
-
-    val InputErrors = List(TooShort, TooLong, InvalidCharater, ReservedWords, ExcessiveRepeatedChars)
 
     private def hasExcessiveRepeatedChars(value: String, maxRepeatedCharsPercentage: Float): Boolean =
       val repeatedCharsCount = value.groupBy(identity).view.mapValues(_.length)
