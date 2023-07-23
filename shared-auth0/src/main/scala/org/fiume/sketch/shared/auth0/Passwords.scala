@@ -50,7 +50,7 @@ object Passwords:
       override def uniqueCode: String = "password.whitespace"
       override val message: String = "must not contain any whitespace"
 
-    case object InvalidCharater extends WeakPassword:
+    case object InvalidChar extends WeakPassword:
       override def uniqueCode: String = "password.invalid.characters"
       override def message: String = "must not contain control characters or emojis"
 
@@ -59,7 +59,7 @@ object Passwords:
     val specialChars = Set('!', '@', '#', '$', '%', '^', '&', '*', '_', '+', '=', '~', ';', ':', ',', '.', '?')
     val invalidSpecialChars = Set('(', ')', '[', ']', '{', '}', '|', '\\', '\'', '"', '<', '>', '/')
     val inputErrors =
-      Set(TooShort, TooLong, NoUpperCase, NoLowerCase, NoDigit, NoSpecialChar, InvalidSpecialChar, Whitespace, InvalidCharater)
+      Set(TooShort, TooLong, NoUpperCase, NoLowerCase, NoDigit, NoSpecialChar, InvalidSpecialChar, Whitespace, InvalidChar)
 
     def validated(value: String): EitherNec[WeakPassword, PlainPassword] =
       val hasMinLength = Validated.condNec[WeakPassword, Unit](value.length >= minLength, (), TooShort)
@@ -73,7 +73,7 @@ object Passwords:
       val hasNoUnexpectedChar = Validated.condNec(
         value.forall(c => c.isUpper || c.isLower || c.isDigit || specialChars.contains(c)),
         (),
-        InvalidCharater
+        InvalidChar
       )
 
       (hasMinLength,
