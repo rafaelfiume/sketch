@@ -26,6 +26,12 @@ import java.util.UUID
 
 import DocumentsRoutes.*
 
+/*
+ * - TODO Endpoint to update documents
+ * - TODO Fix warning
+ * - TODO Improve validation, for instance validate document name is not empty, has minimum length, etc.
+ * - TODO Make sure there is a limit to the size of documents that can be uploaded
+ */
 class DocumentsRoutes[F[_]: Async, Txn[_]](store: DocumentsStore[F, Txn]) extends Http4sDsl[F]:
   private val logger = Slf4jLogger.getLogger[F]
 
@@ -36,8 +42,6 @@ class DocumentsRoutes[F[_]: Async, Txn[_]](store: DocumentsStore[F, Txn]) extend
   private val httpRoutes: HttpRoutes[F] =
     HttpRoutes.of[F] {
       /*
-       * TODO Fix warning:
-       *
        * > [io-compute-9] INFO org.fiume.sketch.storage.http.DocumentsRoutes - Received request to upload document Name(altamura.jpg)
        * > [WARNING] Your app's responsiveness to a new asynchronous event (such as a
        * > new connection, an upstream response, or a timer) was in excess of 100 milliseconds.
@@ -77,8 +81,6 @@ class DocumentsRoutes[F[_]: Async, Txn[_]](store: DocumentsStore[F, Txn]) extend
                 yield created
           yield res
         }
-
-      // TODO Update documents
 
       case GET -> Root / "documents" / UUIDVar(uuid) / "metadata" =>
         for

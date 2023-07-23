@@ -204,8 +204,6 @@ trait DocumentsRoutesSpecContext:
     invalidDocumentRequestWithMalformedMetadata
   )
 
-  // TODO What if document name is empty?
-
   def invalidDocumentRequestWithNoContent: Gen[Multipart[IO]] = metadataG.flatMap { metadata =>
     Gen.delay {
       Multipart[IO](
