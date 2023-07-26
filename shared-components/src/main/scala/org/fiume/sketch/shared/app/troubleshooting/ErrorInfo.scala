@@ -19,7 +19,7 @@ object ErrorInfo:
     /**
      * Auth0 *
      */
-    case InvalidCredentials
+    case InvalidUserCredentials
 
     /**
      * Documents *

@@ -2,14 +2,14 @@ package org.fiume.sketch.storage.documents
 
 import cats.Eq
 import fs2.Stream
-import org.fiume.sketch.shared.app.WithId
+import org.fiume.sketch.shared.app.WithUuid
 import org.fiume.sketch.storage.documents.Document.Metadata
 import org.fiume.sketch.storage.documents.Document.Metadata.*
 
 import java.time.ZonedDateTime
 import java.util.UUID
 
-type DocumentWithId[F[_]] = Document[F] with WithId
+type DocumentWithId[F[_]] = Document[F] with WithUuid
 
 case class Document[F[_]](
   metadata: Metadata,
@@ -21,8 +21,8 @@ object Document:
     withUuid: UUID,
     metadata: Metadata,
     content: Stream[F, Byte]
-  ): Document[F] with WithId =
-    new Document[F](metadata, content) with WithId:
+  ): Document[F] with WithUuid =
+    new Document[F](metadata, content) with WithUuid:
       override val uuid: UUID = withUuid
 
   case class Metadata(name: Name, description: Description)

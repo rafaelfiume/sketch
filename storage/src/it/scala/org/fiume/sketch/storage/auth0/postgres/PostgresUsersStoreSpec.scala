@@ -32,16 +32,16 @@ class PostgresUsersStoreSpec
     with ShrinkLowPriority:
 
   test("store and fetch user"):
-    forAllF { (username: Username, password: HashedPassword, salt: Salt) =>
+    forAllF { (credentials: UserCredentials) =>
       will(cleanUsers) {
         PostgresUsersStore.make[IO](transactor()).use { store =>
           for
-            uuid <- store.store(username, password, salt).ccommit
+            uuid <- store.store(credentials).ccommit
 
             result <- store.fetchUser(uuid).ccommit
 
             _ <- IO {
-              assertEquals(result, User(uuid, username).some)
+              assertEquals(result, User(uuid, credentials.username).some)
             }
           yield ()
         }
@@ -49,16 +49,18 @@ class PostgresUsersStoreSpec
     }
 
   test("store and fetch credentials"):
-    forAllF { (username: Username, password: HashedPassword, salt: Salt) =>
+    forAllF { (credentials: UserCredentials) =>
       will(cleanUsers) {
         PostgresUsersStore.make[IO](transactor()).use { store =>
           for
-            uuid <- store.store(username, password, salt).ccommit
+            uuid <- store.store(credentials).ccommit
 
-            result <- store.fetchCredentials(username).ccommit
+            result <- store.fetchCredentials(credentials.username).ccommit
 
             _ <- IO {
-              assertEquals(result, Credentials(uuid, username, password).some)
+              assertEquals(result,
+                           UserCredentials.withUuid(uuid, credentials.username, credentials.hashedPassword, credentials.salt).some
+              )
             }
           yield ()
         }
@@ -66,11 +68,11 @@ class PostgresUsersStoreSpec
     }
 
   test("update user password"):
-    forAllF { (username: Username, password: HashedPassword, salt: Salt, newPassword: HashedPassword) =>
+    forAllF { (credentials: UserCredentials, newPassword: HashedPassword) =>
       will(cleanUsers) {
         PostgresUsersStore.make[IO](transactor()).use { store =>
           for
-            uuid <- store.store(username, password, salt).ccommit
+            uuid <- store.store(credentials).ccommit
 
             _ <- store.updatePassword(uuid, newPassword).ccommit
 
@@ -90,25 +92,23 @@ class PostgresUsersStoreSpec
         snd <- validUsernames
       yield (fst, snd)).suchThat { case (fst, snd) => fst != snd }
     )
-    forAllF { (users: (Username, Username), fstPass: HashedPassword, fstSalt: Salt, sndPass: HashedPassword, sndSalt: Salt) =>
+    forAllF { (fstCreds: UserCredentials, sndCreds: UserCredentials) =>
       will(cleanUsers) {
         PostgresUsersStore.make[IO](transactor()).use { store =>
-          val (fstUsername, sndUsername) = users
           for
-            fstUuid <- store.store(fstUsername, fstPass, fstSalt).ccommit
-            sndUuid <- store.store(sndUsername, sndPass, sndSalt).ccommit
+            fstUuid <- store.store(fstCreds).ccommit
+            sndUuid <- store.store(sndCreds).ccommit
 
             _ <- store.delete(fstUuid).ccommit
 
-            fstUser <- store.fetchUser(fstUuid).ccommit
-            fstCreds <- store.fetchCredentials(fstUsername).ccommit
-            sndUser <- store.fetchUser(sndUuid).ccommit
-            sndCredentials <- store.fetchCredentials(sndUsername).ccommit
+            fstStoredCreds <- store.fetchCredentials(fstCreds.username).ccommit
+            sndStoredCreds <- store.fetchCredentials(sndCreds.username).ccommit
             _ <- IO {
-              assertEquals(fstUser, none)
-              assertEquals(fstCreds, none)
-              assertEquals(sndUser, User(sndUuid, sndUsername).some)
-              assertEquals(sndCredentials, Credentials(sndUuid, sndUsername, sndPass).some)
+              assertEquals(fstStoredCreds, none)
+              assertEquals(
+                sndStoredCreds,
+                UserCredentials.withUuid(sndUuid, sndCreds.username, sndCreds.hashedPassword, sndCreds.salt).some
+              )
             }
           yield ()
         }
@@ -116,11 +116,11 @@ class PostgresUsersStoreSpec
     }
 
   test("set user's `createdAt` and `updatedAt` field to the current timestamp during storage"):
-    forAllF { (username: Username, password: HashedPassword, salt: Salt) =>
+    forAllF { (credentials: UserCredentials) =>
       will(cleanUsers) {
         PostgresUsersStore.make[IO](transactor()).use { store =>
           for
-            uuid <- store.store(username, password, salt).ccommit
+            uuid <- store.store(credentials).ccommit
 
             createdAt <- store.fetchCreatedAt(uuid).ccommit
             updatedAt <- store.fetchUpdatedAt(uuid).ccommit
@@ -134,11 +134,11 @@ class PostgresUsersStoreSpec
     }
 
   test("set user's `updatedAt` field to the current timestamp during update"):
-    forAllF { (username: Username, password: HashedPassword, salt: Salt, newPassword: HashedPassword) =>
+    forAllF { (credentials: UserCredentials, newPassword: HashedPassword) =>
       will(cleanUsers) {
         PostgresUsersStore.make[IO](transactor()).use { store =>
           for
-            uuid <- store.store(username, password, salt).ccommit
+            uuid <- store.store(credentials).ccommit
 
             _ <- store.updatePassword(uuid, newPassword).ccommit
 

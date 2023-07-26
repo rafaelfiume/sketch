@@ -3,7 +3,7 @@ package org.fiume.sketch.shared.auth0
 import cats.{Eq, Show}
 import cats.data.{EitherNec, Validated}
 import cats.implicits.*
-import org.fiume.sketch.shared.app.WithId
+import org.fiume.sketch.shared.app.WithUuid
 import org.fiume.sketch.shared.app.troubleshooting.{InvariantError, InvariantHolder}
 import org.fiume.sketch.shared.auth0.Passwords.{HashedPassword, Salt}
 import org.fiume.sketch.shared.auth0.User.Username
@@ -11,16 +11,22 @@ import org.fiume.sketch.shared.auth0.User.Username.WeakUsername
 
 import java.util.UUID
 
-case class User(uuid: UUID, username: Username) extends WithId
+case class User(uuid: UUID, username: Username) extends WithUuid
 
 object User:
+  type UserCredentialsWithId = UserCredentials with WithUuid
+
   // set of information required to authenticate a user
-  case class Credentials(
-    uuid: UUID,
+  case class UserCredentials(
     username: Username,
-    hashedPassword: HashedPassword
-    // salt: Salt
-  ) extends WithId
+    hashedPassword: HashedPassword,
+    salt: Salt
+  )
+
+  object UserCredentials:
+    def withUuid(uuid0: UUID, username: Username, hashedPassword: HashedPassword, salt: Salt): UserCredentialsWithId =
+      new UserCredentials(username, hashedPassword, salt) with WithUuid:
+        override val uuid: UUID = uuid0
 
   sealed abstract case class Username(value: String)
 

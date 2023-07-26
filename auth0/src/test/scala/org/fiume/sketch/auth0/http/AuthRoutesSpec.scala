@@ -81,7 +81,7 @@ class AuthRoutesSpec
           assertEquals(
             jsonResponse.as[ErrorInfo].rightValue,
             ErrorInfo(
-              code = ErrorCode.InvalidCredentials,
+              code = ErrorCode.InvalidUserCredentials,
               message = ErrorMessage("The username or password provided is incorrect.")
             )
           )
@@ -109,7 +109,7 @@ class AuthRoutesSpec
           assertEquals(
             jsonResponse.as[ErrorInfo].rightValue,
             ErrorInfo(
-              code = ErrorCode.InvalidCredentials,
+              code = ErrorCode.InvalidUserCredentials,
               message = ErrorMessage("The username or password provided is incorrect.")
             )
           )
@@ -140,7 +140,7 @@ class AuthRoutesSpec
           .map(_.as[ErrorInfo].rightValue)
 
         _ <- IO {
-          assertEquals(result.code, ErrorCode.InvalidCredentials)
+          assertEquals(result.code, ErrorCode.InvalidUserCredentials)
           assertEquals(result.message, ErrorMessage("The username or password provided is incorrect."))
           val allInputErrors = Username.invariantErrors.map(_.uniqueCode) ++ PlainPassword.invariantErrors.map(_.uniqueCode)
           val actualInputErrors = result.details.get.values.keys.toSet

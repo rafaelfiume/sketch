@@ -1,5 +1,5 @@
 {
-  "code": "INVALID_CREDENTIALS",
+  "code": "INVALID_USER_CREDENTIALS",
   "message": "The username or password provided is incorrect.",
   "details": null
 }

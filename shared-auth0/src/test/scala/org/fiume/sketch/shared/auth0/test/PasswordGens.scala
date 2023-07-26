@@ -188,13 +188,6 @@ object PasswordsGens:
     def fakeHashedPasswords: Gen[HashedPassword] =
       Gen.listOfN(60, bcryptBase64Char).map(_.mkString).map(HashedPassword.notValidatedFromString)
 
-    def passwordsInfo: Gen[(PlainPassword, HashedPassword, Salt)] =
-      for
-        plainPassword <- plainPasswords.map(PlainPassword.notValidatedFromString)
-        salt <- salts
-        hashedPassword = HashedPassword.hashPassword(plainPassword, salt)
-      yield (plainPassword, hashedPassword, salt)
-
     private def bcryptBase64Char: Gen[Char] = Gen.oneOf(
       Gen.choose('A', 'Z'),
       Gen.choose('a', 'z'),

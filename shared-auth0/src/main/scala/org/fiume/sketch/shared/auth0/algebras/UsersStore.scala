@@ -8,8 +8,8 @@ import org.fiume.sketch.shared.auth0.User.*
 import java.util.UUID
 
 trait UsersStore[F[_], Txn[_]] extends Store[F, Txn]:
-  def store(username: Username, password: HashedPassword, salt: Salt): Txn[UUID]
+  def store(credentials: UserCredentials): Txn[UUID]
   def fetchUser(uuid: UUID): Txn[Option[User]]
-  def fetchCredentials(username: Username): Txn[Option[Credentials]]
+  def fetchCredentials(username: Username): Txn[Option[UserCredentialsWithId]]
   def updatePassword(uuid: UUID, password: HashedPassword): Txn[Unit]
   def delete(uuid: UUID): Txn[Unit]
