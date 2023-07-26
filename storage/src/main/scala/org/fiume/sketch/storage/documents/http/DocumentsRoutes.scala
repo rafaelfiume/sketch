@@ -9,6 +9,7 @@ import fs2.Stream
 import org.fiume.sketch.shared.app.troubleshooting.{ErrorInfo, InvariantError, InvariantHolder}
 import org.fiume.sketch.shared.app.troubleshooting.ErrorInfo.*
 import org.fiume.sketch.shared.app.troubleshooting.http.JsonCodecs.ErrorInfoCodecs.given
+import org.fiume.sketch.storage.documents.Document
 import org.fiume.sketch.storage.documents.Document.Metadata
 import org.fiume.sketch.storage.documents.algebras.DocumentsStore
 import org.fiume.sketch.storage.documents.http.JsonCodecs.given
@@ -76,7 +77,7 @@ class DocumentsRoutes[F[_]: Async, Txn[_]](store: DocumentsStore[F, Txn]) extend
               case Right((metadata, bytes)) =>
                 for
                   _ <- logger.info(s"Uploading document ${metadata.name}")
-                  uuid <- store.commit { store.store(metadata, bytes) }
+                  uuid <- store.commit { store.store(Document[F](metadata, bytes)) }
                   created <- Created(uuid)
                   _ <- logger.info(s"Document ${metadata.name} uploaded")
                 yield created

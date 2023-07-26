@@ -10,6 +10,7 @@ import doobie.postgres.implicits.*
 import fs2.Stream
 import munit.ScalaCheckEffectSuite
 import org.fiume.sketch.shared.test.FileContentContext
+import org.fiume.sketch.storage.documents.Document
 import org.fiume.sketch.storage.documents.Document.Metadata
 import org.fiume.sketch.storage.documents.Document.Metadata.*
 import org.fiume.sketch.storage.documents.postgres.{DoobieMappings, PostgresDocumentsStore}
@@ -32,16 +33,16 @@ class PostgresDocumentsStoreSpec
     with ShrinkLowPriority:
 
   test("store document and fetch metadata"):
-    forAllF { (metadata: Metadata, content: Stream[IO, Byte]) =>
+    forAllF { (document: Document[IO]) =>
       will(cleanDocuments) {
         PostgresDocumentsStore.make[IO](transactor()).use { store =>
           for
-            uuid <- store.store(metadata, content).ccommit
+            uuid <- store.store(document).ccommit
 
             result <- store.fetchMetadata(uuid).ccommit
 
             _ <- IO {
-              assertEquals(result, metadata.some)
+              assertEquals(result, document.metadata.some)
             }
           yield ()
         }
@@ -49,17 +50,17 @@ class PostgresDocumentsStoreSpec
     }
 
   test("store document and fetch content"):
-    forAllF { (metadata: Metadata, content: Stream[IO, Byte]) =>
+    forAllF { (document: Document[IO]) =>
       will(cleanDocuments) {
         PostgresDocumentsStore.make[IO](transactor()).use { store =>
           for
-            uuid <- store.store(metadata, content).ccommit
+            uuid <- store.store(document).ccommit
 
             result <- OptionT(
               store.fetchContent(uuid).ccommit
             ).semiflatMap(_.compile.toList).value
 
-            bytes <- content.compile.toList
+            bytes <- document.content.compile.toList
             _ <- IO {
               assertEquals(result, bytes.some)
             }
@@ -69,12 +70,12 @@ class PostgresDocumentsStoreSpec
     }
 
   test("update document content"):
-    forAllF { (metadata: Metadata, content: Stream[IO, Byte], newMetadata: Metadata, newBytes: Stream[IO, Byte]) =>
+    forAllF { (document: Document[IO], newMetadata: Metadata, newBytes: Stream[IO, Byte]) =>
       PostgresDocumentsStore.make[IO](transactor()).use { store =>
         for
-          uuid <- store.store(metadata, content).ccommit
+          uuid <- store.store(document).ccommit
 
-          _ <- store.update(uuid, newMetadata, newBytes).ccommit
+          _ <- store.update(Document.withId(uuid, newMetadata, newBytes)).ccommit
 
           updatedMetadata <- store.fetchMetadata(uuid).ccommit
           updatedBytes <- OptionT(store.fetchContent(uuid).ccommit).semiflatMap(_.compile.toList).value
@@ -88,44 +89,40 @@ class PostgresDocumentsStoreSpec
     }
 
   test("delete document"):
-    forAllF {
-      (
-        fstDoc: (Metadata, Stream[IO, Byte]),
-        sndDoc: (Metadata, Stream[IO, Byte])
-      ) =>
-        will(cleanDocuments) {
-          PostgresDocumentsStore.make[IO](transactor()).use { store =>
-            for
-              fstUuid <- store.store(fstDoc._1, fstDoc._2).ccommit
-              sndUuid <- store.store(sndDoc._1, sndDoc._2).ccommit
-
-              _ <- store.delete(fstUuid).ccommit
-
-              fstResult <- IO.both(
-                store.fetchMetadata(fstUuid).ccommit,
-                store.fetchContent(fstUuid).ccommit
-              )
-              sndResult <- IO.both(
-                store.fetchMetadata(sndUuid).ccommit,
-                store.fetchContent(sndUuid).ccommit
-              )
-              _ <- IO {
-                assertEquals(fstResult._1, none)
-                assertEquals(fstResult._2, none)
-                assert(sndResult._1.isDefined)
-                assert(sndResult._2.isDefined)
-              }
-            yield ()
-          }
-        }
-    }
-
-  test("set document's `createdAt` and `updatedAt` field to the current timestamp during storage"):
-    forAllF { (metadata: Metadata, content: Stream[IO, Byte]) =>
+    forAllF { (fstDoc: Document[IO], sndDoc: Document[IO]) =>
       will(cleanDocuments) {
         PostgresDocumentsStore.make[IO](transactor()).use { store =>
           for
-            uuid <- store.store(metadata, content).ccommit
+            fstUuid <- store.store(fstDoc).ccommit
+            sndUuid <- store.store(sndDoc).ccommit
+
+            _ <- store.delete(fstUuid).ccommit
+
+            fstResult <- IO.both(
+              store.fetchMetadata(fstUuid).ccommit,
+              store.fetchContent(fstUuid).ccommit
+            )
+            sndResult <- IO.both(
+              store.fetchMetadata(sndUuid).ccommit,
+              store.fetchContent(sndUuid).ccommit
+            )
+            _ <- IO {
+              assertEquals(fstResult._1, none)
+              assertEquals(fstResult._2, none)
+              assert(sndResult._1.isDefined)
+              assert(sndResult._2.isDefined)
+            }
+          yield ()
+        }
+      }
+    }
+
+  test("set document's `createdAt` and `updatedAt` field to the current timestamp during storage"):
+    forAllF { (document: Document[IO]) =>
+      will(cleanDocuments) {
+        PostgresDocumentsStore.make[IO](transactor()).use { store =>
+          for
+            uuid <- store.store(document).ccommit
 
             createdAt <- store.fetchCreatedAt(uuid).ccommit
             updatedAt <- store.fetchUpdatedAt(uuid).ccommit
@@ -139,13 +136,13 @@ class PostgresDocumentsStoreSpec
     }
 
   test("set document's `updatedAt` field to the current timestamp during update"):
-    forAllF { (metadata: Metadata, content: Stream[IO, Byte], newMetadata: Metadata) =>
+    forAllF { (document: Document[IO], newMetadata: Metadata) =>
       PostgresDocumentsStore.make[IO](transactor()).use { store =>
         for
-          uuid <- store.store(metadata, content).ccommit
+          uuid <- store.store(document).ccommit
           updatedAt1 <- store.fetchUpdatedAt(uuid).ccommit
 
-          _ <- store.update(uuid, newMetadata, content).ccommit
+          _ <- store.update(Document.withId(uuid, newMetadata, document.content)).ccommit
 
           updatedAt2 <- store.fetchUpdatedAt(uuid).ccommit
           _ <- IO {
@@ -160,9 +157,8 @@ class PostgresDocumentsStoreSpec
     IO { bytesFrom[IO](filename) }.flatMap { content =>
       will(cleanDocuments) {
         PostgresDocumentsStore.make[IO](transactor()).use { store =>
-          val metadata = metadataG.sample.get
           for
-            uuid <- store.store(metadata, content).ccommit
+            uuid <- store.store(documents.sample.get).ccommit
             _ <- OptionT(
               store.fetchContent(uuid).ccommit
             ).semiflatMap {

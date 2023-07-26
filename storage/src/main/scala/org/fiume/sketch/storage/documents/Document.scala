@@ -13,16 +13,16 @@ type DocumentWithId[F[_]] = Document[F] with WithId
 
 case class Document[F[_]](
   metadata: Metadata,
-  bytes: Stream[F, Byte]
+  content: Stream[F, Byte]
 )
 
 object Document:
   def withId[F[_]](
     withUuid: UUID,
     metadata: Metadata,
-    bytes: Stream[F, Byte]
+    content: Stream[F, Byte]
   ): Document[F] with WithId =
-    new Document[F](metadata, bytes) with WithId:
+    new Document[F](metadata, content) with WithId:
       override val uuid: UUID = withUuid
 
   case class Metadata(name: Name, description: Description)

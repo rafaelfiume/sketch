@@ -26,7 +26,7 @@ import org.http4s.client.dsl.io.*
 import org.http4s.headers.`Content-Type`
 import org.http4s.implicits.*
 import org.http4s.multipart.{Boundary, Multipart, Part}
-import org.scalacheck.{Gen, ShrinkLowPriority}
+import org.scalacheck.{Arbitrary, Gen, ShrinkLowPriority}
 import org.scalacheck.effect.PropF.forAllF
 
 import java.util.UUID
@@ -42,7 +42,7 @@ class DocumentsRoutesSpec
 
   override def scalaCheckTestParameters = super.scalaCheckTestParameters.withMinSuccessfulTests(10)
 
-  test("Post document") {
+  test("Post document"):
     forAllF { (metadata: Metadata) =>
       val imageFile = getClass.getClassLoader.getResource("mountain-bike-liguria-ponent.jpg")
       val multipart = Multipart[IO](
@@ -71,10 +71,9 @@ class DocumentsRoutesSpec
         }
       yield ()
     }
-  }
 
-  test("Get document metadata") {
-    forAllF(documents[IO]) { document =>
+  test("Get document metadata"):
+    forAllF { (document: DocumentWithId[IO]) =>
       val request = GET(Uri.unsafeFromString(s"/documents/${document.uuid}/metadata"))
       for
         store <- makeDocumentsStore(state = document)
@@ -88,10 +87,9 @@ class DocumentsRoutesSpec
         }
       yield ()
     }
-  }
 
-  test("Get document content") {
-    forAllF(documents[IO]) { document =>
+  test("Get document content"):
+    forAllF { (document: DocumentWithId[IO]) =>
       val request = GET(Uri.unsafeFromString(s"/documents/${document.uuid}/content"))
       for
         store <- makeDocumentsStore(state = document)
@@ -101,16 +99,15 @@ class DocumentsRoutesSpec
           .expectByteStreamResponseWith(Status.Ok)
 
         obtainedStream <- contentStream.compile.toList
-        expectedStream <- document.bytes.compile.toList
+        expectedStream <- document.content.compile.toList
         _ <- IO {
           assertEquals(obtainedStream, expectedStream)
         }
       yield ()
     }
-  }
 
-  test("Delete document") {
-    forAllF(documents[IO]) { document =>
+  test("Delete document"):
+    forAllF { (document: DocumentWithId[IO]) =>
       val request = DELETE(Uri.unsafeFromString(s"/documents/${document.uuid}"))
       for
         store <- makeDocumentsStore(state = document)
@@ -129,13 +126,14 @@ class DocumentsRoutesSpec
         }
       yield ()
     }
-  }
 
   /* Sad Path */
 
-  test("Post document with malformed metadata == bad request") {
-    forAllF(invalidDocumentRequests) { multipart =>
-      val request = POST(uri"/documents").withEntity(multipart).withHeaders(multipart.headers)
+  test("Post document with malformed metadata == bad request"):
+    forAllF { (invalidDocumentRequest: Multipart[IO]) =>
+      val request = POST(uri"/documents")
+        .withEntity(invalidDocumentRequest)
+        .withHeaders(invalidDocumentRequest.headers)
       for
         store <- makeDocumentsStore()
 
@@ -155,10 +153,9 @@ class DocumentsRoutesSpec
         }
       yield ()
     }
-  }
 
-  test("Delete unexistent document == not found") {
-    forAllF(documents[IO]) { document =>
+  test("Delete unexistent document == not found"):
+    forAllF { (document: DocumentWithId[IO]) =>
       val request = DELETE(Uri.unsafeFromString(s"/documents/${document.uuid}"))
       for
         store <- makeDocumentsStore()
@@ -167,7 +164,6 @@ class DocumentsRoutesSpec
           .expectEmptyResponseWith(Status.NotFound)
       yield ()
     }
-  }
 
   /*
    * Contracts
@@ -198,13 +194,14 @@ class DocumentsRoutesSpec
   }
 
 trait DocumentsRoutesSpecContext:
+  given Arbitrary[Multipart[IO]] = Arbitrary(invalidDocumentRequests)
   def invalidDocumentRequests: Gen[Multipart[IO]] = Gen.oneOf(
     invalidDocumentRequestWithNoContent,
     invalidMultipartsWithNoMetadata,
     invalidDocumentRequestWithMalformedMetadata
   )
 
-  def invalidDocumentRequestWithNoContent: Gen[Multipart[IO]] = metadataG.flatMap { metadata =>
+  private def invalidDocumentRequestWithNoContent: Gen[Multipart[IO]] = metadataG.flatMap { metadata =>
     Gen.delay {
       Multipart[IO](
         // no file mamma!
@@ -214,7 +211,7 @@ trait DocumentsRoutesSpecContext:
     }
   }
 
-  def invalidMultipartsWithNoMetadata: Gen[Multipart[IO]] = Gen.delay {
+  private def invalidMultipartsWithNoMetadata: Gen[Multipart[IO]] = Gen.delay {
     val imageFile = getClass.getClassLoader.getResource("mountain-bike-liguria-ponent.jpg")
     Multipart[IO](
       // no metadata mamma!
@@ -223,7 +220,7 @@ trait DocumentsRoutesSpecContext:
     )
   }
 
-  def invalidDocumentRequestWithMalformedMetadata: Gen[Multipart[IO]] = Gen.delay {
+  private def invalidDocumentRequestWithMalformedMetadata: Gen[Multipart[IO]] = Gen.delay {
     val imageFile = getClass.getClassLoader.getResource("mountain-bike-liguria-ponent.jpg")
     Multipart[IO](
       parts = Vector(
@@ -247,21 +244,21 @@ trait DocumentsStoreContext:
     Ref.of[IO, Map[UUID, DocumentWithId[IO]]](state).map { storage =>
       new DocumentsStore[IO, IO]:
 
-        def store(metadata: Metadata, content: Stream[IO, Byte]): IO[UUID] =
+        def store(document: Document[IO]): IO[UUID] =
           IO.randomUUID.flatMap { uuid =>
             storage
               .update {
-                val document = Document.withId[IO](uuid, metadata, content)
-                _.updated(document.uuid, document)
+                val documentWithId = Document.withId[IO](uuid, document.metadata, document.content)
+                _.updated(uuid, documentWithId)
               }
               .as(uuid)
           }
 
-        def update(uuid: UUID, metadata: Metadata, content: Stream[cats.effect.IO, Byte]): IO[Unit] =
+        def update(document: DocumentWithId[IO]): IO[Unit] =
           storage.update {
-            _.updatedWith(uuid) {
+            _.updatedWith(document.uuid) {
               case Some(document) =>
-                Document.withId[IO](uuid, metadata, content).some
+                Document.withId[IO](document.uuid, document.metadata, document.content).some
               case None => none
             }
           }.void
@@ -273,7 +270,7 @@ trait DocumentsStoreContext:
 
         def fetchContent(uuid: UUID): IO[Option[fs2.Stream[IO, Byte]]] =
           storage.get.map(_.collectFirst {
-            case (storedUuid, document) if storedUuid === uuid => document.bytes
+            case (storedUuid, document) if storedUuid === uuid => document.content
           })
 
         def delete(uuid: UUID): IO[Unit] =
