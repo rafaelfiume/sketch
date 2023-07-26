@@ -78,6 +78,7 @@ class DocumentsRoutes[F[_]: Async, Txn[_]](store: DocumentsStore[F, Txn]) extend
                   _ <- logger.info(s"Uploading document ${metadata.name}")
                   uuid <- store.commit { store.store(metadata, bytes) }
                   created <- Created(uuid)
+                  _ <- logger.info(s"Document ${metadata.name} uploaded")
                 yield created
           yield res
         }

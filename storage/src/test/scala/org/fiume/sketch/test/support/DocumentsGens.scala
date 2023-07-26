@@ -2,10 +2,9 @@ package org.fiume.sketch.test.support
 
 import cats.effect.IO
 import fs2.Stream
-import org.fiume.sketch.shared.test.Gens
 import org.fiume.sketch.shared.test.Gens.Bytes.*
 import org.fiume.sketch.shared.test.Gens.Strings.*
-import org.fiume.sketch.storage.documents.Document
+import org.fiume.sketch.storage.documents.{Document, DocumentWithId}
 import org.fiume.sketch.storage.documents.Document.Metadata
 import org.scalacheck.{Arbitrary, Gen}
 
@@ -29,11 +28,9 @@ object DocumentsGens:
   given Arbitrary[Stream[IO, Byte]] = Arbitrary(bytesG[IO])
   def bytesG[F[_]]: Gen[Stream[F, Byte]] = Gen.nonEmptyListOf(bytes).map(Stream.emits)
 
-  def documents[F[_]]: Gen[Document[F]] =
+  def documents[F[_]]: Gen[DocumentWithId[F]] =
     for
       uuid <- Gen.delay(UUID.randomUUID())
       metadata <- metadataG
       bytes <- bytesG[F]
-      createdAt <- Gens.DateAndTime.dateAndTime
-      updatedAt <- Gens.DateAndTime.dateAndTime.suchThat(_.isAfter(createdAt))
-    yield Document(uuid, metadata, bytes, createdAt, updatedAt)
+    yield Document.withId(uuid, metadata, bytes)

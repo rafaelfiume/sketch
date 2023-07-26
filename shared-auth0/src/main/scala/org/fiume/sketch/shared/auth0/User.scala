@@ -3,6 +3,7 @@ package org.fiume.sketch.shared.auth0
 import cats.{Eq, Show}
 import cats.data.{EitherNec, Validated}
 import cats.implicits.*
+import org.fiume.sketch.shared.app.WithId
 import org.fiume.sketch.shared.app.troubleshooting.{InvariantError, InvariantHolder}
 import org.fiume.sketch.shared.auth0.Passwords.{HashedPassword, Salt}
 import org.fiume.sketch.shared.auth0.User.Username
@@ -10,7 +11,7 @@ import org.fiume.sketch.shared.auth0.User.Username.WeakUsername
 
 import java.util.UUID
 
-case class User(uuid: UUID, username: Username)
+case class User(uuid: UUID, username: Username) extends WithId
 
 object User:
   // set of information required to authenticate a user
@@ -19,7 +20,7 @@ object User:
     username: Username,
     hashedPassword: HashedPassword
     // salt: Salt
-  )
+  ) extends WithId
 
   sealed abstract case class Username(value: String)
 

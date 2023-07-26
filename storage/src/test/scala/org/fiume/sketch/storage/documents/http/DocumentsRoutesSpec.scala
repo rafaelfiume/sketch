@@ -12,7 +12,7 @@ import org.fiume.sketch.shared.app.troubleshooting.ErrorInfo.{ErrorCode, ErrorDe
 import org.fiume.sketch.shared.app.troubleshooting.http.JsonCodecs.ErrorInfoCodecs.given
 import org.fiume.sketch.shared.test.{ContractContext, FileContentContext, Http4sTestingRoutesDsl}
 import org.fiume.sketch.shared.test.EitherSyntax.*
-import org.fiume.sketch.storage.documents.Document
+import org.fiume.sketch.storage.documents.{Document, DocumentWithId}
 import org.fiume.sketch.storage.documents.Document.Metadata
 import org.fiume.sketch.storage.documents.algebras.DocumentsStore
 import org.fiume.sketch.storage.documents.http.DocumentsRoutes.*
@@ -236,24 +236,22 @@ trait DocumentsRoutesSpecContext:
 
 trait DocumentsStoreContext:
   import fs2.Stream
-  import java.time.ZonedDateTime
-  import java.time.ZoneOffset
   import java.util.UUID
 
   def makeDocumentsStore(): IO[DocumentsStore[IO, IO]] = makeDocumentsStore(state = Map.empty)
 
-  def makeDocumentsStore(state: Document[IO]): IO[DocumentsStore[IO, IO]] = makeDocumentsStore(Map(state.uuid -> state))
+  def makeDocumentsStore(state: DocumentWithId[IO]): IO[DocumentsStore[IO, IO]] =
+    makeDocumentsStore(Map(state.uuid -> state))
 
-  private def makeDocumentsStore(state: Map[UUID, Document[IO]]): IO[DocumentsStore[IO, IO]] =
-    Ref.of[IO, Map[UUID, Document[IO]]](state).map { storage =>
+  private def makeDocumentsStore(state: Map[UUID, DocumentWithId[IO]]): IO[DocumentsStore[IO, IO]] =
+    Ref.of[IO, Map[UUID, DocumentWithId[IO]]](state).map { storage =>
       new DocumentsStore[IO, IO]:
 
         def store(metadata: Metadata, content: Stream[IO, Byte]): IO[UUID] =
           IO.randomUUID.flatMap { uuid =>
             storage
               .update {
-                val document =
-                  new Document[IO](uuid, metadata, content, ZonedDateTime.now(ZoneOffset.UTC), ZonedDateTime.now(ZoneOffset.UTC))
+                val document = Document.withId[IO](uuid, metadata, content)
                 _.updated(document.uuid, document)
               }
               .as(uuid)
@@ -263,7 +261,7 @@ trait DocumentsStoreContext:
           storage.update {
             _.updatedWith(uuid) {
               case Some(document) =>
-                Document[IO](uuid, metadata, content, document.createdAt, ZonedDateTime.now(ZoneOffset.UTC)).some
+                Document.withId[IO](uuid, metadata, content).some
               case None => none
             }
           }.void
