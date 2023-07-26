@@ -60,7 +60,7 @@ class PlainPasswordSpec extends ScalaCheckSuite:
 
   test("invalid passwords with control chars or emojis"):
     forAll(passwordsWithControlCharsOrEmojis) { withControlCharsOrEmojis =>
-      PlainPassword.validated(withControlCharsOrEmojis).leftValue.contains(PlainPassword.InvalidCharater)
+      PlainPassword.validated(withControlCharsOrEmojis).leftValue.contains(PlainPassword.InvalidChar)
     }
 
   test("accumulate validation errors"):
@@ -69,6 +69,6 @@ class PlainPasswordSpec extends ScalaCheckSuite:
       Set[PlainPassword.WeakPassword](
         PlainPassword.Whitespace,
         PlainPassword.InvalidSpecialChar,
-        PlainPassword.InvalidCharater
+        PlainPassword.InvalidChar
       ).subsetOf(result.leftValue.toList.toSet)
     }

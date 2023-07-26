@@ -3,6 +3,7 @@ package org.fiume.sketch.shared.auth0
 import cats.{Eq, Show}
 import cats.data.{EitherNec, Validated}
 import cats.implicits.*
+import org.fiume.sketch.shared.app.troubleshooting.{InvariantError, InvariantHolder}
 import org.fiume.sketch.shared.auth0.Passwords.{HashedPassword, Salt}
 import org.fiume.sketch.shared.auth0.User.Username
 import org.fiume.sketch.shared.auth0.User.Username.WeakUsername
@@ -22,10 +23,8 @@ object User:
 
   sealed abstract case class Username(value: String)
 
-  object Username:
-    sealed trait WeakUsername:
-      def uniqueCode: String
-      def message: String
+  object Username extends InvariantHolder[WeakUsername]:
+    sealed trait WeakUsername extends InvariantError
 
     case object TooShort extends WeakUsername:
       override def uniqueCode: String = "username.too.short"
@@ -35,7 +34,7 @@ object User:
       override def uniqueCode: String = "username.too.long"
       override val message: String = s"must be at most $maxLength characters long"
 
-    case object InvalidCharater extends WeakUsername:
+    case object InvalidChar extends WeakUsername:
       override def uniqueCode: String = "username.invalid.characters"
       override val message: String = "must only contain letters (a-z, A-Z), numbers (0-9), and underscores (_)"
 
@@ -51,13 +50,13 @@ object User:
     val maxLength = 40
     val reservedWords = Set("administrator", "superuser", "moderator")
     val maxRepeatedCharsPercentage = 0.7f
-    val inputErrors = Set(TooShort, TooLong, InvalidCharater, ReservedWords, ExcessiveRepeatedChars)
+    override val invariantErrors = Set(TooShort, TooLong, InvalidChar, ReservedWords, ExcessiveRepeatedChars)
 
     /* must be used during user sign up */
     def validated(value: String): EitherNec[WeakUsername, Username] =
       val hasMinLength = Validated.condNec[WeakUsername, Unit](value.length >= minLength, (), TooShort)
       val hasMaxLength = Validated.condNec(value.length <= maxLength, (), TooLong)
-      val hasNoInvalidChar = Validated.condNec("^[a-zA-Z0-9_-]+$".r.matches(value), (), InvalidCharater)
+      val hasNoInvalidChar = Validated.condNec("^[a-zA-Z0-9_-]+$".r.matches(value), (), InvalidChar)
       val hasNoReservedWords = Validated.condNec(!reservedWords.exists(value.contains(_)), (), ReservedWords)
       val hasNoExcessiveRepeatedChars = Validated.condNec(!hasExcessiveRepeatedChars(value, 0.7), (), ExcessiveRepeatedChars)
       (hasMinLength, hasMaxLength, hasNoInvalidChar, hasNoReservedWords, hasNoExcessiveRepeatedChars)
@@ -65,9 +64,6 @@ object User:
         .toEither
 
     def notValidatedFromString(value: String): Username = new Username(value) {}
-
-    def inputErrorsToMap(inputErrors: List[WeakUsername]): Map[String, String] =
-      inputErrors.map(e => e.uniqueCode -> e.message).toMap
 
     private def hasExcessiveRepeatedChars(value: String, maxRepeatedCharsPercentage: Float): Boolean =
       val repeatedCharsCount = value.groupBy(identity).view.mapValues(_.length)

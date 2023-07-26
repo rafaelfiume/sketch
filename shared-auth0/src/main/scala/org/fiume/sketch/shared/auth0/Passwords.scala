@@ -4,6 +4,8 @@ import cats.{Eq, Show}
 import cats.data.{EitherNec, Validated}
 import cats.effect.Sync
 import cats.implicits.*
+import org.fiume.sketch.shared.app.troubleshooting.{InvariantError, InvariantHolder}
+import org.fiume.sketch.shared.auth0.Passwords.PlainPassword.WeakPassword
 import org.mindrot.jbcrypt.BCrypt
 
 import java.util.Base64
@@ -12,10 +14,8 @@ object Passwords:
 
   sealed abstract case class PlainPassword(value: String)
 
-  object PlainPassword:
-    sealed trait WeakPassword:
-      def uniqueCode: String
-      def message: String
+  object PlainPassword extends InvariantHolder[WeakPassword]:
+    sealed trait WeakPassword extends InvariantError
 
     case object TooShort extends WeakPassword:
       override val uniqueCode: String = "password.too.short"
@@ -50,7 +50,7 @@ object Passwords:
       override def uniqueCode: String = "password.whitespace"
       override val message: String = "must not contain any whitespace"
 
-    case object InvalidCharater extends WeakPassword:
+    case object InvalidChar extends WeakPassword:
       override def uniqueCode: String = "password.invalid.characters"
       override def message: String = "must not contain control characters or emojis"
 
@@ -58,8 +58,8 @@ object Passwords:
     val maxLength = 64
     val specialChars = Set('!', '@', '#', '$', '%', '^', '&', '*', '_', '+', '=', '~', ';', ':', ',', '.', '?')
     val invalidSpecialChars = Set('(', ')', '[', ']', '{', '}', '|', '\\', '\'', '"', '<', '>', '/')
-    val inputErrors =
-      Set(TooShort, TooLong, NoUpperCase, NoLowerCase, NoDigit, NoSpecialChar, InvalidSpecialChar, Whitespace, InvalidCharater)
+    override val invariantErrors =
+      Set(TooShort, TooLong, NoUpperCase, NoLowerCase, NoDigit, NoSpecialChar, InvalidSpecialChar, Whitespace, InvalidChar)
 
     def validated(value: String): EitherNec[WeakPassword, PlainPassword] =
       val hasMinLength = Validated.condNec[WeakPassword, Unit](value.length >= minLength, (), TooShort)
@@ -73,7 +73,7 @@ object Passwords:
       val hasNoUnexpectedChar = Validated.condNec(
         value.forall(c => c.isUpper || c.isLower || c.isDigit || specialChars.contains(c)),
         (),
-        InvalidCharater
+        InvalidChar
       )
 
       (hasMinLength,
@@ -90,9 +90,6 @@ object Passwords:
       }.toEither
 
     def notValidatedFromString(value: String): PlainPassword = new PlainPassword(value) {}
-
-    def inputErrorsToMap(inputErrors: List[WeakPassword]): Map[String, String] =
-      inputErrors.map(e => e.uniqueCode -> e.message).toMap
 
     given Show[PlainPassword] = Show.fromToString
     given Eq[WeakPassword] = Eq.fromUniversalEquals[WeakPassword]

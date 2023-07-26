@@ -3,7 +3,7 @@ package org.fiume.sketch.storage.documents.algebras
 import cats.instances.uuid
 import fs2.Stream
 import org.fiume.sketch.shared.app.algebras.Store
-import org.fiume.sketch.storage.documents.Model.Metadata
+import org.fiume.sketch.storage.documents.Document.Metadata
 
 import java.util.UUID
 

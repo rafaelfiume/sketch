@@ -6,12 +6,12 @@ import cats.effect.{Concurrent, Sync}
 import cats.effect.kernel.Async
 import cats.implicits.*
 import fs2.Stream
-import org.fiume.sketch.storage.documents.Model.{Document, Metadata}
+import org.fiume.sketch.shared.app.troubleshooting.{ErrorInfo, InvariantError, InvariantHolder}
+import org.fiume.sketch.shared.app.troubleshooting.ErrorInfo.*
+import org.fiume.sketch.shared.app.troubleshooting.http.JsonCodecs.ErrorInfoCodecs.given
+import org.fiume.sketch.storage.documents.Document.Metadata
 import org.fiume.sketch.storage.documents.algebras.DocumentsStore
 import org.fiume.sketch.storage.documents.http.JsonCodecs.given
-import org.fiume.sketch.storage.http.JsonCodecs.Incorrects.given
-import org.fiume.sketch.storage.http.Model.Incorrect
-import org.fiume.sketch.storage.http.Model.IncorrectOps.*
 import org.http4s.{HttpRoutes, QueryParamDecoder, *}
 import org.http4s.circe.CirceEntityDecoder.*
 import org.http4s.circe.CirceEntityEncoder.*
@@ -26,6 +26,12 @@ import java.util.UUID
 
 import DocumentsRoutes.*
 
+/*
+ * - TODO Endpoint to update documents
+ * - TODO Fix warning
+ * - TODO Improve validation, for instance validate document name is not empty, has minimum length, etc.
+ * - TODO Make sure there is a limit to the size of documents that can be uploaded
+ */
 class DocumentsRoutes[F[_]: Async, Txn[_]](store: DocumentsStore[F, Txn]) extends Http4sDsl[F]:
   private val logger = Slf4jLogger.getLogger[F]
 
@@ -36,8 +42,6 @@ class DocumentsRoutes[F[_]: Async, Txn[_]](store: DocumentsStore[F, Txn]) extend
   private val httpRoutes: HttpRoutes[F] =
     HttpRoutes.of[F] {
       /*
-       * TODO Fix warning:
-       *
        * > [io-compute-9] INFO org.fiume.sketch.storage.http.DocumentsRoutes - Received request to upload document Name(altamura.jpg)
        * > [WARNING] Your app's responsiveness to a new asynchronous event (such as a
        * > new connection, an upstream response, or a timer) was in excess of 100 milliseconds.
@@ -48,13 +52,26 @@ class DocumentsRoutes[F[_]: Async, Txn[_]](store: DocumentsStore[F, Txn]) extend
        */
       case req @ POST -> Root / "documents" =>
         req.decode { (m: Multipart[F]) =>
-          val payload = (m.metadata, m.bytes).parTupled // warning: errors won't accumulate by default: see validation tests
+          // TODO Check bytes size
+          val payload = (m.metadata, m.bytes)
+            // warning: errors won't accumulate by default: see validation tests
+            .parTupled
+            .leftMap(_.toList)
+            .leftMap(InvariantError.inputErrorsToMap)
+            .leftMap(ErrorDetails.apply)
           for
             value <- payload.value
             res <- value match
-              case Left(details) =>
-                logger.info(s"Bad request to upload document: $details") *>
-                  BadRequest(Incorrect(details))
+              case Left(inputErrors) =>
+                // TODO Log username
+                logger.info("Bad request to upload document") *>
+                  BadRequest(
+                    ErrorInfo.withDetails(
+                      code = ErrorCode.InvalidDocument,
+                      message = ErrorMessage("The provided document is invalid."),
+                      details = inputErrors
+                    )
+                  )
 
               case Right((metadata, bytes)) =>
                 for
@@ -64,8 +81,6 @@ class DocumentsRoutes[F[_]: Async, Txn[_]](store: DocumentsStore[F, Txn]) extend
                 yield created
           yield res
         }
-
-      // TODO Update documents
 
       case GET -> Root / "documents" / UUIDVar(uuid) / "metadata" =>
         for
@@ -97,20 +112,43 @@ class DocumentsRoutes[F[_]: Async, Txn[_]](store: DocumentsStore[F, Txn]) extend
         yield res
     }
 
-private[http] object DocumentsRoutes:
+private[http] object DocumentsRoutes extends InvariantHolder[InvalidDocument]:
+  trait InvalidDocument extends InvariantError
+
+  case object MissingMetadata extends InvalidDocument:
+    def uniqueCode = "document.missing.metadata"
+    def message = "metadata is mandatory"
+
+  case object MissingContent extends InvalidDocument:
+    def uniqueCode = "document.missing.content"
+    def message = "no document provided for upload"
+
+  case object MalformedDocumentMetadata extends InvalidDocument:
+    def uniqueCode = "document.metadata.malformed"
+    def message = "the provided document is malformed"
+
+  // TODO Instantiate a Document, then Document is an InvariantHolder
+  override val invariantErrors: Set[InvalidDocument] =
+    Set(MissingMetadata, MissingContent, MalformedDocumentMetadata)
+
   extension [F[_]: MonadThrow: Concurrent](m: Multipart[F])
-    def metadata: EitherT[F, NonEmptyChain[Incorrect.Detail], Metadata] = EitherT
+    def metadata: EitherT[F, NonEmptyChain[InvalidDocument], Metadata] = EitherT
       .fromEither {
-        m.parts.find { _.name == Some("metadata") }.orMissing("metadata")
+        m.parts
+          .find { _.name == Some("metadata") }
+          .toRight(NonEmptyChain.one(MissingMetadata))
       }
       .flatMap { json =>
         json
           .as[Metadata]
           .attemptT
-          .leftMap { _.getMessage.malformed }
+          .leftMap(_ => NonEmptyChain.one(MalformedDocumentMetadata))
       }
 
-    def bytes: EitherT[F, NonEmptyChain[Incorrect.Detail], Stream[F, Byte]] = EitherT
+    def bytes: EitherT[F, NonEmptyChain[InvalidDocument], Stream[F, Byte]] = EitherT
       .fromEither {
-        m.parts.find { _.name == Some("bytes") }.orMissing("bytes").map(_.body)
+        m.parts
+          .find { _.name == Some("bytes") }
+          .toRight(NonEmptyChain.one(MissingContent))
+          .map(_.body)
       }

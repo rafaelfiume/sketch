@@ -8,7 +8,7 @@ import org.fiume.sketch.auth0.Authenticator
 import org.fiume.sketch.auth0.http.AuthRoutes.*
 import org.fiume.sketch.auth0.http.AuthRoutes.Model.{LoginRequest, LoginResponse}
 import org.fiume.sketch.auth0.http.JsonCodecs.RequestResponsesCodecs.given
-import org.fiume.sketch.shared.app.troubleshooting.ErrorInfo
+import org.fiume.sketch.shared.app.troubleshooting.{ErrorInfo, InvariantError}
 import org.fiume.sketch.shared.app.troubleshooting.ErrorInfo.{ErrorCode, ErrorDetails, ErrorMessage}
 import org.fiume.sketch.shared.app.troubleshooting.http.JsonCodecs.ErrorInfoCodecs.given
 import org.fiume.sketch.shared.auth0.Passwords.PlainPassword
@@ -34,8 +34,8 @@ class AuthRoutes[F[_]: Async](authenticator: Authenticator[F]) extends Http4sDsl
   private val httpRoutes: HttpRoutes[F] = HttpRoutes.of[F] { case req @ POST -> Root / "login" =>
     def validate(request: LoginRequest) =
       (
-        Username.validated(request.username).leftMap(_.toList).leftMap(Username.inputErrorsToMap),
-        PlainPassword.validated(request.password).leftMap(_.toList).leftMap(PlainPassword.inputErrorsToMap),
+        Username.validated(request.username).leftMap(_.toList).leftMap(InvariantError.inputErrorsToMap),
+        PlainPassword.validated(request.password).leftMap(_.toList).leftMap(InvariantError.inputErrorsToMap),
       ).parMapN((_, _)).leftMap(ErrorDetails.apply)
 
     req.decode { (loginRequest: LoginRequest) =>
@@ -43,7 +43,6 @@ class AuthRoutes[F[_]: Async](authenticator: Authenticator[F]) extends Http4sDsl
         validate(loginRequest).fold(
           inputErrors =>
             logger.info(s"(AUTH001) Failed login attempt for username ${loginRequest.username}") *>
-              Async[F].delay(println(s"inputErrors: $inputErrors")) *>
               BadRequest(
                 ErrorInfo.withDetails(
                   code = ErrorCode.InvalidCredentials,

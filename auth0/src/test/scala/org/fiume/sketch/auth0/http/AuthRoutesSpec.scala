@@ -142,7 +142,7 @@ class AuthRoutesSpec
         _ <- IO {
           assertEquals(result.code, ErrorCode.InvalidCredentials)
           assertEquals(result.message, ErrorMessage("The username or password provided is incorrect."))
-          val allInputErrors = Username.inputErrors.map(_.uniqueCode) ++ PlainPassword.inputErrors.map(_.uniqueCode)
+          val allInputErrors = Username.invariantErrors.map(_.uniqueCode) ++ PlainPassword.invariantErrors.map(_.uniqueCode)
           val actualInputErrors = result.details.get.values.keys.toSet
           assert(actualInputErrors.subsetOf(allInputErrors),
                  clue = s"actualInputErrors: $actualInputErrors\nallInputErrors: $allInputErrors"

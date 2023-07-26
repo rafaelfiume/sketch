@@ -16,4 +16,12 @@ object ErrorInfo:
     ErrorInfo(code, message, Some(details))
 
   enum ErrorCode:
+    /**
+     * Auth0 *
+     */
     case InvalidCredentials
+
+    /**
+     * Documents *
+     */
+    case InvalidDocument

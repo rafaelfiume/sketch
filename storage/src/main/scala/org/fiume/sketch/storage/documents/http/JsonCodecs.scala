@@ -4,8 +4,8 @@ import cats.implicits.*
 import io.circe.{Codec, Decoder, DecodingFailure, Encoder, HCursor, Json}
 import io.circe.Decoder.Result
 import io.circe.syntax.*
-import org.fiume.sketch.storage.documents.Model.Metadata
-import org.fiume.sketch.storage.documents.Model.Metadata.*
+import org.fiume.sketch.storage.documents.Document.Metadata
+import org.fiume.sketch.storage.documents.Document.Metadata.*
 
 import java.util.UUID
 

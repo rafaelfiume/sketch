@@ -1,7 +1,7 @@
 package org.fiume.sketch.storage.documents.postgres
 
 import doobie.Meta
-import org.fiume.sketch.storage.documents.Model.Metadata
+import org.fiume.sketch.storage.documents.Document.Metadata
 
 private[documents] object DoobieMappings:
   given Meta[Metadata.Name] = Meta[String].timap(Metadata.Name.apply)(_.value)
