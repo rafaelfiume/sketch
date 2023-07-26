@@ -34,7 +34,7 @@ class AuthenticatorSpec
     super.scalaCheckTestParameters.withMinSuccessfulTests(1)
 
   test("authenticate and verify user with valid credentials"):
-    forAllF(validCredentialsWithIdAndPlainPasswords, ecKeyPairs, shortDurations) {
+    forAllF(validCredentialsWithIdAndPlainPassword, ecKeyPairs, shortDurations) {
       case ((credentials, plainPassword), (privateKey, publicKey), expirationOffset) =>
         for
           store <- makeUsersStore(credentials)
@@ -48,7 +48,7 @@ class AuthenticatorSpec
     }
 
   test("do not authenticate a user with wrong password"):
-    forAllF(validCredentialsWithIdAndPlainPasswords, ecKeyPairs, shortDurations) {
+    forAllF(validCredentialsWithIdAndPlainPassword, ecKeyPairs, shortDurations) {
       case ((credentials, plainPassword), (privateKey, publicKey), expirationOffset) =>
         for
           store <- makeUsersStore(credentials)
@@ -61,7 +61,7 @@ class AuthenticatorSpec
     }
 
   test("do not not authenticate a user with unknown username"):
-    forAllF(validCredentialsWithIdAndPlainPasswords, ecKeyPairs, shortDurations) {
+    forAllF(validCredentialsWithIdAndPlainPassword, ecKeyPairs, shortDurations) {
       case ((credentials, plainPassword), (privateKey, publicKey), expirationOffset) =>
         for
           store <- makeUsersStore(credentials)
@@ -74,7 +74,7 @@ class AuthenticatorSpec
     }
 
   test("verify expired token"):
-    forAllF(validCredentialsWithIdAndPlainPasswords, ecKeyPairs, shortDurations) {
+    forAllF(validCredentialsWithIdAndPlainPassword, ecKeyPairs, shortDurations) {
       case ((credentials, plainPassword), (privateKey, publicKey), expirationOffset) =>
         given Clock[IO] = makeFrozenTime(ZonedDateTime.now().minusSeconds(expirationOffset.toSeconds))
         for
@@ -90,7 +90,7 @@ class AuthenticatorSpec
     }
 
   test("verify tampered token"):
-    forAllF(validCredentialsWithIdAndPlainPasswords, ecKeyPairs, shortDurations) {
+    forAllF(validCredentialsWithIdAndPlainPassword, ecKeyPairs, shortDurations) {
       case ((credentials, plainPassword), (privateKey, publicKey), expirationOffset) =>
         for
           store <- makeUsersStore(credentials)
@@ -108,7 +108,7 @@ class AuthenticatorSpec
     }
 
   test("verify invalid token"):
-    forAllF(validCredentialsWithIdAndPlainPasswords, ecKeyPairs, shortDurations) {
+    forAllF(validCredentialsWithIdAndPlainPassword, ecKeyPairs, shortDurations) {
       case ((credentials, plainPassword), (privateKey, publicKey), expirationOffset) =>
         for
           store <- makeUsersStore(credentials)
@@ -123,7 +123,7 @@ class AuthenticatorSpec
     }
 
   test("verify fails with invalid public key"):
-    forAllF(validCredentialsWithIdAndPlainPasswords, ecKeyPairs, ecKeyPairs, shortDurations) {
+    forAllF(validCredentialsWithIdAndPlainPassword, ecKeyPairs, ecKeyPairs, shortDurations) {
       case ((credentials, plainPassword), (privateKey, _), (_, strangePublicKey), expirationOffset) =>
         for
           store <- makeUsersStore(credentials)
@@ -181,7 +181,7 @@ trait UsersStoreContext:
         override def fetchCredentials(username: Username): IO[Option[UserCredentialsWithId]] =
           storage.get.map(_.collectFirst {
             case (uuid, storedCreds) if storedCreds.username == username =>
-              UserCredentials.withUuid(uuid, storedCreds.username, storedCreds.hashedPassword, storedCreds.salt)
+              UserCredentials.withUuid(uuid, storedCreds)
           })
 
         override def updatePassword(uuid: UUID, newPassword: HashedPassword): IO[Unit] =

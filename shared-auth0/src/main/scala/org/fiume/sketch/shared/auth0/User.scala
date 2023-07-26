@@ -24,6 +24,9 @@ object User:
   )
 
   object UserCredentials:
+    def withUuid(uuid0: UUID, credentials: UserCredentials): UserCredentialsWithId =
+      withUuid(uuid0, credentials.username, credentials.hashedPassword, credentials.salt)
+
     def withUuid(uuid0: UUID, username: Username, hashedPassword: HashedPassword, salt: Salt): UserCredentialsWithId =
       new UserCredentials(username, hashedPassword, salt) with WithUuid:
         override val uuid: UUID = uuid0

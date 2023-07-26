@@ -58,9 +58,7 @@ class PostgresUsersStoreSpec
             result <- store.fetchCredentials(credentials.username).ccommit
 
             _ <- IO {
-              assertEquals(result,
-                           UserCredentials.withUuid(uuid, credentials.username, credentials.hashedPassword, credentials.salt).some
-              )
+              assertEquals(result, UserCredentials.withUuid(uuid, credentials).some)
             }
           yield ()
         }
@@ -105,10 +103,7 @@ class PostgresUsersStoreSpec
             sndStoredCreds <- store.fetchCredentials(sndCreds.username).ccommit
             _ <- IO {
               assertEquals(fstStoredCreds, none)
-              assertEquals(
-                sndStoredCreds,
-                UserCredentials.withUuid(sndUuid, sndCreds.username, sndCreds.hashedPassword, sndCreds.salt).some
-              )
+              assertEquals(sndStoredCreds, UserCredentials.withUuid(sndUuid, sndCreds).some)
             }
           yield ()
         }

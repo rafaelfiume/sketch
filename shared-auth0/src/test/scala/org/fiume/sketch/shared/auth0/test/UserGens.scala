@@ -93,7 +93,7 @@ object UserGens:
       salt <- salts
     yield UserCredentials(username, hashedPassword, salt)
 
-  def validCredentialsWithIdAndPlainPasswords: Gen[(UserCredentialsWithId, PlainPassword)] =
+  def validCredentialsWithIdAndPlainPassword: Gen[(UserCredentialsWithId, PlainPassword)] =
     for
       uuid <- Gen.uuid
       username <- validUsernames
