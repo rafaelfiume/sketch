@@ -9,7 +9,7 @@ import fs2.Stream
 import org.fiume.sketch.shared.app.troubleshooting.{ErrorInfo, InvariantError, InvariantHolder}
 import org.fiume.sketch.shared.app.troubleshooting.ErrorInfo.*
 import org.fiume.sketch.shared.app.troubleshooting.http.JsonCodecs.ErrorInfoCodecs.given
-import org.fiume.sketch.storage.documents.Model.{Document, Metadata}
+import org.fiume.sketch.storage.documents.Document.Metadata
 import org.fiume.sketch.storage.documents.algebras.DocumentsStore
 import org.fiume.sketch.storage.documents.http.JsonCodecs.given
 import org.http4s.{HttpRoutes, QueryParamDecoder, *}

@@ -5,7 +5,8 @@ import fs2.Stream
 import org.fiume.sketch.shared.test.Gens
 import org.fiume.sketch.shared.test.Gens.Bytes.*
 import org.fiume.sketch.shared.test.Gens.Strings.*
-import org.fiume.sketch.storage.documents.Model.{Document, Metadata}
+import org.fiume.sketch.storage.documents.Document
+import org.fiume.sketch.storage.documents.Document.Metadata
 import org.scalacheck.{Arbitrary, Gen}
 
 import java.util.UUID

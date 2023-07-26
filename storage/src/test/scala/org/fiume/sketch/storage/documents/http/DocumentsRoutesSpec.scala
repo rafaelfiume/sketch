@@ -12,7 +12,8 @@ import org.fiume.sketch.shared.app.troubleshooting.ErrorInfo.{ErrorCode, ErrorDe
 import org.fiume.sketch.shared.app.troubleshooting.http.JsonCodecs.ErrorInfoCodecs.given
 import org.fiume.sketch.shared.test.{ContractContext, FileContentContext, Http4sTestingRoutesDsl}
 import org.fiume.sketch.shared.test.EitherSyntax.*
-import org.fiume.sketch.storage.documents.Model.{Document, Metadata}
+import org.fiume.sketch.storage.documents.Document
+import org.fiume.sketch.storage.documents.Document.Metadata
 import org.fiume.sketch.storage.documents.algebras.DocumentsStore
 import org.fiume.sketch.storage.documents.http.DocumentsRoutes.*
 import org.fiume.sketch.storage.documents.http.JsonCodecs.given
