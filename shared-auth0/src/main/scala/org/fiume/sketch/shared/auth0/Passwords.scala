@@ -4,7 +4,8 @@ import cats.{Eq, Show}
 import cats.data.{EitherNec, Validated}
 import cats.effect.Sync
 import cats.implicits.*
-import org.fiume.sketch.shared.app.troubleshooting.InvariantError
+import org.fiume.sketch.shared.app.troubleshooting.{InvariantError, InvariantHolder}
+import org.fiume.sketch.shared.auth0.Passwords.PlainPassword.WeakPassword
 import org.mindrot.jbcrypt.BCrypt
 
 import java.util.Base64
@@ -13,7 +14,7 @@ object Passwords:
 
   sealed abstract case class PlainPassword(value: String)
 
-  object PlainPassword:
+  object PlainPassword extends InvariantHolder[WeakPassword]:
     sealed trait WeakPassword extends InvariantError
 
     case object TooShort extends WeakPassword:
@@ -57,7 +58,7 @@ object Passwords:
     val maxLength = 64
     val specialChars = Set('!', '@', '#', '$', '%', '^', '&', '*', '_', '+', '=', '~', ';', ':', ',', '.', '?')
     val invalidSpecialChars = Set('(', ')', '[', ']', '{', '}', '|', '\\', '\'', '"', '<', '>', '/')
-    val inputErrors =
+    override val invariantErrors =
       Set(TooShort, TooLong, NoUpperCase, NoLowerCase, NoDigit, NoSpecialChar, InvalidSpecialChar, Whitespace, InvalidChar)
 
     def validated(value: String): EitherNec[WeakPassword, PlainPassword] =

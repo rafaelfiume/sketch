@@ -6,7 +6,7 @@ import cats.effect.{Concurrent, Sync}
 import cats.effect.kernel.Async
 import cats.implicits.*
 import fs2.Stream
-import org.fiume.sketch.shared.app.troubleshooting.{ErrorInfo, InvariantError}
+import org.fiume.sketch.shared.app.troubleshooting.{ErrorInfo, InvariantError, InvariantHolder}
 import org.fiume.sketch.shared.app.troubleshooting.ErrorInfo.*
 import org.fiume.sketch.shared.app.troubleshooting.http.JsonCodecs.ErrorInfoCodecs.given
 import org.fiume.sketch.storage.documents.Model.{Document, Metadata}
@@ -112,7 +112,7 @@ class DocumentsRoutes[F[_]: Async, Txn[_]](store: DocumentsStore[F, Txn]) extend
         yield res
     }
 
-private[http] object DocumentsRoutes:
+private[http] object DocumentsRoutes extends InvariantHolder[InvalidDocument]:
   trait InvalidDocument extends InvariantError
 
   case object MissingMetadata extends InvalidDocument:
@@ -127,7 +127,8 @@ private[http] object DocumentsRoutes:
     def uniqueCode = "document.metadata.malformed"
     def message = "the provided document is malformed"
 
-  val invalidDocuments: Set[InvalidDocument] =
+  // TODO Instantiate a Document, then Document is an InvariantHolder
+  override val invariantErrors: Set[InvalidDocument] =
     Set(MissingMetadata, MissingContent, MalformedDocumentMetadata)
 
   extension [F[_]: MonadThrow: Concurrent](m: Multipart[F])

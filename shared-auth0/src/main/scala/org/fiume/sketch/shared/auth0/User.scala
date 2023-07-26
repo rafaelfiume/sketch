@@ -3,7 +3,7 @@ package org.fiume.sketch.shared.auth0
 import cats.{Eq, Show}
 import cats.data.{EitherNec, Validated}
 import cats.implicits.*
-import org.fiume.sketch.shared.app.troubleshooting.InvariantError
+import org.fiume.sketch.shared.app.troubleshooting.{InvariantError, InvariantHolder}
 import org.fiume.sketch.shared.auth0.Passwords.{HashedPassword, Salt}
 import org.fiume.sketch.shared.auth0.User.Username
 import org.fiume.sketch.shared.auth0.User.Username.WeakUsername
@@ -23,7 +23,7 @@ object User:
 
   sealed abstract case class Username(value: String)
 
-  object Username:
+  object Username extends InvariantHolder[WeakUsername]:
     sealed trait WeakUsername extends InvariantError
 
     case object TooShort extends WeakUsername:
@@ -50,7 +50,7 @@ object User:
     val maxLength = 40
     val reservedWords = Set("administrator", "superuser", "moderator")
     val maxRepeatedCharsPercentage = 0.7f
-    val inputErrors = Set(TooShort, TooLong, InvalidChar, ReservedWords, ExcessiveRepeatedChars)
+    override val invariantErrors = Set(TooShort, TooLong, InvalidChar, ReservedWords, ExcessiveRepeatedChars)
 
     /* must be used during user sign up */
     def validated(value: String): EitherNec[WeakUsername, Username] =

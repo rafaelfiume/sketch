@@ -146,7 +146,7 @@ class DocumentsRoutesSpec
         _ <- IO {
           assertEquals(result.code, ErrorCode.InvalidDocument)
           assertEquals(result.message, ErrorMessage("The provided document is invalid."))
-          val allInputErrors = DocumentsRoutes.invalidDocuments.map(_.uniqueCode)
+          val allInputErrors = DocumentsRoutes.invariantErrors.map(_.uniqueCode)
           val actualInputErrors = result.details.get.values.keys.toSet
           assert(actualInputErrors.subsetOf(allInputErrors),
                  clue = s"actualInputErrors: $actualInputErrors\nallInputErrors: $allInputErrors"
