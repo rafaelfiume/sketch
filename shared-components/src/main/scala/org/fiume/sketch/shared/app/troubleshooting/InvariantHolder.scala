@@ -4,7 +4,7 @@ package org.fiume.sketch.shared.app.troubleshooting
  * Components where invariants hold depending on external input should implement `InvariantHolder`,
  * so they are guarded from lack of or invalid parameters upon creation.
  *
- * `InvariantHolder` are not meant for invariants that can be preserved internally by e.g. proper testing.
+ * `InvariantHolder` is not meant for invariants that can be preserved internally by e.g. proper testing.
  *
  * Invariants: set of properties a component must hold at all times to be valid.
  */

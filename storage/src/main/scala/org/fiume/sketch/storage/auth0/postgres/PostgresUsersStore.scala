@@ -25,15 +25,15 @@ private class PostgresUsersStore[F[_]: Async] private (l: F ~> ConnectionIO, tx:
     extends AbstractPostgresStore[F](l, tx)
     with UsersStore[F, ConnectionIO]:
 
-  def store(username: Username, password: HashedPassword, salt: Salt): ConnectionIO[UUID] =
-    insertUserCredentials(username, password, salt)
+  def store(credentials: UserCredentials): ConnectionIO[UUID] =
+    insertUserCredentials(credentials.username, credentials.hashedPassword, credentials.salt)
       .withUniqueGeneratedKeys[UUID](
         "uuid"
       )
 
   def fetchUser(uuid: UUID): ConnectionIO[Option[User]] = selectUser(uuid).option
 
-  def fetchCredentials(username: Username): ConnectionIO[Option[Credentials]] =
+  def fetchCredentials(username: Username): ConnectionIO[Option[UserCredentialsWithId]] =
     Statements.selectUserCredential(username).option
 
   def updatePassword(uuid: UUID, password: HashedPassword): ConnectionIO[Unit] =
@@ -63,12 +63,13 @@ private object Statements:
          |WHERE uuid = $uuid
     """.stripMargin.query
 
-  def selectUserCredential(username: Username): Query0[Credentials] =
+  def selectUserCredential(username: Username): Query0[UserCredentialsWithId] =
     sql"""
          |SELECT
          |  uuid,
          |  username,
-         |  password_hash
+         |  password_hash,
+         |  salt
          |FROM auth.users
          |WHERE username = $username
     """.stripMargin.query

@@ -9,6 +9,7 @@ import doobie.free.connection.ConnectionIO
 import doobie.implicits.*
 import doobie.postgres.implicits.*
 import fs2.Stream
+import org.fiume.sketch.storage.documents.{Document, DocumentWithId}
 import org.fiume.sketch.storage.documents.Document.Metadata
 import org.fiume.sketch.storage.documents.algebras.DocumentsStore
 import org.fiume.sketch.storage.documents.postgres.DoobieMappings
@@ -26,24 +27,24 @@ private class PostgresDocumentsStore[F[_]: Async] private (l: F ~> ConnectionIO,
     extends AbstractPostgresStore[F](l, tx)
     with DocumentsStore[F, ConnectionIO]:
 
-  override def store(metadata: Metadata, content: Stream[F, Byte]): ConnectionIO[UUID] =
+  override def store(document: Document[F]): ConnectionIO[UUID] =
     for
       // Avoid reading all bytes into memory by using a large object?
       // https://tpolecat.github.io/doobie-cats-0.4.2/15-Extensions-PostgreSQL.html
       // https://github.com/tpolecat/doobie/blob/32838f90044f5c3acac6b9f4ae7a2be10b5f1bb0/modules/postgres/src/main/scala/doobie/postgres/hi/largeobjectmanager.scala#L34
       // https://github.com/tpolecat/doobie/blob/32838f90044f5c3acac6b9f4ae7a2be10b5f1bb0/modules/example/src/main/scala/example/PostgresLargeObject.scala#L18
-      bytes <- lift { content.compile.toVector.map(_.toArray) }
+      bytes <- lift { document.content.compile.toVector.map(_.toArray) }
       uuid <- Statements
-        .insertDocument(metadata, bytes)
+        .insertDocument(document.metadata, bytes)
         .withUniqueGeneratedKeys[UUID](
           "uuid"
         )
     yield uuid
 
-  override def update(uuid: UUID, metadata: Metadata, content: Stream[F, Byte]): ConnectionIO[Unit] =
+  override def update(document: DocumentWithId[F]): ConnectionIO[Unit] =
     for
-      bytes <- lift { content.compile.toVector.map(_.toArray) }
-      _ <- Statements.update(uuid, metadata, bytes).run.void
+      bytes <- lift { document.content.compile.toVector.map(_.toArray) }
+      _ <- Statements.update(document.uuid, document.metadata, bytes).run.void
     yield ()
 
   override def fetchMetadata(uuid: UUID): ConnectionIO[Option[Metadata]] =

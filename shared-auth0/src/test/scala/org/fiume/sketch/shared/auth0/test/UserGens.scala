@@ -2,9 +2,11 @@ package org.fiume.sketch.shared.auth0.test
 
 import org.fiume.sketch.shared.auth0.Passwords.{HashedPassword, PlainPassword, Salt}
 import org.fiume.sketch.shared.auth0.User
-import org.fiume.sketch.shared.auth0.User.{Credentials, Username}
+import org.fiume.sketch.shared.auth0.User.{UserCredentials, UserCredentialsWithId, Username}
 import org.fiume.sketch.shared.auth0.test.PasswordsGens.*
 import org.fiume.sketch.shared.auth0.test.PasswordsGens.HashedPasswords.*
+import org.fiume.sketch.shared.auth0.test.PasswordsGens.PlainPasswords.*
+import org.fiume.sketch.shared.auth0.test.PasswordsGens.Salts.*
 import org.fiume.sketch.shared.auth0.test.UserGens.Usernames.*
 import org.scalacheck.{Arbitrary, Gen}
 
@@ -83,17 +85,19 @@ object UserGens:
       username <- validUsernames
     yield User(uuid, username)
 
-  given Arbitrary[Credentials] = Arbitrary(credentials)
-  def credentials: Gen[Credentials] =
+  given Arbitrary[UserCredentials] = Arbitrary(credentials)
+  def credentials: Gen[UserCredentials] =
     for
-      uuid <- Gen.uuid
       username <- validUsernames
       hashedPassword <- fakeHashedPasswords
-    yield Credentials(uuid, username, hashedPassword)
+      salt <- salts
+    yield UserCredentials(username, hashedPassword, salt)
 
-  def usersAuthenticationInfo: Gen[(UUID, Username, PlainPassword, HashedPassword, Salt)] =
+  def validCredentialsWithIdAndPlainPassword: Gen[(UserCredentialsWithId, PlainPassword)] =
     for
       uuid <- Gen.uuid
       username <- validUsernames
-      passwordInfo <- passwordsInfo
-    yield (uuid, username, passwordInfo._1, passwordInfo._2, passwordInfo._3)
+      plainPassword <- validPlainPasswords
+      salt <- salts
+      hashedPassword = HashedPassword.hashPassword(plainPassword, salt)
+    yield UserCredentials.withUuid(uuid, username, hashedPassword, salt) -> plainPassword

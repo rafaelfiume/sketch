@@ -25,14 +25,11 @@ class ErrorInfoContractSpec extends CatsEffectSuite with ScalaCheckEffectSuite w
       assertBijectiveRelationshipBetweenEncoderAndDecoder[ErrorInfo](sample)
     }
 
+  // TODO Table test
   test("encode ErrorCode to JSON string"):
-    assertEquals(
-      ErrorCode.InvalidCredentials.asJson.noSpaces,
-      "\"INVALID_CREDENTIALS\""
-    )
+    assertEquals(ErrorCode.InvalidUserCredentials.asJson.noSpaces, "\"INVALID_USER_CREDENTIALS\"")
+    assertEquals(ErrorCode.InvalidDocument.asJson.noSpaces, "\"INVALID_DOCUMENT\"")
 
   test("decode JSON string to ErrorCode"):
-    assertEquals(
-      decode[ErrorCode]("\"INVALID_CREDENTIALS\"").rightValue,
-      ErrorCode.InvalidCredentials
-    )
+    assertEquals(decode[ErrorCode]("\"INVALID_USER_CREDENTIALS\"").rightValue, ErrorCode.InvalidUserCredentials)
+    assertEquals(ErrorCode.InvalidDocument.asJson.noSpaces, "\"INVALID_DOCUMENT\"")

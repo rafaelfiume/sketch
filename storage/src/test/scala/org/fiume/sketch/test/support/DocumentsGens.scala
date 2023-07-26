@@ -2,10 +2,9 @@ package org.fiume.sketch.test.support
 
 import cats.effect.IO
 import fs2.Stream
-import org.fiume.sketch.shared.test.Gens
 import org.fiume.sketch.shared.test.Gens.Bytes.*
 import org.fiume.sketch.shared.test.Gens.Strings.*
-import org.fiume.sketch.storage.documents.Document
+import org.fiume.sketch.storage.documents.{Document, DocumentWithId}
 import org.fiume.sketch.storage.documents.Document.Metadata
 import org.scalacheck.{Arbitrary, Gen}
 
@@ -26,14 +25,19 @@ object DocumentsGens:
       description <- descriptions
     yield Metadata(name, description)
 
-  given Arbitrary[Stream[IO, Byte]] = Arbitrary(bytesG[IO])
-  def bytesG[F[_]]: Gen[Stream[F, Byte]] = Gen.nonEmptyListOf(bytes).map(Stream.emits)
+  given Arbitrary[Stream[IO, Byte]] = Arbitrary(bytesG)
+  def bytesG: Gen[Stream[IO, Byte]] = Gen.nonEmptyListOf(bytes).map(Stream.emits)
 
-  def documents[F[_]]: Gen[Document[F]] =
+  given Arbitrary[Document[IO]] = Arbitrary(documents)
+  def documents: Gen[Document[IO]] =
+    for
+      metadata <- metadataG
+      content <- bytesG
+    yield Document(metadata, content)
+
+  given Arbitrary[DocumentWithId[IO]] = Arbitrary(documentsWithId)
+  def documentsWithId: Gen[DocumentWithId[IO]] =
     for
       uuid <- Gen.delay(UUID.randomUUID())
-      metadata <- metadataG
-      bytes <- bytesG[F]
-      createdAt <- Gens.DateAndTime.dateAndTime
-      updatedAt <- Gens.DateAndTime.dateAndTime.suchThat(_.isAfter(createdAt))
-    yield Document(uuid, metadata, bytes, createdAt, updatedAt)
+      document <- documents
+    yield Document.withId(uuid, document.metadata, document.content)
