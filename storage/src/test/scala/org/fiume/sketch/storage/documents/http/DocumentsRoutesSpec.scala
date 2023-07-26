@@ -16,7 +16,7 @@ import org.fiume.sketch.storage.documents.{Document, DocumentWithId}
 import org.fiume.sketch.storage.documents.Document.Metadata
 import org.fiume.sketch.storage.documents.algebras.DocumentsStore
 import org.fiume.sketch.storage.documents.http.DocumentsRoutes.*
-import org.fiume.sketch.storage.documents.http.DocumentsRoutes.InvalidDocument.*
+import org.fiume.sketch.storage.documents.http.DocumentsRoutes.InvalidDocumentError.*
 import org.fiume.sketch.storage.documents.http.JsonCodecs.given
 import org.fiume.sketch.test.support.DocumentsGens.*
 import org.fiume.sketch.test.support.DocumentsGens.given
@@ -180,7 +180,7 @@ class DocumentsRoutesSpec
      * Needs an alternative instance of Parallel to accumulate error
      * More details here: https://github.com/typelevel/cats/pull/3777/files
      */
-    given accumulatingParallel: cats.Parallel[EitherT[IO, NonEmptyChain[DocumentsRoutes.InvalidDocument], *]] =
+    given accumulatingParallel: cats.Parallel[EitherT[IO, NonEmptyChain[DocumentsRoutes.InvalidDocumentError], *]] =
       EitherT.accumulatingParallel
 
     val multipart = Multipart[IO](

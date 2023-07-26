@@ -12,7 +12,7 @@ import org.fiume.sketch.shared.app.troubleshooting.http.JsonCodecs.ErrorInfoCode
 import org.fiume.sketch.storage.documents.Document
 import org.fiume.sketch.storage.documents.Document.Metadata
 import org.fiume.sketch.storage.documents.algebras.DocumentsStore
-import org.fiume.sketch.storage.documents.http.DocumentsRoutes.InvalidDocument.*
+import org.fiume.sketch.storage.documents.http.DocumentsRoutes.InvalidDocumentError.*
 import org.fiume.sketch.storage.documents.http.JsonCodecs.given
 import org.http4s.{HttpRoutes, QueryParamDecoder, *}
 import org.http4s.circe.CirceEntityDecoder.*
@@ -115,28 +115,28 @@ class DocumentsRoutes[F[_]: Async, Txn[_]](store: DocumentsStore[F, Txn]) extend
         yield res
     }
 
-private[http] object DocumentsRoutes extends InvariantHolder[InvalidDocument]:
-  trait InvalidDocument extends InvariantError
+private[http] object DocumentsRoutes extends InvariantHolder[InvalidDocumentError]:
+  trait InvalidDocumentError extends InvariantError
 
-  object InvalidDocument:
-    case object MissingMetadata extends InvalidDocument:
+  object InvalidDocumentError:
+    case object MissingMetadata extends InvalidDocumentError:
       def uniqueCode = "document.missing.metadata"
       def message = "metadata is mandatory"
 
-    case object MissingContent extends InvalidDocument:
+    case object MissingContent extends InvalidDocumentError:
       def uniqueCode = "document.missing.content"
       def message = "no document provided for upload"
 
-    case object MalformedDocumentMetadata extends InvalidDocument:
+    case object MalformedDocumentMetadata extends InvalidDocumentError:
       def uniqueCode = "document.metadata.malformed"
       def message = "the provided document is malformed"
 
   // TODO Instantiate a Document, then Document is an InvariantHolder
-  override val invariantErrors: Set[InvalidDocument] =
+  override val invariantErrors: Set[InvalidDocumentError] =
     Set(MissingMetadata, MissingContent, MalformedDocumentMetadata)
 
   extension [F[_]: MonadThrow: Concurrent](m: Multipart[F])
-    def metadata: EitherT[F, NonEmptyChain[InvalidDocument], Metadata] = EitherT
+    def metadata: EitherT[F, NonEmptyChain[InvalidDocumentError], Metadata] = EitherT
       .fromEither {
         m.parts
           .find { _.name == Some("metadata") }
@@ -149,7 +149,7 @@ private[http] object DocumentsRoutes extends InvariantHolder[InvalidDocument]:
           .leftMap(_ => NonEmptyChain.one(MalformedDocumentMetadata))
       }
 
-    def bytes: EitherT[F, NonEmptyChain[InvalidDocument], Stream[F, Byte]] = EitherT
+    def bytes: EitherT[F, NonEmptyChain[InvalidDocumentError], Stream[F, Byte]] = EitherT
       .fromEither {
         m.parts
           .find { _.name == Some("bytes") }

@@ -12,9 +12,9 @@ import org.fiume.sketch.shared.app.troubleshooting.{ErrorInfo, InvariantError}
 import org.fiume.sketch.shared.app.troubleshooting.ErrorInfo.{ErrorCode, ErrorDetails, ErrorMessage}
 import org.fiume.sketch.shared.app.troubleshooting.http.JsonCodecs.ErrorInfoCodecs.given
 import org.fiume.sketch.shared.auth0.Passwords.PlainPassword
-import org.fiume.sketch.shared.auth0.Passwords.PlainPassword.WeakPassword
+import org.fiume.sketch.shared.auth0.Passwords.PlainPassword.WeakPasswordError
 import org.fiume.sketch.shared.auth0.User.Username
-import org.fiume.sketch.shared.auth0.User.Username.WeakUsername
+import org.fiume.sketch.shared.auth0.User.Username.WeakUsernameError
 import org.http4s.{Challenge, HttpRoutes, Response}
 import org.http4s.circe.CirceEntityDecoder.*
 import org.http4s.circe.CirceEntityEncoder.*
