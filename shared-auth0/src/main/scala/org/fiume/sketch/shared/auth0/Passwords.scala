@@ -6,6 +6,7 @@ import cats.effect.Sync
 import cats.implicits.*
 import org.fiume.sketch.shared.app.troubleshooting.{InvariantError, InvariantHolder}
 import org.fiume.sketch.shared.auth0.Passwords.PlainPassword.WeakPassword
+import org.fiume.sketch.shared.auth0.Passwords.PlainPassword.WeakPassword.*
 import org.mindrot.jbcrypt.BCrypt
 
 import java.util.Base64
@@ -17,42 +18,43 @@ object Passwords:
   object PlainPassword extends InvariantHolder[WeakPassword]:
     sealed trait WeakPassword extends InvariantError
 
-    case object TooShort extends WeakPassword:
-      override val uniqueCode: String = "password.too.short"
-      override val message: String = s"must be at least $minLength characters long"
+    object WeakPassword:
+      case object TooShort extends WeakPassword:
+        override val uniqueCode: String = "password.too.short"
+        override val message: String = s"must be at least $minLength characters long"
 
-    case object TooLong extends WeakPassword:
-      override val uniqueCode: String = "password.too.long"
-      override val message: String = s"must be at most $maxLength characters long"
+      case object TooLong extends WeakPassword:
+        override val uniqueCode: String = "password.too.long"
+        override val message: String = s"must be at most $maxLength characters long"
 
-    case object NoUpperCase extends WeakPassword:
-      override def uniqueCode: String = "password.no.uppercase"
-      override val message: String = "must contain at least one uppercase letter"
+      case object NoUpperCase extends WeakPassword:
+        override def uniqueCode: String = "password.no.uppercase"
+        override val message: String = "must contain at least one uppercase letter"
 
-    case object NoLowerCase extends WeakPassword:
-      override def uniqueCode: String = "password.no.lowercase"
-      override val message: String = "must contain at least one lowercase letter"
+      case object NoLowerCase extends WeakPassword:
+        override def uniqueCode: String = "password.no.lowercase"
+        override val message: String = "must contain at least one lowercase letter"
 
-    case object NoDigit extends WeakPassword:
-      override def uniqueCode: String = "password.no.digit"
-      override val message: String = "must contain at least one digit"
+      case object NoDigit extends WeakPassword:
+        override def uniqueCode: String = "password.no.digit"
+        override val message: String = "must contain at least one digit"
 
-    case object NoSpecialChar extends WeakPassword:
-      override def uniqueCode: String = "password.no.special.character"
-      override val message: String = s"must contain at least one special character: ${specialChars.mkString("'", "', '", "'")}"
+      case object NoSpecialChar extends WeakPassword:
+        override def uniqueCode: String = "password.no.special.character"
+        override val message: String = s"must contain at least one special character: ${specialChars.mkString("'", "', '", "'")}"
 
-    case object InvalidSpecialChar extends WeakPassword:
-      override def uniqueCode: String = "password.invalid.special.character"
-      override val message: String =
-        s"must not contain any of the following characters: ${invalidSpecialChars.mkString("'", "', '", "'")}"
+      case object InvalidSpecialChar extends WeakPassword:
+        override def uniqueCode: String = "password.invalid.special.character"
+        override val message: String =
+          s"must not contain any of the following characters: ${invalidSpecialChars.mkString("'", "', '", "'")}"
 
-    case object Whitespace extends WeakPassword:
-      override def uniqueCode: String = "password.whitespace"
-      override val message: String = "must not contain any whitespace"
+      case object Whitespace extends WeakPassword:
+        override def uniqueCode: String = "password.whitespace"
+        override val message: String = "must not contain any whitespace"
 
-    case object InvalidChar extends WeakPassword:
-      override def uniqueCode: String = "password.invalid.characters"
-      override def message: String = "must not contain control characters or emojis"
+      case object InvalidChar extends WeakPassword:
+        override def uniqueCode: String = "password.invalid.characters"
+        override def message: String = "must not contain control characters or emojis"
 
     val minLength = 12
     val maxLength = 64

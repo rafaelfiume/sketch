@@ -12,6 +12,7 @@ import org.fiume.sketch.shared.app.troubleshooting.http.JsonCodecs.ErrorInfoCode
 import org.fiume.sketch.storage.documents.Document
 import org.fiume.sketch.storage.documents.Document.Metadata
 import org.fiume.sketch.storage.documents.algebras.DocumentsStore
+import org.fiume.sketch.storage.documents.http.DocumentsRoutes.InvalidDocument.*
 import org.fiume.sketch.storage.documents.http.JsonCodecs.given
 import org.http4s.{HttpRoutes, QueryParamDecoder, *}
 import org.http4s.circe.CirceEntityDecoder.*
@@ -117,17 +118,18 @@ class DocumentsRoutes[F[_]: Async, Txn[_]](store: DocumentsStore[F, Txn]) extend
 private[http] object DocumentsRoutes extends InvariantHolder[InvalidDocument]:
   trait InvalidDocument extends InvariantError
 
-  case object MissingMetadata extends InvalidDocument:
-    def uniqueCode = "document.missing.metadata"
-    def message = "metadata is mandatory"
+  object InvalidDocument:
+    case object MissingMetadata extends InvalidDocument:
+      def uniqueCode = "document.missing.metadata"
+      def message = "metadata is mandatory"
 
-  case object MissingContent extends InvalidDocument:
-    def uniqueCode = "document.missing.content"
-    def message = "no document provided for upload"
+    case object MissingContent extends InvalidDocument:
+      def uniqueCode = "document.missing.content"
+      def message = "no document provided for upload"
 
-  case object MalformedDocumentMetadata extends InvalidDocument:
-    def uniqueCode = "document.metadata.malformed"
-    def message = "the provided document is malformed"
+    case object MalformedDocumentMetadata extends InvalidDocument:
+      def uniqueCode = "document.metadata.malformed"
+      def message = "the provided document is malformed"
 
   // TODO Instantiate a Document, then Document is an InvariantHolder
   override val invariantErrors: Set[InvalidDocument] =

@@ -3,6 +3,7 @@ package org.fiume.sketch.shared.auth0
 import cats.syntax.all.*
 import munit.{CatsEffectSuite, ScalaCheckEffectSuite, ScalaCheckSuite}
 import org.fiume.sketch.shared.auth0.Passwords.PlainPassword
+import org.fiume.sketch.shared.auth0.Passwords.PlainPassword.WeakPassword
 import org.fiume.sketch.shared.auth0.test.PasswordsGens.PlainPasswords.*
 import org.fiume.sketch.shared.auth0.test.PasswordsGens.PlainPasswords.given
 import org.fiume.sketch.shared.test.EitherSyntax.*
@@ -20,55 +21,55 @@ class PlainPasswordSpec extends ScalaCheckSuite:
 
   test("short passwords"):
     forAll(shortPasswords) { shortPassword =>
-      PlainPassword.validated(shortPassword).leftValue.contains(PlainPassword.TooShort)
+      PlainPassword.validated(shortPassword).leftValue.contains(WeakPassword.TooShort)
     }
 
   test("long passwords"):
     forAll(longPasswords) { longPassword =>
-      PlainPassword.validated(longPassword).leftValue.contains(PlainPassword.TooLong)
+      PlainPassword.validated(longPassword).leftValue.contains(WeakPassword.TooLong)
     }
 
   test("passwords without uppercase"):
     forAll(invalidPasswordsWithoutUppercase) { noUpperCase =>
-      PlainPassword.validated(noUpperCase).leftValue.contains(PlainPassword.NoUpperCase)
+      PlainPassword.validated(noUpperCase).leftValue.contains(WeakPassword.NoUpperCase)
     }
 
   test("passwords without lowercase"):
     forAll(invalidPasswordsWithoutLowercase) { noLowerCase =>
-      PlainPassword.validated(noLowerCase).leftValue.contains(PlainPassword.NoLowerCase)
+      PlainPassword.validated(noLowerCase).leftValue.contains(WeakPassword.NoLowerCase)
     }
 
   test("passwords without digit"):
     forAll(invalidPasswordsWithoutDigit) { noDigit =>
-      PlainPassword.validated(noDigit).leftValue.contains(PlainPassword.NoDigit)
+      PlainPassword.validated(noDigit).leftValue.contains(WeakPassword.NoDigit)
     }
 
   test("weak passwords without special character"):
     forAll(invalidPasswordsWithoutSpecialChar) { noSpecialChar =>
-      PlainPassword.validated(noSpecialChar).leftValue.contains(PlainPassword.NoSpecialChar)
+      PlainPassword.validated(noSpecialChar).leftValue.contains(WeakPassword.NoSpecialChar)
     }
 
   test("invalid passwords with whitespace"):
     forAll(invalidPasswordsWithWhitespace) { withWhitespace =>
-      PlainPassword.validated(withWhitespace).leftValue.contains(PlainPassword.Whitespace)
+      PlainPassword.validated(withWhitespace).leftValue.contains(WeakPassword.Whitespace)
     }
 
   test("invalid passwords with invalid special chars"):
     forAll(invalidPasswordsWithInvalidSpecialChars) { withInvalidChar =>
-      PlainPassword.validated(withInvalidChar).leftValue.contains(PlainPassword.InvalidSpecialChar)
+      PlainPassword.validated(withInvalidChar).leftValue.contains(WeakPassword.InvalidSpecialChar)
     }
 
   test("invalid passwords with control chars or emojis"):
     forAll(passwordsWithControlCharsOrEmojis) { withControlCharsOrEmojis =>
-      PlainPassword.validated(withControlCharsOrEmojis).leftValue.contains(PlainPassword.InvalidChar)
+      PlainPassword.validated(withControlCharsOrEmojis).leftValue.contains(WeakPassword.InvalidChar)
     }
 
   test("accumulate validation errors"):
     forAll(passwordWithMultipleInputErrors) { inputErrors =>
       val result = PlainPassword.validated(inputErrors)
       Set[PlainPassword.WeakPassword](
-        PlainPassword.Whitespace,
-        PlainPassword.InvalidSpecialChar,
-        PlainPassword.InvalidChar
+        WeakPassword.Whitespace,
+        WeakPassword.InvalidSpecialChar,
+        WeakPassword.InvalidChar
       ).subsetOf(result.leftValue.toList.toSet)
     }

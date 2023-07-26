@@ -16,6 +16,7 @@ import org.fiume.sketch.storage.documents.{Document, DocumentWithId}
 import org.fiume.sketch.storage.documents.Document.Metadata
 import org.fiume.sketch.storage.documents.algebras.DocumentsStore
 import org.fiume.sketch.storage.documents.http.DocumentsRoutes.*
+import org.fiume.sketch.storage.documents.http.DocumentsRoutes.InvalidDocument.*
 import org.fiume.sketch.storage.documents.http.JsonCodecs.given
 import org.fiume.sketch.test.support.DocumentsGens.*
 import org.fiume.sketch.test.support.DocumentsGens.given
