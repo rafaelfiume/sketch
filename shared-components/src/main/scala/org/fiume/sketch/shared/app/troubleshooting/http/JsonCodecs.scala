@@ -38,6 +38,7 @@ object JsonCodecs:
 
     /* To be included in the response body when an error occurs */
     private val errorCodeToHumanString: Map[ErrorCode, String] = Map(
+      ErrorCode.InvalidClientInput -> "INVALID_CLIENT_INPUT",
       ErrorCode.InvalidUserCredentials -> "INVALID_USER_CREDENTIALS",
       ErrorCode.InvalidDocument -> "INVALID_DOCUMENT"
     )

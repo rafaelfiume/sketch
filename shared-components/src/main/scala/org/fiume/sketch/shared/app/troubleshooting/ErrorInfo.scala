@@ -17,6 +17,11 @@ object ErrorInfo:
 
   enum ErrorCode:
     /**
+     * Entrypoints (e.g endpoints) *
+     */
+    case InvalidClientInput
+
+    /**
      * Auth0 *
      */
     case InvalidUserCredentials

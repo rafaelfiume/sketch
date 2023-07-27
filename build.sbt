@@ -165,6 +165,8 @@ lazy val sharedComponents =
         Dependency.circeCore,
         Dependency.circeParser,
         Dependency.fs2Core,
+        Dependency.http4sCirce,
+        Dependency.http4sDsl,
         Dependency.munit % "test,it",
         Dependency.munitCatsEffect % "test,it",
         Dependency.munitScalaCheck % "test,it",
