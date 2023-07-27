@@ -6,7 +6,7 @@ import cats.effect.{Concurrent, Sync}
 import cats.effect.kernel.Async
 import cats.implicits.*
 import fs2.Stream
-import org.fiume.sketch.shared.app.http4s.middlewares.ErrorInfoMiddleware
+import org.fiume.sketch.shared.app.http4s.middlewares.{ErrorInfoMiddleware, MalformedInputError}
 import org.fiume.sketch.storage.documents.Document
 import org.fiume.sketch.storage.documents.Document.Metadata
 import org.fiume.sketch.storage.documents.algebras.DocumentsStore
@@ -101,28 +101,28 @@ private[http] object DocumentsRoutes:
         .map(Document.apply[F])
         .foldF(
           // will be intercepted by ErrorInfoMiddleware
-          errors => MalformedMessageBodyFailure(errors).raiseError,
+          errors => MalformedInputError(errors).raiseError,
           _.pure[F]
         )
 
-    private def metadata(): EitherT[F, String, Metadata] = EitherT
+    private def metadata(): EitherT[F, List[String], Metadata] = EitherT
       .fromEither {
         m.parts
           .find { _.name == Some("metadata") }
-          .toRight("|document metadata is mandatory|")
+          .toRight(List("document metadata is mandatory"))
       }
       .flatMap { json =>
         json
           .as[Metadata]
           .attemptT
-          .leftMap(_ => "malformed json document metadata|")
+          .leftMap(_ => List("malformed json document metadata"))
       }
 
     // TODO Check bytes size
-    private def bytes(): EitherT[F, String, Stream[F, Byte]] = EitherT
+    private def bytes(): EitherT[F, List[String], Stream[F, Byte]] = EitherT
       .fromEither {
         m.parts
           .find { _.name == Some("bytes") }
-          .toRight("|document content is mandatory|")
+          .toRight(List("document content is mandatory"))
           .map(_.body)
       }

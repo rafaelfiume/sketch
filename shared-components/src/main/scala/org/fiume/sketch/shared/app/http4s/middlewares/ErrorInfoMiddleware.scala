@@ -14,10 +14,9 @@ import org.http4s.dsl.Http4sDsl
 
 import scala.util.control.NoStackTrace
 
-// For now
-case class InvalidClientInputError(code: ErrorCode, message: ErrorMessage, details: ErrorDetails)
-    extends RuntimeException
-    with NoStackTrace
+case class InvalidInputError(code: ErrorCode, message: ErrorMessage, details: ErrorDetails) extends NoStackTrace
+
+case class MalformedInputError(details: List[String]) extends NoStackTrace
 
 // TODO make this middleware more generic, so it can catch any kind of error and return ErrorInfo
 object ErrorInfoMiddleware:
@@ -39,11 +38,11 @@ object ErrorInfoMiddleware:
             case _ => response.pure[F]
         }
         .handleError {
-          // these are raised by the routes when validating request
-          case mf: MalformedMessageBodyFailure => // TODO Make use of a application specific error?
-            Response[F](Status.UnprocessableEntity).withEntity(malformedInputErrorInfo(mf.getMessage()))
+          // these are raised by the routes when validating requests
+          case MalformedInputError(details) =>
+            Response[F](Status.UnprocessableEntity).withEntity(malformedInputErrorInfo(details.mkString("|")))
 
-          case InvalidClientInputError(code, message, details) =>
+          case InvalidInputError(code, message, details) =>
             Response[F](Status.BadRequest).withEntity(ErrorInfo.withDetails(code, message, details))
         }
     }
@@ -52,5 +51,5 @@ object ErrorInfoMiddleware:
     ErrorInfo.withDetails(
       ErrorCode.InvalidClientInput,
       ErrorMessage("Please, check the client request conforms to the API contract."),
-      ErrorDetails(Map("invalid.client.input" -> error))
+      ErrorDetails(Map("malformed.client.input" -> error))
     )

@@ -161,7 +161,7 @@ class AuthRoutesSpec
         _ <- IO {
           assertEquals(result.code, ErrorCode.InvalidClientInput)
           assertEquals(result.message, ErrorMessage("Please, check the client request conforms to the API contract."))
-          assert(result.details.get.values.contains("invalid.client.input"))
+          assert(result.details.get.values.contains("malformed.client.input"))
         }
       yield ()
     }

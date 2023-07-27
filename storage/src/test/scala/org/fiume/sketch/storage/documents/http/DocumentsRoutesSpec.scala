@@ -7,6 +7,7 @@ import io.circe.Json
 import io.circe.syntax.*
 import munit.{CatsEffectSuite, ScalaCheckEffectSuite}
 import munit.Assertions.*
+import org.fiume.sketch.shared.app.http4s.middlewares.MalformedInputError
 import org.fiume.sketch.shared.app.troubleshooting.ErrorInfo
 import org.fiume.sketch.shared.app.troubleshooting.ErrorInfo.{ErrorCode, ErrorDetails, ErrorMessage}
 import org.fiume.sketch.shared.app.troubleshooting.http.JsonCodecs.ErrorInfoCodecs.given
@@ -143,7 +144,7 @@ class DocumentsRoutesSpec
         _ <- IO {
           assertEquals(result.code, ErrorCode.InvalidClientInput)
           assertEquals(result.message, ErrorMessage("Please, check the client request conforms to the API contract."))
-          assert(result.details.get.values.contains("invalid.client.input"))
+          assert(result.details.get.values.contains("malformed.client.input"))
         }
       yield ()
     }
@@ -175,8 +176,9 @@ class DocumentsRoutesSpec
       inputErrors <- uploadRequest.validated().attempt.map(_.leftValue)
 
       _ <- IO {
+        println(inputErrors.asInstanceOf[MalformedInputError].details)
         assert(
-          inputErrors.getMessage().split("\\|\\|").length > 1,
+          inputErrors.asInstanceOf[MalformedInputError].details.size > 1,
           clue = "errors must accumulate"
         )
       }
