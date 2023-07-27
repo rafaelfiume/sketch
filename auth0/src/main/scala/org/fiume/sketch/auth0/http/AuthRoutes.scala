@@ -1,6 +1,5 @@
 package org.fiume.sketch.auth0.http
 
-import cats.data.NonEmptyChain
 import cats.effect.Async
 import cats.implicits.*
 import io.circe.generic.auto.*
@@ -8,6 +7,7 @@ import org.fiume.sketch.auth0.Authenticator
 import org.fiume.sketch.auth0.http.AuthRoutes.*
 import org.fiume.sketch.auth0.http.AuthRoutes.Model.{LoginRequest, LoginResponse}
 import org.fiume.sketch.auth0.http.JsonCodecs.RequestResponsesCodecs.given
+import org.fiume.sketch.shared.app.http4s.middlewares.{ErrorInfoMiddleware, InvalidInputError}
 import org.fiume.sketch.shared.app.troubleshooting.{ErrorInfo, InvariantError}
 import org.fiume.sketch.shared.app.troubleshooting.ErrorInfo.{ErrorCode, ErrorDetails, ErrorMessage}
 import org.fiume.sketch.shared.app.troubleshooting.http.JsonCodecs.ErrorInfoCodecs.given
@@ -24,51 +24,61 @@ import org.http4s.server.Router
 import org.typelevel.log4cats.Logger
 import org.typelevel.log4cats.slf4j.Slf4jLogger
 
+import scala.util.control.NoStackTrace
+
 class AuthRoutes[F[_]: Async](authenticator: Authenticator[F]) extends Http4sDsl[F]:
   private val logger = Slf4jLogger.getLogger[F]
 
   private val prefix = "/"
 
-  def router(): HttpRoutes[F] = Router(prefix -> httpRoutes)
+  def router(): HttpRoutes[F] = Router(
+    prefix -> ErrorInfoMiddleware(httpRoutes)
+  )
 
   private val httpRoutes: HttpRoutes[F] = HttpRoutes.of[F] { case req @ POST -> Root / "login" =>
-    def validate(request: LoginRequest) =
-      (
-        Username.validated(request.username).leftMap(_.toList).leftMap(InvariantError.inputErrorsToMap),
-        PlainPassword.validated(request.password).leftMap(_.toList).leftMap(InvariantError.inputErrorsToMap),
-      ).parMapN((_, _)).leftMap(ErrorDetails.apply)
-
     req.decode { (loginRequest: LoginRequest) =>
-      logger.info(s"Attempt to authenticate username ${loginRequest.username}") *>
-        validate(loginRequest).fold(
-          inputErrors =>
-            logger.info(s"(AUTH001) Failed login attempt for username ${loginRequest.username}") *>
-              BadRequest(
-                ErrorInfo.withDetails(
-                  code = ErrorCode.InvalidUserCredentials,
-                  message = ErrorMessage("The username or password provided is incorrect."),
-                  details = inputErrors
+      for
+        _ <- logger.info(s"Attempt to authenticate username ${loginRequest.username}")
+        validated <- loginRequest.validated()
+        (username, password) = validated
+        resp <- authenticator.authenticate(username, password).flatMap {
+          case Right(token) =>
+            logger.info(s"Successful login attempt for username ${loginRequest.username}") *>
+              Ok(LoginResponse(token.value))
+          case Left(failure) =>
+            logger.info(s"(AUTH002) Failed login attempt for username ${loginRequest.username}") *>
+              Ok(
+                ErrorInfo.short(
+                  ErrorCode.InvalidUserCredentials,
+                  ErrorMessage("The username or password provided is incorrect.")
                 )
-              ),
-          (username, password) =>
-            authenticator.authenticate(username, password).flatMap {
-              case Right(token) =>
-                logger.info(s"Successful login attempt for username ${loginRequest.username}") *>
-                  Ok(LoginResponse(token.value))
-              case Left(failure) =>
-                logger.info(s"(AUTH002) Failed login attempt for username ${loginRequest.username}") *>
-                  Ok(
-                    ErrorInfo(
-                      code = ErrorCode.InvalidUserCredentials,
-                      message = ErrorMessage("The username or password provided is incorrect.")
-                    )
-                  )
-            }
-        )
+              )
+        }
+      yield resp
     }
   }
 
 object AuthRoutes:
   object Model:
+
     case class LoginRequest(username: String, password: String)
+
+    object LoginRequest:
+      extension (request: LoginRequest)
+        def validated[F[_]: Async](): F[(Username, PlainPassword)] =
+          (
+            Username.validated(request.username).leftMap(_.toList).leftMap(InvariantError.inputErrorsToMap),
+            PlainPassword.validated(request.password).leftMap(_.toList).leftMap(InvariantError.inputErrorsToMap),
+          ).parMapN((_, _))
+            .leftMap(ErrorDetails.apply)
+            .fold(
+              errorDetails =>
+                InvalidInputError(
+                  ErrorCode.InvalidClientInput,
+                  ErrorMessage("The username or password provided is incorrect."),
+                  errorDetails
+                ).raiseError,
+              _.pure[F]
+            )
+
     case class LoginResponse(token: String)

@@ -27,9 +27,11 @@ class ErrorInfoContractSpec extends CatsEffectSuite with ScalaCheckEffectSuite w
 
   // TODO Table test
   test("encode ErrorCode to JSON string"):
+    assertEquals(ErrorCode.InvalidClientInput.asJson.noSpaces, "\"INVALID_CLIENT_INPUT\"")
     assertEquals(ErrorCode.InvalidUserCredentials.asJson.noSpaces, "\"INVALID_USER_CREDENTIALS\"")
     assertEquals(ErrorCode.InvalidDocument.asJson.noSpaces, "\"INVALID_DOCUMENT\"")
 
   test("decode JSON string to ErrorCode"):
+    assertEquals(decode[ErrorCode]("\"INVALID_CLIENT_INPUT\"").rightValue, ErrorCode.InvalidClientInput)
     assertEquals(decode[ErrorCode]("\"INVALID_USER_CREDENTIALS\"").rightValue, ErrorCode.InvalidUserCredentials)
-    assertEquals(ErrorCode.InvalidDocument.asJson.noSpaces, "\"INVALID_DOCUMENT\"")
+    assertEquals(decode[ErrorCode]("\"INVALID_DOCUMENT\"").rightValue, ErrorCode.InvalidDocument)
