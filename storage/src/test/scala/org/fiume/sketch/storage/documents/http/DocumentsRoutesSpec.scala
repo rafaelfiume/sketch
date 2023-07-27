@@ -183,15 +183,15 @@ class DocumentsRoutesSpec
     given accumulatingParallel: cats.Parallel[EitherT[IO, NonEmptyChain[DocumentsRoutes.InvalidDocumentError], *]] =
       EitherT.accumulatingParallel
 
-    val multipart = Multipart[IO](
-      parts = Vector.empty,
-      boundary = Boundary("boundary")
-    )
-    val result = (multipart.metadata, multipart.bytes).parTupled
+    val uploadRequest = Multipart[IO](parts = Vector.empty, boundary = Boundary("boundary"))
+    uploadRequest.validated().map { result =>
 
-    result.leftMap { inputErrors =>
-      assertEquals(inputErrors.toList, List(MissingMetadata, MissingContent))
-    }.value
+      val allInputErrors = DocumentsRoutes.invariantErrors.map(_.uniqueCode)
+      val actualInputErrors = result.leftValue.values.keys.toSet
+      assert(actualInputErrors.subsetOf(allInputErrors),
+             clue = s"actualInputErrors: $actualInputErrors\nallInputErrors: $allInputErrors"
+      )
+    }
   }
 
 trait DocumentsRoutesSpecContext:

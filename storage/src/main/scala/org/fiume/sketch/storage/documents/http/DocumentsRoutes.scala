@@ -53,16 +53,9 @@ class DocumentsRoutes[F[_]: Async, Txn[_]](store: DocumentsStore[F, Txn]) extend
        * > without the blocking combinator.
        */
       case req @ POST -> Root / "documents" =>
-        req.decode { (m: Multipart[F]) =>
-          // TODO Check bytes size
-          val payload = (m.metadata, m.bytes)
-            // warning: errors won't accumulate by default: see validation tests
-            .parTupled
-            .leftMap(_.toList)
-            .leftMap(InvariantError.inputErrorsToMap)
-            .leftMap(ErrorDetails.apply)
+        req.decode { (uploadRequest: Multipart[F]) =>
           for
-            value <- payload.value
+            value <- uploadRequest.validated()
             res <- value match
               case Left(inputErrors) =>
                 // TODO Log username
@@ -75,12 +68,12 @@ class DocumentsRoutes[F[_]: Async, Txn[_]](store: DocumentsStore[F, Txn]) extend
                     )
                   )
 
-              case Right((metadata, bytes)) =>
+              case Right(document) =>
                 for
-                  _ <- logger.info(s"Uploading document ${metadata.name}")
-                  uuid <- store.commit { store.store(Document[F](metadata, bytes)) }
+                  _ <- logger.info(s"Uploading document ${document.metadata.name}")
+                  uuid <- store.commit { store.store(document) }
                   created <- Created(uuid)
-                  _ <- logger.info(s"Document ${metadata.name} uploaded")
+                  _ <- logger.info(s"Document ${document.metadata.name} uploaded")
                 yield created
           yield res
         }
@@ -136,20 +129,30 @@ private[http] object DocumentsRoutes extends InvariantHolder[InvalidDocumentErro
     Set(MissingMetadata, MissingContent, MalformedDocumentMetadata)
 
   extension [F[_]: MonadThrow: Concurrent](m: Multipart[F])
-    def metadata: EitherT[F, NonEmptyChain[InvalidDocumentError], Metadata] = EitherT
+    def validated(): F[Either[ErrorDetails, Document[F]]] =
+      // warning: errors won't accumulate by default: see validation tests
+      (m.metadata(), m.bytes()).parTupled
+        .map(Document.apply[F])
+        .leftMap(_.toList)
+        .leftMap(InvariantError.inputErrorsToMap)
+        .leftMap(ErrorDetails.apply)
+        .value
+
+    private def metadata(): EitherT[F, NonEmptyChain[InvalidDocumentError], Metadata] = EitherT
       .fromEither {
         m.parts
           .find { _.name == Some("metadata") }
-          .toRight(NonEmptyChain.one(MissingMetadata))
+          .toRight(NonEmptyChain.one(MissingMetadata)) // TODO This is not the place to return MissingMetadata
       }
       .flatMap { json =>
         json
           .as[Metadata]
-          .attemptT
-          .leftMap(_ => NonEmptyChain.one(MalformedDocumentMetadata))
+          .attemptT // Raise exception if the JSON is malformed?
+          .leftMap(_ => NonEmptyChain.one(MalformedDocumentMetadata)) // MalformedDocumentMetadata is not an invariant error
       }
 
-    def bytes: EitherT[F, NonEmptyChain[InvalidDocumentError], Stream[F, Byte]] = EitherT
+    // TODO Check bytes size
+    private def bytes(): EitherT[F, NonEmptyChain[InvalidDocumentError], Stream[F, Byte]] = EitherT
       .fromEither {
         m.parts
           .find { _.name == Some("bytes") }
