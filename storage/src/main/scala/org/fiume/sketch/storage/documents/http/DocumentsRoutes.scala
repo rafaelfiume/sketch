@@ -101,7 +101,7 @@ private[http] object DocumentsRoutes:
         .map(Document.apply[F])
         .foldF(
           // will be intercepted by ErrorInfoMiddleware
-          errors => MalformedMessageBodyFailure(errors).raiseError[F, Document[F]],
+          errors => MalformedMessageBodyFailure(errors).raiseError,
           _.pure[F]
         )
 

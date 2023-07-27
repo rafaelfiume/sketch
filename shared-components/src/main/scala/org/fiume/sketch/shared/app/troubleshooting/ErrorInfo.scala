@@ -10,8 +10,7 @@ object ErrorInfo:
   case class ErrorMessage(value: String) extends AnyVal
   case class ErrorDetails(values: Map[String, String]) extends AnyVal
 
-  // TODO Rename apply? (simple, short?)
-  def apply(code: ErrorCode, message: ErrorMessage): ErrorInfo = ErrorInfo(code, message, None)
+  def short(code: ErrorCode, message: ErrorMessage): ErrorInfo = ErrorInfo(code, message, None)
   def withDetails(code: ErrorCode, message: ErrorMessage, details: ErrorDetails): ErrorInfo =
     ErrorInfo(code, message, Some(details))
 

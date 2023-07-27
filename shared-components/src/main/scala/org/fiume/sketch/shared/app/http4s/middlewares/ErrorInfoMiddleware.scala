@@ -1,5 +1,6 @@
 package org.fiume.sketch.shared.app.http4s.middlewares
 
+import cats.Invariant
 import cats.data.{Kleisli, OptionT}
 import cats.effect.Async
 import cats.implicits.*
@@ -10,6 +11,13 @@ import org.http4s.*
 import org.http4s.circe.CirceEntityDecoder.*
 import org.http4s.circe.CirceEntityEncoder.*
 import org.http4s.dsl.Http4sDsl
+
+import scala.util.control.NoStackTrace
+
+// For now
+case class InvalidClientInputError(code: ErrorCode, message: ErrorMessage, details: ErrorDetails)
+    extends RuntimeException
+    with NoStackTrace
 
 // TODO make this middleware more generic, so it can catch any kind of error and return ErrorInfo
 object ErrorInfoMiddleware:
@@ -26,17 +34,21 @@ object ErrorInfoMiddleware:
             case Status.UnprocessableEntity =>
               response
                 .as[String]
-                .flatMap { body => Status.UnprocessableEntity(inputErrorInfo(body)) }
-                .recoverWith { case e: Throwable => Status.UnprocessableEntity(inputErrorInfo(e.getMessage())) }
+                .flatMap { body => Status.UnprocessableEntity(malformedInputErrorInfo(body)) }
+                .recoverWith { case e: Throwable => Status.UnprocessableEntity(malformedInputErrorInfo(e.getMessage())) }
             case _ => response.pure[F]
         }
-        .handleError { case mf: MalformedMessageBodyFailure =>
+        .handleError {
           // these are raised by the routes when validating request
-          Response[F](Status.UnprocessableEntity).withEntity(inputErrorInfo(mf.getMessage()))
+          case mf: MalformedMessageBodyFailure => // TODO Make use of a application specific error?
+            Response[F](Status.UnprocessableEntity).withEntity(malformedInputErrorInfo(mf.getMessage()))
+
+          case InvalidClientInputError(code, message, details) =>
+            Response[F](Status.BadRequest).withEntity(ErrorInfo.withDetails(code, message, details))
         }
     }
 
-  private def inputErrorInfo(error: String) =
+  private def malformedInputErrorInfo(error: String) =
     ErrorInfo.withDetails(
       ErrorCode.InvalidClientInput,
       ErrorMessage("Please, check the client request conforms to the API contract."),
