@@ -176,7 +176,6 @@ class DocumentsRoutesSpec
       inputErrors <- uploadRequest.validated().attempt.map(_.leftValue)
 
       _ <- IO {
-        println(inputErrors.asInstanceOf[MalformedInputError].details)
         assert(
           inputErrors.asInstanceOf[MalformedInputError].details.size > 1,
           clue = "errors must accumulate"

@@ -96,7 +96,6 @@ private[http] object DocumentsRoutes:
 
   extension [F[_]: MonadThrow: Concurrent](m: Multipart[F])
     def validated(): F[Document[F]] =
-      // warning: errors won't accumulate by default: see validation tests
       (m.metadata(), m.bytes()).parTupled
         .map(Document.apply[F])
         .foldF(
