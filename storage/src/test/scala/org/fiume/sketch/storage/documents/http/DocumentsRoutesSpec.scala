@@ -16,7 +16,6 @@ import org.fiume.sketch.storage.documents.{Document, DocumentWithId}
 import org.fiume.sketch.storage.documents.Document.Metadata
 import org.fiume.sketch.storage.documents.algebras.DocumentsStore
 import org.fiume.sketch.storage.documents.http.DocumentsRoutes.*
-import org.fiume.sketch.storage.documents.http.DocumentsRoutes.InvalidDocumentError.*
 import org.fiume.sketch.storage.documents.http.JsonCodecs.given
 import org.fiume.sketch.test.support.DocumentsGens.*
 import org.fiume.sketch.test.support.DocumentsGens.given
@@ -130,27 +129,21 @@ class DocumentsRoutesSpec
 
   /* Sad Path */
 
-  test("Post document with malformed metadata == bad request"):
-    forAllF { (invalidDocumentRequest: Multipart[IO]) =>
-      val request = POST(uri"/documents")
-        .withEntity(invalidDocumentRequest)
-        .withHeaders(invalidDocumentRequest.headers)
+  test("return error when document upload request is malformed"):
+    forAllF { (badClientInput: Multipart[IO]) =>
       for
         store <- makeDocumentsStore()
 
+        request = POST(uri"/documents").withEntity(badClientInput).withHeaders(badClientInput.headers)
         result <- send(request)
           .to(new DocumentsRoutes[IO, IO](store).router())
-          .expectJsonResponseWith(Status.BadRequest)
+          .expectJsonResponseWith(Status.UnprocessableEntity)
           .map(_.as[ErrorInfo].rightValue)
 
         _ <- IO {
-          assertEquals(result.code, ErrorCode.InvalidDocument)
-          assertEquals(result.message, ErrorMessage("The provided document is invalid."))
-          val allInputErrors = DocumentsRoutes.invariantErrors.map(_.uniqueCode)
-          val actualInputErrors = result.details.get.values.keys.toSet
-          assert(actualInputErrors.subsetOf(allInputErrors),
-                 clue = s"actualInputErrors: $actualInputErrors\nallInputErrors: $allInputErrors"
-          )
+          assertEquals(result.code, ErrorCode.InvalidClientInput)
+          assertEquals(result.message, ErrorMessage("Please, check the client request conforms to the API contract."))
+          assert(result.details.get.values.contains("invalid.client.input"))
         }
       yield ()
     }
@@ -175,23 +168,20 @@ class DocumentsRoutesSpec
       "contract/documents/http/metadata.json"
     )
 
-  test("validation accumulates") { // more like a demonstration of accumulating error with Parallel and EitherT
-    /*
-     * Needs an alternative instance of Parallel to accumulate error
-     * More details here: https://github.com/typelevel/cats/pull/3777/files
-     */
-    given accumulatingParallel: cats.Parallel[EitherT[IO, NonEmptyChain[DocumentsRoutes.InvalidDocumentError], *]] =
-      EitherT.accumulatingParallel
-
+  test("validation accumulates") {
+    /* Also see `given accumulatingParallel: cats.Parallel[EitherT[IO, String, *]] = EitherT.accumulatingParallel` */
     val uploadRequest = Multipart[IO](parts = Vector.empty, boundary = Boundary("boundary"))
-    uploadRequest.validated().map { result =>
+    for
+      inputErrors <- uploadRequest.validated().attempt.map(_.leftValue)
 
-      val allInputErrors = DocumentsRoutes.invariantErrors.map(_.uniqueCode)
-      val actualInputErrors = result.leftValue.values.keys.toSet
-      assert(actualInputErrors.subsetOf(allInputErrors),
-             clue = s"actualInputErrors: $actualInputErrors\nallInputErrors: $allInputErrors"
-      )
-    }
+      _ <- IO {
+        assert(
+          inputErrors.getMessage().split("\\|\\|").length > 1,
+          clue = "errors must accumulate"
+        )
+      }
+    yield ()
+
   }
 
 trait DocumentsRoutesSpecContext:
@@ -199,7 +189,7 @@ trait DocumentsRoutesSpecContext:
   def invalidDocumentRequests: Gen[Multipart[IO]] = Gen.oneOf(
     invalidDocumentRequestWithNoContent,
     invalidMultipartsWithNoMetadata,
-    invalidDocumentRequestWithMalformedMetadata
+    invalidDocumentRequestWithMalformedMetadataAndNoBytes
   )
 
   private def invalidDocumentRequestWithNoContent: Gen[Multipart[IO]] = metadataG.flatMap { metadata =>
@@ -221,12 +211,11 @@ trait DocumentsRoutesSpecContext:
     )
   }
 
-  private def invalidDocumentRequestWithMalformedMetadata: Gen[Multipart[IO]] = Gen.delay {
+  private def invalidDocumentRequestWithMalformedMetadataAndNoBytes: Gen[Multipart[IO]] = Gen.delay {
     val imageFile = getClass.getClassLoader.getResource("mountain-bike-liguria-ponent.jpg")
     Multipart[IO](
       parts = Vector(
-        Part.formData("metadata", """ { \"bananas\" : \"apples\" } """),
-        Part.fileData("bytes", imageFile, `Content-Type`(MediaType.image.jpeg))
+        Part.formData("metadata", """ { \"bananas\" : \"apples\" } """)
       ),
       boundary = Boundary("boundary")
     )

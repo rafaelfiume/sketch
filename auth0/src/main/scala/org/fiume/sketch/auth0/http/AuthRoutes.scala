@@ -40,6 +40,7 @@ class AuthRoutes[F[_]: Async](authenticator: Authenticator[F]) extends Http4sDsl
           loginRequest
             .validated()
             .fold(
+              // TODO Implement machinery to convert InvariantError to ErrorInfo by the ErrorInfoMiddleware?
               inputErrors =>
                 logger.info(s"(AUTH001) Failed login attempt for username ${loginRequest.username}") *>
                   BadRequest(

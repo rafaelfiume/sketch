@@ -6,13 +6,10 @@ import cats.effect.{Concurrent, Sync}
 import cats.effect.kernel.Async
 import cats.implicits.*
 import fs2.Stream
-import org.fiume.sketch.shared.app.troubleshooting.{ErrorInfo, InvariantError, InvariantHolder}
-import org.fiume.sketch.shared.app.troubleshooting.ErrorInfo.*
-import org.fiume.sketch.shared.app.troubleshooting.http.JsonCodecs.ErrorInfoCodecs.given
+import org.fiume.sketch.shared.app.http4s.middlewares.ErrorInfoMiddleware
 import org.fiume.sketch.storage.documents.Document
 import org.fiume.sketch.storage.documents.Document.Metadata
 import org.fiume.sketch.storage.documents.algebras.DocumentsStore
-import org.fiume.sketch.storage.documents.http.DocumentsRoutes.InvalidDocumentError.*
 import org.fiume.sketch.storage.documents.http.JsonCodecs.given
 import org.http4s.{HttpRoutes, QueryParamDecoder, *}
 import org.http4s.circe.CirceEntityDecoder.*
@@ -39,7 +36,9 @@ class DocumentsRoutes[F[_]: Async, Txn[_]](store: DocumentsStore[F, Txn]) extend
 
   private val prefix = "/"
 
-  def router(): HttpRoutes[F] = Router(prefix -> httpRoutes)
+  def router(): HttpRoutes[F] = Router(
+    prefix -> ErrorInfoMiddleware(httpRoutes)
+  )
 
   private val httpRoutes: HttpRoutes[F] =
     HttpRoutes.of[F] {
@@ -55,27 +54,12 @@ class DocumentsRoutes[F[_]: Async, Txn[_]](store: DocumentsStore[F, Txn]) extend
       case req @ POST -> Root / "documents" =>
         req.decode { (uploadRequest: Multipart[F]) =>
           for
-            value <- uploadRequest.validated()
-            res <- value match
-              case Left(inputErrors) =>
-                // TODO Log username
-                logger.info("Bad request to upload document") *>
-                  BadRequest(
-                    ErrorInfo.withDetails(
-                      code = ErrorCode.InvalidDocument,
-                      message = ErrorMessage("The provided document is invalid."),
-                      details = inputErrors
-                    )
-                  )
-
-              case Right(document) =>
-                for
-                  _ <- logger.info(s"Uploading document ${document.metadata.name}")
-                  uuid <- store.commit { store.store(document) }
-                  created <- Created(uuid)
-                  _ <- logger.info(s"Document ${document.metadata.name} uploaded")
-                yield created
-          yield res
+            document <- uploadRequest.validated()
+            _ <- logger.info(s"Uploading document ${document.metadata.name}")
+            uuid <- store.commit { store.store(document) }
+            created <- Created(uuid)
+            _ <- logger.info(s"Document ${document.metadata.name} uploaded")
+          yield created
         }
 
       case GET -> Root / "documents" / UUIDVar(uuid) / "metadata" =>
@@ -108,54 +92,37 @@ class DocumentsRoutes[F[_]: Async, Txn[_]](store: DocumentsStore[F, Txn]) extend
         yield res
     }
 
-private[http] object DocumentsRoutes extends InvariantHolder[InvalidDocumentError]:
-  trait InvalidDocumentError extends InvariantError
-
-  object InvalidDocumentError:
-    case object MissingMetadata extends InvalidDocumentError:
-      def uniqueCode = "document.missing.metadata"
-      def message = "metadata is mandatory"
-
-    case object MissingContent extends InvalidDocumentError:
-      def uniqueCode = "document.missing.content"
-      def message = "no document provided for upload"
-
-    case object MalformedDocumentMetadata extends InvalidDocumentError:
-      def uniqueCode = "document.metadata.malformed"
-      def message = "the provided document is malformed"
-
-  // TODO Instantiate a Document, then Document is an InvariantHolder
-  override val invariantErrors: Set[InvalidDocumentError] =
-    Set(MissingMetadata, MissingContent, MalformedDocumentMetadata)
+private[http] object DocumentsRoutes:
 
   extension [F[_]: MonadThrow: Concurrent](m: Multipart[F])
-    def validated(): F[Either[ErrorDetails, Document[F]]] =
+    def validated(): F[Document[F]] =
       // warning: errors won't accumulate by default: see validation tests
       (m.metadata(), m.bytes()).parTupled
         .map(Document.apply[F])
-        .leftMap(_.toList)
-        .leftMap(InvariantError.inputErrorsToMap)
-        .leftMap(ErrorDetails.apply)
-        .value
+        .foldF(
+          // will be intercepted by ErrorInfoMiddleware
+          errors => MalformedMessageBodyFailure(errors).raiseError[F, Document[F]],
+          _.pure[F]
+        )
 
-    private def metadata(): EitherT[F, NonEmptyChain[InvalidDocumentError], Metadata] = EitherT
+    private def metadata(): EitherT[F, String, Metadata] = EitherT
       .fromEither {
         m.parts
           .find { _.name == Some("metadata") }
-          .toRight(NonEmptyChain.one(MissingMetadata)) // TODO This is not the place to return MissingMetadata
+          .toRight("|document metadata is mandatory|")
       }
       .flatMap { json =>
         json
           .as[Metadata]
-          .attemptT // Raise exception if the JSON is malformed?
-          .leftMap(_ => NonEmptyChain.one(MalformedDocumentMetadata)) // MalformedDocumentMetadata is not an invariant error
+          .attemptT
+          .leftMap(_ => "malformed json document metadata|")
       }
 
     // TODO Check bytes size
-    private def bytes(): EitherT[F, NonEmptyChain[InvalidDocumentError], Stream[F, Byte]] = EitherT
+    private def bytes(): EitherT[F, String, Stream[F, Byte]] = EitherT
       .fromEither {
         m.parts
           .find { _.name == Some("bytes") }
-          .toRight(NonEmptyChain.one(MissingContent))
+          .toRight("|document content is mandatory|")
           .map(_.body)
       }

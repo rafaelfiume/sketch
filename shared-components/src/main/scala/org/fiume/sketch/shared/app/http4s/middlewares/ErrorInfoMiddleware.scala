@@ -18,15 +18,22 @@ object ErrorInfoMiddleware:
     import dsl.*
 
     Kleisli { req =>
-      service.run(req).semiflatMap { response =>
-        response.status match
-          case Status.UnprocessableEntity =>
-            response
-              .as[String]
-              .flatMap { body => Status.UnprocessableEntity(inputErrorInfo(body)) }
-              .recoverWith { case e: Throwable => Status.UnprocessableEntity(inputErrorInfo(e.getMessage())) }
-          case _ => response.pure[F]
-      }
+      service
+        .run(req)
+        .semiflatMap { response =>
+          // there errors are swallowed by http4s, so we need to inspect the response
+          response.status match
+            case Status.UnprocessableEntity =>
+              response
+                .as[String]
+                .flatMap { body => Status.UnprocessableEntity(inputErrorInfo(body)) }
+                .recoverWith { case e: Throwable => Status.UnprocessableEntity(inputErrorInfo(e.getMessage())) }
+            case _ => response.pure[F]
+        }
+        .handleError { case mf: MalformedMessageBodyFailure =>
+          // these are raised by the routes when validating request
+          Response[F](Status.UnprocessableEntity).withEntity(inputErrorInfo(mf.getMessage()))
+        }
     }
 
   private def inputErrorInfo(error: String) =

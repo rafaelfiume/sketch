@@ -120,7 +120,7 @@ class AuthRoutesSpec
       yield ()
     }
 
-  test("return an error for a login request with an invalid username or password"):
+  test("return error for a login request with an invalid username or password"):
     forAllF(invalidInputs, authTokens) { case (user -> loginRequest -> authToken) =>
       val plainPassword = PlainPassword.notValidatedFromString(loginRequest.password)
       for
@@ -147,7 +147,7 @@ class AuthRoutesSpec
       yield ()
     }
 
-  test("return an error when login request is malformed"):
+  test("return error when login request is malformed"):
     forAllF(malformedInputs) { badClientInput =>
       for
         authenticator <- makeAuthenticator()
