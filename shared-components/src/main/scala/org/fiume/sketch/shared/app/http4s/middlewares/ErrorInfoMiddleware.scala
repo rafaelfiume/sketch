@@ -16,7 +16,7 @@ import scala.util.control.NoStackTrace
 
 case class InvalidInputError(code: ErrorCode, message: ErrorMessage, details: ErrorDetails) extends NoStackTrace
 
-case class MalformedInputError(details: List[String]) extends NoStackTrace
+case class MalformedInputError(details: ErrorDetails) extends NoStackTrace
 
 // TODO make this middleware more generic, so it can catch any kind of error and return ErrorInfo
 object ErrorInfoMiddleware:
@@ -33,23 +33,28 @@ object ErrorInfoMiddleware:
             case Status.UnprocessableEntity =>
               response
                 .as[String]
-                .flatMap { body => Status.UnprocessableEntity(malformedInputErrorInfo(body)) }
-                .recoverWith { case e: Throwable => Status.UnprocessableEntity(malformedInputErrorInfo(e.getMessage())) }
+                .flatMap { body => Status.UnprocessableEntity(malformedInputErrorInfoFromString(body)) }
+                .recoverWith { case e: Throwable =>
+                  Status.UnprocessableEntity(malformedInputErrorInfoFromString(e.getMessage()))
+                }
             case _ => response.pure[F]
         }
         .handleError {
           // these are raised by the routes when validating requests
           case MalformedInputError(details) =>
-            Response[F](Status.UnprocessableEntity).withEntity(malformedInputErrorInfo(details.mkString("|")))
+            Response[F](Status.UnprocessableEntity).withEntity(malformedInputErrorInfo(details))
 
           case InvalidInputError(code, message, details) =>
             Response[F](Status.BadRequest).withEntity(ErrorInfo.withDetails(code, message, details))
         }
     }
 
-  private def malformedInputErrorInfo(error: String) =
+  private def malformedInputErrorInfoFromString(details: String) =
+    malformedInputErrorInfo(ErrorDetails(Map("malformed.client.input" -> details)))
+
+  private def malformedInputErrorInfo(details: ErrorDetails) =
     ErrorInfo.withDetails(
       ErrorCode.InvalidClientInput,
       ErrorMessage("Please, check the client request conforms to the API contract."),
-      ErrorDetails(Map("malformed.client.input" -> error))
+      ErrorDetails(details.values)
     )

@@ -17,7 +17,6 @@ import org.fiume.sketch.shared.auth0.User
 import org.fiume.sketch.shared.auth0.User.Username
 import org.fiume.sketch.shared.auth0.test.PasswordsGens.PlainPasswords.*
 import org.fiume.sketch.shared.auth0.test.UserGens.*
-import org.fiume.sketch.shared.auth0.test.UserGens.Usernames.*
 import org.fiume.sketch.shared.test.{ContractContext, Http4sTestingRoutesDsl}
 import org.fiume.sketch.shared.test.EitherSyntax.*
 import org.fiume.sketch.shared.test.StringSyntax.*

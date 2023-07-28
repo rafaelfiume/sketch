@@ -1,10 +1,16 @@
 package org.fiume.sketch.storage.documents
 
 import cats.Eq
+import cats.data.{EitherNec, Validated}
+import cats.data.Validated.Valid
+import cats.implicits.*
 import fs2.Stream
 import org.fiume.sketch.shared.app.WithUuid
+import org.fiume.sketch.shared.app.troubleshooting.{InvariantError, InvariantHolder}
 import org.fiume.sketch.storage.documents.Document.Metadata
 import org.fiume.sketch.storage.documents.Document.Metadata.*
+import org.fiume.sketch.storage.documents.Document.Metadata.Name.InvalidDocumentNameError
+import org.fiume.sketch.storage.documents.Document.Metadata.Name.InvalidDocumentNameError.*
 
 import java.time.ZonedDateTime
 import java.util.UUID
@@ -28,7 +34,39 @@ object Document:
   case class Metadata(name: Name, description: Description)
 
   object Metadata:
-    object Name:
+    sealed abstract case class Name(value: String)
+
+    object Name extends InvariantHolder[InvalidDocumentNameError]:
+      sealed trait InvalidDocumentNameError extends InvariantError
+
+      object InvalidDocumentNameError:
+        case object TooShort extends InvalidDocumentNameError:
+          override def uniqueCode: String = "document.name.too.short"
+          override val message: String = s"must be at least $minLength characters long"
+
+        case object TooLong extends InvalidDocumentNameError:
+          override def uniqueCode: String = "document.name.too.long"
+          override val message: String = s"must be at most $maxLength characters long"
+
+        case object InvalidChar extends InvalidDocumentNameError:
+          override def uniqueCode: String = "document.name.invalid"
+          override val message: String = "must only contain letters (a-z, A-Z), numbers (0-9), underscores (_) and hyphens (-)"
+
+      val minLength = 4
+      val maxLength = 64
+      override val invariantErrors = Set(TooShort, TooLong, InvalidChar)
+
+      def validated(value: String): EitherNec[InvalidDocumentNameError, Name] =
+        val hasMinLength = Validated.condNec[InvalidDocumentNameError, Unit](value.length >= minLength, (), TooShort)
+        val hasMaxLength = Validated.condNec(value.length <= maxLength, (), TooLong)
+        val hasValidChars = Validated.condNec(value.matches("^[a-zA-Z0-9_-]*$"), (), InvalidChar)
+        (hasMinLength, hasMaxLength, hasValidChars)
+          .mapN((_, _, _) => new Name(value) {})
+          .toEither
+
+      def notValidatedFromString(value: String): Name = new Name(value) {}
+
       given Eq[Name] = Eq.fromUniversalEquals
-    case class Name(value: String) extends AnyVal // TODO Check invariants: minimum size, supported extensions, etc.
+      given Eq[InvalidDocumentNameError] = Eq.fromUniversalEquals[InvalidDocumentNameError]
+
     case class Description(value: String) extends AnyVal

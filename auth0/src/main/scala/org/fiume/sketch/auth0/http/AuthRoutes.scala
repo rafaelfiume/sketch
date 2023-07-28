@@ -58,17 +58,17 @@ class AuthRoutes[F[_]: Async](authenticator: Authenticator[F]) extends Http4sDsl
     }
   }
 
-object AuthRoutes:
+private[http] object AuthRoutes:
   object Model:
 
     case class LoginRequestPayload(username: String, password: String)
 
     object LoginRequestPayload:
-      extension (request: LoginRequestPayload)
+      extension (payload: LoginRequestPayload)
         def validated[F[_]: Async](): F[(Username, PlainPassword)] =
           (
-            Username.validated(request.username).leftMap(_.toList).leftMap(InvariantError.inputErrorsToMap),
-            PlainPassword.validated(request.password).leftMap(_.toList).leftMap(InvariantError.inputErrorsToMap),
+            Username.validated(payload.username).leftMap(_.toList).leftMap(InvariantError.inputErrorsToMap),
+            PlainPassword.validated(payload.password).leftMap(_.toList).leftMap(InvariantError.inputErrorsToMap),
           ).parMapN((_, _))
             .leftMap(ErrorDetails.apply)
             .fold(

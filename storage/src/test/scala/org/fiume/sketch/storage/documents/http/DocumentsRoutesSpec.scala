@@ -17,7 +17,7 @@ import org.fiume.sketch.storage.documents.{Document, DocumentWithId}
 import org.fiume.sketch.storage.documents.Document.Metadata
 import org.fiume.sketch.storage.documents.algebras.DocumentsStore
 import org.fiume.sketch.storage.documents.http.DocumentsRoutes.*
-import org.fiume.sketch.storage.documents.http.PayloadCodecs.given
+import org.fiume.sketch.storage.documents.http.PayloadCodecs.Document.given
 import org.fiume.sketch.test.support.DocumentsGens.*
 import org.fiume.sketch.test.support.DocumentsGens.given
 import org.http4s.{MediaType, *}
@@ -176,8 +176,9 @@ class DocumentsRoutesSpec
       inputErrors <- uploadRequest.validated().attempt.map(_.leftValue)
 
       _ <- IO {
+        println(inputErrors.asInstanceOf[MalformedInputError].details.values)
         assert(
-          inputErrors.asInstanceOf[MalformedInputError].details.size > 1,
+          inputErrors.asInstanceOf[MalformedInputError].details.values.get("malformed.client.input").get.split("\\|\\|").size > 1,
           clue = "errors must accumulate"
         )
       }

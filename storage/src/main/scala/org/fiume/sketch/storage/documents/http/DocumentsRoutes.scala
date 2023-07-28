@@ -7,10 +7,14 @@ import cats.effect.kernel.Async
 import cats.implicits.*
 import fs2.Stream
 import org.fiume.sketch.shared.app.http4s.middlewares.{ErrorInfoMiddleware, MalformedInputError}
+import org.fiume.sketch.shared.app.troubleshooting.ErrorInfo.ErrorDetails
+import org.fiume.sketch.shared.app.troubleshooting.InvariantError
 import org.fiume.sketch.storage.documents.Document
 import org.fiume.sketch.storage.documents.Document.Metadata
+import org.fiume.sketch.storage.documents.Document.Metadata.*
+import org.fiume.sketch.storage.documents.Document.Metadata.Name.InvalidDocumentNameError
 import org.fiume.sketch.storage.documents.algebras.DocumentsStore
-import org.fiume.sketch.storage.documents.http.PayloadCodecs.given
+import org.fiume.sketch.storage.documents.http.PayloadCodecs.Document.given
 import org.http4s.{HttpRoutes, QueryParamDecoder, *}
 import org.http4s.circe.CirceEntityDecoder.*
 import org.http4s.circe.CirceEntityEncoder.*
@@ -24,6 +28,7 @@ import org.typelevel.log4cats.slf4j.Slf4jLogger
 import java.util.UUID
 
 import DocumentsRoutes.*
+import DocumentsRoutes.Model.MetadataPayload
 
 /*
  * - TODO Endpoint to update documents
@@ -54,8 +59,8 @@ class DocumentsRoutes[F[_]: Async, Txn[_]](store: DocumentsStore[F, Txn]) extend
       case req @ POST -> Root / "documents" =>
         req.decode { (uploadRequest: Multipart[F]) =>
           for
+            _ <- logger.info("Uploading document [for user]")
             document <- uploadRequest.validated()
-            _ <- logger.info(s"Uploading document ${document.metadata.name}")
             uuid <- store.commit { store.store(document) }
             created <- Created(uuid)
             _ <- logger.info(s"Document ${document.metadata.name} uploaded")
@@ -65,34 +70,32 @@ class DocumentsRoutes[F[_]: Async, Txn[_]](store: DocumentsStore[F, Txn]) extend
       case GET -> Root / "documents" / UUIDVar(uuid) / "metadata" =>
         for
           _ <- logger.info(s"Fetching document metadata of $uuid")
-          result <- store.commit { store.fetchMetadata(uuid) }
-          res <- result match
-            case None           => NotFound()
-            case Some(metadata) => Ok(metadata)
+          metadata <- store.commit { store.fetchMetadata(uuid) }
+          res <- metadata.fold(ifEmpty = NotFound())(Ok(_))
         yield res
 
       case GET -> Root / "documents" / UUIDVar(uuid) / "content" =>
         for
           _ <- logger.info(s"fetching content of document $uuid")
-          result <- store.commit { store.fetchContent(uuid) }
-          res <- result match
-            case None         => NotFound()
-            case Some(stream) => Ok(stream)
+          stream <- store.commit { store.fetchContent(uuid) }
+          res <- stream.fold(ifEmpty = NotFound())(Ok(_))
         yield res
 
       case DELETE -> Root / "documents" / UUIDVar(uuid) =>
         for
           _ <- logger.info(s"Deleting document $uuid")
           metadata <- store.commit { store.fetchMetadata(uuid) }
+          // TODO Why check metadata? Why not simply delete always return NoContent?
           res <- metadata match
-            case None => NotFound()
-            case Some(_) =>
-              store.commit { store.delete(uuid) } >>
-                NoContent()
+            case None    => NotFound()
+            case Some(_) => store.commit { store.delete(uuid) } >> NoContent()
         yield res
     }
 
 private[http] object DocumentsRoutes:
+
+  object Model:
+    case class MetadataPayload(name: String, description: String)
 
   extension [F[_]: MonadThrow: Concurrent](m: Multipart[F])
     def validated(): F[Document[F]] =
@@ -100,28 +103,36 @@ private[http] object DocumentsRoutes:
         .map(Document.apply[F])
         .foldF(
           // will be intercepted by ErrorInfoMiddleware
-          errors => MalformedInputError(errors).raiseError,
+          errors => MalformedInputError(ErrorDetails(errors)).raiseError,
           _.pure[F]
         )
 
-    private def metadata(): EitherT[F, List[String], Metadata] = EitherT
+    private def metadata(): EitherT[F, Map[String, String], Metadata] = EitherT
       .fromEither {
         m.parts
           .find { _.name == Some("metadata") }
-          .toRight(List("document metadata is mandatory"))
+          // TODO Extract factory method
+          .toRight(Map("malformed.client.input" -> "|document metadata is mandatory|"))
       }
       .flatMap { json =>
         json
-          .as[Metadata]
+          .as[MetadataPayload]
           .attemptT
-          .leftMap(_ => List("malformed json document metadata"))
+          .leftMap(_ => Map("malformed.client.input" -> "|malformed json document metadata|"))
+      }
+      .flatMap { payload =>
+        (
+          EitherT.fromEither(Name.validated(payload.name).leftMap(_.toList).leftMap(InvariantError.inputErrorsToMap)),
+          EitherT.pure[F, Map[String, String]](Description(payload.description))
+        ).parMapN(Metadata.apply)
+
       }
 
     // TODO Check bytes size
-    private def bytes(): EitherT[F, List[String], Stream[F, Byte]] = EitherT
+    private def bytes(): EitherT[F, Map[String, String], Stream[F, Byte]] = EitherT
       .fromEither {
         m.parts
           .find { _.name == Some("bytes") }
-          .toRight(List("document content is mandatory"))
+          .toRight(Map("malformed.client.input" -> "|document content is mandatory|"))
           .map(_.body)
       }
