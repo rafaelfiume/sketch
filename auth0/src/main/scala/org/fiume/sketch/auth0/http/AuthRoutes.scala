@@ -5,7 +5,7 @@ import cats.implicits.*
 import io.circe.generic.auto.*
 import org.fiume.sketch.auth0.Authenticator
 import org.fiume.sketch.auth0.http.AuthRoutes.*
-import org.fiume.sketch.auth0.http.AuthRoutes.Model.{LoginRequest, LoginResponse}
+import org.fiume.sketch.auth0.http.AuthRoutes.Model.{LoginRequestPayload, LoginResponsePayload}
 import org.fiume.sketch.auth0.http.JsonCodecs.RequestResponsesCodecs.given
 import org.fiume.sketch.shared.app.http4s.middlewares.{ErrorInfoMiddleware, InvalidInputError}
 import org.fiume.sketch.shared.app.troubleshooting.{ErrorInfo, InvariantError}
@@ -36,17 +36,17 @@ class AuthRoutes[F[_]: Async](authenticator: Authenticator[F]) extends Http4sDsl
   )
 
   private val httpRoutes: HttpRoutes[F] = HttpRoutes.of[F] { case req @ POST -> Root / "login" =>
-    req.decode { (loginRequest: LoginRequest) =>
+    req.decode { (login: LoginRequestPayload) =>
       for
-        _ <- logger.info(s"Attempt to authenticate username ${loginRequest.username}")
-        validated <- loginRequest.validated()
+        _ <- logger.info(s"Attempt to authenticate username ${login.username}")
+        validated <- login.validated()
         (username, password) = validated
         resp <- authenticator.authenticate(username, password).flatMap {
           case Right(token) =>
-            logger.info(s"Successful login attempt for username ${loginRequest.username}") *>
-              Ok(LoginResponse(token.value))
+            logger.info(s"Successful login attempt for username ${login.username}") *>
+              Ok(LoginResponsePayload(token.value))
           case Left(failure) =>
-            logger.info(s"(AUTH002) Failed login attempt for username ${loginRequest.username}") *>
+            logger.info(s"(AUTH002) Failed login attempt for username ${login.username}") *>
               Ok(
                 ErrorInfo.short(
                   ErrorCode.InvalidUserCredentials,
@@ -61,10 +61,10 @@ class AuthRoutes[F[_]: Async](authenticator: Authenticator[F]) extends Http4sDsl
 object AuthRoutes:
   object Model:
 
-    case class LoginRequest(username: String, password: String)
+    case class LoginRequestPayload(username: String, password: String)
 
-    object LoginRequest:
-      extension (request: LoginRequest)
+    object LoginRequestPayload:
+      extension (request: LoginRequestPayload)
         def validated[F[_]: Async](): F[(Username, PlainPassword)] =
           (
             Username.validated(request.username).leftMap(_.toList).leftMap(InvariantError.inputErrorsToMap),
@@ -81,4 +81,4 @@ object AuthRoutes:
               _.pure[F]
             )
 
-    case class LoginResponse(token: String)
+    case class LoginResponsePayload(token: String)

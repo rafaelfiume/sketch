@@ -7,7 +7,7 @@ import munit.{CatsEffectSuite, ScalaCheckEffectSuite}
 import munit.Assertions.*
 import org.fiume.sketch.auth0.{AuthenticationError, Authenticator, JwtToken}
 import org.fiume.sketch.auth0.AuthenticationError.*
-import org.fiume.sketch.auth0.http.AuthRoutes.Model.{LoginRequest, LoginResponse}
+import org.fiume.sketch.auth0.http.AuthRoutes.Model.{LoginRequestPayload, LoginResponsePayload}
 import org.fiume.sketch.auth0.http.JsonCodecs.RequestResponsesCodecs.given
 import org.fiume.sketch.shared.app.troubleshooting.ErrorInfo
 import org.fiume.sketch.shared.app.troubleshooting.ErrorInfo.{ErrorCode, ErrorDetails, ErrorMessage}
@@ -57,7 +57,7 @@ class AuthRoutesSpec
 
         _ <- IO {
           assertEquals(
-            jsonResponse.as[LoginResponse].map(_.token).rightValue,
+            jsonResponse.as[LoginResponsePayload].map(_.token).rightValue,
             authToken.value
           )
         }
@@ -171,21 +171,21 @@ class AuthRoutesSpec
    */
 
   test("bijective relationship between decoded and encoded LoginResponse"):
-    assertBijectiveRelationshipBetweenEncoderAndDecoder[LoginResponse](
+    assertBijectiveRelationshipBetweenEncoderAndDecoder[LoginResponsePayload](
       "contract/auth0/http/login.success.json"
     )
 
 trait AuthRoutesSpecContext:
-  extension (loginRequest: LoginRequest)
-    def withShuffledPassword: LoginRequest = loginRequest.copy(password = loginRequest.password._shuffled)
-    def withShuffledUsername: LoginRequest = loginRequest.copy(username = loginRequest.username._shuffled)
+  extension (loginRequest: LoginRequestPayload)
+    def withShuffledPassword: LoginRequestPayload = loginRequest.copy(password = loginRequest.password._shuffled)
+    def withShuffledUsername: LoginRequestPayload = loginRequest.copy(username = loginRequest.username._shuffled)
 
-  given Arbitrary[(User, LoginRequest)] = Arbitrary(loginRequests)
-  def loginRequests: Gen[(User, LoginRequest)] =
+  given Arbitrary[(User, LoginRequestPayload)] = Arbitrary(loginRequests)
+  def loginRequests: Gen[(User, LoginRequestPayload)] =
     for
       user <- users
       password <- plainPasswords
-    yield user -> LoginRequest(user.username.value, password)
+    yield user -> LoginRequestPayload(user.username.value, password)
 
   given Arbitrary[JwtToken] = Arbitrary(authTokens)
   def authTokens: Gen[JwtToken] = Gen
@@ -194,12 +194,12 @@ trait AuthRoutesSpecContext:
     )
     .map(JwtToken.notValidatedFromString)
 
-  def invalidInputs: Gen[(User, LoginRequest)] =
+  def invalidInputs: Gen[(User, LoginRequestPayload)] =
     for
       username <- oneOfUsernameInputErrors
       password <- oneOfPasswordInputErrors
       user <- users.map { _.copy(username = Username.notValidatedFromString(username)) }
-    yield user -> LoginRequest(username, password)
+    yield user -> LoginRequestPayload(username, password)
 
   def malformedInputs: Gen[String] =
     Gen.frequency(
