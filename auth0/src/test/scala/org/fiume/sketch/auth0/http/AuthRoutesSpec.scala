@@ -15,7 +15,7 @@ import org.fiume.sketch.shared.app.troubleshooting.http.PayloadCodecs.ErrorInfoC
 import org.fiume.sketch.shared.auth0.Passwords.PlainPassword
 import org.fiume.sketch.shared.auth0.User
 import org.fiume.sketch.shared.auth0.User.Username
-import org.fiume.sketch.shared.auth0.test.PasswordsGens.PlainPasswords.*
+import org.fiume.sketch.shared.auth0.test.PasswordsGens.*
 import org.fiume.sketch.shared.auth0.test.UserGens.*
 import org.fiume.sketch.shared.test.{ContractContext, Http4sTestingRoutesDsl}
 import org.fiume.sketch.shared.test.EitherSyntax.*
