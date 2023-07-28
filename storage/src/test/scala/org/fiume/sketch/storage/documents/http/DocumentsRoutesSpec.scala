@@ -10,14 +10,14 @@ import munit.Assertions.*
 import org.fiume.sketch.shared.app.http4s.middlewares.MalformedInputError
 import org.fiume.sketch.shared.app.troubleshooting.ErrorInfo
 import org.fiume.sketch.shared.app.troubleshooting.ErrorInfo.{ErrorCode, ErrorDetails, ErrorMessage}
-import org.fiume.sketch.shared.app.troubleshooting.http.JsonCodecs.ErrorInfoCodecs.given
+import org.fiume.sketch.shared.app.troubleshooting.http.PayloadCodecs.ErrorInfoCodecs.given
 import org.fiume.sketch.shared.test.{ContractContext, FileContentContext, Http4sTestingRoutesDsl}
 import org.fiume.sketch.shared.test.EitherSyntax.*
 import org.fiume.sketch.storage.documents.{Document, DocumentWithId}
 import org.fiume.sketch.storage.documents.Document.Metadata
 import org.fiume.sketch.storage.documents.algebras.DocumentsStore
 import org.fiume.sketch.storage.documents.http.DocumentsRoutes.*
-import org.fiume.sketch.storage.documents.http.JsonCodecs.given
+import org.fiume.sketch.storage.documents.http.PayloadCodecs.given
 import org.fiume.sketch.test.support.DocumentsGens.*
 import org.fiume.sketch.test.support.DocumentsGens.given
 import org.http4s.{MediaType, *}

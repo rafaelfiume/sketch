@@ -10,7 +10,7 @@ import org.fiume.sketch.shared.app.http4s.middlewares.{ErrorInfoMiddleware, Malf
 import org.fiume.sketch.storage.documents.Document
 import org.fiume.sketch.storage.documents.Document.Metadata
 import org.fiume.sketch.storage.documents.algebras.DocumentsStore
-import org.fiume.sketch.storage.documents.http.JsonCodecs.given
+import org.fiume.sketch.storage.documents.http.PayloadCodecs.given
 import org.http4s.{HttpRoutes, QueryParamDecoder, *}
 import org.http4s.circe.CirceEntityDecoder.*
 import org.http4s.circe.CirceEntityEncoder.*

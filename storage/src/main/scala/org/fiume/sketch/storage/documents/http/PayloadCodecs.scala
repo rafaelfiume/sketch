@@ -9,7 +9,7 @@ import org.fiume.sketch.storage.documents.Document.Metadata.*
 
 import java.util.UUID
 
-object JsonCodecs:
+object PayloadCodecs:
   given Encoder[Metadata.Name] = Encoder.encodeString.contramap(_.value)
   given Decoder[Metadata.Name] = Decoder.decodeString.map(Metadata.Name.apply)
 

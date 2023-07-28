@@ -9,7 +9,7 @@ import org.fiume.sketch.shared.app.algebras.Versions.Version
 import org.fiume.sketch.shared.app.troubleshooting.{ErrorInfo, ServiceStatus}
 import org.fiume.sketch.shared.app.troubleshooting.ErrorInfo.*
 
-object JsonCodecs:
+object PayloadCodecs:
   object ErrorInfoCodecs:
     given Encoder[ErrorCode] = Encoder.encodeString.contramap(errorCodeToHumanString)
     given Decoder[ErrorCode] = Decoder.decodeString.map(humanStringToErrorCode)
