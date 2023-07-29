@@ -9,6 +9,7 @@ import org.fiume.sketch.auth0.http.AuthRoutes.Model.{LoginRequestPayload, LoginR
 import org.fiume.sketch.auth0.http.PayloadCodecs.Login.given
 import org.fiume.sketch.shared.app.http4s.middlewares.{ErrorInfoMiddleware, InvalidInputError}
 import org.fiume.sketch.shared.app.troubleshooting.{ErrorCode, ErrorDetails, ErrorInfo, ErrorMessage, InvariantError}
+import org.fiume.sketch.shared.app.troubleshooting.ErrorInfo.given
 import org.fiume.sketch.shared.app.troubleshooting.http.PayloadCodecs.ErrorInfoCodecs.given
 import org.fiume.sketch.shared.auth0.Passwords.PlainPassword
 import org.fiume.sketch.shared.auth0.Passwords.PlainPassword.WeakPasswordError
@@ -66,10 +67,9 @@ private[http] object AuthRoutes:
       extension (payload: LoginRequestPayload)
         def validated[F[_]: Async](): F[(Username, PlainPassword)] =
           (
-            Username.validated(payload.username).leftMap(_.toList).leftMap(InvariantError.inputErrorsToMap),
-            PlainPassword.validated(payload.password).leftMap(_.toList).leftMap(InvariantError.inputErrorsToMap),
+            Username.validated(payload.username).leftMap(_.toList).leftMap(InvariantError.inputErrorsToDetails),
+            PlainPassword.validated(payload.password).leftMap(_.toList).leftMap(InvariantError.inputErrorsToDetails),
           ).parMapN((_, _))
-            .leftMap(ErrorDetails.apply)
             .fold(
               errorDetails =>
                 InvalidInputError(

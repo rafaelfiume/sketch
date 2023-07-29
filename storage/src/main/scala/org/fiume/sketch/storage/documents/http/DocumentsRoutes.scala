@@ -8,6 +8,7 @@ import cats.implicits.*
 import fs2.Stream
 import org.fiume.sketch.shared.app.http4s.middlewares.{ErrorInfoMiddleware, MalformedInputError}
 import org.fiume.sketch.shared.app.troubleshooting.{ErrorDetails, InvariantError}
+import org.fiume.sketch.shared.app.troubleshooting.ErrorInfo.given
 import org.fiume.sketch.storage.documents.Document
 import org.fiume.sketch.storage.documents.Document.Metadata
 import org.fiume.sketch.storage.documents.Document.Metadata.*
@@ -101,36 +102,37 @@ private[http] object DocumentsRoutes:
         .map(Document.apply[F])
         .foldF(
           // will be intercepted by ErrorInfoMiddleware
-          errors => MalformedInputError(ErrorDetails(errors)).raiseError,
+          errors => MalformedInputError(errors).raiseError,
           _.pure[F]
         )
 
-    private def metadata(): EitherT[F, Map[String, String], Metadata] = EitherT
+    private def metadata(): EitherT[F, ErrorDetails, Metadata] = EitherT
       .fromEither {
         m.parts
           .find { _.name == Some("metadata") }
           // TODO Extract factory method
-          .toRight(Map("malformed.client.input" -> "|document metadata is mandatory|"))
+          .toRight(ErrorDetails(Map("malformed.client.input" -> "|document metadata is mandatory|")))
       }
       .flatMap { json =>
         json
           .as[MetadataPayload]
           .attemptT
-          .leftMap(_ => Map("malformed.client.input" -> "|malformed json document metadata|"))
+          .leftMap(_ => ErrorDetails(Map("malformed.client.input" -> "|malformed json document metadata|")))
       }
       .flatMap { payload =>
         (
-          EitherT.fromEither(Name.validated(payload.name).leftMap(_.toList).leftMap(InvariantError.inputErrorsToMap)),
-          EitherT.pure[F, Map[String, String]](Description(payload.description))
+          EitherT.fromEither(Name.validated(payload.name).leftMap(_.toList).leftMap(InvariantError.inputErrorsToDetails)),
+          EitherT.pure[F, ErrorDetails](Description(payload.description))
         ).parMapN(Metadata.apply)
 
       }
 
-    // TODO Check bytes size
-    private def bytes(): EitherT[F, Map[String, String], Stream[F, Byte]] = EitherT
+    // TODO Check bytes size?
+    private def bytes(): EitherT[F, ErrorDetails, Stream[F, Byte]] = EitherT
       .fromEither {
         m.parts
           .find { _.name == Some("bytes") }
-          .toRight(Map("malformed.client.input" -> "|document content is mandatory|"))
+          // TODO Create factory
+          .toRight(ErrorDetails(Map("malformed.client.input" -> "|document content is mandatory|")))
           .map(_.body)
       }

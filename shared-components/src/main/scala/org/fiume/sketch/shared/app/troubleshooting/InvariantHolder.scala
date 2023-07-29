@@ -26,9 +26,10 @@ trait InvariantError:
   def message: String
 
 object InvariantError:
-  def inputErrorsToMap(inputErrors: List[InvariantError]): Map[String, String] =
-    inputErrors.map(e => e.uniqueCode -> e.message).toMap
+  // TODO Get rid of this functions
+  def inputErrorsToDetails(inputErrors: List[InvariantError]): ErrorDetails =
+    ErrorDetails(inputErrors.map(e => e.uniqueCode -> e.message).toMap)
 
 object InvariantErrorSyntax:
   extension (inputErrors: NonEmptyChain[InvariantError])
-    def asString: String = InvariantError.inputErrorsToMap(inputErrors.toList).mkString(", ")
+    def asString: String = InvariantError.inputErrorsToDetails(inputErrors.toList).tips.mkString(", ")
