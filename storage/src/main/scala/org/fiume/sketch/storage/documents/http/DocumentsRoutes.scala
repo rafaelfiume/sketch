@@ -9,6 +9,7 @@ import fs2.Stream
 import org.fiume.sketch.shared.app.http4s.middlewares.{ErrorInfoMiddleware, MalformedInputError}
 import org.fiume.sketch.shared.app.troubleshooting.{ErrorDetails, InvariantError}
 import org.fiume.sketch.shared.app.troubleshooting.ErrorInfo.given
+import org.fiume.sketch.shared.app.troubleshooting.InvariantErrorSyntax.asDetails
 import org.fiume.sketch.storage.documents.Document
 import org.fiume.sketch.storage.documents.Document.Metadata
 import org.fiume.sketch.storage.documents.Document.Metadata.*
@@ -121,7 +122,7 @@ private[http] object DocumentsRoutes:
       }
       .flatMap { payload =>
         (
-          EitherT.fromEither(Name.validated(payload.name).leftMap(_.toList).leftMap(InvariantError.inputErrorsToDetails)),
+          EitherT.fromEither(Name.validated(payload.name).leftMap(_.asDetails)),
           EitherT.pure[F, ErrorDetails](Description(payload.description))
         ).parMapN(Metadata.apply)
 

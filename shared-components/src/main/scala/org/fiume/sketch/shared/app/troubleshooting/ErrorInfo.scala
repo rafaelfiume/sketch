@@ -1,6 +1,7 @@
 package org.fiume.sketch.shared.app.troubleshooting
 
 import cats.Semigroup
+import cats.implicits.*
 import org.fiume.sketch.shared.app.troubleshooting.ErrorInfo.*
 
 import java.time.ZonedDateTime
@@ -23,4 +24,4 @@ object ErrorInfo:
     ErrorInfo(code, message, Some(details))
 
   given Semigroup[ErrorDetails] = new Semigroup[ErrorDetails]:
-    def combine(x: ErrorDetails, y: ErrorDetails): ErrorDetails = ErrorDetails(x.tips ++ y.tips)
+    def combine(x: ErrorDetails, y: ErrorDetails): ErrorDetails = ErrorDetails(x.tips.combine(y.tips))

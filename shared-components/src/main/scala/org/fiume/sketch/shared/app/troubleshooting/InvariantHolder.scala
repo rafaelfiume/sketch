@@ -1,6 +1,6 @@
 package org.fiume.sketch.shared.app.troubleshooting
 
-import cats.data.NonEmptyChain
+import cats.data.{NonEmptyChain, NonEmptyList}
 import cats.implicits.*
 
 /*
@@ -25,11 +25,7 @@ trait InvariantError:
   def uniqueCode: String
   def message: String
 
-object InvariantError:
-  // TODO Get rid of this functions
-  def inputErrorsToDetails(inputErrors: List[InvariantError]): ErrorDetails =
-    ErrorDetails(inputErrors.map(e => e.uniqueCode -> e.message).toMap)
-
 object InvariantErrorSyntax:
   extension (inputErrors: NonEmptyChain[InvariantError])
-    def asString: String = InvariantError.inputErrorsToDetails(inputErrors.toList).tips.mkString(", ")
+    def asString: String = asDetails.tips.toString() // TODO testThis
+    def asDetails: ErrorDetails = ErrorDetails(inputErrors.map(e => e.uniqueCode -> e.message).toList.toMap)
