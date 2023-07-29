@@ -144,7 +144,7 @@ class DocumentsRoutesSpec
         _ <- IO {
           assertEquals(result.code, ErrorCode.InvalidClientInput)
           assertEquals(result.message, ErrorMessage("Please, check the client request conforms to the API contract."))
-          assert(result.details.get.values.contains("malformed.client.input"))
+          assert(result.details.get.tips.contains("malformed.client.input"))
         }
       yield ()
     }
@@ -176,9 +176,9 @@ class DocumentsRoutesSpec
       inputErrors <- uploadRequest.validated().attempt.map(_.leftValue)
 
       _ <- IO {
-        println(inputErrors.asInstanceOf[MalformedInputError].details.values)
+        println(inputErrors.asInstanceOf[MalformedInputError].details.tips)
         assert(
-          inputErrors.asInstanceOf[MalformedInputError].details.values.get("malformed.client.input").get.split("\\|\\|").size > 1,
+          inputErrors.asInstanceOf[MalformedInputError].details.tips.get("malformed.client.input").get.split("\\|\\|").size > 1,
           clue = "errors must accumulate"
         )
       }

@@ -138,7 +138,7 @@ class AuthRoutesSpec
           assertEquals(result.code, ErrorCode.InvalidClientInput)
           assertEquals(result.message, ErrorMessage("The username or password provided is incorrect."))
           val allInputErrors = Username.invariantErrors.map(_.uniqueCode) ++ PlainPassword.invariantErrors.map(_.uniqueCode)
-          val actualInputErrors = result.details.get.values.keys.toSet
+          val actualInputErrors = result.details.get.tips.keys.toSet
           assert(actualInputErrors.subsetOf(allInputErrors),
                  clue = s"actualInputErrors: $actualInputErrors\nallInputErrors: $allInputErrors"
           )
@@ -160,7 +160,7 @@ class AuthRoutesSpec
         _ <- IO {
           assertEquals(result.code, ErrorCode.InvalidClientInput)
           assertEquals(result.message, ErrorMessage("Please, check the client request conforms to the API contract."))
-          assert(result.details.get.values.contains("malformed.client.input"))
+          assert(result.details.get.tips.contains("malformed.client.input"))
         }
       yield ()
     }

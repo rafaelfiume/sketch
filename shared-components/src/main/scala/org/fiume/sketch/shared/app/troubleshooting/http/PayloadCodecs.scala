@@ -17,7 +17,7 @@ object PayloadCodecs:
     given Encoder[ErrorMessage] = Encoder.encodeString.contramap(_.value)
     given Decoder[ErrorMessage] = Decoder.decodeString.map(ErrorMessage.apply)
 
-    given Encoder[ErrorDetails] = Encoder.encodeMap[String, String].contramap(_.values)
+    given Encoder[ErrorDetails] = Encoder.encodeMap[String, String].contramap(_.tips)
     given Decoder[ErrorDetails] = Decoder.decodeMap[String, String].map(ErrorDetails.apply)
 
     given Encoder[ErrorInfo] = new Encoder[ErrorInfo]:

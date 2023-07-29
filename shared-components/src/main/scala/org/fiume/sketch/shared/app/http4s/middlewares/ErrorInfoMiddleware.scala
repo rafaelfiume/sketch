@@ -56,5 +56,5 @@ object ErrorInfoMiddleware:
     ErrorInfo.withDetails(
       ErrorCode.InvalidClientInput,
       ErrorMessage("Please, check the client request conforms to the API contract."),
-      ErrorDetails(details.values)
+      details
     )
