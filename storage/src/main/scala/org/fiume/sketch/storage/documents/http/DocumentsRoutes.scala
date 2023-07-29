@@ -6,8 +6,8 @@ import cats.effect.{Concurrent, Sync}
 import cats.effect.kernel.Async
 import cats.implicits.*
 import fs2.Stream
-import org.fiume.sketch.shared.app.http4s.middlewares.{ErrorInfoMiddleware, MalformedInputError}
-import org.fiume.sketch.shared.app.troubleshooting.{ErrorDetails, InvariantError}
+import org.fiume.sketch.shared.app.http4s.middlewares.{ErrorInfoMiddleware, SemanticInputError, SyntaxInputError}
+import org.fiume.sketch.shared.app.troubleshooting.{ErrorCode, ErrorDetails, ErrorMessage, InvariantError}
 import org.fiume.sketch.shared.app.troubleshooting.ErrorInfo.given
 import org.fiume.sketch.shared.app.troubleshooting.InvariantErrorSyntax.asDetails
 import org.fiume.sketch.storage.documents.Document
@@ -100,32 +100,34 @@ private[http] object DocumentsRoutes:
   extension [F[_]: MonadThrow: Concurrent](m: Multipart[F])
     def validated(): F[Document[F]] =
       (m.metadata(), m.bytes()).parTupled
-        .map(Document.apply[F])
-        .foldF(
-          // will be intercepted by ErrorInfoMiddleware
-          errors => MalformedInputError(errors).raiseError,
-          _.pure[F]
-        )
+        .foldF(errors => semanticInputError(errors).raiseError, _.pure[F])
+        .flatMap { case (metadataPayload, bytes) =>
+          metadataPayload
+            .as[MetadataPayload]
+            .attemptT
+            .leftMap(_ =>
+              ErrorDetails(Map("malformed.document.metadata.payload" -> "the metadata payload does not meet the contract"))
+            )
+            .foldF(errors => SyntaxInputError(errors).raiseError, (_, bytes).pure[F])
+        }
+        .flatMap { case (payload, stream) =>
+          (
+            EitherT.fromEither(Name.validated(payload.name).leftMap(_.asDetails)),
+            EitherT.pure(Description(payload.description)),
+            EitherT.pure(stream)
+          ).parMapN((name, description, bytes) => Document(Metadata(name, description), bytes))
+            .foldF(errors => semanticInputError(errors).raiseError, _.pure[F])
+        }
 
-    private def metadata(): EitherT[F, ErrorDetails, Metadata] = EitherT
+    private def metadata(): EitherT[F, ErrorDetails, Part[F]] = EitherT
       .fromEither {
         m.parts
           .find { _.name == Some("metadata") }
-          // TODO Extract factory method
-          .toRight(ErrorDetails(Map("malformed.client.input" -> "|document metadata is mandatory|")))
-      }
-      .flatMap { json =>
-        json
-          .as[MetadataPayload]
-          .attemptT
-          .leftMap(_ => ErrorDetails(Map("malformed.client.input" -> "|malformed json document metadata|")))
-      }
-      .flatMap { payload =>
-        (
-          EitherT.fromEither(Name.validated(payload.name).leftMap(_.asDetails)),
-          EitherT.pure[F, ErrorDetails](Description(payload.description))
-        ).parMapN(Metadata.apply)
-
+          .toRight(
+            ErrorDetails(
+              Map("missing.document.metadata.part" -> "missing `metadata` json payload in the multipart request")
+            )
+          )
       }
 
     // TODO Check bytes size?
@@ -133,7 +135,19 @@ private[http] object DocumentsRoutes:
       .fromEither {
         m.parts
           .find { _.name == Some("bytes") }
-          // TODO Create factory
-          .toRight(ErrorDetails(Map("malformed.client.input" -> "|document content is mandatory|")))
+          .toRight(
+            ErrorDetails(
+              Map(
+                "missing.document.bytes.part" -> "missing `bytes` stream in the multipart request (please, select a file to be uploaded)"
+              )
+            )
+          )
           .map(_.body)
       }
+
+    private def semanticInputError(errors: ErrorDetails) =
+      SemanticInputError(
+        ErrorCode.InvalidDocument,
+        ErrorMessage("Your document upload request is incomplete or contains invalid data."),
+        errors
+      )

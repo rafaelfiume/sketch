@@ -62,7 +62,7 @@ class AuthRoutesSpec
       yield ()
     }
 
-  test("return error for a login request with wrong password"):
+  test("return Ok for a login request with wrong password"):
     forAllF(loginRequests, authTokens) { case (user -> loginRequest -> authToken) =>
       val plainPassword = PlainPassword.notValidatedFromString(loginRequest.password)
       for
@@ -90,7 +90,7 @@ class AuthRoutesSpec
       yield ()
     }
 
-  test("return error for a login request with unknown username"):
+  test("return Ok for a login request with unknown username"):
     forAllF(loginRequests, authTokens) { case (user -> loginRequest -> authToken) =>
       val plainPassword = PlainPassword.notValidatedFromString(loginRequest.password)
       for
@@ -118,7 +118,7 @@ class AuthRoutesSpec
       yield ()
     }
 
-  test("return error for a login request with an invalid username or password"):
+  test("return 422 for a login request when username or password are semantically invalid"):
     forAllF(invalidInputs, authTokens) { case (user -> loginRequest -> authToken) =>
       val plainPassword = PlainPassword.notValidatedFromString(loginRequest.password)
       for
@@ -130,7 +130,7 @@ class AuthRoutesSpec
         request = POST(uri"/login").withEntity(loginRequest)
         result <- send(request)
           .to(new AuthRoutes[IO](authenticator).router())
-          .expectJsonResponseWith(Status.BadRequest)
+          .expectJsonResponseWith(Status.UnprocessableEntity)
           .map(_.as[ErrorInfo].rightValue)
 
         _ <- IO {
@@ -145,7 +145,7 @@ class AuthRoutesSpec
       yield ()
     }
 
-  test("return error when login request is malformed"):
+  test("return 400 when login request is synctactically invalid"):
     forAllF(malformedInputs) { badClientInput =>
       for
         authenticator <- makeAuthenticator()
@@ -153,13 +153,13 @@ class AuthRoutesSpec
         request = POST(uri"/login").withEntity(badClientInput)
         result <- send(request)
           .to(new AuthRoutes[IO](authenticator).router())
-          .expectJsonResponseWith(Status.UnprocessableEntity)
+          .expectJsonResponseWith(Status.BadRequest)
           .map(_.as[ErrorInfo].rightValue)
 
         _ <- IO {
           assertEquals(result.code, ErrorCode.InvalidClientInput)
           assertEquals(result.message, ErrorMessage("Please, check the client request conforms to the API contract."))
-          assert(result.details.get.tips.contains("malformed.client.input"))
+          assert(result.details.get.tips.contains("input.syntax.error"))
         }
       yield ()
     }
