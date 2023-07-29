@@ -68,10 +68,10 @@ object User:
     def validated(value: String): EitherNec[WeakUsernameError, Username] =
       val hasMinLength = Validated.condNec[WeakUsernameError, Unit](value.length >= minLength, (), TooShort)
       val hasMaxLength = Validated.condNec(value.length <= maxLength, (), TooLong)
-      val hasValidChars = Validated.condNec("^[a-zA-Z0-9_-]+$".r.matches(value), (), InvalidChar)
+      val hasNoInvalidChars = Validated.condNec("^[a-zA-Z0-9_-]+$".r.matches(value), (), InvalidChar)
       val hasNoReservedWords = Validated.condNec(!reservedWords.exists(value.contains(_)), (), ReservedWords)
       val hasNoExcessiveRepeatedChars = Validated.condNec(!hasExcessiveRepeatedChars(value, 0.7), (), ExcessiveRepeatedChars)
-      (hasMinLength, hasMaxLength, hasValidChars, hasNoReservedWords, hasNoExcessiveRepeatedChars)
+      (hasMinLength, hasMaxLength, hasNoInvalidChars, hasNoReservedWords, hasNoExcessiveRepeatedChars)
         .mapN((_, _, _, _, _) => notValidatedFromString(value))
         .toEither
 
