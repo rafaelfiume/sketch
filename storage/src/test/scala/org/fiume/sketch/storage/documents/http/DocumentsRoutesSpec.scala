@@ -44,7 +44,7 @@ class DocumentsRoutesSpec
   override def scalaCheckTestParameters = super.scalaCheckTestParameters.withMinSuccessfulTests(10)
 
   test("Post document"):
-    forAllF { (metadata: Metadata) =>
+    forAllF { (metadata: Metadata) => // TODO Metadata Payload instead
       val imageFile = getClass.getClassLoader.getResource("mountain-bike-liguria-ponent.jpg")
       val multipart = Multipart[IO](
         parts = Vector(

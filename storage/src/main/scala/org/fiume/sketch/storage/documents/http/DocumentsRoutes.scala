@@ -85,7 +85,6 @@ class DocumentsRoutes[F[_]: Async, Txn[_]](store: DocumentsStore[F, Txn]) extend
         for
           _ <- logger.info(s"Deleting document $uuid")
           metadata <- store.commit { store.fetchMetadata(uuid) }
-          // TODO Why check metadata? Why not simply delete always return NoContent?
           res <- metadata match
             case None    => NotFound()
             case Some(_) => store.commit { store.delete(uuid) } >> NoContent()
