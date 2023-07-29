@@ -4,8 +4,7 @@ import cats.Invariant
 import cats.data.{Kleisli, OptionT}
 import cats.effect.Async
 import cats.implicits.*
-import org.fiume.sketch.shared.app.troubleshooting.ErrorInfo
-import org.fiume.sketch.shared.app.troubleshooting.ErrorInfo.{ErrorCode, ErrorDetails, ErrorMessage}
+import org.fiume.sketch.shared.app.troubleshooting.{ErrorCode, ErrorDetails, ErrorInfo, ErrorMessage}
 import org.fiume.sketch.shared.app.troubleshooting.http.PayloadCodecs.ErrorInfoCodecs.given
 import org.http4s.*
 import org.http4s.circe.CirceEntityDecoder.*

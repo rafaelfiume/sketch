@@ -7,8 +7,7 @@ import cats.effect.kernel.Async
 import cats.implicits.*
 import fs2.Stream
 import org.fiume.sketch.shared.app.http4s.middlewares.{ErrorInfoMiddleware, MalformedInputError}
-import org.fiume.sketch.shared.app.troubleshooting.ErrorInfo.ErrorDetails
-import org.fiume.sketch.shared.app.troubleshooting.InvariantError
+import org.fiume.sketch.shared.app.troubleshooting.{ErrorDetails, InvariantError}
 import org.fiume.sketch.storage.documents.Document
 import org.fiume.sketch.storage.documents.Document.Metadata
 import org.fiume.sketch.storage.documents.Document.Metadata.*
