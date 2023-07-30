@@ -26,11 +26,11 @@ import org.typelevel.log4cats.slf4j.Slf4jLogger
 
 import scala.util.control.NoStackTrace
 
-class AuthRoutes[F[_]: Async](authenticator: Authenticator[F]) extends Http4sDsl[F]:
+class AuthRoutes[F[_]: Async](enableLogging: Boolean)(authenticator: Authenticator[F]) extends Http4sDsl[F]:
   private val prefix = "/"
 
   def router(): HttpRoutes[F] = Router(
-    prefix -> TraceAuditLogMiddleware(Slf4jLogger.getLogger[F])(ErrorInfoMiddleware(httpRoutes))
+    prefix -> TraceAuditLogMiddleware(Slf4jLogger.getLogger[F], enableLogging)(ErrorInfoMiddleware(httpRoutes))
   )
 
   private val httpRoutes: HttpRoutes[F] = HttpRoutes.of[F] { case req @ POST -> Root / "login" =>

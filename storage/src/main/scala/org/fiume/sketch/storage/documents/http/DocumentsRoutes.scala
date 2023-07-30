@@ -41,11 +41,11 @@ import DocumentsRoutes.Model.MetadataPayload
  * - TODO Fix warning
  * - TODO Make sure there is a limit to the size of documents that can be uploaded
  */
-class DocumentsRoutes[F[_]: Async, Txn[_]](store: DocumentsStore[F, Txn]) extends Http4sDsl[F]:
+class DocumentsRoutes[F[_]: Async, Txn[_]](enableLogging: Boolean)(store: DocumentsStore[F, Txn]) extends Http4sDsl[F]:
   private val prefix = "/"
 
   def router(): HttpRoutes[F] = Router(
-    prefix -> TraceAuditLogMiddleware(Slf4jLogger.getLogger[F])(ErrorInfoMiddleware(httpRoutes))
+    prefix -> TraceAuditLogMiddleware(Slf4jLogger.getLogger[F], enableLogging)(ErrorInfoMiddleware(httpRoutes))
   )
 
   private val httpRoutes: HttpRoutes[F] =

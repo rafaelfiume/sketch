@@ -57,7 +57,7 @@ class DocumentsRoutesSpec
         store <- makeDocumentsStore()
 
         jsonResponse <- send(request)
-          .to(new DocumentsRoutes[IO, IO](store).router())
+          .to(new DocumentsRoutes[IO, IO](loggingFlag)(store).router())
           .expectJsonResponseWith(Status.Created)
 
         storedMetadata <- store.fetchMetadata(jsonResponse.as[UUID].rightValue)
@@ -79,7 +79,7 @@ class DocumentsRoutesSpec
         store <- makeDocumentsStore(state = document)
 
         jsonResponse <- send(request)
-          .to(new DocumentsRoutes[IO, IO](store).router())
+          .to(new DocumentsRoutes[IO, IO](loggingFlag)(store).router())
           .expectJsonResponseWith(Status.Ok)
 
         _ <- IO {
@@ -95,7 +95,7 @@ class DocumentsRoutesSpec
         store <- makeDocumentsStore(state = document)
 
         contentStream <- send(request)
-          .to(new DocumentsRoutes[IO, IO](store).router())
+          .to(new DocumentsRoutes[IO, IO](loggingFlag)(store).router())
           .expectByteStreamResponseWith(Status.Ok)
 
         obtainedStream <- contentStream.compile.toList
@@ -113,7 +113,7 @@ class DocumentsRoutesSpec
         store <- makeDocumentsStore(state = document)
 
         _ <- send(request)
-          .to(new DocumentsRoutes[IO, IO](store).router())
+          .to(new DocumentsRoutes[IO, IO](loggingFlag)(store).router())
           .expectEmptyResponseWith(Status.NoContent)
 
         stored <- IO.both(
@@ -133,7 +133,7 @@ class DocumentsRoutesSpec
       for
         store <- makeDocumentsStore()
         _ <- send(request)
-          .to(new DocumentsRoutes[IO, IO](store).router())
+          .to(new DocumentsRoutes[IO, IO](loggingFlag)(store).router())
           .expectEmptyResponseWith(Status.NotFound)
       yield ()
     }
@@ -147,7 +147,7 @@ class DocumentsRoutesSpec
 
         request = POST(uri"/documents").withEntity(multipart).withHeaders(multipart.headers)
         result <- send(request)
-          .to(new DocumentsRoutes[IO, IO](store).router())
+          .to(new DocumentsRoutes[IO, IO](loggingFlag)(store).router())
           .expectJsonResponseWith(Status.UnprocessableEntity)
           .map(_.as[ErrorInfo].rightValue)
 
@@ -175,7 +175,7 @@ class DocumentsRoutesSpec
 
         request = POST(uri"/documents").withEntity(multipart).withHeaders(multipart.headers)
         result <- send(request)
-          .to(new DocumentsRoutes[IO, IO](store).router())
+          .to(new DocumentsRoutes[IO, IO](loggingFlag)(store).router())
           .expectJsonResponseWith(Status.BadRequest)
           .map(_.as[ErrorInfo].rightValue)
 
@@ -213,6 +213,8 @@ class DocumentsRoutesSpec
   }
 
 trait DocumentsRoutesSpecContext:
+  val loggingFlag = false
+
   def montainBikeInLiguriaImageFile = getClass.getClassLoader.getResource("mountain-bike-liguria-ponent.jpg")
 
   def syntacticallyInvalidDocumentRequests: Gen[Multipart[IO]] = Gen.delay {
