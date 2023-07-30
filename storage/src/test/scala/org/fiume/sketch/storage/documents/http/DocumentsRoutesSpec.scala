@@ -203,7 +203,6 @@ class DocumentsRoutesSpec
       inputErrors <- noMultiparts.validated().attempt.map(_.leftValue)
 
       _ <- IO {
-        println(inputErrors.asInstanceOf[SemanticInputError].details.tips)
         assert(
           inputErrors.asInstanceOf[SemanticInputError].details.tips.size > 1,
           clue = "errors must accumulate"
