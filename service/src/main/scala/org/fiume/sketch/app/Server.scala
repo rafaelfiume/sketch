@@ -5,14 +5,10 @@ import cats.effect.{Async, Concurrent, ExitCode, Resource}
 import cats.implicits.*
 import com.comcast.ip4s.*
 import doobie.ConnectionIO
-import org.fiume.sketch.app.SketchVersions
-import org.fiume.sketch.app.SketchVersions.VersionFile
 import org.fiume.sketch.http.HealthStatusRoutes
-import org.fiume.sketch.shared.app.algebras.{HealthCheck, Versions}
-import org.fiume.sketch.storage.documents.algebras.DocumentsStore
 import org.fiume.sketch.storage.documents.http.DocumentsRoutes
 import org.fiume.sketch.storage.documents.postgres.PostgresDocumentsStore
-import org.http4s.HttpRoutes
+import org.http4s.{AuthedRoutes, HttpRoutes}
 import org.http4s.ember.server.EmberServerBuilder
 import org.http4s.implicits.*
 import org.http4s.server.Server
@@ -27,9 +23,8 @@ object Server:
     val logger = Slf4jLogger.getLogger[F]
     (for
       conf <- Resource.eval(ServiceConfig.load[F])
-      res <- Resources.make(conf)
-      versions <- SketchVersions.make[F](VersionFile("sketch.version"))
-      server <- httpServer[F](versions, res.healthCheck, res.store)
+      resources <- Resources.make(conf)
+      server <- httpServer[F](resources)
     yield server)
       .use { server =>
         logger.info(s"Server has started at ${server.address}") >>
@@ -39,14 +34,8 @@ object Server:
         logger.error(s"The service has failed with $ex")
       }
 
-  private def httpServer[F[_]: Async](
-    versions: Versions[F],
-    healthCheck: HealthCheck[F],
-    documentStore: DocumentsStore[F, ConnectionIO]
-  ): Resource[F, Server] =
-    val httpApp = HttpApi
-      .httpApp[F](versions, healthCheck, documentStore)
-      .orNotFound
+  private def httpServer[F[_]: Async](resources: Resources[F]): Resource[F, Server] =
+    val httpApp = HttpApi.httpApp[F](resources).orNotFound
     EmberServerBuilder
       .default[F]
       .withHost(host"0.0.0.0")
@@ -59,13 +48,9 @@ object HttpApi:
   import org.http4s.headers.Origin
   import org.http4s.Uri
 
-  def httpApp[F[_]: Async](
-    versions: Versions[F],
-    healthCheck: HealthCheck[F],
-    documentStore: DocumentsStore[F, ConnectionIO]
-  ): HttpRoutes[F] =
-    val documentsStorageRoute = new DocumentsRoutes[F, ConnectionIO](enableLogging = true)(documentStore).router()
-    val healthStatusRoutes = new HealthStatusRoutes[F](versions, healthCheck).router()
+  def httpApp[F[_]: Async](res: Resources[F]): HttpRoutes[F] =
+    val documentsStorageRoute = new DocumentsRoutes[F, ConnectionIO](enableLogging = true)(res.documentsStore).router()
+    val healthStatusRoutes = new HealthStatusRoutes[F](res.versions, res.healthCheck).router()
 
     // TODO pass origin over config
     val corsRoutes = corsPolicy(
