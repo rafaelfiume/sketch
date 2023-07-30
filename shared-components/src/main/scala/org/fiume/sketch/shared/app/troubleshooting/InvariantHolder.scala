@@ -1,5 +1,8 @@
 package org.fiume.sketch.shared.app.troubleshooting
 
+import cats.data.{NonEmptyChain, NonEmptyList}
+import cats.implicits.*
+
 /*
  * Components where invariants hold depending on external input should implement `InvariantHolder`,
  * so they are guarded from lack of or invalid parameters upon creation.
@@ -22,6 +25,7 @@ trait InvariantError:
   def uniqueCode: String
   def message: String
 
-object InvariantError:
-  def inputErrorsToMap(inputErrors: List[InvariantError]): Map[String, String] =
-    inputErrors.map(e => e.uniqueCode -> e.message).toMap
+object InvariantErrorSyntax:
+  extension (inputErrors: NonEmptyChain[InvariantError])
+    def asString: String = asDetails.tips.toString() // TODO testThis
+    def asDetails: ErrorDetails = ErrorDetails(inputErrors.map(e => e.uniqueCode -> e.message).toList.toMap)

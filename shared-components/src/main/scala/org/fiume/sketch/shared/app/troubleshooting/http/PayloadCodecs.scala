@@ -6,10 +6,9 @@ import io.circe.syntax.*
 import org.fiume.sketch.shared.app.algebras.HealthCheck.ServiceHealth
 import org.fiume.sketch.shared.app.algebras.Versions
 import org.fiume.sketch.shared.app.algebras.Versions.Version
-import org.fiume.sketch.shared.app.troubleshooting.{ErrorInfo, ServiceStatus}
-import org.fiume.sketch.shared.app.troubleshooting.ErrorInfo.*
+import org.fiume.sketch.shared.app.troubleshooting.{ErrorCode, ErrorDetails, ErrorInfo, ErrorMessage, ServiceStatus}
 
-object JsonCodecs:
+object PayloadCodecs:
   object ErrorInfoCodecs:
     given Encoder[ErrorCode] = Encoder.encodeString.contramap(errorCodeToHumanString)
     given Decoder[ErrorCode] = Decoder.decodeString.map(humanStringToErrorCode)
@@ -17,7 +16,7 @@ object JsonCodecs:
     given Encoder[ErrorMessage] = Encoder.encodeString.contramap(_.value)
     given Decoder[ErrorMessage] = Decoder.decodeString.map(ErrorMessage.apply)
 
-    given Encoder[ErrorDetails] = Encoder.encodeMap[String, String].contramap(_.values)
+    given Encoder[ErrorDetails] = Encoder.encodeMap[String, String].contramap(_.tips)
     given Decoder[ErrorDetails] = Decoder.decodeMap[String, String].map(ErrorDetails.apply)
 
     given Encoder[ErrorInfo] = new Encoder[ErrorInfo]:

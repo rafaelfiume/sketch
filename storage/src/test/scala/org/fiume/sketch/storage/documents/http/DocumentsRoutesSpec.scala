@@ -7,17 +7,17 @@ import io.circe.Json
 import io.circe.syntax.*
 import munit.{CatsEffectSuite, ScalaCheckEffectSuite}
 import munit.Assertions.*
-import org.fiume.sketch.shared.app.http4s.middlewares.MalformedInputError
-import org.fiume.sketch.shared.app.troubleshooting.ErrorInfo
-import org.fiume.sketch.shared.app.troubleshooting.ErrorInfo.{ErrorCode, ErrorDetails, ErrorMessage}
-import org.fiume.sketch.shared.app.troubleshooting.http.JsonCodecs.ErrorInfoCodecs.given
+import org.fiume.sketch.shared.app.http4s.middlewares.{SemanticInputError, SyntaxInputError}
+import org.fiume.sketch.shared.app.troubleshooting.{ErrorCode, ErrorDetails, ErrorInfo, ErrorMessage}
+import org.fiume.sketch.shared.app.troubleshooting.http.PayloadCodecs.ErrorInfoCodecs.given
 import org.fiume.sketch.shared.test.{ContractContext, FileContentContext, Http4sTestingRoutesDsl}
 import org.fiume.sketch.shared.test.EitherSyntax.*
 import org.fiume.sketch.storage.documents.{Document, DocumentWithId}
 import org.fiume.sketch.storage.documents.Document.Metadata
+import org.fiume.sketch.storage.documents.Document.Metadata.*
 import org.fiume.sketch.storage.documents.algebras.DocumentsStore
 import org.fiume.sketch.storage.documents.http.DocumentsRoutes.*
-import org.fiume.sketch.storage.documents.http.JsonCodecs.given
+import org.fiume.sketch.storage.documents.http.PayloadCodecs.Document.given
 import org.fiume.sketch.test.support.DocumentsGens.*
 import org.fiume.sketch.test.support.DocumentsGens.given
 import org.http4s.{MediaType, *}
@@ -44,12 +44,11 @@ class DocumentsRoutesSpec
   override def scalaCheckTestParameters = super.scalaCheckTestParameters.withMinSuccessfulTests(10)
 
   test("Post document"):
-    forAllF { (metadata: Metadata) =>
-      val imageFile = getClass.getClassLoader.getResource("mountain-bike-liguria-ponent.jpg")
+    forAllF { (metadata: Metadata) => // TODO Metadata Payload instead
       val multipart = Multipart[IO](
         parts = Vector(
           Part.formData("metadata", metadata.asJson.spaces2SortKeys),
-          Part.fileData("bytes", imageFile, `Content-Type`(MediaType.image.jpeg))
+          Part.fileData("bytes", montainBikeInLiguriaImageFile, `Content-Type`(MediaType.image.jpeg))
         ),
         boundary = Boundary("boundary")
       )
@@ -128,27 +127,6 @@ class DocumentsRoutesSpec
       yield ()
     }
 
-  /* Sad Path */
-
-  test("return error when document upload request is malformed"):
-    forAllF { (badClientInput: Multipart[IO]) =>
-      for
-        store <- makeDocumentsStore()
-
-        request = POST(uri"/documents").withEntity(badClientInput).withHeaders(badClientInput.headers)
-        result <- send(request)
-          .to(new DocumentsRoutes[IO, IO](store).router())
-          .expectJsonResponseWith(Status.UnprocessableEntity)
-          .map(_.as[ErrorInfo].rightValue)
-
-        _ <- IO {
-          assertEquals(result.code, ErrorCode.InvalidClientInput)
-          assertEquals(result.message, ErrorMessage("Please, check the client request conforms to the API contract."))
-          assert(result.details.get.values.contains("malformed.client.input"))
-        }
-      yield ()
-    }
-
   test("Delete unexistent document == not found"):
     forAllF { (document: DocumentWithId[IO]) =>
       val request = DELETE(Uri.unsafeFromString(s"/documents/${document.uuid}"))
@@ -160,6 +138,54 @@ class DocumentsRoutesSpec
       yield ()
     }
 
+  /* Sad Path */
+
+  test("return 422 when document upload request is semantically invalid"):
+    forAllF(semanticallyInvalidDocumentRequests) { (multipart: Multipart[IO]) =>
+      for
+        store <- makeDocumentsStore()
+
+        request = POST(uri"/documents").withEntity(multipart).withHeaders(multipart.headers)
+        result <- send(request)
+          .to(new DocumentsRoutes[IO, IO](store).router())
+          .expectJsonResponseWith(Status.UnprocessableEntity)
+          .map(_.as[ErrorInfo].rightValue)
+
+        _ <- IO {
+          assertEquals(result.code, ErrorCode.InvalidDocument)
+          assertEquals(result.message, ErrorMessage("Your document upload request is incomplete or contains invalid data."))
+          assert(
+            result.details
+              .exists {
+                _.tips.keySet.subsetOf(
+                  Name.invariantErrors
+                    .map(_.uniqueCode)
+                    .union(Set("missing.document.metadata.part", "missing.document.bytes.part"))
+                )
+              }
+          )
+        }
+      yield ()
+    }
+
+  test("return 400 when document upload request is syntactically invalid"):
+    forAllF(syntacticallyInvalidDocumentRequests) { (multipart: Multipart[IO]) =>
+      for
+        store <- makeDocumentsStore()
+
+        request = POST(uri"/documents").withEntity(multipart).withHeaders(multipart.headers)
+        result <- send(request)
+          .to(new DocumentsRoutes[IO, IO](store).router())
+          .expectJsonResponseWith(Status.BadRequest)
+          .map(_.as[ErrorInfo].rightValue)
+
+        _ <- IO {
+          assertEquals(result.code, ErrorCode.InvalidClientInput)
+          assertEquals(result.message, ErrorMessage("Please, check the client request conforms to the API contract."))
+          assert(result.details.get.tips.contains("malformed.document.metadata.payload"))
+        }
+      yield ()
+    }
   /*
    * Contracts
    */
@@ -171,13 +197,15 @@ class DocumentsRoutesSpec
 
   test("validation accumulates") {
     /* Also see `given accumulatingParallel: cats.Parallel[EitherT[IO, String, *]] = EitherT.accumulatingParallel` */
-    val uploadRequest = Multipart[IO](parts = Vector.empty, boundary = Boundary("boundary"))
+    // no metadata part / no bytes part
+    val noMultiparts = Multipart[IO](parts = Vector.empty, boundary = Boundary("boundary"))
     for
-      inputErrors <- uploadRequest.validated().attempt.map(_.leftValue)
+      inputErrors <- noMultiparts.validated().attempt.map(_.leftValue)
 
       _ <- IO {
+        println(inputErrors.asInstanceOf[SemanticInputError].details.tips)
         assert(
-          inputErrors.asInstanceOf[MalformedInputError].details.size > 1,
+          inputErrors.asInstanceOf[SemanticInputError].details.tips.size > 1,
           clue = "errors must accumulate"
         )
       }
@@ -186,14 +214,25 @@ class DocumentsRoutesSpec
   }
 
 trait DocumentsRoutesSpecContext:
-  given Arbitrary[Multipart[IO]] = Arbitrary(invalidDocumentRequests)
-  def invalidDocumentRequests: Gen[Multipart[IO]] = Gen.oneOf(
-    invalidDocumentRequestWithNoContent,
-    invalidMultipartsWithNoMetadata,
-    invalidDocumentRequestWithMalformedMetadataAndNoBytes
+  def montainBikeInLiguriaImageFile = getClass.getClassLoader.getResource("mountain-bike-liguria-ponent.jpg")
+
+  def syntacticallyInvalidDocumentRequests: Gen[Multipart[IO]] = Gen.delay {
+    Multipart[IO](
+      parts = Vector(
+        Part.formData("metadata", """ { \"bananas\" : \"apples\" } """),
+        Part.fileData("bytes", montainBikeInLiguriaImageFile, `Content-Type`(MediaType.image.jpeg))
+      ),
+      boundary = Boundary("boundary")
+    )
+  } :| "invalidDocumentRequestWithMalformedMetadataAndNoBytes"
+
+  def semanticallyInvalidDocumentRequests: Gen[Multipart[IO]] = Gen.oneOf(
+    invalidPartWithNoContent,
+    invalidPartWithNoMetadata,
+    invalidTooShortDocumentName
   )
 
-  private def invalidDocumentRequestWithNoContent: Gen[Multipart[IO]] = metadataG.flatMap { metadata =>
+  private def invalidPartWithNoContent: Gen[Multipart[IO]] = metadataG.flatMap { metadata =>
     Gen.delay {
       Multipart[IO](
         // no file mamma!
@@ -201,26 +240,29 @@ trait DocumentsRoutesSpecContext:
         boundary = Boundary("boundary")
       )
     }
-  }
+  } :| "invalidPartWithNoContent"
 
-  private def invalidMultipartsWithNoMetadata: Gen[Multipart[IO]] = Gen.delay {
-    val imageFile = getClass.getClassLoader.getResource("mountain-bike-liguria-ponent.jpg")
+  private def invalidPartWithNoMetadata: Gen[Multipart[IO]] = Gen.delay {
     Multipart[IO](
       // no metadata mamma!
-      parts = Vector(Part.fileData("bytes", imageFile, `Content-Type`(MediaType.image.jpeg))),
-      boundary = Boundary("boundary")
-    )
-  }
-
-  private def invalidDocumentRequestWithMalformedMetadataAndNoBytes: Gen[Multipart[IO]] = Gen.delay {
-    val imageFile = getClass.getClassLoader.getResource("mountain-bike-liguria-ponent.jpg")
-    Multipart[IO](
       parts = Vector(
-        Part.formData("metadata", """ { \"bananas\" : \"apples\" } """)
+        Part.fileData("bytes", montainBikeInLiguriaImageFile, `Content-Type`(MediaType.image.jpeg))
       ),
       boundary = Boundary("boundary")
     )
-  }
+  } :| "invalidPartWithNoMetadata"
+
+  def invalidTooShortDocumentName: Gen[Multipart[IO]] =
+    (for
+      name <- shortNames.map(Name.notValidatedFromString)
+      metadata <- metadataG.map(_.copy(name = name))
+    yield Multipart[IO](
+      parts = Vector(
+        Part.formData("metadata", metadata.asJson.spaces2SortKeys),
+        Part.fileData("bytes", montainBikeInLiguriaImageFile, `Content-Type`(MediaType.image.jpeg))
+      ),
+      boundary = Boundary("boundary")
+    )) :| "invalidTooShortDocumentName"
 
 trait DocumentsStoreContext:
   import fs2.Stream

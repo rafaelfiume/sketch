@@ -7,17 +7,15 @@ import munit.{CatsEffectSuite, ScalaCheckEffectSuite}
 import munit.Assertions.*
 import org.fiume.sketch.auth0.{AuthenticationError, Authenticator, JwtToken}
 import org.fiume.sketch.auth0.AuthenticationError.*
-import org.fiume.sketch.auth0.http.AuthRoutes.Model.{LoginRequest, LoginResponse}
-import org.fiume.sketch.auth0.http.JsonCodecs.RequestResponsesCodecs.given
-import org.fiume.sketch.shared.app.troubleshooting.ErrorInfo
-import org.fiume.sketch.shared.app.troubleshooting.ErrorInfo.{ErrorCode, ErrorDetails, ErrorMessage}
-import org.fiume.sketch.shared.app.troubleshooting.http.JsonCodecs.ErrorInfoCodecs.given
+import org.fiume.sketch.auth0.http.AuthRoutes.Model.{LoginRequestPayload, LoginResponsePayload}
+import org.fiume.sketch.auth0.http.PayloadCodecs.Login.given
+import org.fiume.sketch.shared.app.troubleshooting.{ErrorCode, ErrorDetails, ErrorInfo, ErrorMessage}
+import org.fiume.sketch.shared.app.troubleshooting.http.PayloadCodecs.ErrorInfoCodecs.given
 import org.fiume.sketch.shared.auth0.Passwords.PlainPassword
 import org.fiume.sketch.shared.auth0.User
 import org.fiume.sketch.shared.auth0.User.Username
-import org.fiume.sketch.shared.auth0.test.PasswordsGens.PlainPasswords.*
+import org.fiume.sketch.shared.auth0.test.PasswordsGens.*
 import org.fiume.sketch.shared.auth0.test.UserGens.*
-import org.fiume.sketch.shared.auth0.test.UserGens.Usernames.*
 import org.fiume.sketch.shared.test.{ContractContext, Http4sTestingRoutesDsl}
 import org.fiume.sketch.shared.test.EitherSyntax.*
 import org.fiume.sketch.shared.test.StringSyntax.*
@@ -57,14 +55,14 @@ class AuthRoutesSpec
 
         _ <- IO {
           assertEquals(
-            jsonResponse.as[LoginResponse].map(_.token).rightValue,
+            jsonResponse.as[LoginResponsePayload].map(_.token).rightValue,
             authToken.value
           )
         }
       yield ()
     }
 
-  test("return error for a login request with wrong password"):
+  test("return Ok for a login request with wrong password"):
     forAllF(loginRequests, authTokens) { case (user -> loginRequest -> authToken) =>
       val plainPassword = PlainPassword.notValidatedFromString(loginRequest.password)
       for
@@ -92,7 +90,7 @@ class AuthRoutesSpec
       yield ()
     }
 
-  test("return error for a login request with unknown username"):
+  test("return Ok for a login request with unknown username"):
     forAllF(loginRequests, authTokens) { case (user -> loginRequest -> authToken) =>
       val plainPassword = PlainPassword.notValidatedFromString(loginRequest.password)
       for
@@ -120,7 +118,7 @@ class AuthRoutesSpec
       yield ()
     }
 
-  test("return error for a login request with an invalid username or password"):
+  test("return 422 for a login request when username or password are semantically invalid"):
     forAllF(invalidInputs, authTokens) { case (user -> loginRequest -> authToken) =>
       val plainPassword = PlainPassword.notValidatedFromString(loginRequest.password)
       for
@@ -132,14 +130,14 @@ class AuthRoutesSpec
         request = POST(uri"/login").withEntity(loginRequest)
         result <- send(request)
           .to(new AuthRoutes[IO](authenticator).router())
-          .expectJsonResponseWith(Status.BadRequest)
+          .expectJsonResponseWith(Status.UnprocessableEntity)
           .map(_.as[ErrorInfo].rightValue)
 
         _ <- IO {
           assertEquals(result.code, ErrorCode.InvalidClientInput)
           assertEquals(result.message, ErrorMessage("The username or password provided is incorrect."))
           val allInputErrors = Username.invariantErrors.map(_.uniqueCode) ++ PlainPassword.invariantErrors.map(_.uniqueCode)
-          val actualInputErrors = result.details.get.values.keys.toSet
+          val actualInputErrors = result.details.get.tips.keys.toSet
           assert(actualInputErrors.subsetOf(allInputErrors),
                  clue = s"actualInputErrors: $actualInputErrors\nallInputErrors: $allInputErrors"
           )
@@ -147,7 +145,7 @@ class AuthRoutesSpec
       yield ()
     }
 
-  test("return error when login request is malformed"):
+  test("return 400 when login request is synctactically invalid"):
     forAllF(malformedInputs) { badClientInput =>
       for
         authenticator <- makeAuthenticator()
@@ -155,13 +153,13 @@ class AuthRoutesSpec
         request = POST(uri"/login").withEntity(badClientInput)
         result <- send(request)
           .to(new AuthRoutes[IO](authenticator).router())
-          .expectJsonResponseWith(Status.UnprocessableEntity)
+          .expectJsonResponseWith(Status.BadRequest)
           .map(_.as[ErrorInfo].rightValue)
 
         _ <- IO {
           assertEquals(result.code, ErrorCode.InvalidClientInput)
           assertEquals(result.message, ErrorMessage("Please, check the client request conforms to the API contract."))
-          assert(result.details.get.values.contains("malformed.client.input"))
+          assert(result.details.get.tips.contains("input.syntax.error"))
         }
       yield ()
     }
@@ -171,21 +169,21 @@ class AuthRoutesSpec
    */
 
   test("bijective relationship between decoded and encoded LoginResponse"):
-    assertBijectiveRelationshipBetweenEncoderAndDecoder[LoginResponse](
+    assertBijectiveRelationshipBetweenEncoderAndDecoder[LoginResponsePayload](
       "contract/auth0/http/login.success.json"
     )
 
 trait AuthRoutesSpecContext:
-  extension (loginRequest: LoginRequest)
-    def withShuffledPassword: LoginRequest = loginRequest.copy(password = loginRequest.password._shuffled)
-    def withShuffledUsername: LoginRequest = loginRequest.copy(username = loginRequest.username._shuffled)
+  extension (loginRequest: LoginRequestPayload)
+    def withShuffledPassword: LoginRequestPayload = loginRequest.copy(password = loginRequest.password._shuffled)
+    def withShuffledUsername: LoginRequestPayload = loginRequest.copy(username = loginRequest.username._shuffled)
 
-  given Arbitrary[(User, LoginRequest)] = Arbitrary(loginRequests)
-  def loginRequests: Gen[(User, LoginRequest)] =
+  given Arbitrary[(User, LoginRequestPayload)] = Arbitrary(loginRequests)
+  def loginRequests: Gen[(User, LoginRequestPayload)] =
     for
       user <- users
       password <- plainPasswords
-    yield user -> LoginRequest(user.username.value, password)
+    yield user -> LoginRequestPayload(user.username.value, password)
 
   given Arbitrary[JwtToken] = Arbitrary(authTokens)
   def authTokens: Gen[JwtToken] = Gen
@@ -194,12 +192,12 @@ trait AuthRoutesSpecContext:
     )
     .map(JwtToken.notValidatedFromString)
 
-  def invalidInputs: Gen[(User, LoginRequest)] =
+  def invalidInputs: Gen[(User, LoginRequestPayload)] =
     for
       username <- oneOfUsernameInputErrors
       password <- oneOfPasswordInputErrors
       user <- users.map { _.copy(username = Username.notValidatedFromString(username)) }
-    yield user -> LoginRequest(username, password)
+    yield user -> LoginRequestPayload(username, password)
 
   def malformedInputs: Gen[String] =
     Gen.frequency(

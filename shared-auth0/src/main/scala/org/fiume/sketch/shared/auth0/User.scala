@@ -47,8 +47,8 @@ object User:
         override val message: String = s"must be at most $maxLength characters long"
 
       case object InvalidChar extends WeakUsernameError:
-        override def uniqueCode: String = "username.invalid.characters"
-        override val message: String = "must only contain letters (a-z, A-Z), numbers (0-9), and underscores (_)"
+        override def uniqueCode: String = "username.invalid.character"
+        override val message: String = "must only contain letters (a-z, A-Z), numbers (0-9), underscores (_) and hyphens (-)"
 
       case object ReservedWords extends WeakUsernameError:
         override def uniqueCode: String = "username.reserved.words"

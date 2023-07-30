@@ -10,11 +10,8 @@ import org.fiume.sketch.shared.auth0.{Passwords, User}
 import org.fiume.sketch.shared.auth0.Passwords.{HashedPassword, Salt}
 import org.fiume.sketch.shared.auth0.User.*
 import org.fiume.sketch.shared.auth0.algebras.UsersStore
-import org.fiume.sketch.shared.auth0.test.PasswordsGens.HashedPasswords.given
-import org.fiume.sketch.shared.auth0.test.PasswordsGens.Salts.given
+import org.fiume.sketch.shared.auth0.test.PasswordsGens.given
 import org.fiume.sketch.shared.auth0.test.UserGens.*
-import org.fiume.sketch.shared.auth0.test.UserGens.Usernames.*
-import org.fiume.sketch.shared.auth0.test.UserGens.Usernames.given
 import org.fiume.sketch.shared.auth0.test.UserGens.given
 import org.fiume.sketch.storage.auth0.postgres.DoobieMappings.given
 import org.fiume.sketch.storage.auth0.postgres.PostgresUsersStore.*

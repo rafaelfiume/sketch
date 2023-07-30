@@ -9,7 +9,7 @@ import org.fiume.sketch.shared.auth0.Passwords.{HashedPassword, PlainPassword, S
 import org.fiume.sketch.shared.auth0.User
 import org.fiume.sketch.shared.auth0.User.{UserCredentials, UserCredentialsWithId, Username}
 import org.fiume.sketch.shared.auth0.test.{PasswordsGens, UserGens}
-import org.fiume.sketch.shared.auth0.test.PasswordsGens.PlainPasswords.*
+import org.fiume.sketch.shared.auth0.test.PasswordsGens.*
 import org.fiume.sketch.shared.auth0.test.UserGens.*
 import org.fiume.sketch.shared.test.ClockContext
 import org.fiume.sketch.shared.test.EitherSyntax.*
