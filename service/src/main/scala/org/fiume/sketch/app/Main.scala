@@ -14,4 +14,6 @@ object Main extends IOApp:
         System.exit(1)
   )
 
+  override protected def blockedThreadDetectionEnabled = true
+
   override def run(args: List[String]): IO[ExitCode] = Server.run[IO]
