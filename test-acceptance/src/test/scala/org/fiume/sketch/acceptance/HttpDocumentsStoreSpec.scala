@@ -1,11 +1,11 @@
-package org.fiume.sketch.storage
+package org.fiume.sketch.acceptance
 
 import cats.effect.IO
 import io.circe.Json
 import munit.Assertions.*
 import munit.CatsEffectSuite
+import org.fiume.sketch.acceptance.tests.Http4sClientContext
 import org.fiume.sketch.shared.test.FileContentContext
-import org.fiume.sketch.support.Http4sClientContext
 import org.http4s.Status.*
 import org.http4s.circe.*
 
@@ -32,7 +32,7 @@ class HttpDocumentsStoreSpec
         }
 
         content <- client
-          .stream(s"http://localhost:8080/documents/$uuid/content".get)
+          .stream(s"http://localhost:8080/documents/$uuid".get)
           .flatMap(_.body)
           .compile
           .toList
@@ -55,7 +55,7 @@ class HttpDocumentsStoreSpec
           assertEquals(status, NotFound)
         }
 
-        _ <- client.status(s"http://localhost:8080/documents/$uuid/content".get).map { status =>
+        _ <- client.status(s"http://localhost:8080/documents/$uuid".get).map { status =>
           assertEquals(status, NotFound)
         }
       yield ()
