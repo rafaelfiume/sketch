@@ -1,7 +1,7 @@
-package org.fiume.sketch.test.support
+package org.fiume.sketch.testkit
 
-import org.fiume.sketch.shared.app.algebras.Versions.Version
-import org.fiume.sketch.shared.test.Gens.DateAndTime.*
+import org.fiume.sketch.shared.app.algebras.Versions.{Environment, Version}
+import org.fiume.sketch.shared.testkit.Gens.DateAndTime.*
 import org.scalacheck.{Arbitrary, Gen}
 
 object SketchGens:
@@ -10,6 +10,7 @@ object SketchGens:
   // Maybe to shared-components test module?
   given Arbitrary[Version] = Arbitrary(versions)
   def versions: Gen[Version] =
+    def envs: Gen[Environment] = Gen.oneOf(Environment("Dev"), Environment("Prd"))
     def builds = Gen.frequency(
       1 -> "snapshot",
       9 -> Gen.choose(1, 1000000001).map(_.toString)
@@ -23,6 +24,7 @@ object SketchGens:
       "09e6e6a1eb465d4dcfdf8c591ca3b7ffe3085b3c"
     )
     for
+      env <- envs
       build <- builds
       commit <- commits
-    yield Version(build, commit)
+    yield Version(env, build, commit)

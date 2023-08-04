@@ -1,4 +1,4 @@
-package org.fiume.sketch.shared.test
+package org.fiume.sketch.shared.testkit
 
 import cats.Applicative
 import cats.effect.{Clock, IO}

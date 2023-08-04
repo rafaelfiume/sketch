@@ -1,12 +1,13 @@
 package org.fiume.sketch.storage
 
 import ciris.*
+import org.http4s.Uri
 
 object Config:
 
   case class DatabaseConfig(
     driver: String,
-    url: String,
+    uri: Uri,
     user: String,
     password: Secret[String],
     // Match the default size of the Hikari pool

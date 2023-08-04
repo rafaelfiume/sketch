@@ -4,9 +4,9 @@ import cats.syntax.all.*
 import munit.{CatsEffectSuite, ScalaCheckEffectSuite, ScalaCheckSuite}
 import org.fiume.sketch.shared.auth0.Passwords.PlainPassword
 import org.fiume.sketch.shared.auth0.Passwords.PlainPassword.WeakPasswordError
-import org.fiume.sketch.shared.auth0.test.PasswordsGens.*
-import org.fiume.sketch.shared.auth0.test.PasswordsGens.given
-import org.fiume.sketch.shared.test.EitherSyntax.*
+import org.fiume.sketch.shared.auth0.testkit.PasswordsGens.*
+import org.fiume.sketch.shared.auth0.testkit.PasswordsGens.given
+import org.fiume.sketch.shared.testkit.EitherSyntax.*
 import org.scalacheck.{Arbitrary, Gen}
 import org.scalacheck.Prop.forAll
 

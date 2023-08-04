@@ -11,10 +11,10 @@ import org.fiume.sketch.shared.app.algebras.HealthCheck.ServiceHealth.Infra
 import org.fiume.sketch.shared.app.algebras.Versions.Version
 import org.fiume.sketch.shared.app.troubleshooting.ServiceStatus
 import org.fiume.sketch.shared.app.troubleshooting.http.PayloadCodecs.ServiceStatusCodecs.given
-import org.fiume.sketch.shared.test.EitherSyntax.*
-import org.fiume.sketch.shared.test.Gens.Lists.*
-import org.fiume.sketch.shared.test.Http4sTestingRoutesDsl
-import org.fiume.sketch.test.support.SketchGens.given
+import org.fiume.sketch.shared.testkit.EitherSyntax.*
+import org.fiume.sketch.shared.testkit.Gens.Lists.*
+import org.fiume.sketch.shared.testkit.Http4sTestingRoutesDsl
+import org.fiume.sketch.testkit.SketchGens.given
 import org.http4s.Method.*
 import org.http4s.Status
 import org.http4s.circe.CirceEntityDecoder.*

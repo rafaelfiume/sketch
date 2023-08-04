@@ -18,12 +18,12 @@ case class SemanticInputError(code: ErrorCode, message: ErrorMessage, details: E
 
 // TODO make this middleware more generic, so it can catch any kind of error and return ErrorInfo
 object ErrorInfoMiddleware:
-  def apply[F[_]: Async](service: HttpRoutes[F]): HttpRoutes[F] =
+  def apply[F[_]: Async](routes: HttpRoutes[F]): HttpRoutes[F] =
     val dsl = Http4sDsl[F]
     import dsl.*
 
     Kleisli { req =>
-      service
+      routes
         .run(req)
         .semiflatMap { response =>
           // there errors are swallowed by http4s, so we need to inspect the response

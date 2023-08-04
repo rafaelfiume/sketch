@@ -10,16 +10,17 @@ import munit.Assertions.*
 import org.fiume.sketch.shared.app.http4s.middlewares.{SemanticInputError, SyntaxInputError}
 import org.fiume.sketch.shared.app.troubleshooting.{ErrorCode, ErrorDetails, ErrorInfo, ErrorMessage}
 import org.fiume.sketch.shared.app.troubleshooting.http.PayloadCodecs.ErrorInfoCodecs.given
-import org.fiume.sketch.shared.test.{ContractContext, FileContentContext, Http4sTestingRoutesDsl}
-import org.fiume.sketch.shared.test.EitherSyntax.*
+import org.fiume.sketch.shared.testkit.{ContractContext, FileContentContext, Http4sTestingRoutesDsl}
+import org.fiume.sketch.shared.testkit.EitherSyntax.*
 import org.fiume.sketch.storage.documents.{Document, DocumentWithId}
 import org.fiume.sketch.storage.documents.Document.Metadata
 import org.fiume.sketch.storage.documents.Document.Metadata.*
 import org.fiume.sketch.storage.documents.algebras.DocumentsStore
 import org.fiume.sketch.storage.documents.http.DocumentsRoutes.*
 import org.fiume.sketch.storage.documents.http.PayloadCodecs.Document.given
-import org.fiume.sketch.test.support.DocumentsGens.*
-import org.fiume.sketch.test.support.DocumentsGens.given
+import org.fiume.sketch.storage.testkit.DocumentsGens
+import org.fiume.sketch.storage.testkit.DocumentsGens.*
+import org.fiume.sketch.storage.testkit.DocumentsGens.given
 import org.http4s.{MediaType, *}
 import org.http4s.Method.*
 import org.http4s.circe.CirceEntityDecoder.*
@@ -57,7 +58,7 @@ class DocumentsRoutesSpec
         store <- makeDocumentsStore()
 
         jsonResponse <- send(request)
-          .to(new DocumentsRoutes[IO, IO](store).router())
+          .to(new DocumentsRoutes[IO, IO](loggingFlag)(store).router())
           .expectJsonResponseWith(Status.Created)
 
         storedMetadata <- store.fetchMetadata(jsonResponse.as[UUID].rightValue)
@@ -79,7 +80,7 @@ class DocumentsRoutesSpec
         store <- makeDocumentsStore(state = document)
 
         jsonResponse <- send(request)
-          .to(new DocumentsRoutes[IO, IO](store).router())
+          .to(new DocumentsRoutes[IO, IO](loggingFlag)(store).router())
           .expectJsonResponseWith(Status.Ok)
 
         _ <- IO {
@@ -90,12 +91,12 @@ class DocumentsRoutesSpec
 
   test("Get document content"):
     forAllF { (document: DocumentWithId[IO]) =>
-      val request = GET(Uri.unsafeFromString(s"/documents/${document.uuid}/content"))
+      val request = GET(Uri.unsafeFromString(s"/documents/${document.uuid}"))
       for
         store <- makeDocumentsStore(state = document)
 
         contentStream <- send(request)
-          .to(new DocumentsRoutes[IO, IO](store).router())
+          .to(new DocumentsRoutes[IO, IO](loggingFlag)(store).router())
           .expectByteStreamResponseWith(Status.Ok)
 
         obtainedStream <- contentStream.compile.toList
@@ -113,7 +114,7 @@ class DocumentsRoutesSpec
         store <- makeDocumentsStore(state = document)
 
         _ <- send(request)
-          .to(new DocumentsRoutes[IO, IO](store).router())
+          .to(new DocumentsRoutes[IO, IO](loggingFlag)(store).router())
           .expectEmptyResponseWith(Status.NoContent)
 
         stored <- IO.both(
@@ -133,7 +134,7 @@ class DocumentsRoutesSpec
       for
         store <- makeDocumentsStore()
         _ <- send(request)
-          .to(new DocumentsRoutes[IO, IO](store).router())
+          .to(new DocumentsRoutes[IO, IO](loggingFlag)(store).router())
           .expectEmptyResponseWith(Status.NotFound)
       yield ()
     }
@@ -147,7 +148,7 @@ class DocumentsRoutesSpec
 
         request = POST(uri"/documents").withEntity(multipart).withHeaders(multipart.headers)
         result <- send(request)
-          .to(new DocumentsRoutes[IO, IO](store).router())
+          .to(new DocumentsRoutes[IO, IO](loggingFlag)(store).router())
           .expectJsonResponseWith(Status.UnprocessableEntity)
           .map(_.as[ErrorInfo].rightValue)
 
@@ -175,7 +176,7 @@ class DocumentsRoutesSpec
 
         request = POST(uri"/documents").withEntity(multipart).withHeaders(multipart.headers)
         result <- send(request)
-          .to(new DocumentsRoutes[IO, IO](store).router())
+          .to(new DocumentsRoutes[IO, IO](loggingFlag)(store).router())
           .expectJsonResponseWith(Status.BadRequest)
           .map(_.as[ErrorInfo].rightValue)
 
@@ -203,7 +204,6 @@ class DocumentsRoutesSpec
       inputErrors <- noMultiparts.validated().attempt.map(_.leftValue)
 
       _ <- IO {
-        println(inputErrors.asInstanceOf[SemanticInputError].details.tips)
         assert(
           inputErrors.asInstanceOf[SemanticInputError].details.tips.size > 1,
           clue = "errors must accumulate"
@@ -214,6 +214,8 @@ class DocumentsRoutesSpec
   }
 
 trait DocumentsRoutesSpecContext:
+  val loggingFlag = false
+
   def montainBikeInLiguriaImageFile = getClass.getClassLoader.getResource("mountain-bike-liguria-ponent.jpg")
 
   def syntacticallyInvalidDocumentRequests: Gen[Multipart[IO]] = Gen.delay {

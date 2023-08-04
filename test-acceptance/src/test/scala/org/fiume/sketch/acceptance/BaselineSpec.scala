@@ -1,8 +1,8 @@
-package org.fiume.sketch
+package org.fiume.sketch.acceptance
 
 import munit.Assertions.*
 import munit.CatsEffectSuite
-import org.fiume.sketch.support.Http4sClientContext
+import org.fiume.sketch.acceptance.testkit.Http4sClientContext
 
 class BaselineSpec extends CatsEffectSuite with Http4sClientContext:
 

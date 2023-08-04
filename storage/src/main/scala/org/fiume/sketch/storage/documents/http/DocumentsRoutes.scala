@@ -6,7 +6,12 @@ import cats.effect.{Concurrent, Sync}
 import cats.effect.kernel.Async
 import cats.implicits.*
 import fs2.Stream
-import org.fiume.sketch.shared.app.http4s.middlewares.{ErrorInfoMiddleware, SemanticInputError, SyntaxInputError}
+import org.fiume.sketch.shared.app.http4s.middlewares.{
+  ErrorInfoMiddleware,
+  SemanticInputError,
+  SyntaxInputError,
+  TraceAuditLogMiddleware
+}
 import org.fiume.sketch.shared.app.troubleshooting.{ErrorCode, ErrorDetails, ErrorMessage, InvariantError}
 import org.fiume.sketch.shared.app.troubleshooting.ErrorInfo.given
 import org.fiume.sketch.shared.app.troubleshooting.InvariantErrorSyntax.asDetails
@@ -34,16 +39,13 @@ import DocumentsRoutes.Model.MetadataPayload
 /*
  * - TODO Endpoint to update documents
  * - TODO Fix warning
- * - TODO Improve validation, for instance validate document name is not empty, has minimum length, etc.
  * - TODO Make sure there is a limit to the size of documents that can be uploaded
  */
-class DocumentsRoutes[F[_]: Async, Txn[_]](store: DocumentsStore[F, Txn]) extends Http4sDsl[F]:
-  private val logger = Slf4jLogger.getLogger[F]
-
+class DocumentsRoutes[F[_]: Async, Txn[_]](enableLogging: Boolean)(store: DocumentsStore[F, Txn]) extends Http4sDsl[F]:
   private val prefix = "/"
 
   def router(): HttpRoutes[F] = Router(
-    prefix -> ErrorInfoMiddleware(httpRoutes)
+    prefix -> TraceAuditLogMiddleware(Slf4jLogger.getLogger[F], enableLogging)(ErrorInfoMiddleware(httpRoutes))
   )
 
   private val httpRoutes: HttpRoutes[F] =
@@ -60,31 +62,26 @@ class DocumentsRoutes[F[_]: Async, Txn[_]](store: DocumentsStore[F, Txn]) extend
       case req @ POST -> Root / "documents" =>
         req.decode { (uploadRequest: Multipart[F]) =>
           for
-            _ <- logger.info("Uploading document [for user]")
             document <- uploadRequest.validated()
             uuid <- store.commit { store.store(document) }
             created <- Created(uuid)
-            _ <- logger.info(s"Document ${document.metadata.name} uploaded")
           yield created
         }
 
       case GET -> Root / "documents" / UUIDVar(uuid) / "metadata" =>
         for
-          _ <- logger.info(s"Fetching document metadata of $uuid")
           metadata <- store.commit { store.fetchMetadata(uuid) }
           res <- metadata.fold(ifEmpty = NotFound())(Ok(_))
         yield res
 
-      case GET -> Root / "documents" / UUIDVar(uuid) / "content" =>
+      case GET -> Root / "documents" / UUIDVar(uuid) =>
         for
-          _ <- logger.info(s"fetching content of document $uuid")
           stream <- store.commit { store.fetchContent(uuid) }
           res <- stream.fold(ifEmpty = NotFound())(Ok(_))
         yield res
 
       case DELETE -> Root / "documents" / UUIDVar(uuid) =>
         for
-          _ <- logger.info(s"Deleting document $uuid")
           metadata <- store.commit { store.fetchMetadata(uuid) }
           res <- metadata match
             case None    => NotFound()

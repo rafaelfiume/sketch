@@ -4,17 +4,17 @@ import cats.effect.{Clock, IO}
 import munit.{CatsEffectSuite, ScalaCheckEffectSuite}
 import org.fiume.sketch.auth0.AuthenticationError.*
 import org.fiume.sketch.auth0.Authenticator.*
-import org.fiume.sketch.auth0.test.EcKeysGens
+import org.fiume.sketch.auth0.testkit.EcKeysGens
 import org.fiume.sketch.shared.auth0.Passwords.{HashedPassword, PlainPassword, Salt}
 import org.fiume.sketch.shared.auth0.User
 import org.fiume.sketch.shared.auth0.User.{UserCredentials, UserCredentialsWithId, Username}
-import org.fiume.sketch.shared.auth0.test.{PasswordsGens, UserGens}
-import org.fiume.sketch.shared.auth0.test.PasswordsGens.*
-import org.fiume.sketch.shared.auth0.test.UserGens.*
-import org.fiume.sketch.shared.test.ClockContext
-import org.fiume.sketch.shared.test.EitherSyntax.*
-import org.fiume.sketch.shared.test.Gens.DateAndTime.shortDurations
-import org.fiume.sketch.shared.test.StringSyntax.*
+import org.fiume.sketch.shared.auth0.testkit.{PasswordsGens, UserGens}
+import org.fiume.sketch.shared.auth0.testkit.PasswordsGens.*
+import org.fiume.sketch.shared.auth0.testkit.UserGens.*
+import org.fiume.sketch.shared.testkit.ClockContext
+import org.fiume.sketch.shared.testkit.EitherSyntax.*
+import org.fiume.sketch.shared.testkit.Gens.DateAndTime.shortDurations
+import org.fiume.sketch.shared.testkit.StringSyntax.*
 import org.scalacheck.{Gen, ShrinkLowPriority}
 import org.scalacheck.effect.PropF.forAllF
 

@@ -1,4 +1,4 @@
-package org.fiume.sketch.shared.test
+package org.fiume.sketch.shared.testkit
 
 import cats.effect.IO
 import cats.implicits.*
@@ -6,8 +6,8 @@ import io.circe.{Decoder, Encoder}
 import io.circe.parser.{decode, parse}
 import io.circe.syntax.*
 import munit.Assertions.*
-import org.fiume.sketch.shared.test.EitherSyntax.*
-import org.fiume.sketch.shared.test.FileContentContext
+import org.fiume.sketch.shared.testkit.EitherSyntax.*
+import org.fiume.sketch.shared.testkit.FileContentContext
 import org.scalacheck.Gen
 
 /*

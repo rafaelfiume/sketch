@@ -1,10 +1,10 @@
-package org.fiume.sketch.shared.auth0.test
+package org.fiume.sketch.shared.auth0.testkit
 
 import org.fiume.sketch.shared.auth0.Passwords.{HashedPassword, PlainPassword, Salt}
 import org.fiume.sketch.shared.auth0.User
 import org.fiume.sketch.shared.auth0.User.{UserCredentials, UserCredentialsWithId, Username}
-import org.fiume.sketch.shared.auth0.test.PasswordsGens.*
-import org.fiume.sketch.shared.auth0.test.UserGens.*
+import org.fiume.sketch.shared.auth0.testkit.PasswordsGens.*
+import org.fiume.sketch.shared.auth0.testkit.UserGens.*
 import org.scalacheck.{Arbitrary, Gen}
 
 import java.util.UUID
