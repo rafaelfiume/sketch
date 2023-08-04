@@ -9,6 +9,7 @@ import doobie.implicits.*
 import munit.CatsEffectSuite
 import org.fiume.sketch.storage.Config.DatabaseConfig
 import org.fiume.sketch.storage.postgres.SchemaMigration
+import org.http4s.Uri
 import org.testcontainers.containers.PostgreSQLContainer as JavaPostgreSQLContainer
 import org.testcontainers.utility.DockerImageName
 import org.typelevel.log4cats.slf4j.Slf4jLogger
@@ -46,10 +47,12 @@ trait DockerPostgresSuite extends CatsEffectSuite:
         )(c => IO(c.stop()))
       connectionPool: ExecutionContext =
         ExecutionContext.fromExecutorService(Executors.newFixedThreadPool(4))
-      jdbcUrl = s"jdbc:postgresql://${container.host}:${container.mappedPort(JavaPostgreSQLContainer.POSTGRESQL_PORT)}/${DockerDatabaseConfig.database}"
+      jdbcUrl = Uri.unsafeFromString(
+        s"jdbc:postgresql://${container.host}:${container.mappedPort(JavaPostgreSQLContainer.POSTGRESQL_PORT)}/${DockerDatabaseConfig.database}"
+      )
       tx <- HikariTransactor.newHikariTransactor[IO](
         DockerDatabaseConfig.driver,
-        jdbcUrl,
+        jdbcUrl.renderString,
         DockerDatabaseConfig.user,
         DockerDatabaseConfig.password,
         connectionPool

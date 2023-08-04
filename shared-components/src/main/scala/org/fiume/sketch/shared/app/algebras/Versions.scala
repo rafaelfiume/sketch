@@ -6,4 +6,5 @@ trait Versions[F[_]]:
   def currentVersion: F[Version]
 
 object Versions:
-  case class Version(build: String, commit: String)
+  case class Environment(name: String) extends AnyVal
+  case class Version(env: Environment, build: String, commit: String)

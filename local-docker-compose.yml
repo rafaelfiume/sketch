@@ -7,9 +7,9 @@ services:
       - "8080:8080"
     environment:
       - ENV=$ENV
-      - DB_URL=$DB_URL
-      - DB_USER=$DB_USER
-      - DB_PASS=$DB_PASS
+      - DB_URL=${DB_URL}
+      - DB_USER=${DB_USER}
+      - DB_PASS=${DB_PASS}
     depends_on:
       - database
     healthcheck:
@@ -22,5 +22,5 @@ services:
       - "5432:5432"
     environment:
       - POSTGRES_DB=sketch
-      - POSTGRES_USER=$DB_USER
-      - POSTGRES_PASSWORD=$DB_PASS
+      - POSTGRES_USER=${DB_USER}
+      - POSTGRES_PASSWORD=${DB_PASS}

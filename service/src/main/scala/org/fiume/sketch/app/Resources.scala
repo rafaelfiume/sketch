@@ -19,7 +19,7 @@ object Resources:
     for
       transactor <- DbTransactor.make(config.db)
       healthCheck0 <- PostgresHealthCheck.make[F](transactor)
-      versions0 <- SketchVersions.make[F](VersionFile("sketch.version"))
+      versions0 <- SketchVersions.make[F](config.env, VersionFile("sketch.version"))
       documentsStore0 <- PostgresDocumentsStore.make[F](transactor)
     yield new Resources[F]:
       override val healthCheck: HealthCheck[F] = healthCheck0
