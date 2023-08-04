@@ -1,4 +1,5 @@
 addSbtPlugin(Plugin.DependencyGraph)
+addSbtPlugin(Plugin.Gatling)
 addSbtPlugin(Plugin.Git)
 addSbtPlugin(Plugin.SbtNativePackager)
 addSbtPlugin(Plugin.Scalafix)

@@ -253,15 +253,18 @@ lazy val testAcceptance =
    project.in(file("test-acceptance"))
      .dependsOn(sharedTestComponents % Test)
      .disablePlugins(plugins.JUnitXmlReportPlugin)
+     .enablePlugins(GatlingPlugin)
      .settings(commonSettings: _*)
      .settings(
        name := "test-acceptance",
        libraryDependencies ++= Seq(
-         Dependency.cats,
-         Dependency.catsEffect,
-         Dependency.circeCore,
-         Dependency.http4sCirce,
-         Dependency.http4sEmberClient,
+         Dependency.cats % Test,
+         Dependency.catsEffect % Test,
+         Dependency.circeCore % Test,
+         Dependency.http4sCirce % Test,
+         Dependency.http4sEmberClient % Test,
+         Dependency.gatlingHighcharts % Test,
+         Dependency.gatlingTestFramework % Test,
          Dependency.munit % Test,
          Dependency.munitCatsEffect % Test
        )
