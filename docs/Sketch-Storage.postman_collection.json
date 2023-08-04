@@ -16,7 +16,7 @@
 						{
 							"key": "bytes",
 							"type": "file",
-							"src": "/Users/rafafium/rf-workspace/sketch/service/src/test/resources/mountain-bike-liguria-ponent.jpg"
+							"src": "/Users/rafafium/Desktop/Video 21-12-19, 13 48 11.mp4"
 						},
 						{
 							"key": "metadata",
@@ -26,7 +26,8 @@
 					]
 				},
 				"url": {
-					"raw": "localhost:8080/documents",
+					"raw": "http://localhost:8080/documents",
+					"protocol": "http",
 					"host": [
 						"localhost"
 					],
@@ -44,7 +45,7 @@
 				"method": "GET",
 				"header": [],
 				"url": {
-					"raw": "http://localhost:8080/documents/metadata?name=mountain-bike-liguria-ponent.jpg",
+					"raw": "http://localhost:8080/documents/41952178-1d7b-4f49-a6a8-77be11ecdd9e/metadata",
 					"protocol": "http",
 					"host": [
 						"localhost"
@@ -52,13 +53,8 @@
 					"port": "8080",
 					"path": [
 						"documents",
+						"41952178-1d7b-4f49-a6a8-77be11ecdd9e",
 						"metadata"
-					],
-					"query": [
-						{
-							"key": "name",
-							"value": "mountain-bike-liguria-ponent.jpg"
-						}
 					]
 				}
 			},
@@ -70,20 +66,15 @@
 				"method": "GET",
 				"header": [],
 				"url": {
-					"raw": "http://localhost:8080/documents?name=mountain-bike-liguria-ponent.jpg",
+					"raw": "http://localhost:8080/documents/41952178-1d7b-4f49-a6a8-77be11ecdd9e",
 					"protocol": "http",
 					"host": [
 						"localhost"
 					],
 					"port": "8080",
 					"path": [
-						"documents"
-					],
-					"query": [
-						{
-							"key": "name",
-							"value": "mountain-bike-liguria-ponent.jpg"
-						}
+						"documents",
+						"41952178-1d7b-4f49-a6a8-77be11ecdd9e"
 					]
 				}
 			},
@@ -92,23 +83,18 @@
 		{
 			"name": "Delete doc",
 			"request": {
-				"method": "GET",
+				"method": "DELETE",
 				"header": [],
 				"url": {
-					"raw": "http://localhost:8080/documents?name=mountain-bike-liguria-ponent.jpg",
+					"raw": "http://localhost:8080/documents/41952178-1d7b-4f49-a6a8-77be11ecdd9e",
 					"protocol": "http",
 					"host": [
 						"localhost"
 					],
 					"port": "8080",
 					"path": [
-						"documents"
-					],
-					"query": [
-						{
-							"key": "name",
-							"value": "mountain-bike-liguria-ponent.jpg"
-						}
+						"documents",
+						"41952178-1d7b-4f49-a6a8-77be11ecdd9e"
 					]
 				}
 			},

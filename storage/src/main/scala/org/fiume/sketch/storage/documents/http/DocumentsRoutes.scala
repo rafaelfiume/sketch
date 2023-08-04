@@ -74,7 +74,7 @@ class DocumentsRoutes[F[_]: Async, Txn[_]](enableLogging: Boolean)(store: Docume
           res <- metadata.fold(ifEmpty = NotFound())(Ok(_))
         yield res
 
-      case GET -> Root / "documents" / UUIDVar(uuid) / "content" =>
+      case GET -> Root / "documents" / UUIDVar(uuid) =>
         for
           stream <- store.commit { store.fetchContent(uuid) }
           res <- stream.fold(ifEmpty = NotFound())(Ok(_))

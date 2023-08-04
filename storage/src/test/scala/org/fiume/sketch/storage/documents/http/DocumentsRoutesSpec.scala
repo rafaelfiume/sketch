@@ -90,7 +90,7 @@ class DocumentsRoutesSpec
 
   test("Get document content"):
     forAllF { (document: DocumentWithId[IO]) =>
-      val request = GET(Uri.unsafeFromString(s"/documents/${document.uuid}/content"))
+      val request = GET(Uri.unsafeFromString(s"/documents/${document.uuid}"))
       for
         store <- makeDocumentsStore(state = document)
 
