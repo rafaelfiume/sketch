@@ -1,4 +1,4 @@
-package org.fiume.sketch.shared.test
+package org.fiume.sketch.shared.testkit
 
 import munit.Assertions.fail
 

@@ -9,15 +9,15 @@ import doobie.implicits.*
 import doobie.postgres.implicits.*
 import fs2.Stream
 import munit.ScalaCheckEffectSuite
-import org.fiume.sketch.shared.test.FileContentContext
+import org.fiume.sketch.shared.testkit.FileContentContext
 import org.fiume.sketch.storage.documents.Document
 import org.fiume.sketch.storage.documents.Document.Metadata
 import org.fiume.sketch.storage.documents.Document.Metadata.*
 import org.fiume.sketch.storage.documents.postgres.{DoobieMappings, PostgresDocumentsStore}
 import org.fiume.sketch.storage.documents.postgres.DoobieMappings.given
-import org.fiume.sketch.storage.test.support.DockerPostgresSuite
-import org.fiume.sketch.test.support.DocumentsGens.*
-import org.fiume.sketch.test.support.DocumentsGens.given
+import org.fiume.sketch.storage.testkit.DockerPostgresSuite
+import org.fiume.sketch.storage.testkit.DocumentsGens.*
+import org.fiume.sketch.storage.testkit.DocumentsGens.given
 import org.scalacheck.ShrinkLowPriority
 import org.scalacheck.effect.PropF.forAllF
 

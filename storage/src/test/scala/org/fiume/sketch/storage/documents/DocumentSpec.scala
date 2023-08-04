@@ -1,12 +1,13 @@
 package org.fiume.sketch.storage.documents
 
 import munit.ScalaCheckSuite
-import org.fiume.sketch.shared.test.EitherSyntax.*
+import org.fiume.sketch.shared.testkit.EitherSyntax.*
 import org.fiume.sketch.storage.documents.Document.Metadata.*
 import org.fiume.sketch.storage.documents.Document.Metadata.Name.InvalidDocumentNameError
 import org.fiume.sketch.storage.documents.Document.Metadata.Name.InvalidDocumentNameError.*
-import org.fiume.sketch.test.support.DocumentsGens.*
-import org.fiume.sketch.test.support.DocumentsGens.given
+import org.fiume.sketch.storage.testkit.DocumentsGens
+import org.fiume.sketch.storage.testkit.DocumentsGens.*
+import org.fiume.sketch.storage.testkit.DocumentsGens.given
 import org.scalacheck.{Gen, ShrinkLowPriority}
 import org.scalacheck.Prop.forAll
 

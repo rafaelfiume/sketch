@@ -1,11 +1,11 @@
-package org.fiume.sketch.shared.auth0.test
+package org.fiume.sketch.shared.auth0.testkit
 
 import cats.effect.IO
 import cats.effect.unsafe.IORuntime
 import cats.syntax.*
 import org.fiume.sketch.shared.auth0.Passwords.{HashedPassword, PlainPassword, Salt}
-import org.fiume.sketch.shared.auth0.test.PasswordsGens.*
-import org.fiume.sketch.shared.test.Gens.given
+import org.fiume.sketch.shared.auth0.testkit.PasswordsGens.*
+import org.fiume.sketch.shared.testkit.Gens.given
 import org.scalacheck.{Arbitrary, Gen}
 
 import scala.util.Random

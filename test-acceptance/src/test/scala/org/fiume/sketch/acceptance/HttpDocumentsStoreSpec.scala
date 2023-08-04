@@ -4,8 +4,8 @@ import cats.effect.IO
 import io.circe.Json
 import munit.Assertions.*
 import munit.CatsEffectSuite
-import org.fiume.sketch.acceptance.tests.Http4sClientContext
-import org.fiume.sketch.shared.test.FileContentContext
+import org.fiume.sketch.acceptance.testkit.Http4sClientContext
+import org.fiume.sketch.shared.testkit.FileContentContext
 import org.http4s.Status.*
 import org.http4s.circe.*
 

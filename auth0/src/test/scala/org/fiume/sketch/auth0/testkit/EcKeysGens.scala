@@ -1,4 +1,4 @@
-package org.fiume.sketch.auth0.test
+package org.fiume.sketch.auth0.testkit
 
 import cats.effect.IO
 import cats.effect.unsafe.IORuntime

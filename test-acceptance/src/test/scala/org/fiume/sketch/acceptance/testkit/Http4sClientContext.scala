@@ -1,4 +1,4 @@
-package org.fiume.sketch.acceptance.tests
+package org.fiume.sketch.acceptance.testkit
 
 import cats.effect.IO
 import munit.Assertions.*

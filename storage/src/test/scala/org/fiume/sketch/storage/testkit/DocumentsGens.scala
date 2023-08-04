@@ -1,13 +1,12 @@
-package org.fiume.sketch.test.support
+package org.fiume.sketch.storage.testkit
 
 import cats.effect.IO
 import fs2.Stream
-import org.fiume.sketch.shared.test.Gens.Bytes.*
-import org.fiume.sketch.shared.test.Gens.Strings.*
+import org.fiume.sketch.shared.testkit.Gens.Bytes.*
+import org.fiume.sketch.shared.testkit.Gens.Strings.*
 import org.fiume.sketch.storage.documents.{Document, DocumentWithId}
 import org.fiume.sketch.storage.documents.Document.Metadata
 import org.fiume.sketch.storage.documents.Document.Metadata.*
-import org.fiume.sketch.test.support.DocumentsGens.*
 import org.scalacheck.{Arbitrary, Gen}
 
 import java.util.UUID
