@@ -49,7 +49,8 @@ object HttpApi:
   import org.http4s.Uri
 
   def httpApp[F[_]: Async](res: Resources[F]): HttpRoutes[F] =
-    val documentsStorageRoute = new DocumentsRoutes[F, ConnectionIO](enableLogging = true)(res.documentsStore).router()
+    val documentsStorageRoute =
+      new DocumentsRoutes[F, ConnectionIO](enableLogging = true)(res.customWorkerThreadPool, res.documentsStore).router()
     val healthStatusRoutes = new HealthStatusRoutes[F](res.versions, res.healthCheck).router()
 
     // TODO pass origin over config

@@ -1,7 +1,8 @@
 package org.fiume.sketch.storage.documents.http
 
 import cats.data.{EitherT, NonEmptyChain, OptionT}
-import cats.effect.{IO, Ref}
+import cats.effect.{IO, Ref, Resource}
+import cats.effect.unsafe.IORuntime
 import cats.implicits.*
 import io.circe.Json
 import io.circe.syntax.*
@@ -32,6 +33,8 @@ import org.scalacheck.{Arbitrary, Gen, ShrinkLowPriority}
 import org.scalacheck.effect.PropF.forAllF
 
 import java.util.UUID
+import java.util.concurrent.Executors
+import scala.concurrent.ExecutionContext
 
 class DocumentsRoutesSpec
     extends CatsEffectSuite
@@ -56,9 +59,10 @@ class DocumentsRoutesSpec
       val request = POST(uri"/documents").withEntity(multipart).withHeaders(multipart.headers)
       for
         store <- makeDocumentsStore()
+        documentsRoutes <- makeDocumentsRoutes(store)
 
         jsonResponse <- send(request)
-          .to(new DocumentsRoutes[IO, IO](loggingFlag)(store).router())
+          .to(documentsRoutes.router())
           .expectJsonResponseWith(Status.Created)
 
         storedMetadata <- store.fetchMetadata(jsonResponse.as[UUID].rightValue)
@@ -78,9 +82,10 @@ class DocumentsRoutesSpec
       val request = GET(Uri.unsafeFromString(s"/documents/${document.uuid}/metadata"))
       for
         store <- makeDocumentsStore(state = document)
+        documentsRoutes <- makeDocumentsRoutes(store)
 
         jsonResponse <- send(request)
-          .to(new DocumentsRoutes[IO, IO](loggingFlag)(store).router())
+          .to(documentsRoutes.router())
           .expectJsonResponseWith(Status.Ok)
 
         _ <- IO {
@@ -94,9 +99,10 @@ class DocumentsRoutesSpec
       val request = GET(Uri.unsafeFromString(s"/documents/${document.uuid}"))
       for
         store <- makeDocumentsStore(state = document)
+        documentsRoutes <- makeDocumentsRoutes(store)
 
         contentStream <- send(request)
-          .to(new DocumentsRoutes[IO, IO](loggingFlag)(store).router())
+          .to(documentsRoutes.router())
           .expectByteStreamResponseWith(Status.Ok)
 
         obtainedStream <- contentStream.compile.toList
@@ -112,9 +118,10 @@ class DocumentsRoutesSpec
       val request = DELETE(Uri.unsafeFromString(s"/documents/${document.uuid}"))
       for
         store <- makeDocumentsStore(state = document)
+        documentsRoutes <- makeDocumentsRoutes(store)
 
         _ <- send(request)
-          .to(new DocumentsRoutes[IO, IO](loggingFlag)(store).router())
+          .to(documentsRoutes.router())
           .expectEmptyResponseWith(Status.NoContent)
 
         stored <- IO.both(
@@ -133,8 +140,9 @@ class DocumentsRoutesSpec
       val request = DELETE(Uri.unsafeFromString(s"/documents/${document.uuid}"))
       for
         store <- makeDocumentsStore()
+        documentsRoutes <- makeDocumentsRoutes(store)
         _ <- send(request)
-          .to(new DocumentsRoutes[IO, IO](loggingFlag)(store).router())
+          .to(documentsRoutes.router())
           .expectEmptyResponseWith(Status.NotFound)
       yield ()
     }
@@ -145,10 +153,11 @@ class DocumentsRoutesSpec
     forAllF(semanticallyInvalidDocumentRequests) { (multipart: Multipart[IO]) =>
       for
         store <- makeDocumentsStore()
+        documentsRoutes <- makeDocumentsRoutes(store)
 
         request = POST(uri"/documents").withEntity(multipart).withHeaders(multipart.headers)
         result <- send(request)
-          .to(new DocumentsRoutes[IO, IO](loggingFlag)(store).router())
+          .to(documentsRoutes.router())
           .expectJsonResponseWith(Status.UnprocessableEntity)
           .map(_.as[ErrorInfo].rightValue)
 
@@ -173,10 +182,11 @@ class DocumentsRoutesSpec
     forAllF(syntacticallyInvalidDocumentRequests) { (multipart: Multipart[IO]) =>
       for
         store <- makeDocumentsStore()
+        documentsRoutes <- makeDocumentsRoutes(store)
 
         request = POST(uri"/documents").withEntity(multipart).withHeaders(multipart.headers)
         result <- send(request)
-          .to(new DocumentsRoutes[IO, IO](loggingFlag)(store).router())
+          .to(documentsRoutes.router())
           .expectJsonResponseWith(Status.BadRequest)
           .map(_.as[ErrorInfo].rightValue)
 
@@ -265,6 +275,9 @@ trait DocumentsRoutesSpecContext:
       ),
       boundary = Boundary("boundary")
     )) :| "invalidTooShortDocumentName"
+
+  def makeDocumentsRoutes(withStore: DocumentsStore[IO, IO]): IO[DocumentsRoutes[IO, IO]] =
+    IO.delay { new DocumentsRoutes[IO, IO](loggingFlag)(IORuntime.global.compute, withStore) }
 
 trait DocumentsStoreContext:
   import fs2.Stream

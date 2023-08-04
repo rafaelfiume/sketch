@@ -32,6 +32,7 @@ import org.typelevel.log4cats.Logger
 import org.typelevel.log4cats.slf4j.Slf4jLogger
 
 import java.util.UUID
+import scala.concurrent.ExecutionContext
 
 import DocumentsRoutes.*
 import DocumentsRoutes.Model.MetadataPayload
@@ -41,7 +42,9 @@ import DocumentsRoutes.Model.MetadataPayload
  * - TODO Fix warning
  * - TODO Make sure there is a limit to the size of documents that can be uploaded
  */
-class DocumentsRoutes[F[_]: Async, Txn[_]](enableLogging: Boolean)(store: DocumentsStore[F, Txn]) extends Http4sDsl[F]:
+class DocumentsRoutes[F[_], Txn[_]](enableLogging: Boolean)(workerPool: ExecutionContext, store: DocumentsStore[F, Txn])(using
+  F: Async[F]
+) extends Http4sDsl[F]:
   private val prefix = "/"
 
   def router(): HttpRoutes[F] = Router(
@@ -61,11 +64,14 @@ class DocumentsRoutes[F[_]: Async, Txn[_]](enableLogging: Boolean)(store: Docume
        */
       case req @ POST -> Root / "documents" =>
         req.decode { (uploadRequest: Multipart[F]) =>
-          for
-            document <- uploadRequest.validated()
-            uuid <- store.commit { store.store(document) }
-            created <- Created(uuid)
-          yield created
+          F.evalOn(
+            for
+              document <- uploadRequest.validated()
+              uuid <- store.commit { store.store(document) }
+              created <- Created(uuid)
+            yield created,
+            workerPool
+          )
         }
 
       case GET -> Root / "documents" / UUIDVar(uuid) / "metadata" =>
@@ -75,10 +81,13 @@ class DocumentsRoutes[F[_]: Async, Txn[_]](enableLogging: Boolean)(store: Docume
         yield res
 
       case GET -> Root / "documents" / UUIDVar(uuid) =>
-        for
-          stream <- store.commit { store.fetchContent(uuid) }
-          res <- stream.fold(ifEmpty = NotFound())(Ok(_))
-        yield res
+        F.evalOn(
+          for
+            stream <- store.commit { store.fetchContent(uuid) }
+            res <- stream.fold(ifEmpty = NotFound())(Ok(_))
+          yield res,
+          workerPool
+        )
 
       case DELETE -> Root / "documents" / UUIDVar(uuid) =>
         for
