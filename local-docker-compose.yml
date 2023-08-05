@@ -18,7 +18,7 @@ services:
       test: ["CMD-SHELL", "curl sketch:8080/ping"]
 
   database:
-    image: postgres:13.6
+    image: postgres:15.3-bullseye
     container_name: db
     ports:
       - "5432:5432"
