@@ -50,8 +50,8 @@ object HttpApi:
 
   def httpApp[F[_]: Async](res: Resources[F]): HttpRoutes[F] =
     val documentsStorageRoute =
-      new DocumentsRoutes[F, ConnectionIO](enableLogging = true)(res.customWorkerThreadPool, res.documentsStore).router()
-    val healthStatusRoutes = new HealthStatusRoutes[F](res.versions, res.healthCheck).router()
+      new DocumentsRoutes[F, ConnectionIO](enableLogging = false)(res.customWorkerThreadPool, res.documentsStore).router()
+    val healthStatusRoutes = new HealthStatusRoutes[F](res.customWorkerThreadPool, res.versions, res.healthCheck).router()
 
     // TODO pass origin over config
     val corsRoutes = corsPolicy(

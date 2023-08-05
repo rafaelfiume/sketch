@@ -31,6 +31,7 @@ object ServiceConfig:
         driver = "org.postgresql.Driver",
         uri = jdbcUrl,
         user = dbUser,
-        password = dbPassword
+        password = dbPassword,
+        dbPoolThreads = 10
       )
     )).load[F]

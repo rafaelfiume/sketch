@@ -1,18 +1,18 @@
 package org.fiume.sketch.load
 
 import cats.effect.IO
-import org.fiume.sketch.shared.testkit.FileContentContext
-import io.gatling.core.Predef.*
-import io.gatling.http.Predef.*
-import io.gatling.http.Predef.http
-import scala.concurrent.duration.*
 import cats.effect.unsafe.IORuntime
+import io.gatling.core.Predef.*
+import io.gatling.http.Predef.{http, *}
+import org.fiume.sketch.shared.testkit.FileContentContext
 
-class DocumentsRoutesSimulation extends Simulation with FileContentContext with DocumentsRoutesSimulationContext {
+import scala.concurrent.duration.*
+
+class DocumentsRoutesSimulation extends Simulation with FileContentContext with DocumentsRoutesSimulationContext:
 
   val docName = "Nicolas_e_Joana"
   val docDesc = "Meus amores <3"
-  val pathToFile = "meus-amores.mp4"
+  val pathToFile = "meus-fofinhos.jpg"
   given IORuntime = IORuntime.global
   val bytes = bytesFrom[IO](pathToFile).compile.toVector.map(_.toArray).unsafeRunSync()
 
@@ -22,37 +22,37 @@ class DocumentsRoutesSimulation extends Simulation with FileContentContext with 
     .contentTypeHeader("multipart/form-data")
 
   val scn = scenario("DocumentsRoutes")
-    .exec(http("create document")
-      .post("/documents")
-      .header("Content-Type", "multipart/form-data")
-      .bodyParts(
-        StringBodyPart("metadata", payload(docName, docDesc)),
-        ByteArrayBodyPart("bytes", bytes)
-          .fileName(docName)
-          .contentType("application/octet-stream")
-      )
-      .asMultipartForm
-      .check(status.is(201))
-      .check(jsonPath("$.uuid").saveAs("documentId"))
+    .exec(
+      http("create document")
+        .post("/documents")
+        .header("Content-Type", "multipart/form-data")
+        .bodyParts(
+          StringBodyPart("metadata", payload(docName, docDesc)),
+          ByteArrayBodyPart("bytes", bytes)
+            .fileName(docName)
+            .contentType("application/octet-stream")
+        )
+        .asMultipartForm
+        .check(status.is(201))
+        .check(jsonPath("$.uuid").saveAs("documentId"))
     )
-    .pause(1.second)
-    .exec(http("get document")
-      .get("/documents/${documentId}")
-      .check(status.is(200))
+    .exec(
+      http("get document")
+        .get("/documents/${documentId}")
+        .check(status.is(200))
     )
-    .pause(1.second)
-    .exec(http("delete document")
-      .delete("/documents/${documentId}")
-      .check(status.is(204))
+    .exec(
+      http("delete document")
+        .delete("/documents/${documentId}")
+        .check(status.is(204))
     )
 
   setUp(
     scn.inject(
-      rampUsersPerSec(1).to(10).during(3.seconds),
-      constantUsersPerSec(10).during(3.seconds)
+      constantUsersPerSec(5).during(10.seconds), // Stay at 5 users for 10 secs
+      rampUsersPerSec(1).to(20).during(60.seconds) // Ramp up to 20 users in 60 secs
     )
   ).protocols(httpProtocol)
-}
 
 // TODO: duplicated
 trait DocumentsRoutesSimulationContext:

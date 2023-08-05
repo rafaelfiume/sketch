@@ -10,7 +10,8 @@ import org.fiume.sketch.shared.app.http4s.middlewares.{
   ErrorInfoMiddleware,
   SemanticInputError,
   SyntaxInputError,
-  TraceAuditLogMiddleware
+  TraceAuditLogMiddleware,
+  WorkerMiddleware
 }
 import org.fiume.sketch.shared.app.troubleshooting.{ErrorCode, ErrorDetails, ErrorMessage, InvariantError}
 import org.fiume.sketch.shared.app.troubleshooting.ErrorInfo.given
@@ -48,7 +49,9 @@ class DocumentsRoutes[F[_], Txn[_]](enableLogging: Boolean)(workerPool: Executio
   private val prefix = "/"
 
   def router(): HttpRoutes[F] = Router(
-    prefix -> TraceAuditLogMiddleware(Slf4jLogger.getLogger[F], enableLogging)(ErrorInfoMiddleware(httpRoutes))
+    prefix -> WorkerMiddleware(workerPool)(
+      TraceAuditLogMiddleware(Slf4jLogger.getLogger[F], enableLogging)(ErrorInfoMiddleware(httpRoutes))
+    )
   )
 
   private val httpRoutes: HttpRoutes[F] =
@@ -64,14 +67,11 @@ class DocumentsRoutes[F[_], Txn[_]](enableLogging: Boolean)(workerPool: Executio
        */
       case req @ POST -> Root / "documents" =>
         req.decode { (uploadRequest: Multipart[F]) =>
-          F.evalOn(
-            for
-              document <- uploadRequest.validated()
-              uuid <- store.commit { store.store(document) }
-              created <- Created(uuid)
-            yield created,
-            workerPool
-          )
+          for
+            document <- uploadRequest.validated()
+            uuid <- store.commit { store.store(document) }
+            created <- Created(uuid)
+          yield created
         }
 
       case GET -> Root / "documents" / UUIDVar(uuid) / "metadata" =>
@@ -81,13 +81,10 @@ class DocumentsRoutes[F[_], Txn[_]](enableLogging: Boolean)(workerPool: Executio
         yield res
 
       case GET -> Root / "documents" / UUIDVar(uuid) =>
-        F.evalOn(
-          for
-            stream <- store.commit { store.fetchContent(uuid) }
-            res <- stream.fold(ifEmpty = NotFound())(Ok(_))
-          yield res,
-          workerPool
-        )
+        for
+          stream <- store.commit { store.fetchContent(uuid) }
+          res <- stream.fold(ifEmpty = NotFound())(Ok(_))
+        yield res
 
       case DELETE -> Root / "documents" / UUIDVar(uuid) =>
         for

@@ -41,7 +41,7 @@ object Resources:
             private val counter = new AtomicLong(0L)
             def newThread(r: Runnable): Thread =
               val th = new Thread(r)
-              th.setName("custome-worker-thread-pool-" + counter.getAndIncrement.toString)
+              th.setName("custom-worker-thread-pool-" + counter.getAndIncrement.toString)
               th.setDaemon(true)
               th
         )
