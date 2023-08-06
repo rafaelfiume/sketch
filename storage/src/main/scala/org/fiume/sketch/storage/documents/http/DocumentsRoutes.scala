@@ -9,11 +9,10 @@ import fs2.Stream
 import org.fiume.sketch.shared.app.http4s.middlewares.{
   ErrorInfoMiddleware,
   SemanticInputError,
-  SyntaxInputError,
   TraceAuditLogMiddleware,
   WorkerMiddleware
 }
-import org.fiume.sketch.shared.app.troubleshooting.{ErrorCode, ErrorDetails, ErrorMessage, InvariantError}
+import org.fiume.sketch.shared.app.troubleshooting.{ErrorDetails, ErrorMessage, InvariantError}
 import org.fiume.sketch.shared.app.troubleshooting.ErrorInfo.given
 import org.fiume.sketch.shared.app.troubleshooting.InvariantErrorSyntax.asDetails
 import org.fiume.sketch.storage.documents.Document
@@ -29,6 +28,7 @@ import org.http4s.dsl.Http4sDsl
 import org.http4s.dsl.io.QueryParamDecoderMatcher
 import org.http4s.multipart.{Multipart, Part, *}
 import org.http4s.server.Router
+import org.http4s.server.middleware.EntityLimiter
 import org.typelevel.log4cats.Logger
 import org.typelevel.log4cats.slf4j.Slf4jLogger
 
@@ -40,31 +40,25 @@ import DocumentsRoutes.Model.MetadataPayload
 
 /*
  * - TODO Endpoint to update documents
- * - TODO Fix warning
- * - TODO Make sure there is a limit to the size of documents that can be uploaded
  */
 class DocumentsRoutes[F[_], Txn[_]](enableLogging: Boolean)(workerPool: ExecutionContext, store: DocumentsStore[F, Txn])(using
   F: Async[F]
 ) extends Http4sDsl[F]:
   private val prefix = "/"
+  private val sixMb = 6 * 1024 * 1024
 
   def router(): HttpRoutes[F] = Router(
-    prefix -> WorkerMiddleware(workerPool)(
-      TraceAuditLogMiddleware(Slf4jLogger.getLogger[F], enableLogging)(ErrorInfoMiddleware(httpRoutes))
-    )
+    prefix ->
+      EntityLimiter(
+        WorkerMiddleware[F](workerPool)
+          .andThen(TraceAuditLogMiddleware[F](Slf4jLogger.getLogger[F], enableLogging))
+          .andThen(ErrorInfoMiddleware.apply)(httpRoutes),
+        limit = sixMb
+      )
   )
 
   private val httpRoutes: HttpRoutes[F] =
     HttpRoutes.of[F] {
-      /*
-       * > [io-compute-9] INFO org.fiume.sketch.storage.http.DocumentsRoutes - Received request to upload document Name(altamura.jpg)
-       * > [WARNING] Your app's responsiveness to a new asynchronous event (such as a
-       * > new connection, an upstream response, or a timer) was in excess of 100 milliseconds.
-       * > Your CPU is probably starving. Consider increasing the granularity
-       * > of your delays or adding more cedes. This may also be a sign that you are
-       * > unintentionally running blocking I/O operations (such as File or InetAddress)
-       * > without the blocking combinator.
-       */
       case req @ POST -> Root / "documents" =>
         req.decode { (uploadRequest: Multipart[F]) =>
           for
@@ -103,7 +97,10 @@ private[http] object DocumentsRoutes:
   extension [F[_]: MonadThrow: Concurrent](m: Multipart[F])
     def validated(): F[Document[F]] =
       (m.metadata(), m.bytes()).parTupled
-        .foldF(errors => semanticInputError(errors).raiseError, _.pure[F])
+        .foldF(
+          details => SemanticInputError.makeFrom(details).raiseError,
+          _.pure[F]
+        )
         .flatMap { case (metadataPayload, bytes) =>
           metadataPayload
             .as[MetadataPayload]
@@ -111,7 +108,10 @@ private[http] object DocumentsRoutes:
             .leftMap(_ =>
               ErrorDetails(Map("malformed.document.metadata.payload" -> "the metadata payload does not meet the contract"))
             )
-            .foldF(errors => SyntaxInputError(errors).raiseError, (_, bytes).pure[F])
+            .foldF(
+              details => SemanticInputError.makeFrom(details).raiseError,
+              (_, bytes).pure[F]
+            )
         }
         .flatMap { case (payload, stream) =>
           (
@@ -119,7 +119,10 @@ private[http] object DocumentsRoutes:
             EitherT.pure(Description(payload.description)),
             EitherT.pure(stream)
           ).parMapN((name, description, bytes) => Document(Metadata(name, description), bytes))
-            .foldF(errors => semanticInputError(errors).raiseError, _.pure[F])
+            .foldF(
+              details => SemanticInputError.makeFrom(details).raiseError,
+              _.pure[F]
+            )
         }
 
     private def metadata(): EitherT[F, ErrorDetails, Part[F]] = EitherT
@@ -147,10 +150,3 @@ private[http] object DocumentsRoutes:
           )
           .map(_.body)
       }
-
-    private def semanticInputError(errors: ErrorDetails) =
-      SemanticInputError(
-        ErrorCode.InvalidDocument,
-        ErrorMessage("Your document upload request is incomplete or contains invalid data."),
-        errors
-      )

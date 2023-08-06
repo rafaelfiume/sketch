@@ -8,8 +8,8 @@ import io.circe.Json
 import io.circe.syntax.*
 import munit.{CatsEffectSuite, ScalaCheckEffectSuite}
 import munit.Assertions.*
-import org.fiume.sketch.shared.app.http4s.middlewares.{SemanticInputError, SyntaxInputError}
-import org.fiume.sketch.shared.app.troubleshooting.{ErrorCode, ErrorDetails, ErrorInfo, ErrorMessage}
+import org.fiume.sketch.shared.app.http4s.middlewares.SemanticInputError
+import org.fiume.sketch.shared.app.troubleshooting.{ErrorDetails, ErrorInfo, ErrorMessage}
 import org.fiume.sketch.shared.app.troubleshooting.http.PayloadCodecs.ErrorInfoCodecs.given
 import org.fiume.sketch.shared.testkit.{ContractContext, FileContentContext, Http4sTestingRoutesDsl}
 import org.fiume.sketch.shared.testkit.EitherSyntax.*
@@ -162,8 +162,7 @@ class DocumentsRoutesSpec
           .map(_.as[ErrorInfo].rightValue)
 
         _ <- IO {
-          assertEquals(result.code, ErrorCode.InvalidDocument)
-          assertEquals(result.message, ErrorMessage("Your document upload request is incomplete or contains invalid data."))
+          assertEquals(result.message, SemanticInputError.message)
           assert(
             result.details
               .exists {
@@ -178,8 +177,8 @@ class DocumentsRoutesSpec
       yield ()
     }
 
-  test("return 400 when document upload request is syntactically invalid"):
-    forAllF(syntacticallyInvalidDocumentRequests) { (multipart: Multipart[IO]) =>
+  test("return 422 when document upload request is malformed"):
+    forAllF(malformedDocumentRequests) { (multipart: Multipart[IO]) =>
       for
         store <- makeDocumentsStore()
         documentsRoutes <- makeDocumentsRoutes(store)
@@ -187,12 +186,11 @@ class DocumentsRoutesSpec
         request = POST(uri"/documents").withEntity(multipart).withHeaders(multipart.headers)
         result <- send(request)
           .to(documentsRoutes.router())
-          .expectJsonResponseWith(Status.BadRequest)
+          .expectJsonResponseWith(Status.UnprocessableEntity)
           .map(_.as[ErrorInfo].rightValue)
 
         _ <- IO {
-          assertEquals(result.code, ErrorCode.InvalidClientInput)
-          assertEquals(result.message, ErrorMessage("Please, check the client request conforms to the API contract."))
+          assertEquals(result.message, SemanticInputError.message)
           assert(result.details.get.tips.contains("malformed.document.metadata.payload"))
         }
       yield ()
@@ -228,7 +226,7 @@ trait DocumentsRoutesSpecContext:
 
   def montainBikeInLiguriaImageFile = getClass.getClassLoader.getResource("mountain-bike-liguria-ponent.jpg")
 
-  def syntacticallyInvalidDocumentRequests: Gen[Multipart[IO]] = Gen.delay {
+  def malformedDocumentRequests: Gen[Multipart[IO]] = Gen.delay {
     Multipart[IO](
       parts = Vector(
         Part.formData("metadata", """ { \"bananas\" : \"apples\" } """),

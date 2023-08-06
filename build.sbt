@@ -167,6 +167,7 @@ lazy val sharedComponents =
         Dependency.fs2Core,
         Dependency.http4sCirce,
         Dependency.http4sDsl,
+        Dependency.http4sEmberServer,
         Dependency.munit % "test,it",
         Dependency.munitCatsEffect % "test,it",
         Dependency.munitScalaCheck % "test,it",

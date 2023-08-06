@@ -9,7 +9,8 @@ import org.fiume.sketch.auth0.{AuthenticationError, Authenticator, JwtToken}
 import org.fiume.sketch.auth0.AuthenticationError.*
 import org.fiume.sketch.auth0.http.AuthRoutes.Model.{LoginRequestPayload, LoginResponsePayload}
 import org.fiume.sketch.auth0.http.PayloadCodecs.Login.given
-import org.fiume.sketch.shared.app.troubleshooting.{ErrorCode, ErrorDetails, ErrorInfo, ErrorMessage}
+import org.fiume.sketch.shared.app.http4s.middlewares.SemanticInputError
+import org.fiume.sketch.shared.app.troubleshooting.{ErrorDetails, ErrorInfo, ErrorMessage}
 import org.fiume.sketch.shared.app.troubleshooting.http.PayloadCodecs.ErrorInfoCodecs.given
 import org.fiume.sketch.shared.auth0.Passwords.PlainPassword
 import org.fiume.sketch.shared.auth0.User
@@ -82,7 +83,6 @@ class AuthRoutesSpec
           assertEquals(
             jsonResponse.as[ErrorInfo].rightValue,
             ErrorInfo.short(
-              code = ErrorCode.InvalidUserCredentials,
               message = ErrorMessage("The username or password provided is incorrect.")
             )
           )
@@ -110,7 +110,6 @@ class AuthRoutesSpec
           assertEquals(
             jsonResponse.as[ErrorInfo].rightValue,
             ErrorInfo.short(
-              code = ErrorCode.InvalidUserCredentials,
               message = ErrorMessage("The username or password provided is incorrect.")
             )
           )
@@ -134,8 +133,7 @@ class AuthRoutesSpec
           .map(_.as[ErrorInfo].rightValue)
 
         _ <- IO {
-          assertEquals(result.code, ErrorCode.InvalidClientInput)
-          assertEquals(result.message, ErrorMessage("The username or password provided is incorrect."))
+          assertEquals(result.message, SemanticInputError.message)
           val allInputErrors = Username.invariantErrors.map(_.uniqueCode) ++ PlainPassword.invariantErrors.map(_.uniqueCode)
           val actualInputErrors = result.details.get.tips.keys.toSet
           assert(actualInputErrors.subsetOf(allInputErrors),
@@ -145,7 +143,7 @@ class AuthRoutesSpec
       yield ()
     }
 
-  test("return 400 when login request is synctactically invalid"):
+  test("return 422 when login request body is malformed"):
     forAllF(malformedInputs) { badClientInput =>
       for
         authenticator <- makeAuthenticator()
@@ -153,13 +151,12 @@ class AuthRoutesSpec
         request = POST(uri"/login").withEntity(badClientInput)
         result <- send(request)
           .to(new AuthRoutes[IO](loggingFlag)(authenticator).router())
-          .expectJsonResponseWith(Status.BadRequest)
+          .expectJsonResponseWith(Status.UnprocessableEntity)
           .map(_.as[ErrorInfo].rightValue)
 
         _ <- IO {
-          assertEquals(result.code, ErrorCode.InvalidClientInput)
-          assertEquals(result.message, ErrorMessage("Please, check the client request conforms to the API contract."))
-          assert(result.details.get.tips.contains("input.syntax.error"))
+          assertEquals(result.message, SemanticInputError.message)
+          assertEquals(result.details, ErrorDetails(Map("input.semantic.error" -> "The request body was invalid.")).some)
         }
       yield ()
     }

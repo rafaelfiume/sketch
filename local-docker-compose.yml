@@ -18,6 +18,7 @@ services:
       test: ["CMD-SHELL", "curl sketch:8080/ping"]
 
   database:
+    # Don't forget to update DockerDatabaseConfig
     image: postgres:15.3-bullseye
     container_name: db
     ports:

@@ -4,17 +4,27 @@ import cats.Invariant
 import cats.data.{Kleisli, OptionT}
 import cats.effect.Async
 import cats.implicits.*
-import org.fiume.sketch.shared.app.troubleshooting.{ErrorCode, ErrorDetails, ErrorInfo, ErrorMessage}
+import org.fiume.sketch.shared.app.troubleshooting.{ErrorDetails, ErrorInfo, ErrorMessage}
 import org.fiume.sketch.shared.app.troubleshooting.http.PayloadCodecs.ErrorInfoCodecs.given
 import org.http4s.*
-import org.http4s.circe.CirceEntityDecoder.*
 import org.http4s.circe.CirceEntityEncoder.*
 import org.http4s.dsl.Http4sDsl
 
 import scala.util.control.NoStackTrace
 
-case class SyntaxInputError(details: ErrorDetails) extends NoStackTrace
-case class SemanticInputError(code: ErrorCode, message: ErrorMessage, details: ErrorDetails) extends NoStackTrace
+sealed abstract case class SemanticInputError(message: ErrorMessage, details: ErrorDetails) extends NoStackTrace
+
+object SemanticInputError:
+  val message = ErrorMessage("""
+      |Please, check the request body conforms to the established semantic rules. Tips:
+      | * Does the request conforms to the API contract?
+      | * Does it include invalid data, for instance a password that is too short or a username with invalid characters?
+      | * Does the entity exceed a certain size, for example a request to upload a document that is too large?
+    """.stripMargin)
+
+  def makeFrom(details: ErrorDetails) = new SemanticInputError(message, details) {}
+
+  extension (error: SemanticInputError) def toErrorInfo = ErrorInfo.withDetails(error.message, error.details)
 
 // TODO make this middleware more generic, so it can catch any kind of error and return ErrorInfo
 object ErrorInfoMiddleware:
@@ -31,38 +41,14 @@ object ErrorInfoMiddleware:
             case Status.UnprocessableEntity =>
               response
                 .as[String]
-                .flatMap { body => Status.UnprocessableEntity(semanticInputErrorInfoFromString(body)) }
-                .recoverWith { case e: Throwable =>
-                  Status.BadRequest(syntaxInputErrorInfoFromString(e.getMessage()))
+                .flatMap { body =>
+                  Status.UnprocessableEntity(
+                    SemanticInputError.makeFrom(ErrorDetails(Map("input.semantic.error" -> body))).toErrorInfo
+                  )
                 }
             case _ => response.pure[F]
         }
-        .handleError {
-          // these are raised by the routes when validating requests
-          case SyntaxInputError(details) =>
-            Response[F](Status.BadRequest).withEntity(syntaxInputErrorInfo(details))
-
-          case SemanticInputError(code, message, details) =>
-            Response[F](Status.UnprocessableEntity).withEntity(ErrorInfo.withDetails(code, message, details))
+        .handleError { case SemanticInputError(message, details) =>
+          Response[F](Status.UnprocessableEntity).withEntity(SemanticInputError.makeFrom(details).toErrorInfo)
         }
     }
-
-  private def semanticInputErrorInfoFromString(details: String) =
-    semanticInputErrorInfo(ErrorDetails(Map("input.semantic.error" -> details)))
-
-  private def semanticInputErrorInfo(details: ErrorDetails) =
-    ErrorInfo.withDetails(
-      ErrorCode.InvalidClientInput,
-      ErrorMessage("????"),
-      details
-    )
-
-  private def syntaxInputErrorInfoFromString(details: String) =
-    syntaxInputErrorInfo(ErrorDetails(Map("input.syntax.error" -> details)))
-
-  private def syntaxInputErrorInfo(details: ErrorDetails) =
-    ErrorInfo.withDetails(
-      ErrorCode.InvalidClientInput,
-      ErrorMessage("Please, check the client request conforms to the API contract."),
-      details
-    )
