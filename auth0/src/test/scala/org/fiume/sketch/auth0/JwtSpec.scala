@@ -4,6 +4,7 @@ import cats.effect.{Clock, IO}
 import cats.implicits.*
 import munit.{CatsEffectSuite, ScalaCheckEffectSuite}
 import munit.Assertions.*
+import org.bouncycastle.jce.provider.BouncyCastleProvider
 import org.fiume.sketch.auth0.testkit.EcKeysGens
 import org.fiume.sketch.shared.auth0.User
 import org.fiume.sketch.shared.auth0.testkit.UserGens.*
@@ -13,9 +14,12 @@ import org.fiume.sketch.shared.testkit.Gens.DateAndTime.*
 import org.scalacheck.ShrinkLowPriority
 import org.scalacheck.effect.PropF.forAllF
 
+import java.security.Security
 import java.time.ZonedDateTime
 
 class JwtSpec extends CatsEffectSuite with ScalaCheckEffectSuite with ClockContext with EcKeysGens with ShrinkLowPriority:
+
+  Security.addProvider(new BouncyCastleProvider())
 
   test("create and parse jwt token"):
     forAllF(ecKeyPairs, users, shortDurations) { case ((privateKey, publicKey), user, expirationOffset) =>

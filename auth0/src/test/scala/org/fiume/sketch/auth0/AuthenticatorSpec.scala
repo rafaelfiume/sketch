@@ -2,6 +2,7 @@ package org.fiume.sketch.auth0
 
 import cats.effect.{Clock, IO}
 import munit.{CatsEffectSuite, ScalaCheckEffectSuite}
+import org.bouncycastle.jce.provider.BouncyCastleProvider
 import org.fiume.sketch.auth0.AuthenticationError.*
 import org.fiume.sketch.auth0.Authenticator.*
 import org.fiume.sketch.auth0.testkit.EcKeysGens
@@ -18,6 +19,7 @@ import org.fiume.sketch.shared.testkit.StringSyntax.*
 import org.scalacheck.{Gen, ShrinkLowPriority}
 import org.scalacheck.effect.PropF.forAllF
 
+import java.security.Security
 import java.security.interfaces.{ECPrivateKey, ECPublicKey}
 import java.time.ZonedDateTime
 import scala.concurrent.duration.*
@@ -33,6 +35,8 @@ class AuthenticatorSpec
 
   override def scalaCheckTestParameters =
     super.scalaCheckTestParameters.withMinSuccessfulTests(1)
+
+  Security.addProvider(new BouncyCastleProvider())
 
   test("authenticate and verify user with valid credentials"):
     forAllF(validCredentialsWithIdAndPlainPassword, ecKeyPairs, shortDurations) {

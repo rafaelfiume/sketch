@@ -74,6 +74,7 @@ lazy val auth0 =
 lazy val service =
    project.in(file("service"))
      .dependsOn(sharedComponents)
+     .dependsOn(auth0)
      .dependsOn(storage)
      .dependsOn(sharedTestComponents % Test)
      .enablePlugins(JavaAppPackaging)

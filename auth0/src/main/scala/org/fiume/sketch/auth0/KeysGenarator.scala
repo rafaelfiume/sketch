@@ -2,16 +2,13 @@ package org.fiume.sketch.auth0
 
 import cats.effect.Sync
 import cats.implicits.*
-import org.bouncycastle.jce.provider.BouncyCastleProvider
 
 import java.io.StringWriter
-import java.security.{KeyPairGenerator, Security}
+import java.security.KeyPairGenerator
 import java.security.interfaces.{ECPrivateKey, ECPublicKey}
 import java.security.spec.ECGenParameterSpec
 
 object KeysGenerator:
-  Security.addProvider(new BouncyCastleProvider())
-
   def makeEcKeyPairs[F[_]]()(using F: Sync[F]): F[(ECPrivateKey, ECPublicKey)] =
     F.blocking { // cpu-bound blocking operation
       /* Ensure thread-safety by instantiating a new KeyPairGenerator every time asymetric keys are created */

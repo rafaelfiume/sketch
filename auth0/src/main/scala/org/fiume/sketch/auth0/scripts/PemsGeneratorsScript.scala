@@ -19,10 +19,10 @@ object PemsGeneratorsScript extends IOApp:
     Stream.emit(content).through(text.utf8.encode).through(Files[IO].writeAll(path))
 
   def run(args: List[String]): IO[ExitCode] =
-    for {
+    for
       keyPair <- KeysGenerator.makeEcKeyPairs[IO]()
       privateKeyPem = KeyStringifier.toPemString(keyPair._1)
       publicKeyPem = KeyStringifier.toPemString(keyPair._2)
       _ <- writeToFile(resourcesPath./(privateKeyPath), privateKeyPem).compile.drain
       _ <- writeToFile(resourcesPath./(publicKeyPath), publicKeyPem).compile.drain
-    } yield ExitCode.Success
+    yield ExitCode.Success
