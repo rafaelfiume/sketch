@@ -26,8 +26,7 @@ object SemanticInputError:
 
   extension (error: SemanticInputError) def toErrorInfo = ErrorInfo.withDetails(error.message, error.details)
 
-// TODO make this middleware more generic, so it can catch any kind of error and return ErrorInfo
-object ErrorInfoMiddleware:
+object SemanticValidationMiddleware:
   def apply[F[_]: Async](routes: HttpRoutes[F]): HttpRoutes[F] =
     val dsl = Http4sDsl[F]
     import dsl.*
@@ -48,7 +47,9 @@ object ErrorInfoMiddleware:
                 }
             case _ => response.pure[F]
         }
-        .handleError { case SemanticInputError(message, details) =>
-          Response[F](Status.UnprocessableEntity).withEntity(SemanticInputError.makeFrom(details).toErrorInfo)
+        .handleError {
+          // there are raised by validation functions in the service routes
+          case SemanticInputError(message, details) =>
+            Response[F](Status.UnprocessableEntity).withEntity(SemanticInputError.makeFrom(details).toErrorInfo)
         }
     }

@@ -7,8 +7,8 @@ import cats.effect.kernel.Async
 import cats.implicits.*
 import fs2.Stream
 import org.fiume.sketch.shared.app.http4s.middlewares.{
-  ErrorInfoMiddleware,
   SemanticInputError,
+  SemanticValidationMiddleware,
   TraceAuditLogMiddleware,
   WorkerMiddleware
 }
@@ -52,7 +52,7 @@ class DocumentsRoutes[F[_], Txn[_]](enableLogging: Boolean)(workerPool: Executio
       EntityLimiter(
         WorkerMiddleware[F](workerPool)
           .andThen(TraceAuditLogMiddleware[F](Slf4jLogger.getLogger[F], enableLogging))
-          .andThen(ErrorInfoMiddleware.apply)(httpRoutes),
+          .andThen(SemanticValidationMiddleware.apply)(httpRoutes),
         limit = sixMb
       )
   )
