@@ -1,15 +1,13 @@
 package org.fiume.sketch.auth0.scripts
 
+import cats.effect.{ExitCode, IO, IOApp}
+import fs2.{io, text, Stream}
+import fs2.io.file.{Files, Path}
+import org.fiume.sketch.auth0.{KeyStringifier, KeysGenerator}
+
 import java.security.KeyPairGenerator
 import java.security.spec.PKCS8EncodedKeySpec
 import java.util.Base64
-
-import cats.effect.{ExitCode, IO, IOApp}
-import fs2.{Stream, io, text}
-import fs2.io.file.Files
-import fs2.io.file.Path
-import org.fiume.sketch.auth0.KeysGenerator
-import org.fiume.sketch.auth0.KeyStringifier
 
 object PemsGeneratorsScript extends IOApp:
 
