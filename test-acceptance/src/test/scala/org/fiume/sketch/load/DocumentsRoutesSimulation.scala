@@ -17,7 +17,7 @@ class DocumentsRoutesSimulation extends Simulation with FileContentContext with 
   val bytes = bytesFrom[IO](pathToFile).compile.toVector.map(_.toArray).unsafeRunSync()
 
   val httpProtocol = http
-    .baseUrl("http://localhost:8080") // replace with your server URL
+    .baseUrl("http://localhost:8080")
     .acceptHeader("application/json")
     .contentTypeHeader("multipart/form-data")
 

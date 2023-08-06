@@ -39,13 +39,15 @@ import DocumentsRoutes.*
 import DocumentsRoutes.Model.MetadataPayload
 
 /*
- * - TODO Endpoint to update documents
+ * TODO Update documents
  */
-class DocumentsRoutes[F[_], Txn[_]](enableLogging: Boolean)(workerPool: ExecutionContext, store: DocumentsStore[F, Txn])(using
-  F: Async[F]
-) extends Http4sDsl[F]:
+class DocumentsRoutes[F[_], Txn[_]](enableLogging: Boolean, documentSizeLimit: Int = 6 * 1024 * 1024 /*6Mb*/ )(
+  workerPool: ExecutionContext,
+  store: DocumentsStore[F, Txn]
+)(using F: Async[F])
+    extends Http4sDsl[F]:
+
   private val prefix = "/"
-  private val sixMb = 6 * 1024 * 1024
 
   def router(): HttpRoutes[F] = Router(
     prefix ->
@@ -53,7 +55,7 @@ class DocumentsRoutes[F[_], Txn[_]](enableLogging: Boolean)(workerPool: Executio
         WorkerMiddleware[F](workerPool)
           .andThen(TraceAuditLogMiddleware[F](Slf4jLogger.getLogger[F], enableLogging))
           .andThen(SemanticValidationMiddleware.apply)(httpRoutes),
-        limit = sixMb
+        limit = documentSizeLimit
       )
   )
 

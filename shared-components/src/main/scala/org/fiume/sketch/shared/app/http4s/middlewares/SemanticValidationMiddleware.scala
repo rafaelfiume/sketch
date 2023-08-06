@@ -35,7 +35,7 @@ object SemanticValidationMiddleware:
       routes
         .run(req)
         .semiflatMap { response =>
-          // there errors are swallowed by http4s, so we need to inspect the response
+          // http4s swallows errors, so we need to transform UnprocessableEntity responses
           response.status match
             case Status.UnprocessableEntity =>
               response
@@ -48,7 +48,7 @@ object SemanticValidationMiddleware:
             case _ => response.pure[F]
         }
         .handleError {
-          // there are raised by validation functions in the service routes
+          // this is raised by validation functions in the app's routes
           case SemanticInputError(message, details) =>
             Response[F](Status.UnprocessableEntity).withEntity(SemanticInputError.makeFrom(details).toErrorInfo)
         }
