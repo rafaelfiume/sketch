@@ -21,6 +21,7 @@ trait Http4sClientContext:
     .map { retry(_) }
     .use { exec(_) }
 
+  // TODO Make this more generic or move it from here
   def fileUploadRequest(payload: String, pathToFile: String): Request[IO] =
     val imageFile = getClass.getClassLoader.getResource(pathToFile)
     val multipart = Multipart[IO](

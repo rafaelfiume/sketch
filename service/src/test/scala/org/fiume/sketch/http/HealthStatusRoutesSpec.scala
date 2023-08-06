@@ -3,6 +3,7 @@ package org.fiume.sketch.http
 import cats.Applicative
 import cats.data.NonEmptyList
 import cats.effect.IO
+import cats.effect.unsafe.IORuntime
 import cats.implicits.*
 import munit.{CatsEffectSuite, ScalaCheckEffectSuite}
 import org.fiume.sketch.shared.app.algebras.{HealthCheck, Versions}
@@ -31,6 +32,7 @@ class HealthStatusRoutesSpec
     with Http4sTestingRoutesDsl
     with VersionsContext
     with HealthCheckContext
+    with HealthStatusRoutesSpecContext
     with ShrinkLowPriority:
 
   override def scalaCheckTestParameters = super.scalaCheckTestParameters.withMinSuccessfulTests(3)
@@ -38,8 +40,10 @@ class HealthStatusRoutesSpec
   test("ping returns pong") {
     forAllF { (version: Version) =>
       for
+        healthStatusRoutes <- makeHealthStatusRoutes(makeVersions(returning = version), makeHealthCheck())
+
         jsonResponse <- send(GET(uri"/ping"))
-          .to(new HealthStatusRoutes[IO](makeVersions(returning = version), makeHealthCheck()).router())
+          .to(healthStatusRoutes.router())
           .expectJsonResponseWith(Status.Ok)
         _ <- IO {
           assertEquals(jsonResponse.as[String].rightValue, "pong")
@@ -52,8 +56,10 @@ class HealthStatusRoutesSpec
     given Arbitrary[ServiceHealth] = Arbitrary(Gen.const(Infra.Database).map(ServiceHealth.healthy(_)))
     forAllF { (version: Version, healthy: ServiceHealth) =>
       for
+        healthStatusRoutes <- makeHealthStatusRoutes(makeVersions(returning = version), makeHealthCheck(healthy))
+
         jsonResponse <- send(GET(uri"/status"))
-          .to(new HealthStatusRoutes[IO](makeVersions(returning = version), makeHealthCheck(healthy)).router())
+          .to(healthStatusRoutes.router())
           .expectJsonResponseWith(Status.Ok)
         _ <- IO {
           assertEquals(jsonResponse.as[ServiceStatus].rightValue, ServiceStatus(version, healthy))
@@ -67,13 +73,10 @@ class HealthStatusRoutesSpec
       Arbitrary(Gen.const(Infra.Database).map { infra => ServiceHealth.faulty(NonEmptyList.one(infra)) })
     forAllF { (version: Version, faulty: ServiceHealth) =>
       for
+        healthStatusRoutes <- makeHealthStatusRoutes(makeVersions(returning = version), makeHealthCheck(faulty))
+
         jsonResponse <- send(GET(uri"/status"))
-          .to(
-            new HealthStatusRoutes[IO](
-              makeVersions(returning = version),
-              makeHealthCheck(faulty)
-            ).router()
-          )
+          .to(healthStatusRoutes.router())
           .expectJsonResponseWith(Status.Ok)
         _ <- IO {
           assertEquals(jsonResponse.as[ServiceStatus].rightValue, ServiceStatus(version, faulty))
@@ -81,6 +84,10 @@ class HealthStatusRoutesSpec
       yield ()
     }
   }
+
+trait HealthStatusRoutesSpecContext:
+  def makeHealthStatusRoutes(versions: Versions[IO], healthCheck: HealthCheck[IO]) =
+    IO.delay { new HealthStatusRoutes[IO](IORuntime.global.compute, versions, healthCheck) }
 
 trait VersionsContext:
   def makeVersions[F[_]: Applicative](returning: Version) = new Versions[F]:

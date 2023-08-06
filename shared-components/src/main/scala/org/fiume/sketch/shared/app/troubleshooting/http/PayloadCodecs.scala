@@ -6,13 +6,10 @@ import io.circe.syntax.*
 import org.fiume.sketch.shared.app.algebras.HealthCheck.ServiceHealth
 import org.fiume.sketch.shared.app.algebras.Versions
 import org.fiume.sketch.shared.app.algebras.Versions.Version
-import org.fiume.sketch.shared.app.troubleshooting.{ErrorCode, ErrorDetails, ErrorInfo, ErrorMessage, ServiceStatus}
+import org.fiume.sketch.shared.app.troubleshooting.{ErrorDetails, ErrorInfo, ErrorMessage, ServiceStatus}
 
 object PayloadCodecs:
   object ErrorInfoCodecs:
-    given Encoder[ErrorCode] = Encoder.encodeString.contramap(errorCodeToHumanString)
-    given Decoder[ErrorCode] = Decoder.decodeString.map(humanStringToErrorCode)
-
     given Encoder[ErrorMessage] = Encoder.encodeString.contramap(_.value)
     given Decoder[ErrorMessage] = Decoder.decodeString.map(ErrorMessage.apply)
 
@@ -22,7 +19,6 @@ object PayloadCodecs:
     given Encoder[ErrorInfo] = new Encoder[ErrorInfo]:
       override def apply(errorInfo: ErrorInfo): Json =
         Json.obj(
-          "code" -> errorInfo.code.asJson,
           "message" -> errorInfo.message.asJson,
           "details" -> errorInfo.details.asJson
         )
@@ -30,18 +26,9 @@ object PayloadCodecs:
     given Decoder[ErrorInfo] = new Decoder[ErrorInfo]:
       override def apply(c: HCursor): Result[ErrorInfo] =
         for
-          code <- c.downField("code").as[ErrorCode]
           message <- c.downField("message").as[ErrorMessage]
           details <- c.downField("details").as[Option[ErrorDetails]]
-        yield ErrorInfo(code, message, details)
-
-    /* To be included in the response body when an error occurs */
-    private val errorCodeToHumanString: Map[ErrorCode, String] = Map(
-      ErrorCode.InvalidClientInput -> "INVALID_CLIENT_INPUT",
-      ErrorCode.InvalidUserCredentials -> "INVALID_USER_CREDENTIALS",
-      ErrorCode.InvalidDocument -> "INVALID_DOCUMENT"
-    )
-    private val humanStringToErrorCode: Map[String, ErrorCode] = errorCodeToHumanString.map(_.swap)
+        yield ErrorInfo(message, details)
 
   object ServiceStatusCodecs:
     given Encoder[Versions.Environment] = Encoder.encodeString.contramap(_.name)

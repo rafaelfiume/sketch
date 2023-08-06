@@ -7,8 +7,8 @@ import org.fiume.sketch.auth0.Authenticator
 import org.fiume.sketch.auth0.http.AuthRoutes.*
 import org.fiume.sketch.auth0.http.AuthRoutes.Model.{LoginRequestPayload, LoginResponsePayload}
 import org.fiume.sketch.auth0.http.PayloadCodecs.Login.given
-import org.fiume.sketch.shared.app.http4s.middlewares.{ErrorInfoMiddleware, SemanticInputError, TraceAuditLogMiddleware}
-import org.fiume.sketch.shared.app.troubleshooting.{ErrorCode, ErrorDetails, ErrorInfo, ErrorMessage, InvariantError}
+import org.fiume.sketch.shared.app.http4s.middlewares.{SemanticInputError, SemanticValidationMiddleware, TraceAuditLogMiddleware}
+import org.fiume.sketch.shared.app.troubleshooting.{ErrorDetails, ErrorInfo, ErrorMessage, InvariantError}
 import org.fiume.sketch.shared.app.troubleshooting.ErrorInfo.given
 import org.fiume.sketch.shared.app.troubleshooting.InvariantErrorSyntax.asDetails
 import org.fiume.sketch.shared.app.troubleshooting.http.PayloadCodecs.ErrorInfoCodecs.given
@@ -30,7 +30,8 @@ class AuthRoutes[F[_]: Async](enableLogging: Boolean)(authenticator: Authenticat
   private val prefix = "/"
 
   def router(): HttpRoutes[F] = Router(
-    prefix -> TraceAuditLogMiddleware(Slf4jLogger.getLogger[F], enableLogging)(ErrorInfoMiddleware(httpRoutes))
+    // WorkerMiddleware
+    prefix -> TraceAuditLogMiddleware(Slf4jLogger.getLogger[F], enableLogging)(SemanticValidationMiddleware(httpRoutes))
   )
 
   private val httpRoutes: HttpRoutes[F] = HttpRoutes.of[F] { case req @ POST -> Root / "login" =>
@@ -44,7 +45,7 @@ class AuthRoutes[F[_]: Async](enableLogging: Boolean)(authenticator: Authenticat
           case Left(failure) =>
             Ok(
               ErrorInfo.short(
-                ErrorCode.InvalidUserCredentials,
+                // TODO Error code?
                 ErrorMessage("The username or password provided is incorrect.")
               )
             )
@@ -65,12 +66,7 @@ private[http] object AuthRoutes:
             PlainPassword.validated(payload.password).leftMap(_.asDetails),
           ).parMapN((_, _))
             .fold(
-              errorDetails =>
-                SemanticInputError(
-                  ErrorCode.InvalidClientInput,
-                  ErrorMessage("The username or password provided is incorrect."),
-                  errorDetails
-                ).raiseError,
+              errorDetails => SemanticInputError.makeFrom(errorDetails).raiseError,
               _.pure[F]
             )
 

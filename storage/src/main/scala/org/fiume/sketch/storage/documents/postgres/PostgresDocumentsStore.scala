@@ -33,7 +33,7 @@ private class PostgresDocumentsStore[F[_]: Async] private (l: F ~> ConnectionIO,
       // https://tpolecat.github.io/doobie-cats-0.4.2/15-Extensions-PostgreSQL.html
       // https://github.com/tpolecat/doobie/blob/32838f90044f5c3acac6b9f4ae7a2be10b5f1bb0/modules/postgres/src/main/scala/doobie/postgres/hi/largeobjectmanager.scala#L34
       // https://github.com/tpolecat/doobie/blob/32838f90044f5c3acac6b9f4ae7a2be10b5f1bb0/modules/example/src/main/scala/example/PostgresLargeObject.scala#L18
-      bytes <- lift { document.content.compile.toVector.map(_.toArray) }
+      bytes <- lift { Async[F].cede *> document.content.compile.toVector.map(_.toArray) <* Async[F].cede }
       uuid <- Statements
         .insertDocument(document.metadata, bytes)
         .withUniqueGeneratedKeys[UUID](
@@ -43,7 +43,7 @@ private class PostgresDocumentsStore[F[_]: Async] private (l: F ~> ConnectionIO,
 
   override def update(document: DocumentWithId[F]): ConnectionIO[Unit] =
     for
-      bytes <- lift { document.content.compile.toVector.map(_.toArray) }
+      bytes <- lift { Async[F].cede *> document.content.compile.toVector.map(_.toArray) <* Async[F].cede }
       _ <- Statements.update(document.uuid, document.metadata, bytes).run.void
     yield ()
 

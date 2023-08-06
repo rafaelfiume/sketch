@@ -18,6 +18,7 @@ object Dependency {
     val log4cats              = "2.6.0"
     val slf4j                 = "2.0.7"
 
+    val gatling               = "3.9.5"
     val munit                 = "0.7.29"
     val munitCatsEffect       = "1.0.7"
     val munitScalaCheck       = "0.7.29" 
@@ -53,6 +54,8 @@ object Dependency {
   val slf4jSimple                 = "org.slf4j"                  %  "slf4j-simple"                        % Version.slf4j
 
   //// Test Dependencies
+  val gatlingHighcharts           = "io.gatling.highcharts"      %  "gatling-charts-highcharts"           % Version.gatling
+  val gatlingTestFramework        = "io.gatling"                 %  "gatling-test-framework"              % Version.gatling
   val munit                       = "org.scalameta"              %% "munit"                               % Version.munit
   val munitCatsEffect             = "org.typelevel"              %% "munit-cats-effect-3"                 % Version.munitCatsEffect
   val munitScalaCheck             = "org.scalameta"              %% "munit-scalacheck"                    % Version.munitScalaCheck

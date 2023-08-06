@@ -117,7 +117,7 @@ lazy val service =
          Seq(versionFile)
        },
        Compile / mainClass := Some("org.fiume.sketch.app.Main"),
-       dockerBaseImage := "openjdk:17-jdk-slim",
+       dockerBaseImage := "openjdk:22-jdk-slim",
        dockerCommands += Cmd("USER", "root"),
        dockerCommands ++= Seq(
          Cmd("RUN", "apt-get update -y && apt-get install -y curl")
@@ -167,6 +167,7 @@ lazy val sharedComponents =
         Dependency.fs2Core,
         Dependency.http4sCirce,
         Dependency.http4sDsl,
+        Dependency.http4sEmberServer,
         Dependency.munit % "test,it",
         Dependency.munitCatsEffect % "test,it",
         Dependency.munitScalaCheck % "test,it",
@@ -253,15 +254,18 @@ lazy val testAcceptance =
    project.in(file("test-acceptance"))
      .dependsOn(sharedTestComponents % Test)
      .disablePlugins(plugins.JUnitXmlReportPlugin)
+     .enablePlugins(GatlingPlugin)
      .settings(commonSettings: _*)
      .settings(
        name := "test-acceptance",
        libraryDependencies ++= Seq(
-         Dependency.cats,
-         Dependency.catsEffect,
-         Dependency.circeCore,
-         Dependency.http4sCirce,
-         Dependency.http4sEmberClient,
+         Dependency.cats % Test,
+         Dependency.catsEffect % Test,
+         Dependency.circeCore % Test,
+         Dependency.http4sCirce % Test,
+         Dependency.http4sEmberClient % Test,
+         Dependency.gatlingHighcharts % Test,
+         Dependency.gatlingTestFramework % Test,
          Dependency.munit % Test,
          Dependency.munitCatsEffect % Test
        )
