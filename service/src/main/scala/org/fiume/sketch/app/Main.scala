@@ -21,4 +21,4 @@ object Main extends IOApp:
 
   override def run(args: List[String]): IO[ExitCode] =
     IO.delay { Security.addProvider(new BouncyCastleProvider()) } *>
-      Server.run[IO]
+      Server.run[IO]()

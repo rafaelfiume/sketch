@@ -14,8 +14,11 @@ import scala.concurrent.duration.*
 
 case class ServiceConfig(
   env: Environment,
+  keyPair: KeyPairConfig,
   db: DatabaseConfig
 )
+
+case class KeyPairConfig(privateKey: ECPrivateKey, publicKey: ECPublicKey)
 
 object ServiceConfig:
   given ConfigDecoder[String, Uri] = ConfigDecoder[String].map(Uri.unsafeFromString)
@@ -35,6 +38,7 @@ object ServiceConfig:
       publicKey <- env("PUBLIC_KEY").as[ECPublicKey].redacted
     yield ServiceConfig(
       env = environment,
+      keyPair = KeyPairConfig(privateKey, publicKey),
       db = DatabaseConfig(
         driver = "org.postgresql.Driver",
         uri = jdbcUrl,

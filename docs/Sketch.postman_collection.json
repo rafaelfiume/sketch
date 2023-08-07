@@ -1,7 +1,7 @@
 {
 	"info": {
 		"_postman_id": "d9a541f7-fc69-4383-934c-18713bc564d4",
-		"name": "Sketch-Storage",
+		"name": "Sketch",
 		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
 	},
 	"item": [
@@ -97,6 +97,14 @@
 						"41952178-1d7b-4f49-a6a8-77be11ecdd9e"
 					]
 				}
+			},
+			"response": []
+		},
+		{
+			"name": "New Request",
+			"request": {
+				"method": "GET",
+				"header": []
 			},
 			"response": []
 		}
