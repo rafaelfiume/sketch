@@ -1,6 +1,5 @@
-# Scala CircleCI 2.0 configuration file
-# See: https://circleci.com/docs/2.0/sample-config/
-version: 2
+# See: https://circleci.com/docs/sample-config/
+version: 2.1
 
 # Define a job to be invoked later in a workflow.
 # See: https://circleci.com/docs/2.0/configuration-reference/#jobs
@@ -54,5 +53,13 @@ jobs:
       - run:
           name: Run acceptance tests
           command: |
+            mkdir -p tools/scripts/logs
+            mkdir -p artifacts
             ./start-local.sh
+            mv tools/scripts/logs/docker-compose.log artifacts/docker-compose.log
+            mv tools/scripts/logs/sketch.log artifacts/sketch.log
+            mv tools/scripts/logs/database.log artifacts/database.log
             sbt "testAcceptance/test"
+
+      - store_artifacts:
+          path: artifacts
