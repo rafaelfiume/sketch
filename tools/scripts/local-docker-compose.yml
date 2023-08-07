@@ -27,7 +27,6 @@ services:
   database:
     # Don't forget to update DockerDatabaseConfig
     image: postgres:15.3-bullseye
-    container_name: db
     ports:
       - "5432:5432"
     environment:

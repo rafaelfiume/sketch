@@ -54,14 +54,14 @@ jobs:
           name: Run acceptance tests
           command: |
             mkdir -p tools/scripts/logs
-            mkdir -p artifacts
+            mkdir -p sketch/logs
             echo 'export PRIVATE_KEY="$(echo $PRIVATE_KEY_BASE64_ONE_LINER | base64 -d)"' >> $BASH_ENV
             echo 'export PUBLIC_KEY="$(echo $PUBLIC_KEY_BASE64_ONE_LINER | base64 -d)"' >> $BASH_ENV
-            ./start-local.sh
-            mv tools/scripts/logs/docker-compose.log artifacts/docker-compose.log
-            mv tools/scripts/logs/sketch.log artifacts/sketch.log
-            mv tools/scripts/logs/database.log artifacts/database.log
+            ./tools/scripts/start-local.sh
+            mv tools/scripts/logs/docker-compose.log sketch/logs/docker-compose.log
+            mv tools/scripts/logs/sketch.log sketch/logs/sketch.log
+            mv tools/scripts/logs/database.log sketch/logs/database.log
             sbt "testAcceptance/test"
 
       - store_artifacts:
-          path: artifacts
+          path: sketch/logs
