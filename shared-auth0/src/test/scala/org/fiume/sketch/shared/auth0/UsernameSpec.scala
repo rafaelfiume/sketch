@@ -6,10 +6,8 @@ import org.fiume.sketch.shared.auth0.User.Username.WeakUsernameError
 import org.fiume.sketch.shared.auth0.testkit.UserGens.*
 import org.fiume.sketch.shared.auth0.testkit.UserGens.given
 import org.fiume.sketch.shared.testkit.EitherSyntax.*
-import org.scalacheck.{Gen, ShrinkLowPriority}
 import org.scalacheck.Prop.forAll
-
-import scala.util.Random
+import org.scalacheck.ShrinkLowPriority
 
 class UsernameSpec extends ScalaCheckSuite with ShrinkLowPriority:
 

@@ -1,8 +1,8 @@
 package org.fiume.sketch.storage.documents.http
 
 import cats.MonadThrow
-import cats.data.{EitherT, NonEmptyChain}
-import cats.effect.{Concurrent, Sync}
+import cats.data.EitherT
+import cats.effect.Concurrent
 import cats.effect.kernel.Async
 import cats.implicits.*
 import fs2.Stream
@@ -12,27 +12,23 @@ import org.fiume.sketch.shared.app.http4s.middlewares.{
   TraceAuditLogMiddleware,
   WorkerMiddleware
 }
-import org.fiume.sketch.shared.app.troubleshooting.{ErrorDetails, ErrorMessage, InvariantError}
+import org.fiume.sketch.shared.app.troubleshooting.ErrorDetails
 import org.fiume.sketch.shared.app.troubleshooting.ErrorInfo.given
 import org.fiume.sketch.shared.app.troubleshooting.InvariantErrorSyntax.asDetails
 import org.fiume.sketch.storage.documents.Document
 import org.fiume.sketch.storage.documents.Document.Metadata
 import org.fiume.sketch.storage.documents.Document.Metadata.*
-import org.fiume.sketch.storage.documents.Document.Metadata.Name.InvalidDocumentNameError
 import org.fiume.sketch.storage.documents.algebras.DocumentsStore
 import org.fiume.sketch.storage.documents.http.PayloadCodecs.Document.given
-import org.http4s.{HttpRoutes, QueryParamDecoder, *}
+import org.http4s.{HttpRoutes, *}
 import org.http4s.circe.CirceEntityDecoder.*
 import org.http4s.circe.CirceEntityEncoder.*
 import org.http4s.dsl.Http4sDsl
-import org.http4s.dsl.io.QueryParamDecoderMatcher
 import org.http4s.multipart.{Multipart, Part, *}
 import org.http4s.server.Router
 import org.http4s.server.middleware.EntityLimiter
-import org.typelevel.log4cats.Logger
 import org.typelevel.log4cats.slf4j.Slf4jLogger
 
-import java.util.UUID
 import scala.concurrent.ExecutionContext
 
 import DocumentsRoutes.*

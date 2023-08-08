@@ -1,7 +1,7 @@
 package org.fiume.sketch.storage.documents.postgres
 
-import cats.data.{NonEmptyList, OptionT}
-import cats.effect.{Async, Clock, Resource}
+import cats.data.OptionT
+import cats.effect.{Async, Resource}
 import cats.implicits.*
 import cats.~>
 import doobie.*
@@ -12,11 +12,9 @@ import fs2.Stream
 import org.fiume.sketch.storage.documents.{Document, DocumentWithId}
 import org.fiume.sketch.storage.documents.Document.Metadata
 import org.fiume.sketch.storage.documents.algebras.DocumentsStore
-import org.fiume.sketch.storage.documents.postgres.DoobieMappings
 import org.fiume.sketch.storage.documents.postgres.DoobieMappings.given
 import org.fiume.sketch.storage.postgres.AbstractPostgresStore
 
-import java.time.ZonedDateTime
 import java.util.UUID
 
 object PostgresDocumentsStore:

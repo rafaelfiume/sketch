@@ -1,7 +1,6 @@
 package org.fiume.sketch.auth0
 
 import cats.effect.{Clock, IO}
-import cats.implicits.*
 import munit.{CatsEffectSuite, ScalaCheckEffectSuite}
 import munit.Assertions.*
 import org.bouncycastle.jce.provider.BouncyCastleProvider

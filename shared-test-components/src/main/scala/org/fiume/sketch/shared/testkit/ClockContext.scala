@@ -5,7 +5,6 @@ import cats.effect.{Clock, IO}
 import cats.implicits.*
 
 import java.time.{ZoneOffset, ZonedDateTime}
-import java.util.concurrent.TimeUnit
 import scala.concurrent.duration.*
 
 trait ClockContext:

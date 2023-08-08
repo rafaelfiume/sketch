@@ -2,7 +2,6 @@ package org.fiume.sketch.storage.documents.postgres
 
 import cats.data.OptionT
 import cats.effect.*
-import cats.effect.std.Random
 import cats.syntax.all.*
 import doobie.{ConnectionIO, *}
 import doobie.implicits.*
@@ -12,9 +11,6 @@ import munit.ScalaCheckEffectSuite
 import org.fiume.sketch.shared.testkit.FileContentContext
 import org.fiume.sketch.storage.documents.Document
 import org.fiume.sketch.storage.documents.Document.Metadata
-import org.fiume.sketch.storage.documents.Document.Metadata.*
-import org.fiume.sketch.storage.documents.postgres.{DoobieMappings, PostgresDocumentsStore}
-import org.fiume.sketch.storage.documents.postgres.DoobieMappings.given
 import org.fiume.sketch.storage.testkit.DockerPostgresSuite
 import org.fiume.sketch.storage.testkit.DocumentsGens.*
 import org.fiume.sketch.storage.testkit.DocumentsGens.given
@@ -23,7 +19,6 @@ import org.scalacheck.effect.PropF.forAllF
 
 import java.time.Instant
 import java.util.UUID
-import scala.concurrent.duration.*
 
 class PostgresDocumentsStoreSpec
     extends ScalaCheckEffectSuite

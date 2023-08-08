@@ -3,8 +3,7 @@ package org.fiume.sketch.shared.testkit
 import cats.effect.IO
 import io.circe.Json
 import munit.Assertions
-import org.http4s.{EntityDecoder, HttpRoutes, Request, Status}
-import org.http4s.Method.*
+import org.http4s.{HttpRoutes, Request, Status}
 import org.http4s.circe.CirceEntityDecoder.*
 import org.http4s.implicits.*
 

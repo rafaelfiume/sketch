@@ -1,17 +1,16 @@
 package org.fiume.sketch.storage.documents.http
 
-import cats.data.{EitherT, NonEmptyChain, OptionT}
-import cats.effect.{IO, Ref, Resource}
+import cats.data.OptionT
+import cats.effect.{IO, Ref}
 import cats.effect.unsafe.IORuntime
 import cats.implicits.*
-import io.circe.Json
 import io.circe.syntax.*
 import munit.{CatsEffectSuite, ScalaCheckEffectSuite}
 import munit.Assertions.*
 import org.fiume.sketch.shared.app.http4s.middlewares.SemanticInputError
-import org.fiume.sketch.shared.app.troubleshooting.{ErrorDetails, ErrorInfo, ErrorMessage}
+import org.fiume.sketch.shared.app.troubleshooting.{ErrorInfo, ErrorMessage}
 import org.fiume.sketch.shared.app.troubleshooting.http.PayloadCodecs.ErrorInfoCodecs.given
-import org.fiume.sketch.shared.testkit.{ContractContext, FileContentContext, Http4sTestingRoutesDsl}
+import org.fiume.sketch.shared.testkit.{ContractContext, Http4sTestingRoutesDsl}
 import org.fiume.sketch.shared.testkit.EitherSyntax.*
 import org.fiume.sketch.storage.documents.{Document, DocumentWithId}
 import org.fiume.sketch.storage.documents.Document.Metadata
@@ -24,17 +23,14 @@ import org.fiume.sketch.storage.testkit.DocumentsGens.*
 import org.fiume.sketch.storage.testkit.DocumentsGens.given
 import org.http4s.{MediaType, *}
 import org.http4s.Method.*
-import org.http4s.circe.CirceEntityDecoder.*
 import org.http4s.client.dsl.io.*
 import org.http4s.headers.`Content-Type`
 import org.http4s.implicits.*
 import org.http4s.multipart.{Boundary, Multipart, Part}
-import org.scalacheck.{Arbitrary, Gen, ShrinkLowPriority}
+import org.scalacheck.{Gen, ShrinkLowPriority}
 import org.scalacheck.effect.PropF.forAllF
 
 import java.util.UUID
-import java.util.concurrent.Executors
-import scala.concurrent.ExecutionContext
 
 class DocumentsRoutesSpec
     extends CatsEffectSuite

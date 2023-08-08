@@ -1,23 +1,17 @@
 package org.fiume.sketch.app
 
-import cats.Monad
-import cats.effect.{Async, Concurrent, ExitCode, Resource}
+import cats.effect.{Async, ExitCode, Resource}
 import cats.implicits.*
 import com.comcast.ip4s.*
 import doobie.ConnectionIO
-import org.fiume.sketch.auth0.Authenticator
 import org.fiume.sketch.auth0.http.AuthRoutes
 import org.fiume.sketch.http.HealthStatusRoutes
 import org.fiume.sketch.storage.documents.http.DocumentsRoutes
-import org.fiume.sketch.storage.documents.postgres.PostgresDocumentsStore
 import org.http4s.HttpRoutes
 import org.http4s.ember.server.EmberServerBuilder
 import org.http4s.implicits.*
 import org.http4s.server.Server
-import org.typelevel.log4cats.Logger
 import org.typelevel.log4cats.slf4j.Slf4jLogger
-
-import scala.concurrent.ExecutionContext
 
 object Server:
 

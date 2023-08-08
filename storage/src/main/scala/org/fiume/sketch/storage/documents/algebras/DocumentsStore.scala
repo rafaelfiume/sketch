@@ -1,6 +1,5 @@
 package org.fiume.sketch.storage.documents.algebras
 
-import cats.instances.uuid
 import fs2.Stream
 import org.fiume.sketch.shared.app.algebras.Store
 import org.fiume.sketch.storage.documents.{Document, DocumentWithId}

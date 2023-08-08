@@ -28,6 +28,7 @@ lazy val commonSettings = Seq(
   scalaVersion := ScalaVersion,
   organization := "org.fiume",
   version := buildNumber,
+  scalacOptions := scalacOptions.value.filterNot(_ == "-source:3.0-migration") ++ Seq("-source:future", "-Wunused:all", "-Wvalue-discard"),
   fork := true
 )
 

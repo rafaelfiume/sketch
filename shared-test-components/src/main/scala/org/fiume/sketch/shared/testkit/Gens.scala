@@ -4,8 +4,7 @@ import cats.Applicative
 import cats.data.NonEmptyList
 import org.scalacheck.{Arbitrary, Gen}
 
-import java.time.{ZoneId, ZoneOffset, ZonedDateTime}
-import java.time.temporal.ChronoUnit.MILLIS
+import java.time.{ZoneOffset, ZonedDateTime}
 import scala.concurrent.duration.*
 
 object Gens:

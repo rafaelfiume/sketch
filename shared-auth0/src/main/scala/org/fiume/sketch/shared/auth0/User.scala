@@ -15,7 +15,7 @@ import java.util.UUID
 case class User(uuid: UUID, username: Username) extends WithUuid
 
 object User:
-  type UserCredentialsWithId = UserCredentials with WithUuid
+  type UserCredentialsWithId = UserCredentials & WithUuid
 
   // set of information required to authenticate a user
   case class UserCredentials(

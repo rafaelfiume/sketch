@@ -2,11 +2,9 @@ package org.fiume.sketch.app
 
 import cats.effect.{Async, Resource}
 import doobie.ConnectionIO
-import doobie.util.transactor.Transactor
 import org.fiume.sketch.app.SketchVersions.VersionFile
 import org.fiume.sketch.auth0.Authenticator
 import org.fiume.sketch.shared.app.algebras.{HealthCheck, Versions}
-import org.fiume.sketch.shared.auth0.algebras.UsersStore
 import org.fiume.sketch.storage.auth0.postgres.PostgresUsersStore
 import org.fiume.sketch.storage.documents.algebras.DocumentsStore
 import org.fiume.sketch.storage.documents.postgres.PostgresDocumentsStore
@@ -32,7 +30,13 @@ object Resources:
       healthCheck0 <- PostgresHealthCheck.make[F](transactor)
       versions0 <- SketchVersions.make[F](config.env, VersionFile("sketch.version"))
       usersStore0 <- PostgresUsersStore.make[F](transactor)
-      authenticator0 <- Resource.liftK { Authenticator.make[F, ConnectionIO](usersStore0, config.keyPair.privateKey, config.keyPair.publicKey, expirationOffset = 1.hour) }
+      authenticator0 <- Resource.liftK {
+        Authenticator.make[F, ConnectionIO](usersStore0,
+                                            config.keyPair.privateKey,
+                                            config.keyPair.publicKey,
+                                            expirationOffset = 1.hour
+        )
+      }
       documentsStore0 <- PostgresDocumentsStore.make[F](transactor)
     yield new Resources[F]:
       override val customWorkerThreadPool: ExecutionContext = customWorkerThreadPool0

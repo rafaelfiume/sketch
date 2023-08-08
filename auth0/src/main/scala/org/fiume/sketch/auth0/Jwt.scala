@@ -11,7 +11,6 @@ import org.fiume.sketch.shared.auth0.User.Username
 import pdi.jwt.{JwtAlgorithm, JwtCirce, JwtClaim}
 
 import java.security.{PrivateKey, PublicKey}
-import java.time.Instant
 import java.util.UUID
 import scala.concurrent.duration.Duration
 import scala.util.Try

@@ -13,12 +13,10 @@ import org.fiume.sketch.shared.app.algebras.Versions.Version
 import org.fiume.sketch.shared.app.troubleshooting.ServiceStatus
 import org.fiume.sketch.shared.app.troubleshooting.http.PayloadCodecs.ServiceStatusCodecs.given
 import org.fiume.sketch.shared.testkit.EitherSyntax.*
-import org.fiume.sketch.shared.testkit.Gens.Lists.*
 import org.fiume.sketch.shared.testkit.Http4sTestingRoutesDsl
 import org.fiume.sketch.testkit.SketchGens.given
 import org.http4s.Method.*
 import org.http4s.Status
-import org.http4s.circe.CirceEntityDecoder.*
 import org.http4s.client.dsl.io.*
 import org.http4s.implicits.*
 import org.scalacheck.{Arbitrary, Gen, ShrinkLowPriority}

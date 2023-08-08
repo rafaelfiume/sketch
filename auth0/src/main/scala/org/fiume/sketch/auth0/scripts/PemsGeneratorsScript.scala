@@ -5,10 +5,6 @@ import fs2.{io, text, Stream}
 import fs2.io.file.{Files, Path}
 import org.fiume.sketch.auth0.{KeyStringifier, KeysGenerator}
 
-import java.security.KeyPairGenerator
-import java.security.spec.PKCS8EncodedKeySpec
-import java.util.Base64
-
 object PemsGeneratorsScript extends IOApp:
 
   private val resourcesPath = Path(getClass.getClassLoader().getResource("").getPath())

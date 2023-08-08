@@ -3,7 +3,6 @@ package org.fiume.sketch.auth0
 import cats.effect.Sync
 import cats.implicits.*
 
-import java.io.StringWriter
 import java.security.KeyPairGenerator
 import java.security.interfaces.{ECPrivateKey, ECPublicKey}
 import java.security.spec.ECGenParameterSpec

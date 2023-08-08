@@ -9,8 +9,6 @@ import org.fiume.sketch.shared.auth0.Passwords.PlainPassword.WeakPasswordError
 import org.fiume.sketch.shared.auth0.Passwords.PlainPassword.WeakPasswordError.*
 import org.mindrot.jbcrypt.BCrypt
 
-import java.util.Base64
-
 object Passwords:
 
   sealed abstract case class PlainPassword(value: String)

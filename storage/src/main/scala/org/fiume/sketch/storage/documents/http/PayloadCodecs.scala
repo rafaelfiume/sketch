@@ -1,7 +1,7 @@
 package org.fiume.sketch.storage.documents.http
 
 import cats.implicits.*
-import io.circe.{Codec, Decoder, DecodingFailure, Encoder, HCursor, Json}
+import io.circe.{Decoder, DecodingFailure, Encoder, HCursor, Json}
 import io.circe.Decoder.Result
 import io.circe.syntax.*
 import org.fiume.sketch.shared.app.troubleshooting.InvariantErrorSyntax.*

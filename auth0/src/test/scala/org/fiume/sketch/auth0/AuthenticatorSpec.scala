@@ -6,21 +6,19 @@ import org.bouncycastle.jce.provider.BouncyCastleProvider
 import org.fiume.sketch.auth0.AuthenticationError.*
 import org.fiume.sketch.auth0.Authenticator.*
 import org.fiume.sketch.auth0.testkit.EcKeysGens
-import org.fiume.sketch.shared.auth0.Passwords.{HashedPassword, PlainPassword, Salt}
+import org.fiume.sketch.shared.auth0.Passwords.PlainPassword
 import org.fiume.sketch.shared.auth0.User
-import org.fiume.sketch.shared.auth0.User.{UserCredentials, UserCredentialsWithId, Username}
-import org.fiume.sketch.shared.auth0.testkit.{PasswordsGens, UserGens}
-import org.fiume.sketch.shared.auth0.testkit.PasswordsGens.*
+import org.fiume.sketch.shared.auth0.User.Username
+import org.fiume.sketch.shared.auth0.testkit.{UserGens, UsersStoreContext}
 import org.fiume.sketch.shared.auth0.testkit.UserGens.*
 import org.fiume.sketch.shared.testkit.ClockContext
 import org.fiume.sketch.shared.testkit.EitherSyntax.*
 import org.fiume.sketch.shared.testkit.Gens.DateAndTime.shortDurations
 import org.fiume.sketch.shared.testkit.StringSyntax.*
-import org.scalacheck.{Gen, ShrinkLowPriority}
+import org.scalacheck.ShrinkLowPriority
 import org.scalacheck.effect.PropF.forAllF
 
 import java.security.Security
-import java.security.interfaces.{ECPrivateKey, ECPublicKey}
 import java.time.ZonedDateTime
 import scala.concurrent.duration.*
 
