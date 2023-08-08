@@ -47,7 +47,7 @@ class AuthRoutes[F[_]: Async](enableLogging: Boolean)(authenticator: Authenticat
     }
   }
 
-private[http] object AuthRoutes:
+object AuthRoutes:
   object Model:
 
     case class LoginRequestPayload(username: String, password: String)
