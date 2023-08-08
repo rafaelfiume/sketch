@@ -7,7 +7,7 @@ import munit.Assertions.*
 import org.fiume.sketch.auth0.{AuthenticationError, Authenticator, JwtToken}
 import org.fiume.sketch.auth0.AuthenticationError.*
 import org.fiume.sketch.auth0.http.AuthRoutes.Model.{LoginRequestPayload, LoginResponsePayload}
-import org.fiume.sketch.auth0.http.PayloadCodecs.Login.given
+import org.fiume.sketch.auth0.http.AuthRoutes.Model.Codecs.given
 import org.fiume.sketch.shared.app.http4s.middlewares.SemanticInputError
 import org.fiume.sketch.shared.app.troubleshooting.{ErrorDetails, ErrorInfo, ErrorMessage}
 import org.fiume.sketch.shared.app.troubleshooting.http.PayloadCodecs.ErrorInfoCodecs.given
