@@ -19,7 +19,7 @@ class HttpDocumentsStoreSpec
   val docDesc = "La bella Altamura in Puglia <3"
   val pathToFile = "altamura.jpg"
 
-  test("store documents") {
+  test("store documents"):
     http { client =>
       for
         uuid <- client.expect[Json](fileUploadRequest(payload(docName, docDesc), pathToFile)).map(_.uuid)
@@ -38,9 +38,8 @@ class HttpDocumentsStoreSpec
         _ <- IO { assertEquals(content, originalContent) }
       yield ()
     }
-  }
 
-  test("delete documents") {
+  test("delete documents"):
     http { client =>
       for
         uuid <- client.expect[Json](fileUploadRequest(payload(docName, docDesc), pathToFile)).map(_.uuid)
@@ -58,7 +57,6 @@ class HttpDocumentsStoreSpec
         }
       yield ()
     }
-  }
 
 trait StoreDocumentsSpecContext:
   // TODO Load from storage/src/test/resources/storage/contract/http/document.metadata.json

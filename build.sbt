@@ -262,6 +262,8 @@ lazy val storage =
 
 lazy val testAcceptance =
    project.in(file("test-acceptance"))
+     .dependsOn(auth0Scripts % Test)
+     .dependsOn(sharedAuth0 % "test->test")
      .dependsOn(sharedTestComponents % Test)
      .disablePlugins(plugins.JUnitXmlReportPlugin)
      .enablePlugins(GatlingPlugin)
