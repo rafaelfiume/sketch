@@ -9,8 +9,6 @@ import org.fiume.sketch.shared.testkit.FileContentContext
 import org.http4s.Status.*
 import org.http4s.circe.*
 
-import scala.concurrent.duration.*
-
 class HttpDocumentsStoreSpec
     extends CatsEffectSuite
     with Http4sClientContext

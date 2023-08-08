@@ -1,8 +1,6 @@
 package org.fiume.sketch.acceptance.testkit
 
 import cats.effect.IO
-import munit.Assertions.*
-import munit.CatsEffectSuite
 import org.http4s.{MediaType, Request, Uri}
 import org.http4s.Method.*
 import org.http4s.client.*
