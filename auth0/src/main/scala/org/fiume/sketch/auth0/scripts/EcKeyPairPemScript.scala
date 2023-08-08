@@ -5,7 +5,10 @@ import fs2.{io, text, Stream}
 import fs2.io.file.{Files, Path}
 import org.fiume.sketch.auth0.{KeyStringifier, KeysGenerator}
 
-object PemsGeneratorsScript extends IOApp:
+/*
+ * Script to generate a pair of elliptic curve (EC) keys in PEM format.
+ */
+object EcKeyPairPemScript extends IOApp:
 
   private val resourcesPath = Path(getClass.getClassLoader().getResource("").getPath())
   private val privateKeyPath = Path("private_key.pem")

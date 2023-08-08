@@ -12,11 +12,11 @@ import java.security.interfaces.{ECPrivateKey, ECPublicKey}
 
 case class ServiceConfig(
   env: Environment,
-  keyPair: KeyPairConfig,
+  keyPair: EcKeyPairConfig,
   db: DatabaseConfig
 )
 
-case class KeyPairConfig(privateKey: ECPrivateKey, publicKey: ECPublicKey)
+case class EcKeyPairConfig(privateKey: ECPrivateKey, publicKey: ECPublicKey)
 
 object ServiceConfig:
   given ConfigDecoder[String, Uri] = ConfigDecoder[String].map(Uri.unsafeFromString)
@@ -36,7 +36,7 @@ object ServiceConfig:
       publicKey <- env("PUBLIC_KEY").as[ECPublicKey].redacted
     yield ServiceConfig(
       env = environment,
-      keyPair = KeyPairConfig(privateKey, publicKey),
+      keyPair = EcKeyPairConfig(privateKey, publicKey),
       db = DatabaseConfig(
         driver = "org.postgresql.Driver",
         uri = jdbcUrl,
