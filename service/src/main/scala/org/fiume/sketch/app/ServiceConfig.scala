@@ -5,7 +5,7 @@ import cats.implicits.*
 import ciris.*
 import org.fiume.sketch.auth0.KeyStringifier
 import org.fiume.sketch.shared.app.algebras.Versions.Environment
-import org.fiume.sketch.storage.Config.DatabaseConfig
+import org.fiume.sketch.storage.DatabaseConfig
 import org.http4s.Uri
 
 import java.security.interfaces.{ECPrivateKey, ECPublicKey}

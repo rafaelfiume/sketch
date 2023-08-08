@@ -7,7 +7,7 @@ import doobie.{ConnectionIO, Transactor}
 import doobie.hikari.HikariTransactor
 import doobie.implicits.*
 import munit.CatsEffectSuite
-import org.fiume.sketch.storage.Config.DatabaseConfig
+import org.fiume.sketch.storage.DatabaseConfig
 import org.fiume.sketch.storage.postgres.SchemaMigration
 import org.http4s.Uri
 import org.testcontainers.containers.PostgreSQLContainer as JavaPostgreSQLContainer
