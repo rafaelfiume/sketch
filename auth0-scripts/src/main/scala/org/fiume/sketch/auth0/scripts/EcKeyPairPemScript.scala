@@ -3,7 +3,10 @@ package org.fiume.sketch.auth0.scripts
 import cats.effect.{ExitCode, IO, IOApp}
 import fs2.{io, text, Stream}
 import fs2.io.file.{Files, Path}
+import org.bouncycastle.jce.provider.BouncyCastleProvider
 import org.fiume.sketch.auth0.{KeyStringifier, KeysGenerator}
+
+import java.security.Security
 
 /*
  * Script to generate a pair of elliptic curve (EC) keys in PEM format.
@@ -19,6 +22,7 @@ object EcKeyPairPemScript extends IOApp:
 
   def run(args: List[String]): IO[ExitCode] =
     for
+      _ <- IO.delay { Security.addProvider(new BouncyCastleProvider()) }
       keyPair <- KeysGenerator.makeEcKeyPairs[IO]()
       privateKeyPem = KeyStringifier.toPemString(keyPair._1)
       publicKeyPem = KeyStringifier.toPemString(keyPair._2)

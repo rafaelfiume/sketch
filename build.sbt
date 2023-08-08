@@ -40,7 +40,6 @@ lazy val auth0 =
    project.in(file("auth0"))
      .dependsOn(sharedAuth0 % "test->test;compile->compile")
      .dependsOn(sharedTestComponents % Test)
-     //.dependsOn(storage) // TODO Not yet....
      .disablePlugins(plugins.JUnitXmlReportPlugin)
      .settings(commonSettings: _*)
      .configs(IntegrationTests)
@@ -71,6 +70,14 @@ lazy val auth0 =
          Dependency.munitScalaCheckEffect % "test,it"
        )
      )
+
+lazy val auth0Scripts =
+   project.in(file("auth0-scripts"))
+     .dependsOn(auth0)
+     .dependsOn(sharedAuth0)
+     .dependsOn(storage)
+     .disablePlugins(plugins.JUnitXmlReportPlugin)
+     .settings(commonSettings: _*)
 
 lazy val service =
    project.in(file("service"))
@@ -205,6 +212,7 @@ lazy val sketch =
    project.in(file("."))
     .settings(commonSettings: _*)
     .aggregate(auth0)
+    .aggregate(auth0Scripts)
     .aggregate(service)
     .aggregate(sharedAuth0)
     .aggregate(sharedComponents)

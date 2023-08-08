@@ -5,7 +5,7 @@ set -Eeo pipefail
 
 SCRIPT_DIR=$(cd "$(dirname "${BASH_SOURCE[0]}")" &>/dev/null && pwd -P)
 PROJECT_DIR="$(dirname "$(dirname "$SCRIPT_DIR")")"
-AUTH0_DIR="${PROJECT_DIR}/auth0"
+AUTH0_DIR="${PROJECT_DIR}/auth0-scripts"
 
 PRIVATE_KEY_FILE="$AUTH0_DIR/src/main/resources/private_key.pem"
 PUBLIC_KEY_FILE="$AUTH0_DIR/src/main/resources/public_key.pem"
