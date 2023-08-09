@@ -1,25 +1,21 @@
 package org.fiume.sketch.app
 
-import cats.Monad
-import cats.effect.{Async, Concurrent, ExitCode, Resource}
+import cats.effect.{Async, ExitCode, Resource}
 import cats.implicits.*
 import com.comcast.ip4s.*
 import doobie.ConnectionIO
+import org.fiume.sketch.auth0.http.AuthRoutes
 import org.fiume.sketch.http.HealthStatusRoutes
 import org.fiume.sketch.storage.documents.http.DocumentsRoutes
-import org.fiume.sketch.storage.documents.postgres.PostgresDocumentsStore
-import org.http4s.{AuthedRoutes, HttpRoutes}
+import org.http4s.HttpRoutes
 import org.http4s.ember.server.EmberServerBuilder
 import org.http4s.implicits.*
 import org.http4s.server.Server
-import org.typelevel.log4cats.Logger
 import org.typelevel.log4cats.slf4j.Slf4jLogger
-
-import scala.concurrent.ExecutionContext
 
 object Server:
 
-  def run[F[_]](using F: Async[F]): F[ExitCode] =
+  def run[F[_]]()(using F: Async[F]): F[ExitCode] =
     val logger = Slf4jLogger.getLogger[F]
     (for
       conf <- Resource.eval(ServiceConfig.load[F])
@@ -49,6 +45,7 @@ object HttpApi:
   import org.http4s.Uri
 
   def httpApp[F[_]: Async](res: Resources[F]): HttpRoutes[F] =
+    val authRoutes = new AuthRoutes[F](enableLogging = true)(res.authenticator).router()
     val documentsStorageRoute =
       new DocumentsRoutes[F, ConnectionIO](enableLogging = false)(res.customWorkerThreadPool, res.documentsStore).router()
     val healthStatusRoutes = new HealthStatusRoutes[F](res.customWorkerThreadPool, res.versions, res.healthCheck).router()
@@ -58,6 +55,8 @@ object HttpApi:
       allow = Origin.Host(Uri.Scheme.http, Uri.RegName("localhost"), 5173.some)
     )(documentsStorageRoute)
 
-    healthStatusRoutes <+> corsRoutes
+    healthStatusRoutes <+>
+      authRoutes <+>
+      corsRoutes
 
   def corsPolicy[F[_]](allow: Origin.Host) = CORS.policy.withAllowOriginHost(Set(allow))

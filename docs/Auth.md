@@ -16,6 +16,11 @@ In sketch's authentication system, hash-based authentication is combined with JW
 
 3. On the server side, validate the JWT's signature to ensure its authenticity and integrity. It also extracts and verifies the claims within the payload to determine the user's identity and access privileges.
 
+## Algorithms
+
+* BCrypt: Hashing algorithm for password hashing.
+* ECDSA (Elliptic Curve Digital Signature Algorithm) with P-256: Digital signature algorithm for JWT signing and verification.
+
 ## Hash-based Authentication
 
 ### Sault

@@ -4,8 +4,6 @@ import cats.data.{Kleisli, OptionT}
 import cats.effect.Async
 import cats.implicits.*
 import org.http4s.HttpRoutes
-import org.http4s.util.CaseInsensitiveString
-import org.slf4j.LoggerFactory
 import org.typelevel.ci.CIString
 import org.typelevel.log4cats.Logger
 

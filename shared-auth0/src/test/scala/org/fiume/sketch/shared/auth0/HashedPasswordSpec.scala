@@ -3,8 +3,7 @@ package org.fiume.sketch.shared.auth0
 import munit.ScalaCheckSuite
 import org.fiume.sketch.shared.auth0.Passwords.{HashedPassword, PlainPassword, Salt}
 import org.fiume.sketch.shared.auth0.testkit.PasswordsGens.given
-import org.fiume.sketch.shared.testkit.Gens
-import org.scalacheck.{Arbitrary, Gen, Prop, ShrinkLowPriority}
+import org.scalacheck.{Prop, ShrinkLowPriority}
 import org.scalacheck.Prop.{forAll, propBoolean}
 
 class HashedPasswordSpec extends ScalaCheckSuite with ShrinkLowPriority:

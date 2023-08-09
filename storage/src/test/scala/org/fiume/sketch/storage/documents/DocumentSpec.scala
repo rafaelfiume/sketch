@@ -8,8 +8,8 @@ import org.fiume.sketch.storage.documents.Document.Metadata.Name.InvalidDocument
 import org.fiume.sketch.storage.testkit.DocumentsGens
 import org.fiume.sketch.storage.testkit.DocumentsGens.*
 import org.fiume.sketch.storage.testkit.DocumentsGens.given
-import org.scalacheck.{Gen, ShrinkLowPriority}
 import org.scalacheck.Prop.forAll
+import org.scalacheck.ShrinkLowPriority
 
 class DocumentSpec extends ScalaCheckSuite with ShrinkLowPriority:
 

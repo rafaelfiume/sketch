@@ -6,7 +6,6 @@ import org.fiume.sketch.shared.auth0.Passwords.{HashedPassword, Salt}
 import org.fiume.sketch.shared.auth0.User
 import org.fiume.sketch.shared.auth0.User.*
 
-import java.time.ZonedDateTime
 import java.util.UUID
 
 private[postgres] object DoobieMappings:

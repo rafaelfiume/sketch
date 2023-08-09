@@ -2,23 +2,23 @@ package org.fiume.sketch.auth0
 
 import cats.effect.{Clock, IO}
 import munit.{CatsEffectSuite, ScalaCheckEffectSuite}
+import org.bouncycastle.jce.provider.BouncyCastleProvider
 import org.fiume.sketch.auth0.AuthenticationError.*
 import org.fiume.sketch.auth0.Authenticator.*
 import org.fiume.sketch.auth0.testkit.EcKeysGens
-import org.fiume.sketch.shared.auth0.Passwords.{HashedPassword, PlainPassword, Salt}
+import org.fiume.sketch.shared.auth0.Passwords.PlainPassword
 import org.fiume.sketch.shared.auth0.User
-import org.fiume.sketch.shared.auth0.User.{UserCredentials, UserCredentialsWithId, Username}
-import org.fiume.sketch.shared.auth0.testkit.{PasswordsGens, UserGens}
-import org.fiume.sketch.shared.auth0.testkit.PasswordsGens.*
+import org.fiume.sketch.shared.auth0.User.Username
+import org.fiume.sketch.shared.auth0.testkit.{UserGens, UsersStoreContext}
 import org.fiume.sketch.shared.auth0.testkit.UserGens.*
 import org.fiume.sketch.shared.testkit.ClockContext
 import org.fiume.sketch.shared.testkit.EitherSyntax.*
 import org.fiume.sketch.shared.testkit.Gens.DateAndTime.shortDurations
 import org.fiume.sketch.shared.testkit.StringSyntax.*
-import org.scalacheck.{Gen, ShrinkLowPriority}
+import org.scalacheck.ShrinkLowPriority
 import org.scalacheck.effect.PropF.forAllF
 
-import java.security.interfaces.{ECPrivateKey, ECPublicKey}
+import java.security.Security
 import java.time.ZonedDateTime
 import scala.concurrent.duration.*
 
@@ -33,6 +33,8 @@ class AuthenticatorSpec
 
   override def scalaCheckTestParameters =
     super.scalaCheckTestParameters.withMinSuccessfulTests(1)
+
+  Security.addProvider(new BouncyCastleProvider())
 
   test("authenticate and verify user with valid credentials"):
     forAllF(validCredentialsWithIdAndPlainPassword, ecKeyPairs, shortDurations) {
@@ -146,57 +148,3 @@ trait AuthenticatorSpecContext:
   extension (token: JwtToken)
     def reversed: JwtToken = JwtToken.notValidatedFromString(token.value._reversed)
     def tampered: JwtToken = JwtToken.notValidatedFromString(token.value.split('.').dropRight(1).mkString("."))
-
-trait UsersStoreContext:
-  import cats.effect.Ref
-  import cats.implicits.*
-  import org.fiume.sketch.shared.auth0.algebras.UsersStore
-  import java.util.UUID
-  import org.fiume.sketch.shared.auth0.Passwords.Salt
-
-  def makeUsersStore(credentials: UserCredentialsWithId): IO[UsersStore[IO, IO]] =
-    makeUsersStore(
-      Map(
-        credentials.uuid -> UserCredentials(credentials.username, credentials.hashedPassword, credentials.salt)
-      )
-    )
-
-  def makeUsersStore(state: Map[UUID, UserCredentials]): IO[UsersStore[IO, IO]] =
-    Ref.of[IO, Map[UUID, UserCredentials]](state).map { storage =>
-      new UsersStore[IO, IO]:
-        override def store(credentials: UserCredentials): IO[UUID] =
-          IO.randomUUID.flatMap { uuid =>
-            storage
-              .update {
-                _.updated(uuid, credentials)
-              }
-              .as(uuid)
-          }
-
-        override def fetchUser(uuid: UUID): IO[Option[User]] =
-          storage.get.map(_.collectFirst {
-            case (storedUuid, storedCreds) if storedUuid == uuid =>
-              User(uuid, storedCreds.username)
-          })
-
-        override def fetchCredentials(username: Username): IO[Option[UserCredentialsWithId]] =
-          storage.get.map(_.collectFirst {
-            case (uuid, storedCreds) if storedCreds.username == username =>
-              UserCredentials.withUuid(uuid, storedCreds)
-          })
-
-        override def updatePassword(uuid: UUID, newPassword: HashedPassword): IO[Unit] =
-          storage.update {
-            _.updatedWith(uuid) {
-              case Some(storedCreds) => UserCredentials(storedCreds.username, newPassword, storedCreds.salt).some
-              case None              => none
-            }
-          }
-
-        override def delete(uuid: UUID): IO[Unit] =
-          storage.update(_.removed(uuid))
-
-        val commit: [A] => IO[A] => IO[A] = [A] => (action: IO[A]) => action
-
-        val lift: [A] => IO[A] => IO[A] = [A] => (action: IO[A]) => action
-    }

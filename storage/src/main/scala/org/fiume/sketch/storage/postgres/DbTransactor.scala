@@ -3,7 +3,7 @@ package org.fiume.sketch.storage.postgres
 import cats.effect.{Async, Resource}
 import doobie.hikari.HikariTransactor
 import doobie.util.transactor.Transactor
-import org.fiume.sketch.storage.Config.DatabaseConfig
+import org.fiume.sketch.storage.DatabaseConfig
 
 import java.util.concurrent.{Executors, ThreadFactory}
 import java.util.concurrent.atomic.AtomicLong

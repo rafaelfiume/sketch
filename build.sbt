@@ -28,6 +28,7 @@ lazy val commonSettings = Seq(
   scalaVersion := ScalaVersion,
   organization := "org.fiume",
   version := buildNumber,
+  scalacOptions := scalacOptions.value.filterNot(_ == "-source:3.0-migration") ++ Seq("-source:future", "-Wunused:all", "-Wvalue-discard"),
   fork := true
 )
 
@@ -39,7 +40,6 @@ lazy val auth0 =
    project.in(file("auth0"))
      .dependsOn(sharedAuth0 % "test->test;compile->compile")
      .dependsOn(sharedTestComponents % Test)
-     //.dependsOn(storage) // TODO Not yet....
      .disablePlugins(plugins.JUnitXmlReportPlugin)
      .settings(commonSettings: _*)
      .configs(IntegrationTests)
@@ -71,9 +71,18 @@ lazy val auth0 =
        )
      )
 
+lazy val auth0Scripts =
+   project.in(file("auth0-scripts"))
+     .dependsOn(auth0)
+     .dependsOn(sharedAuth0)
+     .dependsOn(storage)
+     .disablePlugins(plugins.JUnitXmlReportPlugin)
+     .settings(commonSettings: _*)
+
 lazy val service =
    project.in(file("service"))
      .dependsOn(sharedComponents)
+     .dependsOn(auth0)
      .dependsOn(storage)
      .dependsOn(sharedTestComponents % Test)
      .enablePlugins(JavaAppPackaging)
@@ -203,6 +212,7 @@ lazy val sketch =
    project.in(file("."))
     .settings(commonSettings: _*)
     .aggregate(auth0)
+    .aggregate(auth0Scripts)
     .aggregate(service)
     .aggregate(sharedAuth0)
     .aggregate(sharedComponents)
@@ -252,6 +262,8 @@ lazy val storage =
 
 lazy val testAcceptance =
    project.in(file("test-acceptance"))
+     .dependsOn(auth0Scripts % Test)
+     .dependsOn(sharedAuth0 % "test->test")
      .dependsOn(sharedTestComponents % Test)
      .disablePlugins(plugins.JUnitXmlReportPlugin)
      .enablePlugins(GatlingPlugin)

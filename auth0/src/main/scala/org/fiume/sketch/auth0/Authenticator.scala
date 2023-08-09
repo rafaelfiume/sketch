@@ -5,8 +5,6 @@ import cats.effect.{Clock, Sync}
 import cats.implicits.*
 import io.circe.ParsingFailure
 import org.fiume.sketch.auth0.AuthenticationError.*
-import org.fiume.sketch.auth0.Authenticator.*
-import org.fiume.sketch.auth0.JwtToken
 import org.fiume.sketch.shared.auth0.Passwords.{HashedPassword, PlainPassword}
 import org.fiume.sketch.shared.auth0.User
 import org.fiume.sketch.shared.auth0.User.Username
@@ -14,7 +12,6 @@ import org.fiume.sketch.shared.auth0.algebras.UsersStore
 import pdi.jwt.exceptions.*
 
 import java.security.{PrivateKey, PublicKey}
-import scala.concurrent.ExecutionContext
 import scala.concurrent.duration.Duration
 import scala.util.control.NoStackTrace
 

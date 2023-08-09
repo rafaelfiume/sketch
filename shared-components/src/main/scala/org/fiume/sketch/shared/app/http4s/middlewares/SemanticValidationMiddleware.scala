@@ -1,6 +1,5 @@
 package org.fiume.sketch.shared.app.http4s.middlewares
 
-import cats.Invariant
 import cats.data.{Kleisli, OptionT}
 import cats.effect.Async
 import cats.implicits.*

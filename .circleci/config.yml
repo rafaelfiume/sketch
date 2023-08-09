@@ -1,6 +1,5 @@
-# Scala CircleCI 2.0 configuration file
-# See: https://circleci.com/docs/2.0/sample-config/
-version: 2
+# See: https://circleci.com/docs/sample-config/
+version: 2.1
 
 # Define a job to be invoked later in a workflow.
 # See: https://circleci.com/docs/2.0/configuration-reference/#jobs
@@ -54,5 +53,17 @@ jobs:
       - run:
           name: Run acceptance tests
           command: |
-            ./start-local.sh
+            # This is the where the scripts will log to
+            mkdir -p tools/scripts/logs
+            # This is where CircleCI will store the artifacts
+            mkdir -p sketch/logs
+            echo 'export PRIVATE_KEY="$(echo $PRIVATE_KEY_BASE64_ONE_LINER | base64 -d)"' >> $BASH_ENV
+            echo 'export PUBLIC_KEY="$(echo $PUBLIC_KEY_BASE64_ONE_LINER | base64 -d)"' >> $BASH_ENV
+            ./tools/scripts/start-local.sh
+            mv tools/scripts/logs/docker-compose.log sketch/logs/docker-compose.log
+            mv tools/scripts/logs/sketch.log sketch/logs/sketch.log
+            mv tools/scripts/logs/database.log sketch/logs/database.log
             sbt "testAcceptance/test"
+
+      - store_artifacts:
+          path: sketch/logs

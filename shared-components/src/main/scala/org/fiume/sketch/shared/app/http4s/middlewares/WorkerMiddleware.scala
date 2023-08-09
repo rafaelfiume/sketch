@@ -2,7 +2,6 @@ package org.fiume.sketch.shared.app.http4s.middlewares
 
 import cats.data.{Kleisli, OptionT}
 import cats.effect.Async
-import cats.implicits.*
 import org.http4s.{HttpRoutes, Request}
 
 import scala.concurrent.ExecutionContext

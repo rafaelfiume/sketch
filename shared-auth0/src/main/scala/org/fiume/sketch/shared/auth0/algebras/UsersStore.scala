@@ -1,7 +1,7 @@
 package org.fiume.sketch.shared.auth0.algebras
 
 import org.fiume.sketch.shared.app.algebras.Store
-import org.fiume.sketch.shared.auth0.Passwords.{HashedPassword, Salt}
+import org.fiume.sketch.shared.auth0.Passwords.HashedPassword
 import org.fiume.sketch.shared.auth0.User
 import org.fiume.sketch.shared.auth0.User.*
 

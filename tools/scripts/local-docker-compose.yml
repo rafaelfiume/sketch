@@ -11,16 +11,22 @@ services:
       - DB_URL=${DB_URL}
       - DB_USER=${DB_USER}
       - DB_PASS=${DB_PASS}
+      - PRIVATE_KEY=${PRIVATE_KEY}
+      - PUBLIC_KEY=${PUBLIC_KEY}
       - JAVA_OPTS=-Xmx2g -XX:+UseG1GC -Djava.rmi.server.hostname=localhost -Dcom.sun.management.jmxremote -Dcom.sun.management.jmxremote.port=9999 -Dcom.sun.management.jmxremote.rmi.port=9999 -Dcom.sun.management.jmxremote.ssl=false -Dcom.sun.management.jmxremote.authenticate=false
     depends_on:
       - database
     healthcheck:
       test: ["CMD-SHELL", "curl sketch:8080/ping"]
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "5"
 
   database:
     # Don't forget to update DockerDatabaseConfig
     image: postgres:15.3-bullseye
-    container_name: db
     ports:
       - "5432:5432"
     environment:

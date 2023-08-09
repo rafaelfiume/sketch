@@ -1,6 +1,6 @@
 package org.fiume.sketch.shared.app.troubleshooting
 
-import cats.data.{NonEmptyChain, NonEmptyList}
+import cats.data.NonEmptyChain
 import cats.implicits.*
 
 /*

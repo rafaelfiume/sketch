@@ -2,13 +2,12 @@ package org.fiume.sketch.auth0.http
 
 import cats.effect.IO
 import cats.implicits.*
-import io.circe.parser
 import munit.{CatsEffectSuite, ScalaCheckEffectSuite}
 import munit.Assertions.*
 import org.fiume.sketch.auth0.{AuthenticationError, Authenticator, JwtToken}
 import org.fiume.sketch.auth0.AuthenticationError.*
 import org.fiume.sketch.auth0.http.AuthRoutes.Model.{LoginRequestPayload, LoginResponsePayload}
-import org.fiume.sketch.auth0.http.PayloadCodecs.Login.given
+import org.fiume.sketch.auth0.http.AuthRoutes.Model.Codecs.given
 import org.fiume.sketch.shared.app.http4s.middlewares.SemanticInputError
 import org.fiume.sketch.shared.app.troubleshooting.{ErrorDetails, ErrorInfo, ErrorMessage}
 import org.fiume.sketch.shared.app.troubleshooting.http.PayloadCodecs.ErrorInfoCodecs.given
@@ -22,14 +21,11 @@ import org.fiume.sketch.shared.testkit.EitherSyntax.*
 import org.fiume.sketch.shared.testkit.StringSyntax.*
 import org.http4s.Method.*
 import org.http4s.Status
-import org.http4s.circe.CirceEntityDecoder.*
 import org.http4s.circe.CirceEntityEncoder.*
 import org.http4s.client.dsl.io.*
 import org.http4s.implicits.*
 import org.scalacheck.{Arbitrary, Gen, ShrinkLowPriority}
 import org.scalacheck.effect.PropF.forAllF
-
-import scala.util.Random
 
 class AuthRoutesSpec
     extends CatsEffectSuite

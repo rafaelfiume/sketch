@@ -2,9 +2,6 @@ package org.fiume.sketch.shared.app.troubleshooting
 
 import cats.Semigroup
 import cats.implicits.*
-import org.fiume.sketch.shared.app.troubleshooting.ErrorInfo.*
-
-import java.time.ZonedDateTime
 
 // Let's adopt a flat structure and shere it leads us
 case class ErrorInfo(message: ErrorMessage, details: Option[ErrorDetails])

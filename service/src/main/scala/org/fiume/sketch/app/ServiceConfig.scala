@@ -3,21 +3,28 @@ package org.fiume.sketch.app
 import cats.effect.Async
 import cats.implicits.*
 import ciris.*
-import org.fiume.sketch.app.ServiceConfig.*
+import org.fiume.sketch.auth0.KeyStringifier
 import org.fiume.sketch.shared.app.algebras.Versions.Environment
-import org.fiume.sketch.storage.Config.DatabaseConfig
+import org.fiume.sketch.storage.DatabaseConfig
 import org.http4s.Uri
 
-import scala.concurrent.duration.*
+import java.security.interfaces.{ECPrivateKey, ECPublicKey}
 
 case class ServiceConfig(
   env: Environment,
+  keyPair: EcKeyPairConfig,
   db: DatabaseConfig
 )
+
+case class EcKeyPairConfig(privateKey: ECPrivateKey, publicKey: ECPublicKey)
 
 object ServiceConfig:
   given ConfigDecoder[String, Uri] = ConfigDecoder[String].map(Uri.unsafeFromString)
   given ConfigDecoder[String, Environment] = ConfigDecoder[String].map(Environment.apply)
+  given ConfigDecoder[String, ECPrivateKey] =
+    ConfigDecoder[String].mapEither((_, key) => KeyStringifier.ecPrivateKeyFromPem(key).leftMap(ConfigError(_)))
+  given ConfigDecoder[String, ECPublicKey] =
+    ConfigDecoder[String].mapEither((_, key) => KeyStringifier.ecPublicKeyFromPem(key).leftMap(ConfigError(_)))
 
   def load[F[_]: Async]: F[ServiceConfig] =
     (for
@@ -25,8 +32,11 @@ object ServiceConfig:
       jdbcUrl <- env("DB_URL").as[Uri]
       dbUser <- env("DB_USER")
       dbPassword <- env("DB_PASS").secret
+      privateKey <- env("PRIVATE_KEY").as[ECPrivateKey].redacted
+      publicKey <- env("PUBLIC_KEY").as[ECPublicKey].redacted
     yield ServiceConfig(
       env = environment,
+      keyPair = EcKeyPairConfig(privateKey, publicKey),
       db = DatabaseConfig(
         driver = "org.postgresql.Driver",
         uri = jdbcUrl,

@@ -1,6 +1,6 @@
 package org.fiume.sketch.storage.auth0.postgres
 
-import cats.effect.{Async, Clock, Resource}
+import cats.effect.{Async, Resource}
 import cats.implicits.*
 import cats.~>
 import doobie.*

@@ -1,7 +1,7 @@
 {
 	"info": {
 		"_postman_id": "d9a541f7-fc69-4383-934c-18713bc564d4",
-		"name": "Sketch-Storage",
+		"name": "Sketch",
 		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
 	},
 	"item": [
@@ -95,6 +95,29 @@
 					"path": [
 						"documents",
 						"41952178-1d7b-4f49-a6a8-77be11ecdd9e"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Login",
+			"request": {
+				"method": "POST",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n    \"username\" : \"abacaxinaofazxixi\",\n    \"password\" : \"@b3aTeSesamo\"\n}\n"
+				},
+				"url": {
+					"raw": "http://localhost:8080/login",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "8080",
+					"path": [
+						"login"
 					]
 				}
 			},

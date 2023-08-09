@@ -7,16 +7,14 @@ import doobie.implicits.*
 import doobie.postgres.implicits.*
 import munit.ScalaCheckEffectSuite
 import org.fiume.sketch.shared.auth0.{Passwords, User}
-import org.fiume.sketch.shared.auth0.Passwords.{HashedPassword, Salt}
+import org.fiume.sketch.shared.auth0.Passwords.HashedPassword
 import org.fiume.sketch.shared.auth0.User.*
-import org.fiume.sketch.shared.auth0.algebras.UsersStore
 import org.fiume.sketch.shared.auth0.testkit.PasswordsGens.given
-import org.fiume.sketch.shared.auth0.testkit.UserGens.*
 import org.fiume.sketch.shared.auth0.testkit.UserGens.given
 import org.fiume.sketch.storage.auth0.postgres.DoobieMappings.given
 import org.fiume.sketch.storage.auth0.postgres.PostgresUsersStore.*
 import org.fiume.sketch.storage.testkit.DockerPostgresSuite
-import org.scalacheck.{Arbitrary, Gen, ShrinkLowPriority}
+import org.scalacheck.ShrinkLowPriority
 import org.scalacheck.effect.PropF.forAllF
 
 import java.time.Instant
@@ -81,12 +79,6 @@ class PostgresUsersStoreSpec
     }
 
   test("delete user"):
-    given Arbitrary[(Username, Username)] = Arbitrary(
-      (for
-        fst <- validUsernames
-        snd <- validUsernames
-      yield (fst, snd)).suchThat { case (fst, snd) => fst != snd }
-    )
     forAllF { (fstCreds: UserCredentials, sndCreds: UserCredentials) =>
       will(cleanUsers) {
         PostgresUsersStore.make[IO](transactor()).use { store =>

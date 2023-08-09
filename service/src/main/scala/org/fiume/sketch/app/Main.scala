@@ -1,7 +1,10 @@
 package org.fiume.sketch.app
 
 import cats.effect.{ExitCode, IO, IOApp}
+import org.bouncycastle.jce.provider.BouncyCastleProvider
 import org.slf4j.LoggerFactory
+
+import java.security.Security
 
 object Main extends IOApp:
 
@@ -16,4 +19,6 @@ object Main extends IOApp:
 
   override protected def blockedThreadDetectionEnabled = true
 
-  override def run(args: List[String]): IO[ExitCode] = Server.run[IO]
+  override def run(args: List[String]): IO[ExitCode] =
+    IO.delay { Security.addProvider(new BouncyCastleProvider()) } *>
+      Server.run[IO]()

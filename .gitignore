@@ -12,3 +12,9 @@
 .metals
 
 .DS_Store
+
+# Secrets
+*.pem
+
+# Logs
+tools/scripts/logs
