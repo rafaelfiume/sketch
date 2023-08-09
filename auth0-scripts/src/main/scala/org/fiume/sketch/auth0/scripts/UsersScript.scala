@@ -12,7 +12,9 @@ import org.fiume.sketch.storage.postgres.DbTransactor
 import org.http4s.Uri
 
 /*
- * Script to generate a pair of elliptic curve (EC) keys in PEM format.
+ * Script to registre a user.
+ *
+ * It is currently pointing to the local (dockerised) database.
  */
 object UsersScript extends IOApp:
 

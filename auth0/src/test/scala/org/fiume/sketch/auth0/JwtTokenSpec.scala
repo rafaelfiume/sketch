@@ -16,7 +16,7 @@ import org.scalacheck.effect.PropF.forAllF
 import java.security.Security
 import java.time.ZonedDateTime
 
-class JwtSpec extends CatsEffectSuite with ScalaCheckEffectSuite with ClockContext with EcKeysGens with ShrinkLowPriority:
+class JwtTokenSpec extends CatsEffectSuite with ScalaCheckEffectSuite with ClockContext with EcKeysGens with ShrinkLowPriority:
 
   Security.addProvider(new BouncyCastleProvider())
 

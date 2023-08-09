@@ -5,7 +5,7 @@ import munit.CatsEffectSuite
 import org.fiume.sketch.acceptance.testkit.Http4sClientContext
 import org.fiume.sketch.auth0.http.AuthRoutes.Model.Codecs.given
 import org.fiume.sketch.auth0.http.AuthRoutes.Model.LoginResponsePayload
-import org.fiume.sketch.auth0.scripts.UsersScript
+import org.fiume.sketch.auth0.scripts.UsersScript.*
 import org.fiume.sketch.shared.auth0.Passwords.PlainPassword
 import org.fiume.sketch.shared.auth0.User.Username
 import org.fiume.sketch.shared.auth0.testkit.PasswordsGens.*
@@ -19,7 +19,7 @@ class LoginSpec extends CatsEffectSuite with Http4sClientContext with LoginSpecC
     val password = validPlainPasswords.sample.get
     val loginRequest = "http://localhost:8080/login".post.withEntity(payload(username, password))
 
-    UsersScript.doRegistreUser(username, password) *>
+    doRegistreUser(username, password) *>
       http { client =>
         client.expect[LoginResponsePayload](loginRequest).flatMap(IO.println)
       }

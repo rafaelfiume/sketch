@@ -9,6 +9,11 @@ import org.fiume.sketch.auth0.KeyStringifier
 import java.security.Security
 import java.security.interfaces.{ECPrivateKey, ECPublicKey}
 
+/*
+ * Script to load a pair of EC keys in PEM format from the `resources` folder.
+ *
+ * It currently doesn't serve any purposes other than playing a little with fs2.Streams.
+ */
 object KeyPairLoaderScript extends IOApp:
 
   case class EcKeyPair(privateKey: ECPrivateKey, publicKey: ECPublicKey)

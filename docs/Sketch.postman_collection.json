@@ -101,10 +101,25 @@
 			"response": []
 		},
 		{
-			"name": "New Request",
+			"name": "Login",
 			"request": {
-				"method": "GET",
-				"header": []
+				"method": "POST",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n    \"username\" : \"abacaxinaofazxixi\",\n    \"password\" : \"@b3aTeSesamo\"\n}\n"
+				},
+				"url": {
+					"raw": "http://localhost:8080/login",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "8080",
+					"path": [
+						"login"
+					]
+				}
 			},
 			"response": []
 		}

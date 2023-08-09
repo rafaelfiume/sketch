@@ -11,7 +11,6 @@ import java.util.UUID
 
 trait UsersStoreContext:
 
-  // TODO temp?
   def makeUsersStore(): IO[UsersStore[IO, IO]] = makeUsersStore(Map.empty)
 
   def makeUsersStore(credentials: UserCredentialsWithId): IO[UsersStore[IO, IO]] =
