@@ -19,7 +19,8 @@ trait AuthenticatorContext:
 
       // TODO verify
       override def verify(jwtToken: JwtToken): Either[JwtError, User] =
-        signee._1.asRight[JwtError]
+        if signeeAuthToken == jwtToken then signee._1.asRight[JwtError]
+        else JwtError.JwtInvalidTokenError(s"Expected $signeeAuthToken; got $jwtToken instead").asLeft[User]
   }
 
   def makeFailingAuthenticator(): IO[Authenticator[IO]] = IO.delay {

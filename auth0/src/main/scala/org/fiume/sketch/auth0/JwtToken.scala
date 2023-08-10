@@ -1,6 +1,6 @@
 package org.fiume.sketch.auth0
 
-import cats.FlatMap
+import cats.{FlatMap, Show}
 import cats.effect.Clock
 import cats.implicits.*
 import io.circe.{Decoder, Encoder, HCursor, Json, ParsingFailure}
@@ -22,8 +22,11 @@ sealed abstract case class JwtToken(value: String)
 
 sealed trait JwtError extends Throwable with NoStackTrace:
   def details: String
+  override def toString(): String = this.show
 
 object JwtError:
+  given Show[JwtError] = Show.show(error => s"${error.getClass.getSimpleName}(${error.details})")
+
   case class JwtExpirationError(details: String) extends JwtError // Rename to conform to standards, e.g ExpiredToken
   case class JwtEmptySignatureError(details: String) extends JwtError
   case class JwtInvalidTokenError(details: String) extends JwtError
