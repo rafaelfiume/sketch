@@ -3,7 +3,7 @@ package org.fiume.sketch.auth0.testkit
 import cats.effect.IO
 import cats.implicits.*
 import munit.Assertions.*
-import org.fiume.sketch.auth0.{AuthenticationError, Authenticator, JwtToken}
+import org.fiume.sketch.auth0.{AuthenticationError, Authenticator, JwtError, JwtToken}
 import org.fiume.sketch.auth0.AuthenticationError.*
 import org.fiume.sketch.shared.auth0.Passwords.PlainPassword
 import org.fiume.sketch.shared.auth0.User
@@ -18,15 +18,15 @@ trait AuthenticatorContext:
         else IO.delay { signeeAuthToken.asRight }
 
       // TODO verify
-      override def verify(jwtToken: JwtToken): Either[AuthenticationError, User] =
-        signee._1.asRight[AuthenticationError]
+      override def verify(jwtToken: JwtToken): Either[JwtError, User] =
+        signee._1.asRight[JwtError]
   }
 
-  def makeAuthenticator(): IO[Authenticator[IO]] = IO.delay {
+  def makeFailingAuthenticator(): IO[Authenticator[IO]] = IO.delay {
     new Authenticator[IO]:
       override def authenticate(username: Username, password: PlainPassword): IO[Either[AuthenticationError, JwtToken]] =
         IO.delay { fail("authenticate should have not been invoked") }
 
-      override def verify(jwtToken: JwtToken): Either[AuthenticationError, User] =
+      override def verify(jwtToken: JwtToken): Either[JwtError, User] =
         fail("verify should have not been invoked")
   }

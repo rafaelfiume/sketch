@@ -44,5 +44,21 @@ class Auth0MiddlewareSpec
       yield ()
     }
 
-  // TODO Coming soon
-  // test("middleware should reject access with an invalid token"):
+  test("middleware should reject access with an invalid token".ignore):
+    forAllF { (user: User, plainPassword: PlainPassword, jwtToken: JwtToken) =>
+      for
+        authenticator <- makeFailingAuthenticator()
+        authedRoutes = AuthedRoutes.of[User, IO] { case GET -> Root / "user" as user => Ok(user.toString) }
+
+        middleware = Auth0Middleware(authenticator)
+        request = GET(uri"/user").withHeaders(Headers(Authorization.parse(s"Bearer ${jwtToken.value}")))
+        response <- middleware(authedRoutes).orNotFound.run(request)
+
+        _ <- response.as[String].flatMap { result =>
+          IO {
+            assertEquals(response.status, Status.Ok)
+            assertEquals(result, user.toString)
+          }
+        }
+      yield ()
+    }

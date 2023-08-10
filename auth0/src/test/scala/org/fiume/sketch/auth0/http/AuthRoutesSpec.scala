@@ -142,7 +142,7 @@ class AuthRoutesSpec
   test("return 422 when login request body is malformed"):
     forAllF(malformedInputs) { badClientInput =>
       for
-        authenticator <- makeAuthenticator()
+        authenticator <- makeFailingAuthenticator()
 
         request = POST(uri"/login").withEntity(badClientInput)
         result <- send(request)
