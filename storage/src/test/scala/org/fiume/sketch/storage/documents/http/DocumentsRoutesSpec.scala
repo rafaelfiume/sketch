@@ -9,7 +9,7 @@ import munit.{CatsEffectSuite, ScalaCheckEffectSuite}
 import munit.Assertions.*
 import org.fiume.sketch.shared.app.http4s.middlewares.SemanticInputError
 import org.fiume.sketch.shared.app.troubleshooting.{ErrorInfo, ErrorMessage}
-import org.fiume.sketch.shared.app.troubleshooting.http.PayloadCodecs.ErrorInfoCodecs.given
+import org.fiume.sketch.shared.app.troubleshooting.http.json.ErrorInfoCodecs.given
 import org.fiume.sketch.shared.testkit.{ContractContext, Http4sTestingRoutesDsl}
 import org.fiume.sketch.shared.testkit.EitherSyntax.*
 import org.fiume.sketch.storage.documents.{Document, DocumentWithId}
@@ -17,7 +17,7 @@ import org.fiume.sketch.storage.documents.Document.Metadata
 import org.fiume.sketch.storage.documents.Document.Metadata.*
 import org.fiume.sketch.storage.documents.algebras.DocumentsStore
 import org.fiume.sketch.storage.documents.http.DocumentsRoutes.*
-import org.fiume.sketch.storage.documents.http.PayloadCodecs.Document.given
+import org.fiume.sketch.storage.documents.http.DocumentsRoutes.Json.given
 import org.fiume.sketch.storage.testkit.DocumentsGens
 import org.fiume.sketch.storage.testkit.DocumentsGens.*
 import org.fiume.sketch.storage.testkit.DocumentsGens.given

@@ -5,7 +5,7 @@ import cats.implicits.*
 import org.fiume.sketch.shared.app.algebras.{HealthCheck, Versions}
 import org.fiume.sketch.shared.app.http4s.middlewares.WorkerMiddleware
 import org.fiume.sketch.shared.app.troubleshooting.ServiceStatus
-import org.fiume.sketch.shared.app.troubleshooting.http.PayloadCodecs.ServiceStatusCodecs.given
+import org.fiume.sketch.shared.app.troubleshooting.http.json.ServiceStatusCodecs.given
 import org.http4s.HttpRoutes
 import org.http4s.circe.CirceEntityEncoder.*
 import org.http4s.dsl.Http4sDsl

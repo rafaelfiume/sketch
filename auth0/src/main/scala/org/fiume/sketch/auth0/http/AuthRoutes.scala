@@ -5,12 +5,12 @@ import cats.implicits.*
 import org.fiume.sketch.auth0.Authenticator
 import org.fiume.sketch.auth0.http.AuthRoutes.*
 import org.fiume.sketch.auth0.http.AuthRoutes.Model.{LoginRequestPayload, LoginResponsePayload}
-import org.fiume.sketch.auth0.http.AuthRoutes.Model.Codecs.given
+import org.fiume.sketch.auth0.http.AuthRoutes.Model.Json.given
 import org.fiume.sketch.shared.app.http4s.middlewares.{SemanticInputError, SemanticValidationMiddleware, TraceAuditLogMiddleware}
 import org.fiume.sketch.shared.app.troubleshooting.{ErrorInfo, ErrorMessage}
 import org.fiume.sketch.shared.app.troubleshooting.ErrorInfo.given
 import org.fiume.sketch.shared.app.troubleshooting.InvariantErrorSyntax.asDetails
-import org.fiume.sketch.shared.app.troubleshooting.http.PayloadCodecs.ErrorInfoCodecs.given
+import org.fiume.sketch.shared.app.troubleshooting.http.json.ErrorInfoCodecs.given
 import org.fiume.sketch.shared.auth0.Passwords.PlainPassword
 import org.fiume.sketch.shared.auth0.User.Username
 import org.http4s.{HttpRoutes, Response}
@@ -63,13 +63,13 @@ object AuthRoutes:
             _.pure[F]
           )
 
-    object Codecs:
-      import io.circe.{Decoder, Encoder, HCursor, Json}
+    object Json:
+      import io.circe.{Decoder, Encoder, HCursor, Json as JJson}
       import io.circe.syntax.*
 
       given Encoder[LoginRequestPayload] = new Encoder[LoginRequestPayload]:
-        override def apply(loginRequest: LoginRequestPayload): Json =
-          Json.obj(
+        override def apply(loginRequest: LoginRequestPayload): JJson =
+          JJson.obj(
             "username" -> loginRequest.username.asJson,
             "password" -> loginRequest.password.asJson
           )
@@ -82,8 +82,8 @@ object AuthRoutes:
           yield LoginRequestPayload(username, password)
 
       given Encoder[LoginResponsePayload] = new Encoder[LoginResponsePayload]:
-        override def apply(loginResponse: LoginResponsePayload): Json =
-          Json.obj("token" -> loginResponse.token.asJson)
+        override def apply(loginResponse: LoginResponsePayload): JJson =
+          JJson.obj("token" -> loginResponse.token.asJson)
 
       given Decoder[LoginResponsePayload] = new Decoder[LoginResponsePayload]:
         override def apply(c: HCursor): Decoder.Result[LoginResponsePayload] =
