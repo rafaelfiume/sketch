@@ -5,6 +5,7 @@ import cats.implicits.*
 import com.comcast.ip4s.*
 import doobie.ConnectionIO
 import org.fiume.sketch.auth0.http.AuthRoutes
+import org.fiume.sketch.auth0.http.middlewares.Auth0Middleware
 import org.fiume.sketch.http.HealthStatusRoutes
 import org.fiume.sketch.storage.documents.http.DocumentsRoutes
 import org.http4s.HttpRoutes
@@ -45,18 +46,15 @@ object HttpApi:
   import org.http4s.Uri
 
   def httpApp[F[_]: Async](res: Resources[F]): HttpRoutes[F] =
-    val authRoutes = new AuthRoutes[F](enableLogging = true)(res.authenticator).router()
-    val documentsStorageRoute =
-      new DocumentsRoutes[F, ConnectionIO](enableLogging = false)(res.customWorkerThreadPool, res.documentsStore).router()
-    val healthStatusRoutes = new HealthStatusRoutes[F](res.customWorkerThreadPool, res.versions, res.healthCheck).router()
+    val corsMiddleware = CORS.policy.withAllowOriginHost(Set(Origin.Host(Uri.Scheme.http, Uri.RegName("localhost"), 5173.some)))
+    val authMiddleware = Auth0Middleware(res.authenticator)
 
-    // TODO pass origin over config
-    val corsRoutes = corsPolicy(
-      allow = Origin.Host(Uri.Scheme.http, Uri.RegName("localhost"), 5173.some)
-    )(documentsStorageRoute)
+    val authRoutes = new AuthRoutes[F](enableLogging = true)(res.authenticator).router()
+    val documentsRoutes =
+      new DocumentsRoutes[F, ConnectionIO](enableLogging = false, res.customWorkerThreadPool, authMiddleware)(res.documentsStore)
+        .router()
+    val healthStatusRoutes = new HealthStatusRoutes[F](res.customWorkerThreadPool, res.versions, res.healthCheck).router()
 
     healthStatusRoutes <+>
       authRoutes <+>
-      corsRoutes
-
-  def corsPolicy[F[_]](allow: Origin.Host) = CORS.policy.withAllowOriginHost(Set(allow))
+      corsMiddleware(documentsRoutes)

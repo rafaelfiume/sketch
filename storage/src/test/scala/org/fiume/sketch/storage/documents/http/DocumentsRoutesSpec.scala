@@ -217,7 +217,7 @@ class DocumentsRoutesSpec
 
   }
 
-trait DocumentsRoutesSpecContext:
+trait DocumentsRoutesSpecContext extends AuthMiddlewareContext:
   val loggingFlag = false
 
   def montainBikeInLiguriaImageFile = getClass.getClassLoader.getResource("mountain-bike-liguria-ponent.jpg")
@@ -271,7 +271,36 @@ trait DocumentsRoutesSpecContext:
     )) :| "invalidTooShortDocumentName"
 
   def makeDocumentsRoutes(withStore: DocumentsStore[IO, IO]): IO[DocumentsRoutes[IO, IO]] =
-    IO.delay { new DocumentsRoutes[IO, IO](loggingFlag)(IORuntime.global.compute, withStore) }
+    val computePool = IORuntime.global.compute
+    val authMiddleware = makeAuthMiddleware()
+    IO.delay { new DocumentsRoutes[IO, IO](loggingFlag, computePool, authMiddleware)(withStore) }
+
+trait AuthMiddlewareContext:
+  import cats.data.Kleisli
+  import org.fiume.sketch.shared.auth0.User
+  import org.http4s.server.AuthMiddleware
+  import org.http4s.Request
+  import org.http4s.dsl.io.*
+  import org.fiume.sketch.shared.app.troubleshooting.ErrorInfo
+  import org.fiume.sketch.shared.app.troubleshooting.ErrorDetails
+  import org.http4s.circe.CirceEntityEncoder.*
+  import org.fiume.sketch.shared.app.troubleshooting.http.json.ErrorInfoCodecs.given
+  import org.fiume.sketch.shared.auth0.testkit.UserGens.*
+
+  def makeAuthMiddleware(): AuthMiddleware[IO, User] =
+    def aUser(): User = users.sample.get
+    def verify: Kleisli[IO, Request[IO], Either[String, User]] = Kleisli.liftF(aUser().asRight[String].pure[IO])
+    def onError: AuthedRoutes[String, IO] = Kleisli { req =>
+      OptionT.liftF(
+        Forbidden(
+          ErrorInfo.withDetails(
+            ErrorMessage("Invalid credentials"),
+            ErrorDetails.single("invalid.jwt" -> req.context)
+          )
+        )
+      )
+    }
+    AuthMiddleware(verify, onError)
 
 trait DocumentsStoreContext:
   import fs2.Stream
