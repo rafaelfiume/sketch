@@ -11,7 +11,7 @@ import org.http4s.ember.client.*
 import scala.concurrent.duration.*
 
 trait Http4sClientContext:
-  def http[A](exec: Client[IO] => IO[A]): IO[A] = EmberClientBuilder
+  def withHttp[A](exec: Client[IO] => IO[A]): IO[A] = EmberClientBuilder
     .default[IO]
     .build
     .map { retry(_) }
