@@ -280,27 +280,29 @@ trait AuthMiddlewareContext:
   import org.fiume.sketch.shared.auth0.User
   import org.http4s.server.AuthMiddleware
   import org.http4s.Request
-  import org.http4s.dsl.io.*
   import org.fiume.sketch.shared.app.troubleshooting.ErrorInfo
   import org.fiume.sketch.shared.app.troubleshooting.ErrorDetails
   import org.http4s.circe.CirceEntityEncoder.*
   import org.fiume.sketch.shared.app.troubleshooting.http.json.ErrorInfoCodecs.given
   import org.fiume.sketch.shared.auth0.testkit.UserGens.*
+  import org.http4s.headers.`WWW-Authenticate`
+  import org.http4s.Challenge
+  import org.http4s.Status
+  import org.http4s.Response
 
   def makeAuthMiddleware(): AuthMiddleware[IO, User] =
     def aUser(): User = users.sample.get
     def verify: Kleisli[IO, Request[IO], Either[String, User]] = Kleisli.liftF(aUser().asRight[String].pure[IO])
-    def onError: AuthedRoutes[String, IO] = Kleisli { req =>
-      OptionT.liftF(
-        Forbidden(
-          ErrorInfo.withDetails(
-            ErrorMessage("Invalid credentials"),
-            ErrorDetails.single("invalid.jwt" -> req.context)
+    val onFailure: AuthedRoutes[String, IO] = Kleisli { cx =>
+      OptionT.pure(
+        Response[IO](Status.Unauthorized)
+          .withHeaders(`WWW-Authenticate`(Challenge("Bearer", s"${cx.req.uri.path}")))
+          .withEntity(
+            ErrorInfo.withDetails(ErrorMessage("Invalid credentials"), ErrorDetails.single("invalid.jwt" -> cx.context))
           )
-        )
       )
     }
-    AuthMiddleware(verify, onError)
+    AuthMiddleware(verify, onFailure)
 
 trait DocumentsStoreContext:
   import fs2.Stream
