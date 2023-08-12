@@ -4,13 +4,13 @@ import cats.effect.IO
 import cats.implicits.*
 import munit.{CatsEffectSuite, ScalaCheckEffectSuite}
 import munit.Assertions.*
-import org.fiume.sketch.auth0.{AuthenticationError, Authenticator, JwtToken}
-import org.fiume.sketch.auth0.AuthenticationError.*
 import org.fiume.sketch.auth0.http.AuthRoutes.Model.{LoginRequestPayload, LoginResponsePayload}
-import org.fiume.sketch.auth0.http.AuthRoutes.Model.Codecs.given
+import org.fiume.sketch.auth0.http.AuthRoutes.Model.Json.given
+import org.fiume.sketch.auth0.testkit.AuthenticatorContext
+import org.fiume.sketch.auth0.testkit.JwtTokenGens.jwtTokens
 import org.fiume.sketch.shared.app.http4s.middlewares.SemanticInputError
 import org.fiume.sketch.shared.app.troubleshooting.{ErrorDetails, ErrorInfo, ErrorMessage}
-import org.fiume.sketch.shared.app.troubleshooting.http.PayloadCodecs.ErrorInfoCodecs.given
+import org.fiume.sketch.shared.app.troubleshooting.http.json.ErrorInfoCodecs.given
 import org.fiume.sketch.shared.auth0.Passwords.PlainPassword
 import org.fiume.sketch.shared.auth0.User
 import org.fiume.sketch.shared.auth0.User.Username
@@ -37,12 +37,12 @@ class AuthRoutesSpec
     with ShrinkLowPriority:
 
   test("return a Jwt token for a valid loging request"):
-    forAllF(loginRequests, authTokens) { case (user -> loginRequest -> authToken) =>
+    forAllF(loginRequests, jwtTokens) { case (user -> loginRequest -> jwtToken) =>
       val plainPassword = PlainPassword.notValidatedFromString(loginRequest.password)
       for
         authenticator <- makeAuthenticator(
           signee = user -> plainPassword,
-          signeeAuthToken = authToken
+          signeeAuthToken = jwtToken
         )
 
         request = POST(uri"/login").withEntity(loginRequest)
@@ -53,19 +53,19 @@ class AuthRoutesSpec
         _ <- IO {
           assertEquals(
             jsonResponse.as[LoginResponsePayload].map(_.token).rightValue,
-            authToken.value
+            jwtToken.value
           )
         }
       yield ()
     }
 
   test("return Ok for a login request with wrong password"):
-    forAllF(loginRequests, authTokens) { case (user -> loginRequest -> authToken) =>
+    forAllF(loginRequests, jwtTokens) { case (user -> loginRequest -> jwtToken) =>
       val plainPassword = PlainPassword.notValidatedFromString(loginRequest.password)
       for
         authenticator <- makeAuthenticator(
           signee = user -> plainPassword,
-          signeeAuthToken = authToken
+          signeeAuthToken = jwtToken
         )
 
         request = POST(uri"/login").withEntity(
@@ -87,12 +87,12 @@ class AuthRoutesSpec
     }
 
   test("return Ok for a login request with unknown username"):
-    forAllF(loginRequests, authTokens) { case (user -> loginRequest -> authToken) =>
+    forAllF(loginRequests, jwtTokens) { case (user -> loginRequest -> jwtToken) =>
       val plainPassword = PlainPassword.notValidatedFromString(loginRequest.password)
       for
         authenticator <- makeAuthenticator(
           signee = user -> plainPassword,
-          signeeAuthToken = authToken
+          signeeAuthToken = jwtToken
         )
 
         request = POST(uri"/login").withEntity(
@@ -114,12 +114,12 @@ class AuthRoutesSpec
     }
 
   test("return 422 for a login request when username or password are semantically invalid"):
-    forAllF(invalidInputs, authTokens) { case (user -> loginRequest -> authToken) =>
+    forAllF(invalidInputs, jwtTokens) { case (user -> loginRequest -> jwtToken) =>
       val plainPassword = PlainPassword.notValidatedFromString(loginRequest.password)
       for
         authenticator <- makeAuthenticator(
           signee = user -> plainPassword,
-          signeeAuthToken = authToken
+          signeeAuthToken = jwtToken
         )
 
         request = POST(uri"/login").withEntity(loginRequest)
@@ -142,7 +142,7 @@ class AuthRoutesSpec
   test("return 422 when login request body is malformed"):
     forAllF(malformedInputs) { badClientInput =>
       for
-        authenticator <- makeAuthenticator()
+        authenticator <- makeFailingAuthenticator()
 
         request = POST(uri"/login").withEntity(badClientInput)
         result <- send(request)
@@ -180,13 +180,6 @@ trait AuthRoutesSpecContext:
       password <- plainPasswords
     yield user -> LoginRequestPayload(user.username.value, password)
 
-  given Arbitrary[JwtToken] = Arbitrary(authTokens)
-  def authTokens: Gen[JwtToken] = Gen
-    .const(
-      "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiaWF0IjoxNTE2MjM5MDIyfQ.SflKxwRJSMeKKF2QT4fwpMeJf36POk6yJV_adQssw5c"
-    )
-    .map(JwtToken.notValidatedFromString)
-
   def invalidInputs: Gen[(User, LoginRequestPayload)] =
     for
       username <- oneOfUsernameInputErrors
@@ -199,25 +192,3 @@ trait AuthRoutesSpecContext:
       1 -> Gen.const("{\"unexpected\":\"payload\"}"),
       9 -> Gen.alphaNumStr
     )
-
-trait AuthenticatorContext:
-  def makeAuthenticator(signee: (User, PlainPassword), signeeAuthToken: JwtToken): IO[Authenticator[IO]] = IO.delay {
-    new Authenticator[IO]:
-      override def authenticate(username: Username, password: PlainPassword): IO[Either[AuthenticationError, JwtToken]] =
-        if username != signee._1.username then UserNotFoundError.asLeft[JwtToken].pure[IO]
-        else if password != signee._2 then InvalidPasswordError.asLeft[JwtToken].pure[IO]
-        else IO.delay { signeeAuthToken.asRight }
-
-      // TODO verify
-      override def verify(jwtToken: JwtToken): Either[AuthenticationError, User] =
-        signee._1.asRight[AuthenticationError]
-  }
-
-  def makeAuthenticator(): IO[Authenticator[IO]] = IO.delay {
-    new Authenticator[IO]:
-      override def authenticate(username: Username, password: PlainPassword): IO[Either[AuthenticationError, JwtToken]] =
-        IO.delay { fail("authenticate should have not been invoked") }
-
-      override def verify(jwtToken: JwtToken): Either[AuthenticationError, User] =
-        fail("verify should have not been invoked")
-  }

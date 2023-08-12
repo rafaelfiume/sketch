@@ -3,7 +3,7 @@ package org.fiume.sketch.acceptance
 import cats.effect.IO
 import munit.CatsEffectSuite
 import org.fiume.sketch.acceptance.testkit.Http4sClientContext
-import org.fiume.sketch.auth0.http.AuthRoutes.Model.Codecs.given
+import org.fiume.sketch.auth0.http.AuthRoutes.Model.Json.given
 import org.fiume.sketch.auth0.http.AuthRoutes.Model.LoginResponsePayload
 import org.fiume.sketch.auth0.scripts.UsersScript.*
 import org.fiume.sketch.shared.auth0.Passwords.PlainPassword
