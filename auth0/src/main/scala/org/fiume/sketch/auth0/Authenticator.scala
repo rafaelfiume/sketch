@@ -43,7 +43,7 @@ object Authenticator:
               UserNotFoundError.asLeft.pure[F]
             case Some(creds) =>
               if HashedPassword.verifyPassword(password, creds.hashedPassword) then
-                JwtToken.createJwtToken(privateKey, User(creds.uuid, username), expirationOffset)(using F, clock).map(_.asRight)
+                JwtToken.makeJwtToken(privateKey, User(creds.uuid, username), expirationOffset)(using F, clock).map(_.asRight)
               else InvalidPasswordError.asLeft.pure[F]
         yield jwtToken
 

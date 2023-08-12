@@ -21,10 +21,10 @@ class JwtTokenSpec extends CatsEffectSuite with ScalaCheckEffectSuite with Clock
 
   Security.addProvider(new BouncyCastleProvider())
 
-  test("create and parse jwt token"):
+  test("verify jwt token"):
     forAllF(ecKeyPairs, users, shortDurations) { case ((privateKey, publicKey), user, expirationOffset) =>
       for
-        jwtToken <- JwtToken.createJwtToken[IO](privateKey, user, expirationOffset)
+        jwtToken <- JwtToken.makeJwtToken[IO](privateKey, user, expirationOffset)
 
         result = JwtToken.verifyJwtToken(jwtToken, publicKey)
 
@@ -35,9 +35,12 @@ class JwtTokenSpec extends CatsEffectSuite with ScalaCheckEffectSuite with Clock
   test("wrong jwt token"):
     forAllF(ecKeyPairs, users, shortDurations) { case ((privateKey, publicKey), user, expirationOffset) =>
       for
-        jwtToken <- JwtToken.createJwtToken[IO](privateKey, user, expirationOffset)
+        jwtToken <- JwtToken.makeJwtToken[IO](privateKey, user, expirationOffset)
 
-        result = JwtToken.verifyJwtToken(JwtToken.notValidatedFromString(jwtToken.value + "wrong"), publicKey)
+        result = JwtToken.verifyJwtToken(
+          JwtToken.notValidatedFromString(s"${jwtToken.value}wrong"),
+          publicKey
+        )
 
         _ <- IO {
           assert(result.leftValue.isInstanceOf[JwtValidationError])
@@ -50,7 +53,7 @@ class JwtTokenSpec extends CatsEffectSuite with ScalaCheckEffectSuite with Clock
     forAllF(ecKeyPairs, users, shortDurations) { case ((privateKey, publicKey), user, expirationOffset) =>
       given Clock[IO] = makeFrozenTime(ZonedDateTime.now().minusSeconds(expirationOffset.toSeconds))
       for
-        jwtToken <- JwtToken.createJwtToken[IO](privateKey, user, expirationOffset)
+        jwtToken <- JwtToken.makeJwtToken[IO](privateKey, user, expirationOffset)
 
         result = JwtToken.verifyJwtToken(jwtToken, publicKey)
 
@@ -65,7 +68,7 @@ class JwtTokenSpec extends CatsEffectSuite with ScalaCheckEffectSuite with Clock
     forAllF(ecKeyPairs, ecKeyPairs, users, shortDurations) {
       case ((privateKey, _), (_, strangePublicKey), user, expirationOffset) =>
         for
-          jwtToken <- JwtToken.createJwtToken[IO](privateKey, user, expirationOffset)
+          jwtToken <- JwtToken.makeJwtToken[IO](privateKey, user, expirationOffset)
 
           result = JwtToken.verifyJwtToken(jwtToken, strangePublicKey)
           _ <- IO {

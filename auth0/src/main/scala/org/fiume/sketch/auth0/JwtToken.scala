@@ -35,7 +35,7 @@ object JwtError:
 
 private[auth0] object JwtToken:
   // offset: a shift in time from a reference point
-  def createJwtToken[F[_]](privateKey: PrivateKey, user: User, expirationOffset: Duration)(using
+  def makeJwtToken[F[_]](privateKey: PrivateKey, user: User, expirationOffset: Duration)(using
     F: FlatMap[F],
     clock: Clock[F]
   ): F[JwtToken] =
