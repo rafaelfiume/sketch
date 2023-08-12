@@ -19,6 +19,16 @@ object Auth0Middleware:
     val dsl = Http4sDsl[F]
     import dsl.*
 
+    def verify: Kleisli[F, Request[F], Either[String, User]] = Kleisli { req =>
+      F.delay {
+        for
+          header <- req.headers.get[Authorization].toRight("Couldn't find an Authorization header")
+          token = JwtToken.notValidatedFromString(header.value.stripPrefix("Bearer "))
+          user <- authenticator.verify(token).leftMap(_.toString)
+        yield user
+      }
+    }
+
     val onFailure: AuthedRoutes[String, F] = Kleisli { req =>
       OptionT.liftF(
         Forbidden(
@@ -28,16 +38,6 @@ object Auth0Middleware:
           )
         )
       )
-    }
-
-    def verify: Kleisli[F, Request[F], Either[String, User]] = Kleisli { req =>
-      F.delay {
-        for
-          header <- req.headers.get[Authorization].toRight("Couldn't find an Authorization header")
-          token = JwtToken.notValidatedFromString(header.value.stripPrefix("Bearer "))
-          user <- authenticator.verify(token).leftMap(_.toString)
-        yield user
-      }
     }
 
     AuthMiddleware(verify, onFailure)
