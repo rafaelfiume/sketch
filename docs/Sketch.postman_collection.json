@@ -9,14 +9,21 @@
 			"name": "Upload doc",
 			"request": {
 				"method": "POST",
-				"header": [],
+				"header": [
+					{
+						"key": "Authorization",
+						"value": "Bearer eyJ0eXAiOiJKV1QiLCJhbGciOiJFUzI1NiJ9.eyJzdWIiOiIyODYyYzEzMS03ZWM1LTRiYjEtYTBlNi00NjVlNjE2NWEyNzQiLCJleHAiOjE2OTE4ODM0NzksImlhdCI6MTY5MTg3OTg3OSwicHJlZmVycmVkX3VzZXJuYW1lIjoiYWJhY2F4aW5hb2ZhenhpeGkifQ.-vBlbx4YMrBq2nVf7J8cCUOZkmhde_V96wtnFWwHLgsF6H9RDSylGPA_Tz58UZakbH1zjyR_9dAiLt8iu3GUtQ",
+						"type": "default",
+						"disabled": true
+					}
+				],
 				"body": {
 					"mode": "formdata",
 					"formdata": [
 						{
 							"key": "bytes",
 							"type": "file",
-							"src": "/Users/rafafium/Desktop/Video 21-12-19, 13 48 11.mp4"
+							"src": "/Users/rafafium/Desktop/Foto 01-11-20, 15 01 29.png"
 						},
 						{
 							"key": "metadata",
@@ -43,9 +50,15 @@
 			"name": "Fetch doc metadata",
 			"request": {
 				"method": "GET",
-				"header": [],
+				"header": [
+					{
+						"key": "Authorization",
+						"value": "Bearer eyJ0eXAiOiJKV1QiLCJhbGciOiJFUzI1NiJ9.eyJzdWIiOiIyODYyYzEzMS03ZWM1LTRiYjEtYTBlNi00NjVlNjE2NWEyNzQiLCJleHAiOjE2OTE4ODM0NzksImlhdCI6MTY5MTg3OTg3OSwicHJlZmVycmVkX3VzZXJuYW1lIjoiYWJhY2F4aW5hb2ZhenhpeGkifQ.-vBlbx4YMrBq2nVf7J8cCUOZkmhde_V96wtnFWwHLgsF6H9RDSylGPA_Tz58UZakbH1zjyR_9dAiLt8iu3GUtQ",
+						"type": "default"
+					}
+				],
 				"url": {
-					"raw": "http://localhost:8080/documents/41952178-1d7b-4f49-a6a8-77be11ecdd9e/metadata",
+					"raw": "http://localhost:8080/documents/dbf69e6f-a104-472e-a33d-d7f0f3cfdb55/metadata",
 					"protocol": "http",
 					"host": [
 						"localhost"
@@ -53,7 +66,7 @@
 					"port": "8080",
 					"path": [
 						"documents",
-						"41952178-1d7b-4f49-a6a8-77be11ecdd9e",
+						"dbf69e6f-a104-472e-a33d-d7f0f3cfdb55",
 						"metadata"
 					]
 				}
@@ -64,9 +77,15 @@
 			"name": "Download doc",
 			"request": {
 				"method": "GET",
-				"header": [],
+				"header": [
+					{
+						"key": "Authorization",
+						"value": "Bearer eyJ0eXAiOiJKV1QiLCJhbGciOiJFUzI1NiJ9.eyJzdWIiOiIyODYyYzEzMS03ZWM1LTRiYjEtYTBlNi00NjVlNjE2NWEyNzQiLCJleHAiOjE2OTE4ODM0NzksImlhdCI6MTY5MTg3OTg3OSwicHJlZmVycmVkX3VzZXJuYW1lIjoiYWJhY2F4aW5hb2ZhenhpeGkifQ.-vBlbx4YMrBq2nVf7J8cCUOZkmhde_V96wtnFWwHLgsF6H9RDSylGPA_Tz58UZakbH1zjyR_9dAiLt8iu3GUtQ",
+						"type": "default"
+					}
+				],
 				"url": {
-					"raw": "http://localhost:8080/documents/41952178-1d7b-4f49-a6a8-77be11ecdd9e",
+					"raw": "http://localhost:8080/documents/dbf69e6f-a104-472e-a33d-d7f0f3cfdb55",
 					"protocol": "http",
 					"host": [
 						"localhost"
@@ -74,7 +93,7 @@
 					"port": "8080",
 					"path": [
 						"documents",
-						"41952178-1d7b-4f49-a6a8-77be11ecdd9e"
+						"dbf69e6f-a104-472e-a33d-d7f0f3cfdb55"
 					]
 				}
 			},
@@ -84,9 +103,15 @@
 			"name": "Delete doc",
 			"request": {
 				"method": "DELETE",
-				"header": [],
+				"header": [
+					{
+						"key": "Authorization",
+						"value": "Bearer eyJ0eXAiOiJKV1QiLCJhbGciOiJFUzI1NiJ9.eyJzdWIiOiIyODYyYzEzMS03ZWM1LTRiYjEtYTBlNi00NjVlNjE2NWEyNzQiLCJleHAiOjE2OTE4ODM0NzksImlhdCI6MTY5MTg3OTg3OSwicHJlZmVycmVkX3VzZXJuYW1lIjoiYWJhY2F4aW5hb2ZhenhpeGkifQ.-vBlbx4YMrBq2nVf7J8cCUOZkmhde_V96wtnFWwHLgsF6H9RDSylGPA_Tz58UZakbH1zjyR_9dAiLt8iu3GUtQ",
+						"type": "default"
+					}
+				],
 				"url": {
-					"raw": "http://localhost:8080/documents/41952178-1d7b-4f49-a6a8-77be11ecdd9e",
+					"raw": "http://localhost:8080/documents/dbf69e6f-a104-472e-a33d-d7f0f3cfdb55",
 					"protocol": "http",
 					"host": [
 						"localhost"
@@ -94,7 +119,7 @@
 					"port": "8080",
 					"path": [
 						"documents",
-						"41952178-1d7b-4f49-a6a8-77be11ecdd9e"
+						"dbf69e6f-a104-472e-a33d-d7f0f3cfdb55"
 					]
 				}
 			},

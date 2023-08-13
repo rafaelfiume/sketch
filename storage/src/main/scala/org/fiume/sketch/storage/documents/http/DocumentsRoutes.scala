@@ -15,6 +15,7 @@ import org.fiume.sketch.shared.app.http4s.middlewares.{
 import org.fiume.sketch.shared.app.troubleshooting.ErrorDetails
 import org.fiume.sketch.shared.app.troubleshooting.ErrorInfo.given
 import org.fiume.sketch.shared.app.troubleshooting.InvariantErrorSyntax.asDetails
+import org.fiume.sketch.shared.auth0.User
 import org.fiume.sketch.storage.documents.Document
 import org.fiume.sketch.storage.documents.Document.Metadata
 import org.fiume.sketch.storage.documents.Document.Metadata.*
@@ -26,7 +27,7 @@ import org.http4s.circe.CirceEntityDecoder.*
 import org.http4s.circe.CirceEntityEncoder.*
 import org.http4s.dsl.Http4sDsl
 import org.http4s.multipart.{Multipart, Part, *}
-import org.http4s.server.Router
+import org.http4s.server.{AuthMiddleware, Router}
 import org.http4s.server.middleware.EntityLimiter
 import org.typelevel.log4cats.slf4j.Slf4jLogger
 
@@ -35,8 +36,12 @@ import scala.concurrent.ExecutionContext
 /*
  * TODO Update documents
  */
-class DocumentsRoutes[F[_], Txn[_]](enableLogging: Boolean, documentSizeLimit: Int = 6 * 1024 * 1024 /*6Mb*/ )(
+class DocumentsRoutes[F[_], Txn[_]](
+  enableLogging: Boolean,
   workerPool: ExecutionContext,
+  authMiddleware: AuthMiddleware[F, User],
+  documentSizeLimit: Int = 6 * 1024 * 1024 /*6Mb*/
+)(
   store: DocumentsStore[F, Txn]
 )(using F: Async[F])
     extends Http4sDsl[F]:
@@ -48,15 +53,15 @@ class DocumentsRoutes[F[_], Txn[_]](enableLogging: Boolean, documentSizeLimit: I
       EntityLimiter(
         WorkerMiddleware[F](workerPool)
           .andThen(TraceAuditLogMiddleware[F](Slf4jLogger.getLogger[F], enableLogging))
-          .andThen(SemanticValidationMiddleware.apply)(httpRoutes),
+          .andThen(SemanticValidationMiddleware.apply)(authMiddleware(authedRoutes)),
         limit = documentSizeLimit
       )
   )
 
-  private val httpRoutes: HttpRoutes[F] =
-    HttpRoutes.of[F] {
-      case req @ POST -> Root / "documents" =>
-        req.decode { (uploadRequest: Multipart[F]) =>
+  private val authedRoutes: AuthedRoutes[User, F] =
+    AuthedRoutes.of {
+      case cx @ POST -> Root / "documents" as user =>
+        cx.req.decode { (uploadRequest: Multipart[F]) =>
           for
             document <- uploadRequest.validated()
             uuid <- store.commit { store.store(document) }
@@ -64,19 +69,19 @@ class DocumentsRoutes[F[_], Txn[_]](enableLogging: Boolean, documentSizeLimit: I
           yield created
         }
 
-      case GET -> Root / "documents" / UUIDVar(uuid) / "metadata" =>
+      case GET -> Root / "documents" / UUIDVar(uuid) / "metadata" as user =>
         for
           metadata <- store.commit { store.fetchMetadata(uuid) }
           res <- metadata.fold(ifEmpty = NotFound())(Ok(_))
         yield res
 
-      case GET -> Root / "documents" / UUIDVar(uuid) =>
+      case GET -> Root / "documents" / UUIDVar(uuid) as user =>
         for
           stream <- store.commit { store.fetchContent(uuid) }
           res <- stream.fold(ifEmpty = NotFound())(Ok(_))
         yield res
 
-      case DELETE -> Root / "documents" / UUIDVar(uuid) =>
+      case DELETE -> Root / "documents" / UUIDVar(uuid) as user =>
         for
           metadata <- store.commit { store.fetchMetadata(uuid) }
           res <- metadata match

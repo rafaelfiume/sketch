@@ -64,7 +64,7 @@ class Auth0MiddlewareSpec
 
         _ <- response.as[ErrorInfo].flatMap { result =>
           IO {
-            assertEquals(response.status, Status.Forbidden)
+            assertEquals(response.status, Status.Unauthorized)
             assertEquals(
               result,
               ErrorInfo.withDetails(

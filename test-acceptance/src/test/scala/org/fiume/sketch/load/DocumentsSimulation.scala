@@ -4,11 +4,12 @@ import cats.effect.IO
 import cats.effect.unsafe.IORuntime
 import io.gatling.core.Predef.*
 import io.gatling.http.Predef.{http, *}
+import org.fiume.sketch.acceptance.testkit.AuthenticationContext
 import org.fiume.sketch.shared.testkit.FileContentContext
 
 import scala.concurrent.duration.*
 
-class DocumentsRoutesSimulation extends Simulation with FileContentContext with DocumentsRoutesSimulationContext:
+class DocumentsSimulation extends Simulation with FileContentContext with AuthenticationContext with DocumentsSimulationContext:
 
   val docName = "Nicolas_e_Joana"
   val docDesc = "Meus amores <3"
@@ -16,14 +17,19 @@ class DocumentsRoutesSimulation extends Simulation with FileContentContext with 
   given IORuntime = IORuntime.global
   val bytes = bytesFrom[IO](pathToFile).compile.toVector.map(_.toArray).unsafeRunSync()
 
+  val authHeader = loginAndGetAuthenticationHeader().unsafeRunSync()
+
+  println(authHeader.credentials.toString)
+
   val httpProtocol = http
     .baseUrl("http://localhost:8080")
     .acceptHeader("application/json")
     .contentTypeHeader("multipart/form-data")
+    .header("Authorization", authHeader.credentials.toString)
 
   val scn = scenario("DocumentsRoutes")
     .exec(
-      http("create document")
+      http("upload document")
         .post("/documents")
         .header("Content-Type", "multipart/form-data")
         .bodyParts(
@@ -37,10 +43,11 @@ class DocumentsRoutesSimulation extends Simulation with FileContentContext with 
         .check(jsonPath("$.uuid").saveAs("documentId"))
     )
     .exec(
-      http("get document")
+      http("download document")
         .get("/documents/${documentId}")
         .check(status.is(200))
     )
+    .exitHereIfFailed
     .exec(
       http("delete document")
         .delete("/documents/${documentId}")
@@ -55,7 +62,7 @@ class DocumentsRoutesSimulation extends Simulation with FileContentContext with 
   ).protocols(httpProtocol)
 
 // TODO: duplicated
-trait DocumentsRoutesSimulationContext:
+trait DocumentsSimulationContext:
   // TODO Load from storage/src/test/resources/storage/contract/http/document.metadata.json
   def payload(name: String, description: String): String =
     s"""
