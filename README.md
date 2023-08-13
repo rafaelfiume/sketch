@@ -12,6 +12,7 @@ Sbt:
 Acceptance tests tasks:
 - `$ sbt testAcceptance/test`
 - `$ sbt testAcceptance/scalafixAll`
+- `$ sbt testAcceptance/Gatling/test`
 
 Docker:
  - `$ docker stop $(docker ps -a -q)`
