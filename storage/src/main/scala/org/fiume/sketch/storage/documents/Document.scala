@@ -49,7 +49,7 @@ object Document:
         case object InvalidChar extends InvalidDocumentNameError:
           override def uniqueCode: String = "document.name.invalid"
           override val message: String =
-            "must only contain letters (a-z, A-Z), numbers (0-9), underscores (_) hyphens (-) and periods (.)"
+            "must only contain letters (a-z,A-Z), numbers (0-9), whitespace ( ), underscores (_) hyphens (-) and periods (.)"
 
       val minLength = 4
       val maxLength = 64
@@ -58,7 +58,7 @@ object Document:
       def validated(value: String): EitherNec[InvalidDocumentNameError, Name] =
         val hasMinLength = Validated.condNec[InvalidDocumentNameError, Unit](value.length >= minLength, (), TooShort)
         val hasMaxLength = Validated.condNec(value.length <= maxLength, (), TooLong)
-        val hasNoInvalidChar = Validated.condNec(value.matches("^[a-zA-Z0-9_\\-.]*$"), (), InvalidChar)
+        val hasNoInvalidChar = Validated.condNec(value.matches("^[a-zA-Z0-9_\\-. ]*$"), (), InvalidChar)
         (hasMinLength, hasMaxLength, hasNoInvalidChar)
           .mapN((_, _, _) => new Name(value) {})
           .toEither

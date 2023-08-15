@@ -47,7 +47,7 @@ object DocumentsGens:
       names <- names
       invalidChars <- Gen
         .nonEmptyListOf(
-          Gen.oneOf(" ", "\t", "\n", "\r", "\f", "*", "(", ")", "[", "]", "{", "}", "|", "\\", "'", "\"", "<", ">", "/")
+          Gen.oneOf("\t", "\n", "\r", "\f", "*", "(", ")", "[", "]", "{", "}", "|", "\\", "'", "\"", "<", ">", "/")
         )
         .map(_.mkString)
     yield Random.shuffle(names ++ invalidChars).mkString) :| "invalid chars"
@@ -80,4 +80,4 @@ object DocumentsGens:
     yield Document.withId(uuid, document.metadata, document.content)
 
 private def nameChars: Gen[Char] =
-  Gen.frequency(9 -> Gen.alphaNumChar, 1 -> Gen.const('_'), 1 -> Gen.const('-'), 1 -> Gen.const('.'))
+  Gen.frequency(9 -> Gen.alphaNumChar, 1 -> Gen.const(' '), 1 -> Gen.const('_'), 1 -> Gen.const('-'), 1 -> Gen.const('.'))
