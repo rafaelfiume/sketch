@@ -13,7 +13,7 @@ import org.fiume.sketch.storage.documents.Document.Metadata.Name.InvalidDocument
 
 import java.util.UUID
 
-type DocumentWithId[F[_]] = Document[F] & WithUuid
+type DocumentWithUuid[F[_]] = Document[F] & WithUuid
 
 case class Document[F[_]](
   metadata: Metadata,
@@ -21,13 +21,17 @@ case class Document[F[_]](
 )
 
 object Document:
-  def withId[F[_]](
+  def withUuid[F[_]](
     withUuid: UUID,
     metadata: Metadata,
     content: Stream[F, Byte]
   ): Document[F] & WithUuid =
     new Document[F](metadata, content) with WithUuid:
       override val uuid: UUID = withUuid
+
+  extension [F[_]](document: Document[F])
+    def withUuid(withUuid: UUID): Document[F] & WithUuid =
+      Document.withUuid[F](withUuid, document.metadata, document.content)
 
   case class Metadata(name: Name, description: Description)
 

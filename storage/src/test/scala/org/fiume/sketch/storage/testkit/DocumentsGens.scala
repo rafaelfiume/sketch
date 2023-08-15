@@ -4,7 +4,7 @@ import cats.effect.IO
 import fs2.Stream
 import org.fiume.sketch.shared.testkit.Gens.Bytes.*
 import org.fiume.sketch.shared.testkit.Gens.Strings.*
-import org.fiume.sketch.storage.documents.{Document, DocumentWithId}
+import org.fiume.sketch.storage.documents.{Document, DocumentWithUuid}
 import org.fiume.sketch.storage.documents.Document.Metadata
 import org.fiume.sketch.storage.documents.Document.Metadata.*
 import org.scalacheck.{Arbitrary, Gen}
@@ -72,12 +72,12 @@ object DocumentsGens:
       content <- bytesG
     yield Document(metadata, content)
 
-  given Arbitrary[DocumentWithId[IO]] = Arbitrary(documentsWithId)
-  def documentsWithId: Gen[DocumentWithId[IO]] =
+  given Arbitrary[DocumentWithUuid[IO]] = Arbitrary(documentsWithId)
+  def documentsWithId: Gen[DocumentWithUuid[IO]] =
     for
       uuid <- Gen.delay(UUID.randomUUID())
       document <- documents
-    yield Document.withId(uuid, document.metadata, document.content)
+    yield Document.withUuid(uuid, document.metadata, document.content)
 
 private def nameChars: Gen[Char] =
   Gen.frequency(9 -> Gen.alphaNumChar, 1 -> Gen.const(' '), 1 -> Gen.const('_'), 1 -> Gen.const('-'), 1 -> Gen.const('.'))

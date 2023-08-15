@@ -12,7 +12,7 @@ import org.fiume.sketch.shared.app.troubleshooting.{ErrorInfo, ErrorMessage}
 import org.fiume.sketch.shared.app.troubleshooting.http.json.ErrorInfoCodecs.given
 import org.fiume.sketch.shared.testkit.{ContractContext, Http4sTestingRoutesDsl}
 import org.fiume.sketch.shared.testkit.EitherSyntax.*
-import org.fiume.sketch.storage.documents.{Document, DocumentWithId}
+import org.fiume.sketch.storage.documents.{Document, DocumentWithUuid}
 import org.fiume.sketch.storage.documents.Document.Metadata
 import org.fiume.sketch.storage.documents.Document.Metadata.*
 import org.fiume.sketch.storage.documents.algebras.DocumentsStore
@@ -74,7 +74,7 @@ class DocumentsRoutesSpec
     }
 
   test("Get document metadata"):
-    forAllF { (document: DocumentWithId[IO]) =>
+    forAllF { (document: DocumentWithUuid[IO]) =>
       val request = GET(Uri.unsafeFromString(s"/documents/${document.uuid}/metadata"))
       for
         store <- makeDocumentsStore(state = document)
@@ -91,7 +91,7 @@ class DocumentsRoutesSpec
     }
 
   test("Get document content"):
-    forAllF { (document: DocumentWithId[IO]) =>
+    forAllF { (document: DocumentWithUuid[IO]) =>
       val request = GET(Uri.unsafeFromString(s"/documents/${document.uuid}"))
       for
         store <- makeDocumentsStore(state = document)
@@ -110,7 +110,7 @@ class DocumentsRoutesSpec
     }
 
   test("Delete document"):
-    forAllF { (document: DocumentWithId[IO]) =>
+    forAllF { (document: DocumentWithUuid[IO]) =>
       val request = DELETE(Uri.unsafeFromString(s"/documents/${document.uuid}"))
       for
         store <- makeDocumentsStore(state = document)
@@ -132,7 +132,7 @@ class DocumentsRoutesSpec
     }
 
   test("Delete unexistent document == not found"):
-    forAllF { (document: DocumentWithId[IO]) =>
+    forAllF { (document: DocumentWithUuid[IO]) =>
       val request = DELETE(Uri.unsafeFromString(s"/documents/${document.uuid}"))
       for
         store <- makeDocumentsStore()
@@ -310,28 +310,28 @@ trait DocumentsStoreContext:
 
   def makeDocumentsStore(): IO[DocumentsStore[IO, IO]] = makeDocumentsStore(state = Map.empty)
 
-  def makeDocumentsStore(state: DocumentWithId[IO]): IO[DocumentsStore[IO, IO]] =
+  def makeDocumentsStore(state: DocumentWithUuid[IO]): IO[DocumentsStore[IO, IO]] =
     makeDocumentsStore(Map(state.uuid -> state))
 
-  private def makeDocumentsStore(state: Map[UUID, DocumentWithId[IO]]): IO[DocumentsStore[IO, IO]] =
-    Ref.of[IO, Map[UUID, DocumentWithId[IO]]](state).map { storage =>
+  private def makeDocumentsStore(state: Map[UUID, DocumentWithUuid[IO]]): IO[DocumentsStore[IO, IO]] =
+    Ref.of[IO, Map[UUID, DocumentWithUuid[IO]]](state).map { storage =>
       new DocumentsStore[IO, IO]:
 
         def store(document: Document[IO]): IO[UUID] =
           IO.randomUUID.flatMap { uuid =>
             storage
               .update {
-                val documentWithId = Document.withId[IO](uuid, document.metadata, document.content)
-                _.updated(uuid, documentWithId)
+                val DocumentWithUuid = Document.withUuid[IO](uuid, document.metadata, document.content)
+                _.updated(uuid, DocumentWithUuid)
               }
               .as(uuid)
           }
 
-        def update(document: DocumentWithId[IO]): IO[Unit] =
+        def update(document: DocumentWithUuid[IO]): IO[Unit] =
           storage.update {
             _.updatedWith(document.uuid) {
               case Some(document) =>
-                Document.withId[IO](document.uuid, document.metadata, document.content).some
+                Document.withUuid[IO](document.uuid, document.metadata, document.content).some
               case None => none
             }
           }.void
@@ -345,6 +345,8 @@ trait DocumentsStoreContext:
           storage.get.map(_.collectFirst {
             case (storedUuid, document) if storedUuid === uuid => document.content
           })
+
+        def fetchAll(): Stream[IO, DocumentWithUuid[IO]] = ??? // TODO
 
         def delete(uuid: UUID): IO[Unit] =
           storage.update { _.removed(uuid) }
