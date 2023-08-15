@@ -18,7 +18,7 @@ object KeyPairLoaderScript extends IOApp:
 
   case class EcKeyPair(privateKey: ECPrivateKey, publicKey: ECPublicKey)
 
-  private val resourcesPath = Path(getClass.getClassLoader().getResource("").getPath())
+  private val resourcesPath = Path("src/main/resources")
 
   def run(args: List[String]): IO[ExitCode] =
     IO.delay { Security.addProvider(new BouncyCastleProvider()) } *>

@@ -13,7 +13,7 @@ import java.security.Security
  */
 object EcKeyPairPemScript extends IOApp:
 
-  private val resourcesPath = Path(getClass.getClassLoader().getResource("").getPath())
+  private val resourcesPath = Path("src/main/resources")
   private val privateKeyPath = Path("private_key.pem")
   private val publicKeyPath = Path("public_key.pem")
 
