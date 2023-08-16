@@ -25,7 +25,7 @@ object KeyPairLoaderScript extends IOApp:
       fromResources[IO]().flatMap { IO.println(_) }.as(ExitCode.Success)
 
   def fromResources[F[_]: Async](): F[EcKeyPair] =
-    def readFile(path: Path) = Files[F].readAll(path).through(fs2.text.utf8.decode)
+    def readFile(path: Path) = Files.forAsync[F].readAll(path).through(fs2.text.utf8.decode)
 
     def privateKey = readFile(resourcesPath./(Path("private_key.pem")))
       .map(KeyStringifier.ecPrivateKeyFromPem)
