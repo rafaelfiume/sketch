@@ -56,5 +56,5 @@ object HttpApi:
     val healthStatusRoutes = new HealthStatusRoutes[F](res.customWorkerThreadPool, res.versions, res.healthCheck).router()
 
     healthStatusRoutes <+>
-      corsMiddleware.apply(authRoutes) <+>
+      corsMiddleware(authRoutes) <+>
       corsMiddleware(documentsRoutes)

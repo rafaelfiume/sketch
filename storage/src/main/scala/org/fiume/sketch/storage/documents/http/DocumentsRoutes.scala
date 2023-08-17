@@ -27,8 +27,8 @@ import org.fiume.sketch.storage.documents.algebras.DocumentsStore
 import org.fiume.sketch.storage.documents.http.DocumentsRoutes.{
   Line,
   Linebreak,
-  NewLineSeparatedJson,
-  NewLineSeparatedJsonEncoder
+  NewlineDelimitedJson,
+  NewlineDelimitedJsonEncoder
 }
 import org.fiume.sketch.storage.documents.http.DocumentsRoutes.Model.*
 import org.fiume.sketch.storage.documents.http.DocumentsRoutes.Model.Json.given
@@ -71,6 +71,8 @@ class DocumentsRoutes[F[_], Txn[_]](
       )
   )
 
+  given EntityEncoder[F, NewlineDelimitedJson] = NewlineDelimitedJsonEncoder.make[F]
+
   private val authedRoutes: AuthedRoutes[User, F] =
     AuthedRoutes.of {
       case cx @ POST -> Root / "documents" as user =>
@@ -96,10 +98,9 @@ class DocumentsRoutes[F[_], Txn[_]](
 
       // experimental newline delimented json: no tests and subject to change
       case GET -> Root / "documents" as user =>
-        given EntityEncoder[F, NewLineSeparatedJson] = NewLineSeparatedJsonEncoder.make[F]
         val responseStream = store
           .fetchAll()
-          .map(_.toDocumentResponsePayload.asJson)
+          .map(_.toPayload.asJson)
           .map(Line(_))
           .intersperse(Linebreak)
         Ok(responseStream)
@@ -114,14 +115,14 @@ class DocumentsRoutes[F[_], Txn[_]](
     }
 
 private[http] object DocumentsRoutes:
-  sealed trait NewLineSeparatedJson
-  case class Line(json: JJson) extends NewLineSeparatedJson
-  case object Linebreak extends NewLineSeparatedJson
+  sealed trait NewlineDelimitedJson
+  case class Line(json: JJson) extends NewlineDelimitedJson
+  case object Linebreak extends NewlineDelimitedJson
 
-  object NewLineSeparatedJsonEncoder:
-    def make[F[_]: cats.Functor]: EntityEncoder[F, NewLineSeparatedJson] =
+  object NewlineDelimitedJsonEncoder:
+    def make[F[_]: cats.Functor]: EntityEncoder[F, NewlineDelimitedJson] =
       EntityEncoder.stringEncoder
-        .contramap[NewLineSeparatedJson] { token =>
+        .contramap[NewlineDelimitedJson] { token =>
           token match
             case Line(value) => value.noSpaces
             case Linebreak   => "\n"
@@ -132,10 +133,10 @@ private[http] object DocumentsRoutes:
     case class MetadataPayload(name: String, description: String)
     case class DocumentResponsePayload(uuid: UUID, metadata: MetadataPayload, contentLink: Uri)
 
-    extension (m: Metadata) def toPayload = MetadataPayload(m.name.value, m.description.value)
+    extension (m: Metadata) def toPayload: MetadataPayload = MetadataPayload(m.name.value, m.description.value)
 
     extension [F[_]](d: DocumentWithUuid[F])
-      def toDocumentResponsePayload =
+      def toPayload: DocumentResponsePayload =
         DocumentResponsePayload(d.uuid, d.metadata.toPayload, Uri.unsafeFromString(s"/documents/${d.uuid.toString}"))
 
     extension [F[_]: MonadThrow: Concurrent](m: Multipart[F])
