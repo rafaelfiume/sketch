@@ -110,7 +110,7 @@ private object Statements:
          |  d.uuid,
          |  d.name,
          |  d.description,
-         |  d.bytes
+         |  ''::bytea as content
          |FROM domain.documents d
     """.stripMargin.query[DocumentWithUuid[F]].stream
 

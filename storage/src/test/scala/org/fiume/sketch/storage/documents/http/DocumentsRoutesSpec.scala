@@ -27,7 +27,7 @@ import org.http4s.client.dsl.io.*
 import org.http4s.headers.`Content-Type`
 import org.http4s.implicits.*
 import org.http4s.multipart.{Boundary, Multipart, Part}
-import org.scalacheck.{Gen, ShrinkLowPriority}
+import org.scalacheck.{Arbitrary, Gen, ShrinkLowPriority}
 import org.scalacheck.effect.PropF.forAllF
 
 import java.util.UUID
@@ -44,10 +44,10 @@ class DocumentsRoutesSpec
   override def scalaCheckTestParameters = super.scalaCheckTestParameters.withMinSuccessfulTests(10)
 
   test("Post document"):
-    forAllF { (metadata: Metadata) => // TODO Metadata Payload instead
+    forAllF { (metadataPayload: MetadataPayload) =>
       val multipart = Multipart[IO](
         parts = Vector(
-          Part.formData("metadata", metadata.asJson.spaces2SortKeys),
+          Part.formData("metadata", metadataPayload.asJson.spaces2SortKeys),
           Part.fileData("bytes", montainBikeInLiguriaImageFile, `Content-Type`(MediaType.image.jpeg))
         ),
         boundary = Boundary("boundary")
@@ -67,7 +67,7 @@ class DocumentsRoutesSpec
           store.fetchContent(jsonResponse.as[UUID].rightValue)
         ).semiflatMap(_.compile.toList).value
         _ <- IO {
-          assertEquals(storedMetadata, metadata.some)
+          assertEquals(storedMetadata.map(_.toPayload), metadataPayload.some)
           assertEquals(storedBytes.map(_.toList), uploadedContent.some)
         }
       yield ()
@@ -85,7 +85,10 @@ class DocumentsRoutesSpec
           .expectJsonResponseWith(Status.Ok)
 
         _ <- IO {
-          assertEquals(jsonResponse.as[Metadata].rightValue, document.metadata)
+          assertEquals(
+            jsonResponse.as[MetadataPayload].rightValue,
+            document.metadata.toPayload
+          )
         }
       yield ()
     }
@@ -196,7 +199,7 @@ class DocumentsRoutesSpec
    */
 
   test("bijective relationship between encoded and decoded Documents.Metadata"):
-    assertBijectiveRelationshipBetweenEncoderAndDecoder[Metadata](
+    assertBijectiveRelationshipBetweenEncoderAndDecoder[MetadataPayload](
       "contract/documents/http/metadata.json"
     )
 
@@ -222,6 +225,9 @@ trait DocumentsRoutesSpecContext extends AuthMiddlewareContext:
 
   def montainBikeInLiguriaImageFile = getClass.getClassLoader.getResource("mountain-bike-liguria-ponent.jpg")
 
+  given Arbitrary[MetadataPayload] = Arbitrary(metadataPayloads)
+  def metadataPayloads: Gen[MetadataPayload] = metadataG.map(_.toPayload) :| "metadataPayloads"
+
   def malformedDocumentRequests: Gen[Multipart[IO]] = Gen.delay {
     Multipart[IO](
       parts = Vector(
@@ -238,7 +244,7 @@ trait DocumentsRoutesSpecContext extends AuthMiddlewareContext:
     invalidTooShortDocumentName
   )
 
-  private def invalidPartWithNoContent: Gen[Multipart[IO]] = metadataG.flatMap { metadata =>
+  private def invalidPartWithNoContent: Gen[Multipart[IO]] = metadataPayloads.flatMap { metadata =>
     Gen.delay {
       Multipart[IO](
         // no file mamma!
@@ -260,8 +266,8 @@ trait DocumentsRoutesSpecContext extends AuthMiddlewareContext:
 
   def invalidTooShortDocumentName: Gen[Multipart[IO]] =
     (for
-      name <- shortNames.map(Name.notValidatedFromString)
-      metadata <- metadataG.map(_.copy(name = name))
+      name <- shortNames
+      metadata <- metadataPayloads.map(_.copy(name = name))
     yield Multipart[IO](
       parts = Vector(
         Part.formData("metadata", metadata.asJson.spaces2SortKeys),
