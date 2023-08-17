@@ -201,6 +201,15 @@ private[http] object DocumentsRoutes:
         Uri.fromString(uri).leftMap { e => e.getMessage }
       }
 
+      given Encoder[UUID] = new Encoder[UUID]:
+        override def apply(uuid: UUID): JJson = JJson.obj("uuid" -> JJson.fromString(uuid.toString))
+
+      given Decoder[UUID] = new Decoder[UUID]:
+        override def apply(c: HCursor): Result[UUID] =
+          c.downField("uuid").as[String].flatMap { uuid =>
+            Either.catchNonFatal(UUID.fromString(uuid)).leftMap { e => DecodingFailure(e.getMessage, c.history) }
+          }
+
       given Encoder[MetadataPayload] = new Encoder[MetadataPayload]:
         override def apply(m: MetadataPayload): JJson = JJson.obj(
           "name" -> m.name.asJson,
@@ -216,15 +225,7 @@ private[http] object DocumentsRoutes:
 
       given Encoder[DocumentResponsePayload] = new Encoder[DocumentResponsePayload]:
         override def apply(d: DocumentResponsePayload): JJson = JJson.obj(
-          "uuid" -> d.uuid.asJson,
+          "uuid" -> d.uuid.toString.asJson,
           "metadata" -> d.metadata.asJson,
           "content_link" -> d.contentLink.asJson
         )
-
-      given Decoder[DocumentResponsePayload] = new Decoder[DocumentResponsePayload]:
-        override def apply(c: HCursor): Decoder.Result[DocumentResponsePayload] =
-          for
-            uuid <- c.downField("uuid").as[UUID]
-            metadata <- c.downField("metadata").as[MetadataPayload]
-            contentLink <- c.downField("content_link").as[Uri]
-          yield DocumentResponsePayload(uuid, metadata, contentLink)
