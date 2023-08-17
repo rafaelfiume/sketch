@@ -24,7 +24,12 @@ import org.fiume.sketch.storage.documents.{Document, DocumentWithUuid}
 import org.fiume.sketch.storage.documents.Document.Metadata
 import org.fiume.sketch.storage.documents.Document.Metadata.*
 import org.fiume.sketch.storage.documents.algebras.DocumentsStore
-import org.fiume.sketch.storage.documents.http.DocumentsRoutes.{JsonToken, LineBreak, Token, TokenEntityEncoder}
+import org.fiume.sketch.storage.documents.http.DocumentsRoutes.{
+  Line,
+  Linebreak,
+  NewLineSeparatedJson,
+  NewLineSeparatedJsonEncoder
+}
 import org.fiume.sketch.storage.documents.http.DocumentsRoutes.Model.*
 import org.fiume.sketch.storage.documents.http.DocumentsRoutes.Model.Json.given
 import org.http4s.{Charset, EntityEncoder, HttpRoutes, MediaType, *}
@@ -40,8 +45,6 @@ import org.typelevel.log4cats.slf4j.Slf4jLogger
 
 import java.util.UUID
 import scala.concurrent.ExecutionContext
-
-import circe.*
 
 /*
  * TODO Update documents
@@ -93,12 +96,12 @@ class DocumentsRoutes[F[_], Txn[_]](
 
       // experimental newline delimented json: no tests and subject to change
       case GET -> Root / "documents" as user =>
-        given EntityEncoder[F, Token] = TokenEntityEncoder.tokenEntityEncoder[F]
+        given EntityEncoder[F, NewLineSeparatedJson] = NewLineSeparatedJsonEncoder.make[F]
         val responseStream = store
           .fetchAll()
           .map(_.toDocumentResponsePayload.asJson)
-          .map(JsonToken(_))
-          .intersperse(LineBreak)
+          .map(Line(_))
+          .intersperse(Linebreak)
         Ok(responseStream)
 
       case DELETE -> Root / "documents" / UUIDVar(uuid) as user =>
@@ -111,17 +114,17 @@ class DocumentsRoutes[F[_], Txn[_]](
     }
 
 private[http] object DocumentsRoutes:
-  sealed trait Token
-  case class JsonToken(value: JJson) extends Token
-  case object LineBreak extends Token
+  sealed trait NewLineSeparatedJson
+  case class Line(json: JJson) extends NewLineSeparatedJson
+  case object Linebreak extends NewLineSeparatedJson
 
-  object TokenEntityEncoder:
-    def tokenEntityEncoder[F[_]: cats.Functor]: EntityEncoder[F, Token] =
+  object NewLineSeparatedJsonEncoder:
+    def make[F[_]: cats.Functor]: EntityEncoder[F, NewLineSeparatedJson] =
       EntityEncoder.stringEncoder
-        .contramap[Token] { token =>
+        .contramap[NewLineSeparatedJson] { token =>
           token match
-            case JsonToken(value) => value.noSpaces
-            case LineBreak        => "\n"
+            case Line(value) => value.noSpaces
+            case Linebreak   => "\n"
         }
         .withContentType(`Content-Type`(MediaType.application.json, Charset.`UTF-8`))
 
