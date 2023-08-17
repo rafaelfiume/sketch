@@ -2,14 +2,14 @@ package org.fiume.sketch.storage.documents.postgres
 
 import cats.data.OptionT
 import cats.effect.*
-import cats.syntax.all.*
+import cats.implicits.*
 import doobie.{ConnectionIO, *}
 import doobie.implicits.*
 import doobie.postgres.implicits.*
 import fs2.Stream
 import munit.ScalaCheckEffectSuite
 import org.fiume.sketch.shared.testkit.FileContentContext
-import org.fiume.sketch.storage.documents.Document
+import org.fiume.sketch.storage.documents.{Document, DocumentWithUuid}
 import org.fiume.sketch.storage.documents.Document.Metadata
 import org.fiume.sketch.storage.testkit.DockerPostgresSuite
 import org.fiume.sketch.storage.testkit.DocumentsGens.*
@@ -64,13 +64,34 @@ class PostgresDocumentsStoreSpec
       }
     }
 
+  test("fetch all documents"):
+    forAllF { (fstDoc: Document[IO], sndDoc: Document[IO]) =>
+      will(cleanDocuments) {
+        PostgresDocumentsStore.make[IO](transactor()).use { store =>
+          for
+            fstUuid <- store.store(fstDoc).ccommit
+            sndUuid <- store.store(sndDoc).ccommit
+
+            result <- store.fetchAll().compile.toList
+
+            _ <- IO {
+              assertEquals(
+                result.map(_.discardContent),
+                List(fstDoc.withUuid(fstUuid), sndDoc.withUuid(sndUuid)).map(_.discardContent)
+              )
+            }
+          yield ()
+        }
+      }
+    }
+
   test("update document content"):
     forAllF { (document: Document[IO], newMetadata: Metadata, newBytes: Stream[IO, Byte]) =>
       PostgresDocumentsStore.make[IO](transactor()).use { store =>
         for
           uuid <- store.store(document).ccommit
 
-          _ <- store.update(Document.withId(uuid, newMetadata, newBytes)).ccommit
+          _ <- store.update(Document.withUuid(uuid, newMetadata, newBytes)).ccommit
 
           updatedMetadata <- store.fetchMetadata(uuid).ccommit
           updatedBytes <- OptionT(store.fetchContent(uuid).ccommit).semiflatMap(_.compile.toList).value
@@ -137,7 +158,7 @@ class PostgresDocumentsStoreSpec
           uuid <- store.store(document).ccommit
           updatedAt1 <- store.fetchUpdatedAt(uuid).ccommit
 
-          _ <- store.update(Document.withId(uuid, newMetadata, document.content)).ccommit
+          _ <- store.update(Document.withUuid(uuid, newMetadata, document.content)).ccommit
 
           updatedAt2 <- store.fetchUpdatedAt(uuid).ccommit
           _ <- IO {
@@ -172,3 +193,5 @@ trait PostgresStoreSpecContext:
       sql"SELECT created_at FROM domain.documents WHERE uuid = ${uuid}".query[Instant].unique
     def fetchUpdatedAt(uuid: UUID): ConnectionIO[Instant] =
       sql"SELECT updated_at FROM domain.documents WHERE uuid = ${uuid}".query[Instant].unique
+
+  extension (d: DocumentWithUuid[IO]) def discardContent = d.uuid -> d.metadata

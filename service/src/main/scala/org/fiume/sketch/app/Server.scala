@@ -4,6 +4,7 @@ import cats.effect.{Async, ExitCode, Resource}
 import cats.implicits.*
 import com.comcast.ip4s.*
 import doobie.ConnectionIO
+import fs2.io.net.Network
 import org.fiume.sketch.auth0.http.AuthRoutes
 import org.fiume.sketch.auth0.http.middlewares.Auth0Middleware
 import org.fiume.sketch.http.HealthStatusRoutes
@@ -16,7 +17,7 @@ import org.typelevel.log4cats.slf4j.Slf4jLogger
 
 object Server:
 
-  def run[F[_]]()(using F: Async[F]): F[ExitCode] =
+  def run[F[_]: Network]()(using F: Async[F]): F[ExitCode] =
     val logger = Slf4jLogger.getLogger[F]
     (for
       conf <- Resource.eval(ServiceConfig.load[F])
@@ -31,10 +32,9 @@ object Server:
         logger.error(s"The service has failed with $ex")
       }
 
-  private def httpServer[F[_]: Async](resources: Resources[F]): Resource[F, Server] =
+  private def httpServer[F[_]: Async: Network](resources: Resources[F]): Resource[F, Server] =
     val httpApp = HttpApi.httpApp[F](resources).orNotFound
-    EmberServerBuilder
-      .default[F]
+    EmberServerBuilder.default
       .withHost(host"0.0.0.0")
       .withPort(port"8080")
       .withHttpApp(httpApp)

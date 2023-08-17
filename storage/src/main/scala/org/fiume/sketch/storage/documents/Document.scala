@@ -13,7 +13,7 @@ import org.fiume.sketch.storage.documents.Document.Metadata.Name.InvalidDocument
 
 import java.util.UUID
 
-type DocumentWithId[F[_]] = Document[F] & WithUuid
+type DocumentWithUuid[F[_]] = Document[F] & WithUuid
 
 case class Document[F[_]](
   metadata: Metadata,
@@ -21,13 +21,17 @@ case class Document[F[_]](
 )
 
 object Document:
-  def withId[F[_]](
+  def withUuid[F[_]](
     withUuid: UUID,
     metadata: Metadata,
     content: Stream[F, Byte]
   ): Document[F] & WithUuid =
     new Document[F](metadata, content) with WithUuid:
       override val uuid: UUID = withUuid
+
+  extension [F[_]](document: Document[F])
+    def withUuid(withUuid: UUID): Document[F] & WithUuid =
+      Document.withUuid[F](withUuid, document.metadata, document.content)
 
   case class Metadata(name: Name, description: Description)
 
@@ -49,7 +53,7 @@ object Document:
         case object InvalidChar extends InvalidDocumentNameError:
           override def uniqueCode: String = "document.name.invalid"
           override val message: String =
-            "must only contain letters (a-z, A-Z), numbers (0-9), underscores (_) hyphens (-) and periods (.)"
+            "must only contain letters (a-z,A-Z), numbers (0-9), whitespace ( ), underscores (_) hyphens (-) and periods (.)"
 
       val minLength = 4
       val maxLength = 64
@@ -58,7 +62,7 @@ object Document:
       def validated(value: String): EitherNec[InvalidDocumentNameError, Name] =
         val hasMinLength = Validated.condNec[InvalidDocumentNameError, Unit](value.length >= minLength, (), TooShort)
         val hasMaxLength = Validated.condNec(value.length <= maxLength, (), TooLong)
-        val hasNoInvalidChar = Validated.condNec(value.matches("^[a-zA-Z0-9_\\-.]*$"), (), InvalidChar)
+        val hasNoInvalidChar = Validated.condNec(value.matches("^[a-zA-Z0-9_\\-. ]*$"), (), InvalidChar)
         (hasMinLength, hasMaxLength, hasNoInvalidChar)
           .mapN((_, _, _) => new Name(value) {})
           .toEither

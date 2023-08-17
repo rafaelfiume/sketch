@@ -6,6 +6,10 @@ import cats.effect.Concurrent
 import cats.effect.kernel.Async
 import cats.implicits.*
 import fs2.Stream
+import io.circe.{Decoder, Encoder, HCursor, *}
+import io.circe.{Json as JJson}
+import io.circe.Decoder.Result
+import io.circe.syntax.*
 import org.fiume.sketch.shared.app.http4s.middlewares.{
   SemanticInputError,
   SemanticValidationMiddleware,
@@ -16,21 +20,30 @@ import org.fiume.sketch.shared.app.troubleshooting.ErrorDetails
 import org.fiume.sketch.shared.app.troubleshooting.ErrorInfo.given
 import org.fiume.sketch.shared.app.troubleshooting.InvariantErrorSyntax.asDetails
 import org.fiume.sketch.shared.auth0.User
-import org.fiume.sketch.storage.documents.Document
+import org.fiume.sketch.storage.documents.{Document, DocumentWithUuid}
 import org.fiume.sketch.storage.documents.Document.Metadata
 import org.fiume.sketch.storage.documents.Document.Metadata.*
 import org.fiume.sketch.storage.documents.algebras.DocumentsStore
+import org.fiume.sketch.storage.documents.http.DocumentsRoutes.{
+  Line,
+  Linebreak,
+  NewlineDelimitedJson,
+  NewlineDelimitedJsonEncoder
+}
 import org.fiume.sketch.storage.documents.http.DocumentsRoutes.Model.*
 import org.fiume.sketch.storage.documents.http.DocumentsRoutes.Model.Json.given
-import org.http4s.{HttpRoutes, *}
+import org.http4s.{Charset, EntityEncoder, HttpRoutes, MediaType, *}
+import org.http4s.MediaType.application
 import org.http4s.circe.CirceEntityDecoder.*
 import org.http4s.circe.CirceEntityEncoder.*
 import org.http4s.dsl.Http4sDsl
+import org.http4s.headers.`Content-Type`
 import org.http4s.multipart.{Multipart, Part, *}
 import org.http4s.server.{AuthMiddleware, Router}
 import org.http4s.server.middleware.EntityLimiter
 import org.typelevel.log4cats.slf4j.Slf4jLogger
 
+import java.util.UUID
 import scala.concurrent.ExecutionContext
 
 /*
@@ -58,6 +71,8 @@ class DocumentsRoutes[F[_], Txn[_]](
       )
   )
 
+  given EntityEncoder[F, NewlineDelimitedJson] = NewlineDelimitedJsonEncoder.make[F]
+
   private val authedRoutes: AuthedRoutes[User, F] =
     AuthedRoutes.of {
       case cx @ POST -> Root / "documents" as user =>
@@ -72,7 +87,7 @@ class DocumentsRoutes[F[_], Txn[_]](
       case GET -> Root / "documents" / UUIDVar(uuid) / "metadata" as user =>
         for
           metadata <- store.commit { store.fetchMetadata(uuid) }
-          res <- metadata.fold(ifEmpty = NotFound())(Ok(_))
+          res <- metadata.map(_.toPayload).fold(ifEmpty = NotFound())(Ok(_))
         yield res
 
       case GET -> Root / "documents" / UUIDVar(uuid) as user =>
@@ -80,6 +95,15 @@ class DocumentsRoutes[F[_], Txn[_]](
           stream <- store.commit { store.fetchContent(uuid) }
           res <- stream.fold(ifEmpty = NotFound())(Ok(_))
         yield res
+
+      // experimental newline delimented json: no tests and subject to change
+      case GET -> Root / "documents" as user =>
+        val responseStream = store
+          .fetchAll()
+          .map(_.toPayload.asJson)
+          .map(Line(_))
+          .intersperse(Linebreak)
+        Ok(responseStream)
 
       case DELETE -> Root / "documents" / UUIDVar(uuid) as user =>
         for
@@ -91,9 +115,29 @@ class DocumentsRoutes[F[_], Txn[_]](
     }
 
 private[http] object DocumentsRoutes:
+  sealed trait NewlineDelimitedJson
+  case class Line(json: JJson) extends NewlineDelimitedJson
+  case object Linebreak extends NewlineDelimitedJson
+
+  object NewlineDelimitedJsonEncoder:
+    def make[F[_]: cats.Functor]: EntityEncoder[F, NewlineDelimitedJson] =
+      EntityEncoder.stringEncoder
+        .contramap[NewlineDelimitedJson] { token =>
+          token match
+            case Line(value) => value.noSpaces
+            case Linebreak   => "\n"
+        }
+        .withContentType(`Content-Type`(MediaType.application.json, Charset.`UTF-8`))
 
   object Model:
     case class MetadataPayload(name: String, description: String)
+    case class DocumentResponsePayload(uuid: UUID, metadata: MetadataPayload, contentLink: Uri)
+
+    extension (m: Metadata) def toPayload: MetadataPayload = MetadataPayload(m.name.value, m.description.value)
+
+    extension [F[_]](d: DocumentWithUuid[F])
+      def toPayload: DocumentResponsePayload =
+        DocumentResponsePayload(d.uuid, d.metadata.toPayload, Uri.unsafeFromString(s"/documents/${d.uuid.toString}"))
 
     extension [F[_]: MonadThrow: Concurrent](m: Multipart[F])
       def validated(): F[Document[F]] =
@@ -153,32 +197,10 @@ private[http] object DocumentsRoutes:
         }
 
     object Json:
-      import io.circe.{Json}
-      import io.circe.syntax.*
-      import java.util.UUID
-      import io.circe.{Decoder, DecodingFailure, Encoder, HCursor, Json as JJson}
-      import io.circe.Decoder.Result
-      import org.fiume.sketch.shared.app.troubleshooting.InvariantErrorSyntax.*
-
-      given Encoder[Name] = Encoder.encodeString.contramap(_.value)
-      given Decoder[Name] = Decoder.decodeString.emap(Name.validated(_).leftMap(_.asString))
-
-      given Encoder[Description] = Encoder.encodeString.contramap(_.value)
-      given Decoder[Description] = Decoder.decodeString.map(Description.apply)
-
-      given Encoder[Metadata] = new Encoder[Metadata]:
-        override def apply(metadata: Metadata): JJson =
-          JJson.obj(
-            "name" -> metadata.name.asJson,
-            "description" -> metadata.description.asJson
-          )
-
-      given Decoder[Metadata] = new Decoder[Metadata]:
-        override def apply(c: HCursor): Result[Metadata] =
-          for
-            name <- c.downField("name").as[Metadata.Name]
-            description <- c.downField("description").as[Metadata.Description]
-          yield Metadata(name, description)
+      given Encoder[Uri] = Encoder.encodeString.contramap(_.renderString)
+      given Decoder[Uri] = Decoder.decodeString.emap { uri =>
+        Uri.fromString(uri).leftMap { e => e.getMessage }
+      }
 
       given Encoder[UUID] = new Encoder[UUID]:
         override def apply(uuid: UUID): JJson = JJson.obj("uuid" -> JJson.fromString(uuid.toString))
@@ -189,9 +211,22 @@ private[http] object DocumentsRoutes:
             Either.catchNonFatal(UUID.fromString(uuid)).leftMap { e => DecodingFailure(e.getMessage, c.history) }
           }
 
+      given Encoder[MetadataPayload] = new Encoder[MetadataPayload]:
+        override def apply(m: MetadataPayload): JJson = JJson.obj(
+          "name" -> m.name.asJson,
+          "description" -> m.description.asJson
+        )
+
       given Decoder[MetadataPayload] = new Decoder[MetadataPayload]:
         override def apply(c: HCursor): Result[MetadataPayload] =
           for
             name <- c.downField("name").as[String]
             description <- c.downField("description").as[String]
           yield MetadataPayload(name, description)
+
+      given Encoder[DocumentResponsePayload] = new Encoder[DocumentResponsePayload]:
+        override def apply(d: DocumentResponsePayload): JJson = JJson.obj(
+          "uuid" -> d.uuid.toString.asJson,
+          "metadata" -> d.metadata.asJson,
+          "content_link" -> d.contentLink.asJson
+        )
