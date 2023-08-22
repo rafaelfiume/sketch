@@ -7,7 +7,7 @@ object Dependency {
     val jwtCirce              = "9.4.1"
     val bouncycastle          = "1.76"
 
-    val cats                  = "2.9.0"
+    val cats                  = "2.10.0"
     val catsEffect            = "3.5.0"
     val circe                 = "0.14.5"
     val ciris                 = "3.2.0"
@@ -32,7 +32,7 @@ object Dependency {
   val bouncycastle                = "org.bouncycastle"           %  "bcprov-jdk18on"                      % Version.bouncycastle
 
   // common
-  val cats                        = "org.typelevel"              %% "cats-free"                           % Version.cats
+  val cats                        = "org.typelevel"              %% "cats-core"                           % Version.cats
   val catsEffect                  = "org.typelevel"              %% "cats-effect"                         % Version.catsEffect
   val circeCore                   = "io.circe"                   %% "circe-core"                          % Version.circe
   val circeGeneric                = "io.circe"                   %% "circe-generic"                       % Version.circe
