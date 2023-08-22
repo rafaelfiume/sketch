@@ -10,7 +10,7 @@ object Plugin {
     val SbtNativePackager   = "1.9.16"
     val Scalafix            = "0.11.0"
     val ScalaFmt            = "2.5.0"
-    val Tpolecat            = "0.4.4"
+    val Tpolecat            = "0.4.2"
   }
 
   val DependencyGraph       = "net.virtual-void"              % "sbt-dependency-graph"        % Version.DependencyGraph
