@@ -32,7 +32,7 @@ object Dependency {
   val bouncycastle                = "org.bouncycastle"           %  "bcprov-jdk18on"                      % Version.bouncycastle
 
   // common
-  val cats                        = "org.typelevel"              %% "cats-free"                           % Version.cats
+  val cats                        = "org.typelevel"              %% "cats-core"                           % Version.cats
   val catsEffect                  = "org.typelevel"              %% "cats-effect"                         % Version.catsEffect
   val circeCore                   = "io.circe"                   %% "circe-core"                          % Version.circe
   val circeGeneric                = "io.circe"                   %% "circe-generic"                       % Version.circe
