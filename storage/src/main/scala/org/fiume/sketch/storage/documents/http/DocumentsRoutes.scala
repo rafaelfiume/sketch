@@ -37,7 +37,7 @@ import org.http4s.MediaType.application
 import org.http4s.circe.CirceEntityDecoder.*
 import org.http4s.circe.CirceEntityEncoder.*
 import org.http4s.dsl.Http4sDsl
-import org.http4s.headers.`Content-Type`
+import org.http4s.headers.{`Content-Disposition`, `Content-Type`}
 import org.http4s.multipart.{Multipart, Part, *}
 import org.http4s.server.{AuthMiddleware, Router}
 import org.http4s.server.middleware.EntityLimiter
@@ -93,7 +93,7 @@ class DocumentsRoutes[F[_], Txn[_]](
       case GET -> Root / "documents" / UUIDVar(uuid) as user =>
         for
           stream <- store.commit { store.fetchContent(uuid) }
-          res <- stream.fold(ifEmpty = NotFound())(Ok(_))
+          res <- stream.fold(ifEmpty = NotFound())(Ok(_, `Content-Disposition`("attachment", Map.empty)))
         yield res
 
       // experimental newline delimented json: no tests and subject to change
