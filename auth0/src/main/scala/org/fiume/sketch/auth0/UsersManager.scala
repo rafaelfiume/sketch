@@ -16,7 +16,8 @@ object UsersManager:
       override def registreUser(username: Username, password: PlainPassword): F[User] =
         for
           salt <- Salt.generate[F]()
-          hashedPassword = HashedPassword.hashPassword(password, salt)
+          // TODO Make #hashPassword and #veryPassword effectful and `F.blocking` them?
+          hashedPassword <- F.blocking { HashedPassword.hashPassword(password, salt) }
           credentials = UserCredentials(username, hashedPassword, salt)
           user <- store.commit { store.store(credentials) }.map { User(_, username) }
         yield user
