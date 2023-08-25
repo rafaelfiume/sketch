@@ -61,7 +61,10 @@ object HttpApi:
       new HealthStatusRoutes[F](res.customWorkerThreadPool, res.versions, res.healthCheck).router()
 
     val corsMiddleware: CORSPolicy =
-      CORS.policy.withAllowOriginHost(Set(Origin.Host(Uri.Scheme.http, Uri.RegName("localhost"), 5173.some)))
+      CORS.policy.withAllowOriginHost(Set(
+        Origin.Host(Uri.Scheme.http, Uri.RegName("localhost"), 5173.some),
+        Origin.Host(Uri.Scheme.http, Uri.RegName("localhost"), 8181.some)
+      ))
     for
       cAuthRoutes <- corsMiddleware.httpRoutes[F](authRoutes)
       cDocsRoutes <- corsMiddleware.httpRoutes[F](documentsRoutes)
