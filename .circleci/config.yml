@@ -4,7 +4,7 @@ version: 2.1
 # Define a job to be invoked later in a workflow.
 # See: https://circleci.com/docs/2.0/configuration-reference/#jobs
 jobs:
-  build:
+  build-and-publish:
     # Specify the execution environment. You can specify an image from Dockerhub or use one of our Convenience Images from CircleCI's Developer Hub.
     # See: https://circleci.com/docs/2.0/configuration-reference/#docker-machine-macos-windows-executor
     machine:
@@ -45,10 +45,29 @@ jobs:
           command: cat /dev/null | sbt "test:test; it:test"
 
       - run:
-          name: Publish service docker image
+          name: Set app version
+          command: |
+            VERSION=$(./tools/scripts/version.sh)
+            echo "VERSION=$VERSION" >> $BASH_ENV
+            source $BASH_ENV
+
+      - run:
+          name: Build and tag docker image
           command: |
             echo $DOCKER_PWD | docker login -u $DOCKER_LOGIN --password-stdin
-            sbt "service/docker:publish"
+            sbt "service/docker:publishLocal"
+            if [ "$CIRCLE_BRANCH" = "main" ]; then
+              docker tag rafaelfiume/sketch:$VERSION rafaelfiume/sketch:stable
+            fi
+
+      - run:
+          name: Publish docker image
+          command: |
+            docker push rafaelfiume/sketch:$VERSION
+            docker push rafaelfiume/sketch:latest
+            if [ "$CIRCLE_BRANCH" = "main" ]; then
+              docker push rafaelfiume/sketch:stable
+            fi
 
       - run:
           name: Run acceptance tests
@@ -67,3 +86,9 @@ jobs:
 
       - store_artifacts:
           path: sketch/logs
+
+workflows:
+  # For more details on extending your workflow, see the configuration docs: https://circleci.com/docs/configuration-reference/#workflows
+  build:
+    jobs:
+      - build-and-publish

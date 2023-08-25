@@ -37,3 +37,5 @@ This is a non-exhaustive list of tools you might need installed locally to work 
 - Docker
 - [Docker Compose](https://docs.docker.com/compose/)
 - [Postman](https://www.postman.com/)
+
+Feito com ❤️ por Artigiani.
