@@ -12,9 +12,11 @@ LOG_DIR="$SCRIPT_DIR/logs"
 # Execute the environment setup script
 source "$SCRIPT_DIR/keys-setup.sh"
 
-# TODO There is a limitation on the number of concurrents build in the pipeline,
-# given that we cannot control the tag of the image (hardcoded to 'latest').
-# Fix this by parametising the tag of the image. See `local-docker-compose.yml`
+# Set the tag env var to the first argument passed to the script
+SKETCH_IMAGE_TAG_ARG=${1:-latest}
+export SKETCH_IMAGE_TAG=$SKETCH_IMAGE_TAG_ARG
+
+echo "Starting local environment with sketch tag: $SKETCH_IMAGE_TAG"
 
 docker-compose \
   -f $SCRIPT_DIR/local-docker-compose.yml \

@@ -76,9 +76,11 @@ jobs:
             mkdir -p tools/scripts/logs
             # This is where CircleCI will store the artifacts
             mkdir -p sketch/logs
+            # Set environment variables the service depends on
             echo 'export PRIVATE_KEY="$(echo $PRIVATE_KEY_BASE64_ONE_LINER | base64 -d)"' >> $BASH_ENV
             echo 'export PUBLIC_KEY="$(echo $PUBLIC_KEY_BASE64_ONE_LINER | base64 -d)"' >> $BASH_ENV
-            ./tools/scripts/start-local.sh
+            # Run the stack and tests
+            ./tools/scripts/start-local.sh $VERSION
             mv tools/scripts/logs/docker-compose.log sketch/logs/docker-compose.log
             mv tools/scripts/logs/sketch.log sketch/logs/sketch.log
             mv tools/scripts/logs/database.log sketch/logs/database.log
