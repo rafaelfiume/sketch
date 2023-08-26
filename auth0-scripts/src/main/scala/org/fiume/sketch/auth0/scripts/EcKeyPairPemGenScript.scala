@@ -11,7 +11,7 @@ import java.security.Security
 /*
  * Script to generate a pair of elliptic curve (EC) keys in PEM format in the `resources` folder.
  */
-object EcKeyPairPemScript extends IOApp:
+object EcKeyPairPemGenScript extends IOApp:
 
   private val resourcesPath = Path("src/main/resources")
   private val privateKeyPath = Path("private_key.pem")
