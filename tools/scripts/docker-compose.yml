@@ -1,8 +1,9 @@
-version: "3.7"
+version: "3.8"
 
 services:
   sketch:
     image: rafaelfiume/sketch:${SKETCH_IMAGE_TAG}
+    container_name: sketch
     ports:
       - "8080:8080"
       - "9999:9999" # expose JMX port
@@ -16,8 +17,6 @@ services:
       - JAVA_OPTS=-Xmx2g -XX:+UseG1GC -Djava.rmi.server.hostname=localhost -Dcom.sun.management.jmxremote -Dcom.sun.management.jmxremote.port=9999 -Dcom.sun.management.jmxremote.rmi.port=9999 -Dcom.sun.management.jmxremote.ssl=false -Dcom.sun.management.jmxremote.authenticate=false
     depends_on:
       - database
-    healthcheck:
-      test: ["CMD-SHELL", "curl sketch:8080/ping"]
     logging:
       driver: "json-file"
       options:
@@ -27,6 +26,7 @@ services:
   database:
     # Don't forget to update DockerDatabaseConfig
     image: postgres:15.3-bullseye
+    container_name: postgres
     ports:
       - "5432:5432"
     environment:
