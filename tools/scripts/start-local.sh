@@ -4,12 +4,44 @@
 # see https://betterdev.blog/minimal-safe-bash-script-template/
 set -Eeo pipefail
 
-setup_colors() {
-  if [[ -t 2 ]] && [[ -z "${NO_COLOR-}" ]] && [[ "${TERM-}" != "dumb" ]]; then
-    NOFORMAT='\033[0m' RED='\033[0;31m' GREEN='\033[0;32m' ORANGE='\033[0;33m' BLUE='\033[0;34m' PURPLE='\033[0;35m' CYAN='\033[0;36m' YELLOW='\033[1;33m'
-  else
-    NOFORMAT='' RED='' GREEN='' ORANGE='' BLUE='' PURPLE='' CYAN='' YELLOW=''
-  fi
+usage() {
+  cat <<EOF
+Usage: $(basename "${BASH_SOURCE[0]}") [-h] [--sketch-tag tag]
+
+Start sketch stack containers.
+
+Available options:
+-h, --help           Print this help and exit
+-s, --sketch-tag     \`sketch\` image tag (default: \`latest\`)
+EOF
+  exit
+}
+
+parse_params() {
+  sketch_image_tag='latest'
+
+  while :; do
+    case "${1-}" in
+    -h | --help) usage ;;
+    -s | --sketch-tag)
+      sketch_image_tag="${2-}"
+      shift
+      ;;
+    -?*) die "Unknown option: $1" ;;
+    *) break ;;
+    esac
+    shift
+  done
+
+  [[ -z "${sketch_image_tag-}" ]] && die "Missing required parameter: sketch_image_tag"
+  return 0
+}
+
+die() {
+  local msg=$1
+  local code=${2-1} # default exit status 1
+  msg "$msg"
+  exit "$code"
 }
 
 msg() {
@@ -48,10 +80,9 @@ function write_container_logs_to_file() {
   docker-compose -f "$docker_compose_yml" logs "$container_name" > "$log_file"
 }
 
-# $1: sketch image tag (default: latest)
-function start_containers() {
-  local sketch_image_tag_arg=${1:-latest}
-  export SKETCH_IMAGE_TAG=$sketch_image_tag_arg
+function main() {
+  parse_params "$@"
+  export SKETCH_IMAGE_TAG=$sketch_image_tag
 
   local script_dir=$(cd "$(dirname "${BASH_SOURCE[0]}")" &>/dev/null && pwd -P)
   local envs_dir="$script_dir/environment"
@@ -63,15 +94,17 @@ function start_containers() {
 
   load_env_vars "dev"
 
-  msg "Starting local environment with sketch tag <$SKETCH_IMAGE_TAG>..."
+  msg "Starting containers with sketch tag <$SKETCH_IMAGE_TAG>..."
   docker-compose \
     -f "$docker_compose_yml" \
     up --remove-orphans -d >&2
 
+  msg "Checking sketch:$SKETCH_IMAGE_TAG is healthy..."
   exit_with_error_if_service_fails_to_start "http://localhost:8080/status"
+  msg "\nServices have started successfully"
 
   write_container_logs_to_file sketch "$sketch_log_file"
   write_container_logs_to_file database "$database_log_file"
 }
 
-start_containers $1
+main "$@"

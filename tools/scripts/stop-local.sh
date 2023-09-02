@@ -4,6 +4,42 @@
 # see https://betterdev.blog/minimal-safe-bash-script-template/
 set -Eeo pipefail
 
+usage() {
+  cat <<EOF
+Usage: $(basename "${BASH_SOURCE[0]}") [-h]
+
+Stop sketch stack containers.
+
+Available options:
+-h, --help           Print this help and exit
+EOF
+  exit
+}
+
+parse_params() {
+  while :; do
+    case "${1-}" in
+    -h | --help) usage ;;
+    -?*) die "Unknown option: $1" ;;
+    *) break ;;
+    esac
+    shift
+  done
+
+  return 0
+}
+
+die() {
+  local msg=$1
+  local code=${2-1} # default exit status 1
+  msg "$msg"
+  exit "$code"
+}
+
+msg() {
+  echo >&2 -e "${1-}"
+}
+
 function load_env_vars() {
   local environment_name=$1
   for file in "$envs_dir/$environment_name"/*.sh; do
@@ -14,7 +50,9 @@ function load_env_vars() {
   source "$envs_dir/load-keys-pair-if-not-set.sh"
 }
 
-function stop_containers() {
+function main() {
+  parse_params "$@"
+
   local script_dir=$(cd "$(dirname "${BASH_SOURCE[0]}")" &>/dev/null && pwd -P)
   local envs_dir="$script_dir/environment"
 
@@ -30,4 +68,4 @@ function stop_containers() {
     stop >&2
 }
 
-stop_containers
+main "$@"
