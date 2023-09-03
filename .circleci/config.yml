@@ -47,7 +47,7 @@ jobs:
       - run:
           name: Set app version
           command: |
-            VERSION=$(./tools/scripts/version.sh)
+            VERSION=$(./tools/scripts/pipeline/version.sh)
             echo "VERSION=$VERSION" >> $BASH_ENV
             source $BASH_ENV
 
@@ -80,7 +80,7 @@ jobs:
             echo 'export PRIVATE_KEY="$(echo $PRIVATE_KEY_BASE64_ONE_LINER | base64 -d)"' >> $BASH_ENV
             echo 'export PUBLIC_KEY="$(echo $PUBLIC_KEY_BASE64_ONE_LINER | base64 -d)"' >> $BASH_ENV
             # Run the stack and tests
-            ./tools/scripts/start-local.sh $VERSION 2> start-local.log
+            ./tools/scripts/start-local.sh --trace --sketch-tag $VERSION 2> start-local.log
             mv start-local.log sketch/logs/start-local.log
             mv tools/scripts/logs/sketch.log sketch/logs/sketch.log
             mv tools/scripts/logs/database.log sketch/logs/database.log

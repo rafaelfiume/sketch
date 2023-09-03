@@ -1,9 +1,8 @@
 #!/usr/bin/env bash
 
-# Note: allows unbound variables (no 'u' option) in this script
-set -Eeo pipefail
+set -Eeuo pipefail
 
-if [ -z "$CIRCLE_BRANCH" ]; then
+if [ -z "${CIRCLE_BRANCH:-}" ]; then
   # Running locally
   VERSION="snapshot"
 else
