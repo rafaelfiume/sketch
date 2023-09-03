@@ -1,17 +1,17 @@
 #!/usr/bin/env bash
 
-# Note: allows unbound variables (no 'u' option) in this script
-# see https://betterdev.blog/minimal-safe-bash-script-template/
-set -Eeo pipefail
+set -Eeuo pipefail
 
 usage() {
   cat <<EOF
-Usage: $(basename "${BASH_SOURCE[0]}") [-h] [--sketch-tag tag]
+Usage: $(basename "${BASH_SOURCE[0]}") [-h] [-t] [-d] [--sketch-tag tag]
 
 Start sketch stack containers.
 
 Available options:
 -h, --help           Print this help and exit
+-t, --trace          Enable trace level logs
+-d, --debug          Enable debug level logs
 -s, --sketch-tag     \`sketch\` image tag (default: \`latest\`)
 EOF
   exit
@@ -23,6 +23,8 @@ parse_params() {
   while :; do
     case "${1-}" in
     -h | --help) usage ;;
+    -t | --trace) enable_trace_level ;; # see logs.sh
+    -d | --debug) enable_debug_level ;; # see logs.sh
     -s | --sketch-tag)
       sketch_image_tag="${2-}"
       shift
@@ -37,17 +39,6 @@ parse_params() {
   return 0
 }
 
-die() {
-  local msg=$1
-  local code=${2-1} # default exit status 1
-  msg "$msg"
-  exit "$code"
-}
-
-msg() {
-  echo >&2 -e "${1-}"
-}
-
 function load_env_vars() {
   local environment_name=$1
   for file in "$envs_dir/$environment_name"/*.sh; do
@@ -56,6 +47,7 @@ function load_env_vars() {
     fi
   done
   source "$envs_dir/load-keys-pair-if-not-set.sh"
+  load_keys_from_pem_files_if_not_set
 }
 
 function exit_with_error_if_service_fails_to_start() {
@@ -63,15 +55,17 @@ function exit_with_error_if_service_fails_to_start() {
   wait_till_next_try_in_sec=0.3
   max_tries=20
   attempt=0
-  while ! curl -sSf $status_endpoint >&2; do
+  while ! curl_output=$(curl -sSf $status_endpoint 2>&1); do
+    trace "$curl_output"
     attempt=$((attempt + 1))
     if [ $attempt -ge $max_tries ]; then
-      timeout=$(msg "$wait_till_next_try_in_sec * $max_tries" | bc)
-      msg "Failed to start application after $timeout seconds"
+      timeout=$(echo "$wait_till_next_try_in_sec * $max_tries" | bc)
+      error "Failed to start application after $timeout seconds"
       exit 1
     fi
     sleep $wait_till_next_try_in_sec
   done
+  trace "$curl_output"
 }
 
 function write_container_logs_to_file() {
@@ -81,27 +75,31 @@ function write_container_logs_to_file() {
 }
 
 function main() {
-  parse_params "$@"
-  export SKETCH_IMAGE_TAG=$sketch_image_tag
-
   local script_dir=$(cd "$(dirname "${BASH_SOURCE[0]}")" &>/dev/null && pwd -P)
   local envs_dir="$script_dir/environment"
+  local utils_dir="$script_dir/utilities"
   local logs_dir="$script_dir/logs"
 
   local docker_compose_yml="$script_dir/docker-compose.yml"
   local sketch_log_file="$logs_dir/sketch.log"
   local database_log_file="$logs_dir/database.log"
 
+  source "$utils_dir/logs.sh"
+
+  parse_params "$@"
+  export SKETCH_IMAGE_TAG=$sketch_image_tag
+
   load_env_vars "dev"
 
-  msg "Starting containers with sketch tag <$SKETCH_IMAGE_TAG>..."
+  info "Starting containers with sketch tag <$SKETCH_IMAGE_TAG>..."
   docker-compose \
     -f "$docker_compose_yml" \
     up --remove-orphans -d >&2
 
-  msg "Checking sketch:$SKETCH_IMAGE_TAG is healthy..."
+  info "Checking sketch:$SKETCH_IMAGE_TAG is healthy..."
   exit_with_error_if_service_fails_to_start "http://localhost:8080/status"
-  msg "\nServices have started successfully"
+
+  info "All services have started up like a charm!"
 
   write_container_logs_to_file sketch "$sketch_log_file"
   write_container_logs_to_file database "$database_log_file"
