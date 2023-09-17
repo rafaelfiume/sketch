@@ -4,27 +4,30 @@ set -Eeuo pipefail
 
 usage() {
   cat <<EOF
-Usage: $(basename "${BASH_SOURCE[0]}") [-h] [-t] [-d] [--sketch-tag tag]
+Usage: $(basename "${BASH_SOURCE[0]}") [-h] [-t] [-d] [-p] [--sketch-tag tag]
 
 Start sketch stack containers.
 
 Available options:
 -h, --help           Print this help and exit
--t, --trace          Enable trace level logs
--d, --debug          Enable debug level logs
 -s, --sketch-tag     \`sketch\` image tag (default: \`latest\`)
+-p, --pull           Always pull \`sketch\` docker image before running
+-d, --debug          Enable debug level logs
+-t, --trace          Enable trace level logs
 EOF
   exit
 }
 
 parse_params() {
   sketch_image_tag='latest'
+  pull_latest_images=''
 
   while :; do
     case "${1-}" in
     -h | --help) usage ;;
     -t | --trace) enable_trace_level ;; # see logs.sh
     -d | --debug) enable_debug_level ;; # see logs.sh
+    -p | --pull) pull_latest_images="--pull=always" ;;
     -s | --sketch-tag)
       sketch_image_tag="${2-}"
       shift
@@ -91,12 +94,14 @@ function main() {
 
   load_env_vars "dev"
 
-  info "Starting containers with sketch tag <$SKETCH_IMAGE_TAG>..."
-  docker-compose \
+  info "Starting containers with sketch tag '$SKETCH_IMAGE_TAG'..."
+  local command="docker-compose \
     -f "$docker_compose_yml" \
-    up --remove-orphans -d >&2
+    up --remove-orphans "$pull_latest_images" --detach >&2"
+  debug "$ $command"
+  eval "$command"
 
-  info "Checking sketch:$SKETCH_IMAGE_TAG is healthy..."
+  info "Checking 'sketch:$SKETCH_IMAGE_TAG' is healthy..."
   exit_with_error_if_service_fails_to_start "http://localhost:8080/status"
 
   info "All services have started up like a charm!"
