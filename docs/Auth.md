@@ -1,4 +1,4 @@
-# Authentication (Draft)
+# Authentication
 
 ## Strategy
 

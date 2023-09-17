@@ -22,3 +22,6 @@ Documents should have one owner, which is the person or entity responsible for i
 ### Workflow (proposal)
 
 If documents are sensitive, there must be a reason for storing it. The reason should be a workflow that requires it.
+
+
+Feito com ❤️ por Artigiani.
