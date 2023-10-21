@@ -29,17 +29,6 @@ parse_params() {
   return 0
 }
 
-function load_env_vars() {
-  local environment_name=$1
-  for file in "$envs_dir/$environment_name"/*.sh; do
-    if [ -f "$file" ]; then
-      source "$file"
-    fi
-  done
-  source "$envs_dir/load-keys-pair-if-not-set.sh"
-  load_keys_from_pem_files_if_not_set
-}
-
 function main() {
   local script_dir=$(cd "$(dirname "${BASH_SOURCE[0]}")" &>/dev/null && pwd -P)
   local tools_dir=$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd -P)
@@ -48,6 +37,7 @@ function main() {
 
   local docker_compose_yml="$script_dir/docker-compose.yml"
 
+  source "$envs_dir/env-vars-loader.sh"
   source "$utils_dir/logs.sh"
 
   parse_params "$@"

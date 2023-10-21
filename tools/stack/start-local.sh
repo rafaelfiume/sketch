@@ -47,17 +47,6 @@ parse_params() {
   return 0
 }
 
-function load_env_vars() {
-  local environment_name=$1
-  for file in "$envs_dir/$environment_name"/*.sh; do
-    if [ -f "$file" ]; then
-      source "$file"
-    fi
-  done
-  source "$envs_dir/load-keys-pair-if-not-set.sh"
-  load_keys_from_pem_files_if_not_set
-}
-
 function exit_with_error_if_service_fails_to_start() {
   local status_endpoint=$1
   wait_till_next_try_in_sec=0.3
@@ -93,6 +82,7 @@ function main() {
   local sketch_log_file="$logs_dir/sketch.log"
   local database_log_file="$logs_dir/database.log"
 
+  source "$envs_dir/env-vars-loader.sh"
   source "$utils_dir/logs.sh"
 
   parse_params "$@"

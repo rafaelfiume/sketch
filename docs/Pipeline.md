@@ -24,7 +24,7 @@ tools/
 │   |   |   |   ├── private_key.pem
 │   |   |   |   ├── public_key.pem
 │   │   │   └── ...
-│   │   ├── load-keys-pair-if-not-set.sh
+│   │   ├── env-vars-loader.sh
 │   ├── logs/                                  # Logs output from the scripts in the 'stacks' directory. See `${PROJECT_DIR}/.gitginore`
 │   |   └── ...
 │   ├── docker-compose.yml

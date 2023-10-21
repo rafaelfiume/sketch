@@ -6,7 +6,7 @@
 - [Docker](https://www.docker.com/)
 - [Docker Compose](https://docs.docker.com/compose/)
 - [Postman](https://www.postman.com/) as a convenient way of documenting and sending requests to Sketch endpoints. Just import its [collection](Sketch.postman_collection.json).
-- [coreutils](https://www.gnu.org/software/coreutils/) - see [load-keys-pair-if-not-set.sh](../tools/stack/environment/load-keys-pair-if-not-set.sh)
+- [coreutils](https://www.gnu.org/software/coreutils/) - see [env-vars-loader.sh](../tools/stack/environment/env-vars-loader.sh)
 - JDK (version: see `dockerBaseImage` in [build.sbt](../build.sbt))
 
 ## Recomended Tools
