@@ -9,7 +9,7 @@ App Version should conform to the following rules:
 
 For instance: version `105` (main), `branch.105` (feature branch) or `snapshot` (local).
 
-Note about Scala services: the above logic has been implemented both in [tools/scripts/pipeline/version.sh](https://github.com/rafaelfiume/sketch/blob/main/tools/scripts/version.sh) and [build.sbt](https://github.com/rafaelfiume/sketch/blob/4692592ff5a1b8dc145a551199e03b017f645876/build.sbt#L19). The latter is necessary so `sbt-native-packager` can properly tag the docker image created with `docker:publishLocal` or `docker:publish`.
+Note about Scala services: the above logic has been implemented both in [version.sh](/tools/pipeline/version.sh) and [build.sbt](/build.sbt). The latter is necessary so `sbt-native-packager` can properly tag the docker image created with `docker:publishLocal` or `docker:publish`.
 
 ## Docker Image Tags
 

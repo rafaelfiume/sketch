@@ -11,7 +11,8 @@ Start sketch stack containers.
 Available options:
 -h, --help           Print this help and exit
 -s, --sketch-tag     \`sketch\` image tag (default: \`latest\`)
--p, --pull           Always pull \`sketch\` docker image before running
+-u, --sketch-ui-tag  \`sketch-ui\` image tag (default: \`latest\`)
+-p, --pull           Always pull docker image before running
 -d, --debug          Enable debug level logs
 -t, --trace          Enable trace level logs
 EOF
@@ -20,25 +21,29 @@ EOF
 
 parse_params() {
   sketch_image_tag='latest'
+  sketch_ui_image_tag='latest'
   pull_latest_images=''
 
   while :; do
     case "${1-}" in
     -h | --help) usage ;;
-    -t | --trace) enable_trace_level ;; # see logs.sh
-    -d | --debug) enable_debug_level ;; # see logs.sh
-    -p | --pull) pull_latest_images="--pull=always" ;;
     -s | --sketch-tag)
       sketch_image_tag="${2-}"
       shift
       ;;
+    -u | --sketch-ui-tag)
+      sketch_ui_image_tag="${2-}"
+      shift
+      ;;
+    -p | --pull) pull_latest_images="--pull=always" ;;
+    -d | --debug) enable_debug_level ;; # see logs.sh
+    -t | --trace) enable_trace_level ;; # see logs.sh
     -?*) die "Unknown option: $1" ;;
     *) break ;;
     esac
     shift
   done
 
-  [[ -z "${sketch_image_tag-}" ]] && die "Missing required parameter: sketch_image_tag"
   return 0
 }
 
@@ -79,8 +84,9 @@ function write_container_logs_to_file() {
 
 function main() {
   local script_dir=$(cd "$(dirname "${BASH_SOURCE[0]}")" &>/dev/null && pwd -P)
+  local tools_dir=$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd -P)
   local envs_dir="$script_dir/environment"
-  local utils_dir="$script_dir/utilities"
+  local utils_dir="$tools_dir/utilities"
   local logs_dir="$script_dir/logs"
 
   local docker_compose_yml="$script_dir/docker-compose.yml"
@@ -91,6 +97,7 @@ function main() {
 
   parse_params "$@"
   export SKETCH_IMAGE_TAG=$sketch_image_tag
+  export SKETCH_UI_IMAGE_TAG=$sketch_ui_image_tag
 
   load_env_vars "dev"
 

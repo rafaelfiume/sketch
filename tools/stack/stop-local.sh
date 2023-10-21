@@ -42,7 +42,8 @@ function load_env_vars() {
 
 function main() {
   local script_dir=$(cd "$(dirname "${BASH_SOURCE[0]}")" &>/dev/null && pwd -P)
-  local utils_dir="$script_dir/utilities"
+  local tools_dir=$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd -P)
+  local utils_dir="$tools_dir/utilities"
   local envs_dir="$script_dir/environment"
 
   local docker_compose_yml="$script_dir/docker-compose.yml"

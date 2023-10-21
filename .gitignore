@@ -17,4 +17,4 @@
 *.pem
 
 # Logs
-tools/scripts/logs
+tools/stack/logs

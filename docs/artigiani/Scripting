@@ -13,7 +13,7 @@ You should find all the logs in `errors.txt` and the expectec output - if any - 
 - Only enable `debug` level logs on local machines. For instance:
 
 ```
-$ ./tools/scripts/stop-local.sh --debug
+$ ./tools/stack/stop-local.sh --debug
 ```
 
 ## Useful Resources
