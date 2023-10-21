@@ -4,26 +4,26 @@ import sbt._
 object Dependency {
   private object Version {
     val jbcrypt               = "0.4"
-    val jwtCirce              = "9.4.3"
+    val jwtCirce              = "9.4.4"
     val bouncycastle          = "1.76"
 
     val cats                  = "2.10.0"
-    val catsEffect            = "3.5.1"
-    val circe                 = "0.14.5"
-    val ciris                 = "3.2.0"
+    val catsEffect            = "3.5.2"
+    val circe                 = "0.14.6"
+    val ciris                 = "3.3.0"
     val doobie                = "1.0.0-RC4"
-    val flyway                = "9.19.4"
-    val fs2                   = "3.8.0"
+    val flyway                = "9.22.3"
+    val fs2                   = "3.9.2"
     val http4s                = "1.0.0-M40"
     val log4cats              = "2.6.0"
-    val slf4j                 = "2.0.7"
+    val slf4j                 = "2.0.9"
 
     val gatling               = "3.9.5"
     val munit                 = "0.7.29"
     val munitCatsEffect       = "1.0.7"
     val munitScalaCheck       = "0.7.29" 
     val munitScalaCheckEffect = "1.0.4"
-    val munitTestcontainers   = "0.40.17"
+    val munitTestcontainers   = "0.41.0"
   }
 
   // auth
