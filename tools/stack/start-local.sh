@@ -64,7 +64,7 @@ function exit_with_error_if_service_fails_to_start() {
   max_tries=20
   attempt=0
   while ! curl_output=$(curl -sSf $status_endpoint 2>&1); do
-    trace "$curl_output"
+    debug "$curl_output"
     attempt=$((attempt + 1))
     if [ $attempt -ge $max_tries ]; then
       timeout=$(echo "$wait_till_next_try_in_sec * $max_tries" | bc)
@@ -73,7 +73,7 @@ function exit_with_error_if_service_fails_to_start() {
     fi
     sleep $wait_till_next_try_in_sec
   done
-  trace "$curl_output"
+  debug "$curl_output"
 }
 
 function write_container_logs_to_file() {
@@ -105,7 +105,7 @@ function main() {
   local command="docker-compose \
     -f "$docker_compose_yml" \
     up --remove-orphans "$pull_latest_images" --detach >&2"
-  debug "$ $command"
+  trace "$ $command"
   eval "$command"
 
   info "Checking 'sketch:$SKETCH_IMAGE_TAG' is healthy..."

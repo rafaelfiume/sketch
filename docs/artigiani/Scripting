@@ -10,10 +10,10 @@ $ ./your_script.sh > output.txt 2> errors.txt
 
 You should find all the logs in `errors.txt` and the expectec output - if any - in `output.txt`.
 
-- Only enable `debug` level logs on local machines. For instance:
+- Only enable `trace` level logs on local machines. For instance:
 
 ```
-$ ./tools/stack/stop-local.sh --debug
+$ ./tools/stack/stop-local.sh --trace
 ```
 
 ## Useful Resources

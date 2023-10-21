@@ -80,7 +80,7 @@ jobs:
             echo 'export PRIVATE_KEY="$(echo $PRIVATE_KEY_BASE64_ONE_LINER | base64 -d)"' >> $BASH_ENV
             echo 'export PUBLIC_KEY="$(echo $PUBLIC_KEY_BASE64_ONE_LINER | base64 -d)"' >> $BASH_ENV
             # Run the stack and tests
-            ./tools/stack/start-local.sh --trace --sketch-tag $VERSION 2> start-local.log
+            ./tools/stack/start-local.sh --debug --sketch-tag $VERSION 2> start-local.log
             mv start-local.log pipeline/stack/logs/start-local.log
             mv tools/stack/logs/sketch.log pipeline/stack/logs/sketch.log
             mv tools/stack/logs/database.log pipeline/stack/logs/database.log

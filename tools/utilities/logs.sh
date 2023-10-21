@@ -11,24 +11,24 @@ setup_colors() {
   fi
 }
 
-enable_debug_level() {
+enable_trace_level() {
   DEBUG_LOG_ENABLED=true
   TRACE_LOG_ENABLED=true
 }
 
-enable_trace_level() {
-  TRACE_LOG_ENABLED=true
+enable_debug_level() {
+  DEBUG_LOG_ENABLED=true
 }
 
 debug() {
   if [ "$DEBUG_LOG_ENABLED" = true ]; then
-    echo >&2 -e "${CYAN}${1-}${NOFORMAT}"
+    echo >&2 -e "${YELLOW}${1-}${NOFORMAT}"
   fi
 }
 
 trace() {
-  if [ "$DEBUG_LOG_ENABLED" = true ] || [ "$TRACE_LOG_ENABLED" = true ]; then
-    echo >&2 -e "${YELLOW}${1-}${NOFORMAT}"
+  if [ "$TRACE_LOG_ENABLED" = true ]; then
+    echo >&2 -e "${CYAN}${1-}${NOFORMAT}"
   fi
 }
 
