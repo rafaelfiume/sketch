@@ -10,7 +10,7 @@ object Plugin {
     val SbtNativePackager   = "1.9.16"
     val Scalafix            = "0.11.0"
     val ScalaFmt            = "2.5.0"
-    val Tpolecat            = "0.4.4"
+    val Tpolecat            = "0.5.0"
   }
 
   val DependencyGraph       = "net.virtual-void"              % "sbt-dependency-graph"        % Version.DependencyGraph
@@ -20,5 +20,5 @@ object Plugin {
   val SbtNativePackager     = "com.github.sbt"               %% "sbt-native-packager"         % Version.SbtNativePackager
   val Scalafix              = "ch.epfl.scala"                 % "sbt-scalafix"                % Version.Scalafix
   val ScalaFmt              = "org.scalameta"                 % "sbt-scalafmt"                % Version.ScalaFmt
-  val Tpolecat              = "io.github.davidgregory084"     % "sbt-tpolecat"                % Version.Tpolecat
+  val Tpolecat              = "org.typelevel"     % "sbt-tpolecat"                % Version.Tpolecat
 }
