@@ -33,11 +33,11 @@ function main() {
   local script_dir=$(cd "$(dirname "${BASH_SOURCE[0]}")" &>/dev/null && pwd -P)
   local tools_dir=$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd -P)
   local utils_dir="$tools_dir/utilities"
-  local envs_dir="$script_dir/environment"
+  local env_dir="$script_dir/environment"
 
   local docker_compose_yml="$script_dir/docker-compose.yml"
 
-  source "$envs_dir/env-vars-loader.sh"
+  source "$env_dir/env-vars-loader.sh"
   source "$utils_dir/logs.sh"
 
   parse_params "$@"

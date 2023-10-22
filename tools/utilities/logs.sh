@@ -22,22 +22,22 @@ enable_debug_level() {
 
 debug() {
   if [ "$DEBUG_LOG_ENABLED" = true ]; then
-    echo >&2 -e "${YELLOW}${1-}${NOFORMAT}"
+    echo >&2 -e "${YELLOW}> ${1-}${NOFORMAT}"
   fi
 }
 
 trace() {
   if [ "$TRACE_LOG_ENABLED" = true ]; then
-    echo >&2 -e "${CYAN}${1-}${NOFORMAT}"
+    echo >&2 -e "${CYAN}> ${1-}${NOFORMAT}"
   fi
 }
 
 info() {
-  echo >&2 -e "${GREEN}${1-}${NOFORMAT}"
+  echo >&2 -e "${GREEN}> ${1-}${NOFORMAT}"
 }
 
 error() {
-  echo >&2 -e "${RED}${1-}${NOFORMAT}"
+  echo >&2 -e "${RED}> ${1-}${NOFORMAT}"
 }
 
 die() {
