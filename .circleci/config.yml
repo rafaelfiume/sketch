@@ -76,18 +76,19 @@ jobs:
             mkdir -p tools/stack/logs
             # This is where CircleCI will store the artifacts
             mkdir -p pipeline/stack/logs
-            # Set environment variables the service depends on
+            # Set PRIVATE_KEY and PUBLIC_KEY environment variables
             echo 'export PRIVATE_KEY="$(echo $PRIVATE_KEY_BASE64_ONE_LINER | base64 -d)"' >> $BASH_ENV
             echo 'export PUBLIC_KEY="$(echo $PUBLIC_KEY_BASE64_ONE_LINER | base64 -d)"' >> $BASH_ENV
             # Run the stack and tests
-            ./tools/stack/start-local.sh --debug --sketch-tag $VERSION 2> start-local.log
+            ./tools/stack/start-local.sh --debug --sketch-tag $VERSION 2> start-local.log || true
+            # Create artefacts
             mv start-local.log pipeline/stack/logs/start-local.log
             mv tools/stack/logs/sketch.log pipeline/stack/logs/sketch.log
             mv tools/stack/logs/database.log pipeline/stack/logs/database.log
             sbt "testAcceptance/test"
 
       - store_artifacts:
-          path: sketch/logs
+          path: pipeline/stack/logs
 
 workflows:
   # For more details on extending your workflow, see the configuration docs: https://circleci.com/docs/configuration-reference/#workflows

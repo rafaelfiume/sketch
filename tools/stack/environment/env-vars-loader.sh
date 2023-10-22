@@ -17,8 +17,8 @@ function load_env_vars() {
   local stack_dir="$(dirname "$script_dir")"
   local env_dir="$stack_dir/environment"
 
-  source_files "$env_dir/$environment_name"/*.sh
-  source_files "$env_dir/$environment_name/secrets"/*.sh
+  source_files "$env_dir/$env_name"/*.sh
+  source_files "$env_dir/$env_name/secrets"/*.sh
   load_keys_pair_from_pem_files_if_not_set "$env_dir" "$env_name"
 }
 

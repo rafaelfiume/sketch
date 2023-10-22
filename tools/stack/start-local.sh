@@ -58,7 +58,7 @@ function exit_with_error_if_service_fails_to_start() {
     if [ $attempt -ge $max_tries ]; then
       timeout=$(echo "$wait_till_next_try_in_sec * $max_tries" | bc)
       error "Failed to start application after $timeout seconds"
-      exit 1
+      exit 55
     fi
     sleep $wait_till_next_try_in_sec
   done
