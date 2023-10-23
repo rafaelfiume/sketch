@@ -51,7 +51,7 @@ There are a few environment variables that should be [manually configured when s
 
 #### Service Secrets
 
- - `PRIVATE_KEY_BASE64_ONE_LINER` and `PUBLIC_KEY_BASE64_ONE_LINER`. Please, refer to `load_keys_pair_from_pem_files_if_not_set` funtion in [../tools/stack/environment/env-vars-loader.sh](../tools/stack/environment/env-vars-loader.sh) file for more information.
+ - `PRIVATE_KEY_BASE64_ONE_LINER` and `PUBLIC_KEY_BASE64_ONE_LINER`. Please, refer to `load_key_pair_from_pem_files_if_not_set` funtion in [../tools/stack/environment/env-vars-loader.sh](../tools/stack/environment/env-vars-loader.sh) file for more information.
 
 #### Authentication to 3rd Parties
 

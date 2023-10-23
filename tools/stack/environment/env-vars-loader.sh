@@ -19,14 +19,14 @@ function load_env_vars() {
 
   source_files "$env_dir/$env_name"/*.sh
   source_files "$env_dir/$env_name/secrets"/*.sh
-  load_keys_pair_from_pem_files_if_not_set "$env_dir" "$env_name"
+  load_key_pair_from_pem_files_if_not_set "$env_dir" "$env_name"
 }
 
 #
 # Private function: load PRIVATE_KEY and PUBLIC_KEY environment variables from pem files if they are not already set,
 # which is convenient when running the stack in a developer workstation.
 #
-function load_keys_pair_from_pem_files_if_not_set() {
+function load_key_pair_from_pem_files_if_not_set() {
   local env_dir="$1"
   local env_name="$2"
 
