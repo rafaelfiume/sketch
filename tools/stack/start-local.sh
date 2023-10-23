@@ -38,7 +38,7 @@ parse_params() {
     -p | --pull) pull_latest_images="--pull=always" ;;
     -d | --debug) enable_debug_level ;; # see logs.sh
     -t | --trace) enable_trace_level ;; # see logs.sh
-    -?*) die "Unknown option: $1" ;;
+    -?*) exit_with_error "Unknown option: $1" ;;
     *) break ;;
     esac
     shift
@@ -84,6 +84,7 @@ function main() {
 
   source "$env_dir/env-vars-loader.sh"
   source "$utils_dir/logs.sh"
+  source "$utils_dir/std_sketch.sh"
 
   parse_params "$@"
   export SKETCH_IMAGE_TAG=$sketch_image_tag

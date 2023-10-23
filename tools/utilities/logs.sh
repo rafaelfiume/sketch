@@ -40,11 +40,4 @@ error() {
   echo >&2 -e "${RED}> ${1-}${NOFORMAT}"
 }
 
-die() {
-  local msg=$1
-  local code=${2-1} # default exit status 1
-  error "$msg"
-  exit "$code"
-}
-
 setup_colors

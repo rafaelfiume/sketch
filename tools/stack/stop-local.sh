@@ -20,7 +20,7 @@ parse_params() {
     case "${1-}" in
     -h | --help) usage ;;
     -d | --trace) enable_trace_level ;; # see logs.sh
-    -?*) die "Unknown option: $1" ;;
+    -?*) exit_with_error "Unknown option: $1" ;;
     *) break ;;
     esac
     shift
@@ -39,6 +39,7 @@ function main() {
 
   source "$env_dir/env-vars-loader.sh"
   source "$utils_dir/logs.sh"
+  source "$utils_dir/std_sketch.sh"
 
   parse_params "$@"
 
