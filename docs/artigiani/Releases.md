@@ -3,7 +3,7 @@
 ## App Semantic Versioning Rules
 
 App Version should conform to the following rules:
-1) Use `${circleci_build_number}` build number when branch is `main`
+1) Use `${circleci_build_number}` when branch is `main`
 1) Use `${branch.name}.${circleci_build_number}` when in a branch other than `main`
 1) Use `snapshot` when building it locally.
 

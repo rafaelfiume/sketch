@@ -1,11 +1,11 @@
-# Pipeline (& Infra) & Stack
+# Pipeline (& Infra)
 
 Solid engineering practices aim for:
  * Determinism: same actions, same results
- * Specification: straightforward to learn, reduced or no ambiguities
- * Speed: quickest we do our job, the faster we can do the other things that matter to us in our short lives
- * Correction: repetitive, boring manual tasks are error prone
- * Criativity: spend time with interesting tasks, and avoid the repetitive boring ones.
+ * Specification: straightforward to learn, and reduced or no ambiguities
+ * Speed: the quickest we do our job, the faster we can are free to focus on the other things that matter to us
+ * Correction: preventing repetitive, boring manual tasks which are error prone
+ * Criativity: save mental energy for non-repetitive interesting tasks.
 
 Automation will give us all the essential properties described above.
 
