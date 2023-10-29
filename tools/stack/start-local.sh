@@ -4,7 +4,7 @@ set -Eeuo pipefail
 
 usage() {
   cat <<EOF
-Usage: $(basename "${BASH_SOURCE[0]}") [-h] [-t] [-d] [-p] [--sketch-tag tag]
+Usage: $(basename "${BASH_SOURCE[0]}") [-h] [-s] [-u] [-p] [-t] [-d]
 
 Start sketch stack containers.
 
@@ -87,10 +87,10 @@ function main() {
   source "$utils_dir/std_sketch.sh"
 
   parse_params "$@"
-  export SKETCH_IMAGE_TAG=$sketch_image_tag
-  export SKETCH_UI_IMAGE_TAG=$sketch_ui_image_tag
+  export SKETCH_IMAGE_TAG="$sketch_image_tag"
+  export SKETCH_UI_IMAGE_TAG="$sketch_ui_image_tag"
 
-  load_env_vars "dev"
+  load_env_vars dev
 
   info "Starting containers with sketch tag '$SKETCH_IMAGE_TAG'..."
   local command="docker-compose \
