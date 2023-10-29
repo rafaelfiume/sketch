@@ -14,7 +14,7 @@
 .DS_Store
 
 # Secrets
-*.pem
+*secrets*
 
 # Logs
-tools/scripts/logs
+tools/stack/logs

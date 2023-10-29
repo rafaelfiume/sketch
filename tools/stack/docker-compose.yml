@@ -1,6 +1,13 @@
 version: "3.8"
 
 services:
+  sketch-ui:
+    image: rafaelfiume/sketch-ui:${SKETCH_UI_IMAGE_TAG}
+    ports:
+      - "8181:80"
+    depends_on:
+      - sketch
+
   sketch:
     image: rafaelfiume/sketch:${SKETCH_IMAGE_TAG}
     container_name: sketch

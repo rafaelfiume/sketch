@@ -11,40 +11,33 @@ setup_colors() {
   fi
 }
 
-enable_debug_level() {
+enable_trace_level() {
   DEBUG_LOG_ENABLED=true
   TRACE_LOG_ENABLED=true
 }
 
-enable_trace_level() {
-  TRACE_LOG_ENABLED=true
+enable_debug_level() {
+  DEBUG_LOG_ENABLED=true
 }
 
 debug() {
   if [ "$DEBUG_LOG_ENABLED" = true ]; then
-    echo >&2 -e "${CYAN}${1-}${NOFORMAT}"
+    echo >&2 -e "${YELLOW}> ${1-}${NOFORMAT}"
   fi
 }
 
 trace() {
-  if [ "$DEBUG_LOG_ENABLED" = true ] || [ "$TRACE_LOG_ENABLED" = true ]; then
-    echo >&2 -e "${YELLOW}${1-}${NOFORMAT}"
+  if [ "$TRACE_LOG_ENABLED" = true ]; then
+    echo >&2 -e "${CYAN}> ${1-}${NOFORMAT}"
   fi
 }
 
 info() {
-  echo >&2 -e "${GREEN}${1-}${NOFORMAT}"
+  echo >&2 -e "${GREEN}> ${1-}${NOFORMAT}"
 }
 
 error() {
-  echo >&2 -e "${RED}${1-}${NOFORMAT}"
-}
-
-die() {
-  local msg=$1
-  local code=${2-1} # default exit status 1
-  error "$msg"
-  exit "$code"
+  echo >&2 -e "${RED}> ${1-}${NOFORMAT}"
 }
 
 setup_colors

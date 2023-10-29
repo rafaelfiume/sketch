@@ -10,7 +10,7 @@ Stop sketch stack containers.
 
 Available options:
 -h, --help           Print this help and exit
--d, --debug          Enable debug level logs
+-d, --trace          Enable trace level logs
 EOF
   exit
 }
@@ -19,8 +19,8 @@ parse_params() {
   while :; do
     case "${1-}" in
     -h | --help) usage ;;
-    -d | --debug) enable_debug_level ;; # see logs.sh
-    -?*) die "Unknown option: $1" ;;
+    -d | --trace) enable_trace_level ;; # see logs.sh
+    -?*) exit_with_error "Unknown option: $1" ;;
     *) break ;;
     esac
     shift
@@ -29,25 +29,17 @@ parse_params() {
   return 0
 }
 
-function load_env_vars() {
-  local environment_name=$1
-  for file in "$envs_dir/$environment_name"/*.sh; do
-    if [ -f "$file" ]; then
-      source "$file"
-    fi
-  done
-  source "$envs_dir/load-keys-pair-if-not-set.sh"
-  load_keys_from_pem_files_if_not_set
-}
-
 function main() {
   local script_dir=$(cd "$(dirname "${BASH_SOURCE[0]}")" &>/dev/null && pwd -P)
-  local utils_dir="$script_dir/utilities"
-  local envs_dir="$script_dir/environment"
+  local tools_dir=$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd -P)
+  local utils_dir="$tools_dir/utilities"
+  local env_dir="$script_dir/environment"
 
   local docker_compose_yml="$script_dir/docker-compose.yml"
 
+  source "$env_dir/env-vars-loader.sh"
   source "$utils_dir/logs.sh"
+  source "$utils_dir/std_sketch.sh"
 
   parse_params "$@"
 
@@ -57,7 +49,9 @@ function main() {
   load_env_vars dev
 
   info "Stopping sketch stack containers..."
-  docker-compose -f "$docker_compose_yml" stop >&2
+  local command="docker-compose -f "$docker_compose_yml" stop >&2"
+  trace "$ $command"
+  eval "$command"
 
   info "Services have stopped successfully. Have a good day!"
 }
