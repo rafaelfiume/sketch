@@ -17,6 +17,8 @@ function load_env_vars() {
   local stack_dir="$(dirname "$script_dir")"
   local env_dir="$stack_dir/environment"
 
+  trace "Loading env vars..."
+
   source_files "$env_dir/$env_name"/*.sh
   source_files "$env_dir/$env_name/secrets"/*.sh
   load_key_pair_from_pem_files_if_not_set "$env_dir" "$env_name"
@@ -35,16 +37,13 @@ function load_key_pair_from_pem_files_if_not_set() {
 
   if [ -z "${PRIVATE_KEY:-}" ]; then
     PRIVATE_KEY=$(cat "$private_key_file")
-    # base64 wrapping new lines is required to pass multi-line environment variables to circleci
-    # See https://circleci.com/docs/set-environment-variable/#encoding-multi-line-environment-variables
-    # --wrap=0 requires brew install coreutils
-    trace "base64 version of PRIVATE_KEY is:\n$(echo "$PRIVATE_KEY" | base64 --wrap=0)"
+    trace "PRIVATE_KEY was not set. Exporting PRIVATE_KEY:\n$PRIVATE_KEY"
     export PRIVATE_KEY
   fi
 
   if [ -z "${PUBLIC_KEY:-}" ]; then
     PUBLIC_KEY=$(cat "$public_key_file")
-    trace "base64 version of PUBLIC_KEY:\n$(echo "$PUBLIC_KEY" | base64 --wrap=0)"
+    trace "PUBLIC_KEY was not set. Exporting PUBLIC_KEY:\n$PUBLIC_KEY"
     export PUBLIC_KEY
   fi
 }
@@ -56,7 +55,7 @@ function source_files() {
   local path_to_files="$1"
   for file in "$path_to_files"; do
     if [ -f "$file" ]; then
-      trace "source $file"
+      trace "Sourcing env vars from $file"
       source "$file"
     fi
   done
