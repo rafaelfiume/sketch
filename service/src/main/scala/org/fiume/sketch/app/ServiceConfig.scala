@@ -29,7 +29,7 @@ object ServiceConfig:
       environment <- env("ENV").as[Environment]
       privateKey <- env("PRIVATE_KEY").as[ECPrivateKey].redacted
       publicKey <- env("PUBLIC_KEY").as[ECPublicKey].redacted
-      databaseConfig <- DatabaseConfig.load[F](dbPoolThreads = 10)
+      databaseConfig <- DatabaseConfig.envs[F](dbPoolThreads = 10)
     yield ServiceConfig(
       env = environment,
       keyPair = EcKeyPairConfig(privateKey, publicKey),
