@@ -25,6 +25,6 @@ function sbt_subproject_run() {
   shift 1
 
   local command="sbt 'project $module' '${*}' >&2"
-  trace "$ $command"
+  debug "$ $command"
   eval $command
 }

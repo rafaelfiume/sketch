@@ -8,9 +8,6 @@ case class ErrorInfo(message: ErrorMessage, details: Option[ErrorDetails])
 case class ErrorMessage(value: String) extends AnyVal
 case class ErrorDetails(tips: Map[String, String]) extends AnyVal
 
-object ErrorDetails:
-  def single(detail: (String, String)) = ErrorDetails(Map(detail))
-
 object ErrorInfo:
   def short(message: ErrorMessage): ErrorInfo = ErrorInfo(message, None)
 
@@ -19,3 +16,6 @@ object ErrorInfo:
 
   given Semigroup[ErrorDetails] = new Semigroup[ErrorDetails]:
     def combine(x: ErrorDetails, y: ErrorDetails): ErrorDetails = ErrorDetails(x.tips.combine(y.tips))
+
+object ErrorDetails:
+  def single(detail: (String, String)) = ErrorDetails(Map(detail))

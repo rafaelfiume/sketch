@@ -96,7 +96,7 @@ function main() {
   local command="docker-compose \
     -f "$docker_compose_yml" \
     up --remove-orphans "$pull_latest_images" --detach >&2"
-  trace "$ $command"
+  debug "$ $command"
   eval "$command"
 
   info "Checking 'sketch:$SKETCH_IMAGE_TAG' is healthy..."

@@ -13,6 +13,8 @@ import org.scalacheck.ShrinkLowPriority
 import org.scalacheck.effect.PropF.forAllF
 
 class UsersManagerSpec extends CatsEffectSuite with ScalaCheckEffectSuite with UsersStoreContext with ShrinkLowPriority:
+
+  // Is this a flickering test?
   test("registre a user with a unique username"):
     forAllF { (username: Username, password: PlainPassword) =>
       for

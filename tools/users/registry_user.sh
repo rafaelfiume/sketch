@@ -2,7 +2,7 @@ set -Eeuo pipefail
 
 usage() {
   cat <<EOF
-Usage: $(basename "${BASH_SOURCE[0]}") [-h] [-t] --local -u username -p password
+Usage: $(basename "${BASH_SOURCE[0]}") [-h] [-d] [-t] --local -u username -p password
 
 Give user access to Sketch services.
 
@@ -33,6 +33,7 @@ parse_params() {
       password="${2-}"
       shift
       ;;
+    -d | --debug) enable_debug_level ;; # see logs.sh
     -t | --trace) enable_trace_level ;; # see logs.sh
     -?*) exit_with_error "Unknown option: $1" ;;
     *) break ;;
@@ -71,13 +72,6 @@ function main() {
 
   local app_name="org.fiume.sketch.auth0.scripts.UsersScript"
   sbt_run_main "auth0Scripts" "$app_name" "$username" "$password"
-
-  EXIT_CODE=$?
-  if [ $EXIT_CODE -eq 0 ]; then
-    echo "Scala program executed successfully."
-  else
-    echo "Scala program exited with an error. Exit code: $EXIT_CODE"
-  fi
 
   info "Tell '$username' he/she is ready to go in '$env_name' environment!"
 }
