@@ -12,7 +12,7 @@ function generate_one_liner_private_and_public_keys() {
   local tools_dir=$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd -P)
 
   source $tools_dir/utilities/logs.sh
-  source $tools_dir/stack/environment/env-vars-loader.sh # requires logs.sh
+  source $tools_dir/environments/env-vars-loader.sh # requires logs.sh
 
   enable_trace_level # enable load_env_vars trace logs
   load_env_vars "$env_name"

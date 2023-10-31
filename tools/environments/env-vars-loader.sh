@@ -9,19 +9,17 @@ set -Eeuo pipefail
 #
 # Load all environment variables necessary to run Sketch stack in a given environment.
 #
-# Only 'dev' is supported. See `${PROJECT_DIR/tools/stack/environment/dev}`.
+# See for instance `${PROJECT_DIR/tools/environments/dev}`.
 #
 function load_env_vars() {
   local env_name="$1"
   local script_dir=$(cd "$(dirname "${BASH_SOURCE[0]}")" &>/dev/null && pwd -P)
-  local stack_dir="$(dirname "$script_dir")"
-  local env_dir="$stack_dir/environment"
 
   trace "Loading env vars..."
 
-  source_files "$env_dir/$env_name"/*.sh
-  source_files "$env_dir/$env_name/secrets"/*.sh
-  load_key_pair_from_pem_files_if_not_set "$env_dir" "$env_name"
+  source_files "$script_dir/$env_name"/*.sh
+  source_files "$script_dir/$env_name/secrets"/*.sh
+  load_key_pair_from_pem_files_if_not_set "$script_dir" "$env_name"
 }
 
 #
@@ -29,11 +27,11 @@ function load_env_vars() {
 # which is convenient when running the stack in a developer workstation.
 #
 function load_key_pair_from_pem_files_if_not_set() {
-  local env_dir="$1"
+  local environments_dir="$1"
   local env_name="$2"
 
-  local private_key_file="$env_dir/$env_name/secrets/private_key.pem"
-  local public_key_file="$env_dir/$env_name/secrets/public_key.pem"
+  local private_key_file="$environments_dir/$env_name/secrets/private_key.pem"
+  local public_key_file="$environments_dir/$env_name/secrets/public_key.pem"
 
   if [ -z "${PRIVATE_KEY:-}" ]; then
     PRIVATE_KEY=$(cat "$private_key_file")

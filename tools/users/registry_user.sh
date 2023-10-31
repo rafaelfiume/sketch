@@ -74,13 +74,12 @@ function run_sbt() {
 function main() {
   local script_dir=$(cd "$(dirname "${BASH_SOURCE[0]}")" &>/dev/null && pwd -P)
   local tools_dir=$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd -P)
-  # TODO Extract 'environment' from 'stack' dir
-  local env_dir="$tools_dir/stack/environment"
+  local environments_dir="$tools_dir/environments"
   local utils_dir="$tools_dir/utilities"
 
   source "$utils_dir/logs.sh"
   source "$utils_dir/std_sketch.sh"
-  source "$env_dir/env-vars-loader.sh"
+  source "$environments_dir/env-vars-loader.sh"
 
   exit_if_sbt_is_not_installed
 
