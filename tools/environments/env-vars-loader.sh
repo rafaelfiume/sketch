@@ -4,6 +4,7 @@ set -Eeuo pipefail
 
 #
 # Requires: `source ${PROJECT_DIR}/tools/utilities/logs.sh`
+# Requires: `source "$utils_dir/std_sketch.sh"`
 #
 
 #
@@ -15,11 +16,42 @@ function load_env_vars() {
   local env_name="$1"
   local script_dir=$(cd "$(dirname "${BASH_SOURCE[0]}")" &>/dev/null && pwd -P)
 
+  is_environment_supported "$script_dir" "$env_name"
+
   trace "Loading env vars..."
 
   source_files "$script_dir/$env_name"/*.sh
   source_files "$script_dir/$env_name/secrets"/*.sh
   load_key_pair_from_pem_files_if_not_set "$script_dir" "$env_name"
+}
+
+#
+# Private function
+#
+function is_environment_supported() {
+  local environments_dir="$1"
+  local target_environment="$2"
+
+  local env_name=''
+  local supported_envs=()
+  for env_dir in "$environments_dir"/*/; do
+    if [ -d $env_dir ]; then
+      env_name=$(basename "$env_dir")
+      supported_envs+=("$env_name")
+    fi
+  done
+  trace "Found the following environments: '${supported_envs[*]}'"
+
+  local env=''
+  for env in ${supported_envs[@]}; do
+    trace "Checking '$env' against target enviroment '$target_environment'..."
+    if [ "$env" == "$target_environment" ]; then
+      debug "Found '$env' environment"
+      return 0
+    fi
+  done
+
+  exit_with_error "Environment '$target_environment' is not supported"
 }
 
 #
