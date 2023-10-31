@@ -64,7 +64,7 @@ function sbt_run_main() {
   local app_name="$2"
   shift 2
 
-  local command="sbt 'project $module' 'runMain $app_name ${*}'"
+  local command="sbt 'project $module' 'runMain $app_name ${*}' >&2"
   trace "$ $command"
   eval "$command"
 }
@@ -88,7 +88,6 @@ function main() {
   # TODO Validate environment
   load_env_vars "$env_name"
 
-  # TODO "stdout is for output, and stderr is for messages
   local app_name="org.fiume.sketch.auth0.scripts.UsersScript"
   sbt_run_main "auth0Scripts" "$app_name" "$username" "$password"
 
