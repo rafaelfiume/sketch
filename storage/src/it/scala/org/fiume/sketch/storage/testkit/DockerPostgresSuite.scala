@@ -57,10 +57,11 @@ trait DockerPostgresSuite extends CatsEffectSuite:
         connectionPool
       )
       dbConfig = DatabaseConfig(
-        DockerDatabaseConfig.driver,
-        jdbcUrl,
-        DockerDatabaseConfig.user,
-        Secret[String](DockerDatabaseConfig.password)
+        driver = DockerDatabaseConfig.driver,
+        uri = jdbcUrl,
+        user = DockerDatabaseConfig.user,
+        password = Secret[String](DockerDatabaseConfig.password),
+        dbPoolThreads = 10 // ?
       )
       _ <- Resource.eval(SchemaMigration[IO](dbConfig))
     yield tx

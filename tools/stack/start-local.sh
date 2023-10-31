@@ -74,7 +74,7 @@ function write_container_logs_to_file() {
 function main() {
   local script_dir=$(cd "$(dirname "${BASH_SOURCE[0]}")" &>/dev/null && pwd -P)
   local tools_dir=$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd -P)
-  local env_dir="$script_dir/environment"
+  local environments_dir="$tools_dir/environments"
   local utils_dir="$tools_dir/utilities"
   local logs_dir="$script_dir/logs"
 
@@ -82,7 +82,7 @@ function main() {
   local sketch_log_file="$logs_dir/sketch.log"
   local database_log_file="$logs_dir/database.log"
 
-  source "$env_dir/env-vars-loader.sh"
+  source "$environments_dir/env-vars-loader.sh"
   source "$utils_dir/logs.sh"
   source "$utils_dir/std_sketch.sh"
 
@@ -96,7 +96,7 @@ function main() {
   local command="docker-compose \
     -f "$docker_compose_yml" \
     up --remove-orphans "$pull_latest_images" --detach >&2"
-  trace "$ $command"
+  debug "$ $command"
   eval "$command"
 
   info "Checking 'sketch:$SKETCH_IMAGE_TAG' is healthy..."

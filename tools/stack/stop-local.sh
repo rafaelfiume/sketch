@@ -4,7 +4,7 @@ set -Eeuo pipefail
 
 usage() {
   cat <<EOF
-Usage: $(basename "${BASH_SOURCE[0]}") [-h] [-d]
+Usage: $(basename "${BASH_SOURCE[0]}") [-h] [-d] [-t]
 
 Stop sketch stack containers.
 
@@ -19,7 +19,8 @@ parse_params() {
   while :; do
     case "${1-}" in
     -h | --help) usage ;;
-    -d | --trace) enable_trace_level ;; # see logs.sh
+    -d | --debug) enable_debug_level ;; # see logs.sh
+    -t | --trace) enable_trace_level ;; # see logs.sh
     -?*) exit_with_error "Unknown option: $1" ;;
     *) break ;;
     esac
@@ -33,11 +34,11 @@ function main() {
   local script_dir=$(cd "$(dirname "${BASH_SOURCE[0]}")" &>/dev/null && pwd -P)
   local tools_dir=$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd -P)
   local utils_dir="$tools_dir/utilities"
-  local env_dir="$script_dir/environment"
+  local environments_dir="$tools_dir/environments"
 
   local docker_compose_yml="$script_dir/docker-compose.yml"
 
-  source "$env_dir/env-vars-loader.sh"
+  source "$environments_dir/env-vars-loader.sh"
   source "$utils_dir/logs.sh"
   source "$utils_dir/std_sketch.sh"
 
@@ -50,7 +51,7 @@ function main() {
 
   info "Stopping sketch stack containers..."
   local command="docker-compose -f "$docker_compose_yml" stop >&2"
-  trace "$ $command"
+  debug "$ $command"
   eval "$command"
 
   info "Services have stopped successfully. Have a good day!"

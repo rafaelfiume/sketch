@@ -23,7 +23,7 @@ trait AuthenticationContext extends Http4sClientContext:
   def loginAndGetAuthenticationHeader(): IO[Authorization] =
     val username = aUsername()
     val password = aPassword()
-    doRegistreUser(username, password) *>
+    makeScript().flatMap { _.registreUser(username, password) } *>
       withHttp {
         _.expect[LoginResponsePayload](loginRequest(username, password))
           .map(_.token)
