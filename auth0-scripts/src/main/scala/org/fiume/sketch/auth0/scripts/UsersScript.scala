@@ -8,6 +8,7 @@ import org.fiume.sketch.auth0.UsersManager
 import org.fiume.sketch.shared.app.troubleshooting.{ErrorInfo, ErrorMessage}
 import org.fiume.sketch.shared.app.troubleshooting.ErrorInfo.given
 import org.fiume.sketch.shared.app.troubleshooting.InvariantErrorSyntax.asDetails
+import org.fiume.sketch.shared.app.typeclasses.ToSemanticStringSyntax.*
 import org.fiume.sketch.shared.auth0.Passwords.PlainPassword
 import org.fiume.sketch.shared.auth0.User.Username
 import org.fiume.sketch.storage.DatabaseConfig
@@ -26,7 +27,7 @@ object UsersScript extends IOApp:
           doRegistreUser(dbConfig)(username, password).as(ExitCode.Success)
         }
       case Left(invalidInput) =>
-        Console[IO].error(invalidInput) *>
+        Console[IO].error(invalidInput.asSemanticString()) *>
           IO.pure(scriptErrorCode)
 
   def doRegistreUser(dbConfig: DatabaseConfig)(username: Username, password: PlainPassword): IO[Unit] =
@@ -45,6 +46,6 @@ object UsersScript extends IOApp:
           PlainPassword.validated(pass).leftMap(_.asDetails)
         )
           .parMapN((user, pass) => Args(user, pass))
-          .leftMap(details => ErrorInfo.withDetails(ErrorMessage("Wrong parameters"), details))
+          .leftMap(details => ErrorInfo.withDetails(ErrorMessage("Invalid parameters"), details))
       case unknown =>
-        ErrorInfo.short(ErrorMessage(s"Wrong parameters: expected `username` and `password` args; got $unknown")).asLeft[Args]
+        ErrorInfo.short(ErrorMessage(s"Invalid parameters: expected `username` and `password`; got $unknown")).asLeft[Args]

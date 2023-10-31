@@ -67,7 +67,6 @@ function main() {
 
   info "Setting up user '$username' against '$env_name' environment..."
 
-  # TODO Validate environment
   load_env_vars "$env_name"
 
   local app_name="org.fiume.sketch.auth0.scripts.UsersScript"

@@ -17,14 +17,14 @@ function sbt_run_main() {
   local app_name="$2"
   shift 2
 
-  sbt_subproject_run "$module" "runMain $app_name ${*}"
+  sbt_subproject_run "$module" "runMain $app_name ${*:-}"
 }
 
 function sbt_subproject_run() {
   local module="$1"
   shift 1
 
-  local command="sbt 'project $module' '${*}' >&2"
+  local command="sbt 'project $module' '${*:-}' >&2"
   debug "$ $command"
   eval $command
 }
