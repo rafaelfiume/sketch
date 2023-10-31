@@ -12,7 +12,7 @@ object SchemaMigration:
   def apply[F[_]](dbConfig: DatabaseConfig)(using F: Sync[F]): F[Unit] =
     val logger = Slf4jLogger.getLogger[F]
     F.delay {
-      val flyway = Flyway.configure().dataSource(dbConfig.uri.renderString, dbConfig.user, dbConfig.password.value)
+      val flyway = Flyway.configure().dataSource(dbConfig.jdbcUri.renderString, dbConfig.user, dbConfig.password.value)
       flyway.load().migrate()
     }.flatMap { migrationsApplied =>
       logger.info(s"Successfully applied $migrationsApplied migrations to the database")

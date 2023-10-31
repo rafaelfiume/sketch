@@ -32,7 +32,7 @@ object DbTransactor:
     _ <- Resource.eval(SchemaMigration[F](config))
     transactor <- HikariTransactor.newHikariTransactor[F](
       config.driver,
-      config.uri.renderString,
+      config.jdbcUri.renderString,
       config.user,
       config.password.value,
       dbPool
