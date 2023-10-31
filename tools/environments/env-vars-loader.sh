@@ -3,6 +3,10 @@
 set -Eeuo pipefail
 
 #
+# Requires: `source ${PROJECT_DIR}/tools/utilities/logs.sh`
+#
+
+#
 # Load all environment variables necessary to run Sketch stack in a given environment.
 #
 # See for instance `${PROJECT_DIR/tools/environments/dev}`.
@@ -10,10 +14,6 @@ set -Eeuo pipefail
 function load_env_vars() {
   local env_name="$1"
   local script_dir=$(cd "$(dirname "${BASH_SOURCE[0]}")" &>/dev/null && pwd -P)
-  local tools_dir=$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd -P)
-  local utils_dir="$tools_dir/utilities"
-
-  source "$utils_dir/logs.sh"
 
   trace "Loading env vars..."
 

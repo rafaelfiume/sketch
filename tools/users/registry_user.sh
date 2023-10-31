@@ -2,29 +2,29 @@ set -Eeuo pipefail
 
 usage() {
   cat <<EOF
-Usage: $(basename "${BASH_SOURCE[0]}") [-h] --dev -u username -p password
+Usage: $(basename "${BASH_SOURCE[0]}") [-h] [-t] --local -u username -p password
 
 Give user access to Sketch services.
 
 Available options:
 -h, --help           Print this help and exit
+  , --local          Regisre user in local environment
 -u, --username       The unique identifier for the user
 -p, --password       The password for the user account
--d, --debug          Enable debug level logs
 -t, --trace          Enable trace level logs
 EOF
   exit
 }
 
 parse_params() {
-  env=''
+  env_name=''
   username=''
   password=''
 
   while :; do
     case "${1-}" in
     -h | --help) usage ;;
-    -f | --dev) env='dev' ;;
+    --local) env_name='local' ;;
     -u | --username)
       username="${2-}"
       shift
@@ -33,21 +33,16 @@ parse_params() {
       password="${2-}"
       shift
       ;;
+    -t | --trace) enable_trace_level ;; # see logs.sh
     -?*) exit_with_error "Unknown option: $1" ;;
     *) break ;;
     esac
     shift
   done
 
-  args=("$@")
-
-  echo "Username: $username"
-  echo "Password: $password"
-
   # check required params and arguments
-  # Test with "abacaxinaofazxixi" "@"
   # TODO Improve validation
-  [[ -z "${env-}" ]] && exit_with_error "Missing required parameter: env"
+  [[ -z "${env_name-}" ]] && exit_with_error "Missing required parameter: env_name"
   [[ -z "${username-}" ]] && exit_with_error "Missing required parameter: username"
   [[ -z "${password-}" ]] && exit_with_error "Missing required parameter: password"
 
@@ -63,12 +58,15 @@ function exit_if_sbt_is_not_installed() {
   fi
 }
 
-function run_sbt() {
+# TODO Extract it to sbt module
+function sbt_run_main() {
   local module="$1"
   local app_name="$2"
   shift 2
 
-  sbt "project $module" "runMain $app_name ${*}"
+  local command="sbt 'project $module' 'runMain $app_name ${*}'"
+  trace "$ $command"
+  eval "$command"
 }
 
 function main() {
@@ -85,13 +83,14 @@ function main() {
 
   parse_params "$@"
 
+  info "Setting up user '$username' against '$env_name' environment..."
+
   # TODO Validate environment
-  load_env_vars "$env"
+  load_env_vars "$env_name"
 
   # TODO "stdout is for output, and stderr is for messages
-  # Log
   local app_name="org.fiume.sketch.auth0.scripts.UsersScript"
-  run_sbt "auth0Scripts" "$app_name" "$username" "$password"
+  sbt_run_main "auth0Scripts" "$app_name" "$username" "$password"
 
   EXIT_CODE=$?
   if [ $EXIT_CODE -eq 0 ]; then
@@ -99,6 +98,8 @@ function main() {
   else
     echo "Scala program exited with an error. Exit code: $EXIT_CODE"
   fi
+
+  info "Tell '$username' he/she is ready to go in '$env_name' environment!"
 }
 
 main "$@"
