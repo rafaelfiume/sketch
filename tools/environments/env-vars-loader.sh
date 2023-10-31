@@ -42,11 +42,11 @@ function is_environment_supported() {
   done
   trace "Found the following environments: '${supported_envs[*]}'"
 
-  local env=''
-  for env in ${supported_envs[@]}; do
-    trace "Checking '$env' against target enviroment '$target_environment'..."
-    if [ "$env" == "$target_environment" ]; then
-      debug "Found '$env' environment"
+  local supported_env=''
+  for supported_env in ${supported_envs[@]}; do
+    trace "Checking target environment '$target_environment' against supported environment '$supported_env' ..."
+    if [ "$supported_env" == "$target_environment" ]; then
+      debug "Found '$target_environment' environment"
       return 0
     fi
   done

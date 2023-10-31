@@ -8,7 +8,7 @@ Give user access to Sketch services.
 
 Available options:
 -h, --help           Print this help and exit
-  , --local          Regisre user in local environment
+    --local          Registre user in local environment
 -u, --username       The unique identifier for the user
 -p, --password       The password for the user account
 -t, --trace          Enable trace level logs
@@ -70,7 +70,7 @@ function main() {
   load_env_vars "$env_name"
 
   local app_name="org.fiume.sketch.auth0.scripts.UsersScript"
-  sbt_run_main "auth0Scripts" "$app_name" "$username" "$password"
+  sbt_subproject_run_main "auth0Scripts" "$app_name" "$username" "$password"
 
   info "Tell '$username' he/she is ready to go in '$env_name' environment!"
 }

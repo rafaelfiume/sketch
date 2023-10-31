@@ -12,7 +12,7 @@ function exit_if_sbt_is_not_installed() {
   fi
 }
 
-function sbt_run_main() {
+function sbt_subproject_run_main() {
   local module="$1"
   local app_name="$2"
   shift 2
@@ -22,9 +22,9 @@ function sbt_run_main() {
 
 function sbt_subproject_run() {
   local module="$1"
-  shift 1
+  local task="$2"
 
-  local command="sbt 'project $module' '${*:-}' >&2"
+  local command="sbt 'project $module' '$task'"
   debug "$ $command"
   eval $command
 }

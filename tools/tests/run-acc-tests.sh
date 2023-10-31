@@ -13,6 +13,8 @@ function main() {
   source "$utils_dir/sbt.sh"
   source "$environments_dir/env-vars-loader.sh"
 
+  exit_if_sbt_is_not_installed
+
   load_env_vars "local"
 
   info "Running sketch acceptance tests..."

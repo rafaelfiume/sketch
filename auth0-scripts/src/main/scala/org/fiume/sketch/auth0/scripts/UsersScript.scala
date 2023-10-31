@@ -22,7 +22,7 @@ object UsersScript extends IOApp:
   private val scriptErrorCode = ExitCode(55)
 
   def run(args: List[String]): IO[ExitCode] =
-    extractArgs(args) match
+    extract(args) match
       case Right(Args(username, password)) =>
         makeScript().flatMap {
           _.registreUser(username, password).as(ExitCode.Success)
@@ -37,9 +37,9 @@ object UsersScript extends IOApp:
       .load[IO]
       .map(UsersScript(_))
 
-  private def extractArgs(args: List[String]): Either[ErrorInfo, Args] =
+  private def extract(args: List[String]): Either[ErrorInfo, Args] =
     args match
-      case username :: pass :: _ =>
+      case username :: pass :: Nil =>
         (
           Username.validated(username).leftMap(_.asDetails),
           PlainPassword.validated(pass).leftMap(_.asDetails)
