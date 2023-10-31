@@ -49,26 +49,6 @@ parse_params() {
   return 0
 }
 
-#
-# Requires: `source "$utils_dir/std_sketch.sh"`
-#
-function exit_if_sbt_is_not_installed() {
-  if ! command -v sbt &> /dev/null; then
-    exit_with_error "Please install sbt to run this application"
-  fi
-}
-
-# TODO Extract it to sbt module
-function sbt_run_main() {
-  local module="$1"
-  local app_name="$2"
-  shift 2
-
-  local command="sbt 'project $module' 'runMain $app_name ${*}' >&2"
-  trace "$ $command"
-  eval "$command"
-}
-
 function main() {
   local script_dir=$(cd "$(dirname "${BASH_SOURCE[0]}")" &>/dev/null && pwd -P)
   local tools_dir=$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd -P)
@@ -77,6 +57,7 @@ function main() {
 
   source "$utils_dir/logs.sh"
   source "$utils_dir/std_sketch.sh"
+  source "$utils_dir/sbt.sh"
   source "$environments_dir/env-vars-loader.sh"
 
   exit_if_sbt_is_not_installed

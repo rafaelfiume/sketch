@@ -1,15 +1,5 @@
 set -Eeuo pipefail
 
-# TODO Extract it to sbt module
-function sbt_subproject_run() {
-  local module="$1"
-  shift 1
-
-  local command="sbt 'project $module' '${*}' >&2"
-  trace "$ $command"
-  eval $command
-}
-
 #
 # Load 'local' environment and run acceptance tests.
 #
@@ -20,6 +10,7 @@ function main() {
   local utils_dir="$tools_dir/utilities"
 
   source "$utils_dir/logs.sh"
+  source "$utils_dir/sbt.sh"
   source "$environments_dir/env-vars-loader.sh"
 
   load_env_vars "local"
