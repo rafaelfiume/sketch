@@ -22,12 +22,20 @@ object UsersScript extends IOApp:
   def run(args: List[String]): IO[ExitCode] =
     extractArgs(args) match
       case Right(Args(username, password)) =>
-        DatabaseConfig.envs[IO](dbPoolThreads = 1).load[IO].flatMap { dbConfig =>
+        DatabaseConfig.envs[IO](dbPoolThreads = 10).load[IO].flatMap { dbConfig =>
           doRegistreUser(dbConfig)(username, password).as(ExitCode.Success)
         }
       case Left(invalidInput) =>
         Console[IO].error(invalidInput) *>
           IO.pure(scriptErrorCode)
+
+  def doRegistreUser(dbConfig: DatabaseConfig)(username: Username, password: PlainPassword): IO[Unit] =
+    DbTransactor.make[IO](dbConfig).flatMap(PostgresUsersStore.make[IO]).use { store =>
+      for
+        usersManager <- UsersManager.make[IO, ConnectionIO](store)
+        _ <- usersManager.registreUser(username, password)
+      yield ()
+    }
 
   private def extractArgs(args: List[String]): Either[ErrorInfo, Args] =
     args match
@@ -40,11 +48,3 @@ object UsersScript extends IOApp:
           .leftMap(details => ErrorInfo.withDetails(ErrorMessage("Wrong parameters"), details))
       case unknown =>
         ErrorInfo.short(ErrorMessage(s"Wrong parameters: expected `username` and `password` args; got $unknown")).asLeft[Args]
-
-  private def doRegistreUser(dbConfig: DatabaseConfig)(username: Username, password: PlainPassword): IO[Unit] =
-    DbTransactor.make[IO](dbConfig).flatMap(PostgresUsersStore.make[IO]).use { store =>
-      for
-        usersManager <- UsersManager.make[IO, ConnectionIO](store)
-        _ <- usersManager.registreUser(username, password)
-      yield ()
-    }

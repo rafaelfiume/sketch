@@ -33,6 +33,10 @@ tools/
 │   ├── docker-compose.yml
 │   ├── start-local.sh
 │   └── stop-local.sh
+├── tests/                                      # Scripts to run tests
+│   ├── ...
+├── users/                                      # Scripts to admin Sketch users
+│   ├── ...
 ├── utilities/                                  # General utility functions
 │   ├── logs.sh
 │   └── ...

@@ -9,6 +9,7 @@ import org.fiume.sketch.shared.auth0.User.Username
 import org.fiume.sketch.shared.auth0.testkit.PasswordsGens.*
 import org.fiume.sketch.shared.auth0.testkit.UserGens.*
 import org.fiume.sketch.shared.testkit.EitherSyntax.*
+import org.fiume.sketch.storage.DatabaseConfig
 import org.http4s.circe.CirceEntityDecoder.*
 import org.http4s.headers.Authorization
 import org.scalacheck.Gen
@@ -23,12 +24,14 @@ trait AuthenticationContext extends Http4sClientContext:
   def loginAndGetAuthenticationHeader(): IO[Authorization] =
     val username = aUsername()
     val password = aPassword()
-    doRegistreUser(username, password) *>
-      withHttp {
-        _.expect[LoginResponsePayload](loginRequest(username, password))
-          .map(_.token)
-          .map(jwtToken => Authorization.parse(s"Bearer $jwtToken"))
-          .map(_.rightValue)
+    DatabaseConfig.envs[IO](dbPoolThreads = 10).load[IO].flatMap { dbConfig =>
+      doRegistreUser(dbConfig)(username, password) *>
+        withHttp {
+          _.expect[LoginResponsePayload](loginRequest(username, password))
+            .map(_.token)
+            .map(jwtToken => Authorization.parse(s"Bearer $jwtToken"))
+            .map(_.rightValue)
+        }
       }
 
   // TODO Improve this somehow....
