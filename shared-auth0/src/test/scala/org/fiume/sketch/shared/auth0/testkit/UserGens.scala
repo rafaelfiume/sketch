@@ -98,4 +98,10 @@ object UserGens:
     yield UserCredentials.withUuid(uuid, username, hashedPassword, salt) -> plainPassword
 
   // frequency is important here avoiding user names like "___", as we want to generate more valid passwords than invalid ones.
-  private def usernameChars: Gen[Char] = Gen.frequency(9 -> Gen.alphaNumChar, 1 -> Gen.const('_'), 1 -> Gen.const('-'))
+  private def usernameChars: Gen[Char] = Gen.frequency(
+    9 -> Gen.alphaNumChar,
+    2 -> Gen.const('@'),
+    2 -> Gen.const('.'),
+    1 -> Gen.const('_'),
+    1 -> Gen.const('-')
+  )
