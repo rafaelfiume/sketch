@@ -8,6 +8,7 @@ import fs2.io.net.Network
 import org.fiume.sketch.auth0.http.AuthRoutes
 import org.fiume.sketch.auth0.http.middlewares.Auth0Middleware
 import org.fiume.sketch.http.HealthStatusRoutes
+import org.fiume.sketch.shared.app.http4s.middlewares.{SemanticValidationMiddleware, TraceAuditLogMiddleware, WorkerMiddleware}
 import org.fiume.sketch.storage.documents.http.DocumentsRoutes
 import org.http4s.{HttpApp, HttpRoutes}
 import org.http4s.ember.server.EmberServerBuilder
@@ -53,9 +54,9 @@ object HttpApi:
   def httpApp[F[_]: Async: LoggerFactory](res: Resources[F]): F[HttpApp[F]] =
     val authMiddleware = Auth0Middleware(res.authenticator)
 
-    val authRoutes: HttpRoutes[F] = new AuthRoutes[F](enableLogging = true)(res.authenticator).router()
+    val authRoutes: HttpRoutes[F] = new AuthRoutes[F](res.authenticator).router()
     val documentsRoutes: HttpRoutes[F] =
-      new DocumentsRoutes[F, ConnectionIO](enableLogging = false, res.customWorkerThreadPool, authMiddleware)(res.documentsStore)
+      new DocumentsRoutes[F, ConnectionIO](authMiddleware)(res.documentsStore)
         .router()
     val healthStatusRoutes: HttpRoutes[F] =
       new HealthStatusRoutes[F](res.customWorkerThreadPool, res.versions, res.healthCheck).router()
@@ -67,7 +68,13 @@ object HttpApi:
           Origin.Host(Uri.Scheme.http, Uri.RegName("localhost"), 8181.some)
         )
       )
+    val middlewares = WorkerMiddleware[F](res.customWorkerThreadPool)
+      .andThen(SemanticValidationMiddleware.apply)
+      .andThen(TraceAuditLogMiddleware[F](Slf4jLogger.getLogger[F], true)) // TODO Extract flag to env var
     for
       cAuthRoutes <- corsMiddleware.httpRoutes[F](authRoutes)
       cDocsRoutes <- corsMiddleware.httpRoutes[F](documentsRoutes)
-    yield (healthStatusRoutes <+> cAuthRoutes <+> cDocsRoutes).orNotFound
+      routes = middlewares(
+        healthStatusRoutes <+> cAuthRoutes <+> cDocsRoutes
+      )
+    yield routes.orNotFound

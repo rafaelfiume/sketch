@@ -10,12 +10,7 @@ import io.circe.{Decoder, Encoder, HCursor, *}
 import io.circe.{Json as JJson}
 import io.circe.Decoder.Result
 import io.circe.syntax.*
-import org.fiume.sketch.shared.app.http4s.middlewares.{
-  SemanticInputError,
-  SemanticValidationMiddleware,
-  TraceAuditLogMiddleware,
-  WorkerMiddleware
-}
+import org.fiume.sketch.shared.app.http4s.middlewares.SemanticInputError
 import org.fiume.sketch.shared.app.troubleshooting.ErrorDetails
 import org.fiume.sketch.shared.app.troubleshooting.ErrorInfo.given
 import org.fiume.sketch.shared.app.troubleshooting.InvariantErrorSyntax.asDetails
@@ -41,19 +36,15 @@ import org.http4s.headers.{`Content-Disposition`, `Content-Type`}
 import org.http4s.multipart.{Multipart, Part, *}
 import org.http4s.server.{AuthMiddleware, Router}
 import org.http4s.server.middleware.EntityLimiter
-import org.typelevel.log4cats.slf4j.Slf4jLogger
 
 import java.util.UUID
-import scala.concurrent.ExecutionContext
 
 /*
  * TODO Update documents
  */
 class DocumentsRoutes[F[_], Txn[_]](
-  enableLogging: Boolean,
-  workerPool: ExecutionContext,
   authMiddleware: AuthMiddleware[F, User],
-  documentSizeLimit: Int = 6 * 1024 * 1024 /*6Mb*/
+  documentSizeLimit: Int = 40 * 1024 * 1024 /*40Mb TODO Extract it to env var*/
 )(
   store: DocumentsStore[F, Txn]
 )(using F: Async[F])
@@ -64,9 +55,7 @@ class DocumentsRoutes[F[_], Txn[_]](
   def router(): HttpRoutes[F] = Router(
     prefix ->
       EntityLimiter(
-        WorkerMiddleware[F](workerPool)
-          .andThen(TraceAuditLogMiddleware[F](Slf4jLogger.getLogger[F], enableLogging))
-          .andThen(SemanticValidationMiddleware.apply)(authMiddleware(authedRoutes)),
+        authMiddleware(authedRoutes),
         limit = documentSizeLimit
       )
   )

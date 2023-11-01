@@ -6,7 +6,7 @@ import org.fiume.sketch.auth0.Authenticator
 import org.fiume.sketch.auth0.http.AuthRoutes.*
 import org.fiume.sketch.auth0.http.AuthRoutes.Model.{LoginRequestPayload, LoginResponsePayload}
 import org.fiume.sketch.auth0.http.AuthRoutes.Model.Json.given
-import org.fiume.sketch.shared.app.http4s.middlewares.{SemanticInputError, SemanticValidationMiddleware, TraceAuditLogMiddleware}
+import org.fiume.sketch.shared.app.http4s.middlewares.SemanticInputError
 import org.fiume.sketch.shared.app.troubleshooting.{ErrorInfo, ErrorMessage}
 import org.fiume.sketch.shared.app.troubleshooting.ErrorInfo.given
 import org.fiume.sketch.shared.app.troubleshooting.InvariantErrorSyntax.asDetails
@@ -18,15 +18,11 @@ import org.http4s.circe.CirceEntityDecoder.*
 import org.http4s.circe.CirceEntityEncoder.*
 import org.http4s.dsl.Http4sDsl
 import org.http4s.server.Router
-import org.typelevel.log4cats.slf4j.Slf4jLogger
 
-class AuthRoutes[F[_]: Async](enableLogging: Boolean)(authenticator: Authenticator[F]) extends Http4sDsl[F]:
+class AuthRoutes[F[_]: Async](authenticator: Authenticator[F]) extends Http4sDsl[F]:
   private val prefix = "/"
 
-  def router(): HttpRoutes[F] = Router(
-    // WorkerMiddleware
-    prefix -> TraceAuditLogMiddleware(Slf4jLogger.getLogger[F], enableLogging)(SemanticValidationMiddleware(httpRoutes))
-  )
+  def router(): HttpRoutes[F] = Router(prefix -> httpRoutes)
 
   private val httpRoutes: HttpRoutes[F] = HttpRoutes.of[F] { case req @ POST -> Root / "login" =>
     req.decode { (login: LoginRequestPayload) =>

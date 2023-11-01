@@ -47,7 +47,7 @@ class AuthRoutesSpec
 
         request = POST(uri"/login").withEntity(loginRequest)
         jsonResponse <- send(request)
-          .to(new AuthRoutes[IO](loggingFlag)(authenticator).router())
+          .to(new AuthRoutes[IO](authenticator).router())
           .expectJsonResponseWith(Status.Ok)
 
         _ <- IO {
@@ -72,7 +72,7 @@ class AuthRoutesSpec
           loginRequest.withShuffledPassword
         )
         jsonResponse <- send(request)
-          .to(new AuthRoutes[IO](loggingFlag)(authenticator).router())
+          .to(new AuthRoutes[IO](authenticator).router())
           .expectJsonResponseWith(Status.Ok)
 
         _ <- IO {
@@ -99,7 +99,7 @@ class AuthRoutesSpec
           loginRequest.withShuffledUsername
         )
         jsonResponse <- send(request)
-          .to(new AuthRoutes[IO](loggingFlag)(authenticator).router())
+          .to(new AuthRoutes[IO](authenticator).router())
           .expectJsonResponseWith(Status.Ok)
 
         _ <- IO {
@@ -124,7 +124,7 @@ class AuthRoutesSpec
 
         request = POST(uri"/login").withEntity(loginRequest)
         result <- send(request)
-          .to(new AuthRoutes[IO](loggingFlag)(authenticator).router())
+          .to(new AuthRoutes[IO](authenticator).router())
           .expectJsonResponseWith(Status.UnprocessableEntity)
           .map(_.as[ErrorInfo].rightValue)
 
@@ -146,7 +146,7 @@ class AuthRoutesSpec
 
         request = POST(uri"/login").withEntity(badClientInput)
         result <- send(request)
-          .to(new AuthRoutes[IO](loggingFlag)(authenticator).router())
+          .to(new AuthRoutes[IO](authenticator).router())
           .expectJsonResponseWith(Status.UnprocessableEntity)
           .map(_.as[ErrorInfo].rightValue)
 
@@ -167,8 +167,6 @@ class AuthRoutesSpec
     )
 
 trait AuthRoutesSpecContext:
-  val loggingFlag = false
-
   extension (loginRequest: LoginRequestPayload)
     def withShuffledPassword: LoginRequestPayload = loginRequest.copy(password = loginRequest.password._shuffled)
     def withShuffledUsername: LoginRequestPayload = loginRequest.copy(username = loginRequest.username._shuffled)

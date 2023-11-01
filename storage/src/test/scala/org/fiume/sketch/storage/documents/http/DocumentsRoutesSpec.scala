@@ -2,7 +2,6 @@ package org.fiume.sketch.storage.documents.http
 
 import cats.data.OptionT
 import cats.effect.{IO, Ref}
-import cats.effect.unsafe.IORuntime
 import cats.implicits.*
 import io.circe.syntax.*
 import munit.{CatsEffectSuite, ScalaCheckEffectSuite}
@@ -221,7 +220,6 @@ class DocumentsRoutesSpec
   }
 
 trait DocumentsRoutesSpecContext extends AuthMiddlewareContext:
-  val loggingFlag = false
 
   def montainBikeInLiguriaImageFile = getClass.getClassLoader.getResource("mountain-bike-liguria-ponent.jpg")
 
@@ -277,9 +275,8 @@ trait DocumentsRoutesSpecContext extends AuthMiddlewareContext:
     )) :| "invalidTooShortDocumentName"
 
   def makeDocumentsRoutes(withStore: DocumentsStore[IO, IO]): IO[DocumentsRoutes[IO, IO]] =
-    val computePool = IORuntime.global.compute
     val authMiddleware = makeAuthMiddleware()
-    IO.delay { new DocumentsRoutes[IO, IO](loggingFlag, computePool, authMiddleware)(withStore) }
+    IO.delay { new DocumentsRoutes[IO, IO](authMiddleware)(withStore) }
 
 trait AuthMiddlewareContext:
   import cats.data.Kleisli
