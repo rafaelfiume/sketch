@@ -16,6 +16,9 @@ services:
       - "9999:9999" # expose JMX port
     environment:
       - ENV=$ENV
+      - HTTP_SERVER_PORT=${HTTP_SERVER_PORT}
+      - HTTP_REQ_RES_LOG_ENABLED=${HTTP_REQ_RES_LOG_ENABLED}
+      - DOCUMENT_MB_SIZE_LIMIT=${DOCUMENT_MB_SIZE_LIMIT}
       - DB_HOST=${DB_HOST}
       - DB_PORT=${DB_PORT}
       - DB_NAME=${DB_NAME}

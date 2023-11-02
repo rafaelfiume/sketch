@@ -23,9 +23,9 @@ object Server:
     given LoggerFactory[F] = Slf4jFactory.create[F]
     val logger = Slf4jLogger.getLogger[F]
     (for
-      conf <- Resource.eval(ServiceConfig.load[F])
-      resources <- Resources.make(conf)
-      server <- httpServer[F](resources)
+      config <- Resource.eval(ServiceConfig.load[F])
+      resources <- Resources.make(config)
+      server <- httpServer[F](config.endpoints, resources)
     yield server)
       .use { server =>
         logger.info(s"Server has started at ${server.address}") >>
@@ -35,13 +35,16 @@ object Server:
         logger.error(s"The service has failed with $ex")
       }
 
-  private def httpServer[F[_]: Async: Network: LoggerFactory](resources: Resources[F]): Resource[F, Server] =
+  private def httpServer[F[_]: Async: Network: LoggerFactory](
+    config: EndpointsConfig,
+    resources: Resources[F]
+  ): Resource[F, Server] =
     val server =
-      HttpApi.httpApp[F](resources).map { httpApp =>
+      HttpApi.httpApp[F](config, resources).map { httpApp =>
         EmberServerBuilder
           .default[F]
           .withHost(host"0.0.0.0")
-          .withPort(port"8080")
+          .withPort(config.port)
           .withHttpApp(httpApp)
       }
     Resource.suspend(server.map(_.build))
@@ -51,13 +54,12 @@ object HttpApi:
   import org.http4s.headers.Origin
   import org.http4s.Uri
 
-  def httpApp[F[_]: Async: LoggerFactory](res: Resources[F]): F[HttpApp[F]] =
+  def httpApp[F[_]: Async: LoggerFactory](config: EndpointsConfig, res: Resources[F]): F[HttpApp[F]] =
     val authMiddleware = Auth0Middleware(res.authenticator)
 
     val authRoutes: HttpRoutes[F] = new AuthRoutes[F](res.authenticator).router()
     val documentsRoutes: HttpRoutes[F] =
-      new DocumentsRoutes[F, ConnectionIO](authMiddleware)(res.documentsStore)
-        .router()
+      new DocumentsRoutes[F, ConnectionIO](authMiddleware, config.documents.documentBytesSizeLimit, res.documentsStore).router()
     val healthStatusRoutes: HttpRoutes[F] =
       new HealthStatusRoutes[F](res.customWorkerThreadPool, res.versions, res.healthCheck).router()
 
@@ -70,7 +72,7 @@ object HttpApi:
       )
     val middlewares = WorkerMiddleware[F](res.customWorkerThreadPool)
       .andThen(SemanticValidationMiddleware.apply)
-      .andThen(TraceAuditLogMiddleware[F](Slf4jLogger.getLogger[F], true)) // TODO Extract flag to env var
+      .andThen(TraceAuditLogMiddleware[F](Slf4jLogger.getLogger[F], config.requestResponseLoggingEnabled))
     for
       cAuthRoutes <- corsMiddleware.httpRoutes[F](authRoutes)
       cDocsRoutes <- corsMiddleware.httpRoutes[F](documentsRoutes)

@@ -274,7 +274,8 @@ trait DocumentsRoutesSpecContext extends AuthMiddlewareContext:
 
   def makeDocumentsRoutes(withStore: DocumentsStore[IO, IO]): IO[DocumentsRoutes[IO, IO]] =
     val authMiddleware = makeAuthMiddleware()
-    IO.delay { new DocumentsRoutes[IO, IO](authMiddleware)(withStore) }
+    val documentBytesSizeLimit = 5 * 1024 * 1024
+    IO.delay { new DocumentsRoutes[IO, IO](authMiddleware, documentBytesSizeLimit, withStore) }
 
 trait AuthMiddlewareContext:
   import cats.data.Kleisli

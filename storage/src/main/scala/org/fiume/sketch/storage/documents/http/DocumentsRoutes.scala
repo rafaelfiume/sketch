@@ -44,8 +44,7 @@ import java.util.UUID
  */
 class DocumentsRoutes[F[_], Txn[_]](
   authMiddleware: AuthMiddleware[F, User],
-  documentSizeLimit: Int = 40 * 1024 * 1024 /*40Mb TODO Extract it to env var*/
-)(
+  documentBytesSizeLimit: Int,
   store: DocumentsStore[F, Txn]
 )(using F: Async[F])
     extends Http4sDsl[F]:
@@ -56,7 +55,7 @@ class DocumentsRoutes[F[_], Txn[_]](
     prefix ->
       EntityLimiter(
         authMiddleware(authedRoutes),
-        limit = documentSizeLimit
+        limit = documentBytesSizeLimit
       )
   )
 
