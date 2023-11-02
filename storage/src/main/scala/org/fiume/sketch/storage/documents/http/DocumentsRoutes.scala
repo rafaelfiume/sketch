@@ -39,9 +39,6 @@ import org.http4s.server.middleware.EntityLimiter
 
 import java.util.UUID
 
-/*
- * TODO Update documents
- */
 class DocumentsRoutes[F[_], Txn[_]](
   authMiddleware: AuthMiddleware[F, User],
   documentBytesSizeLimit: Int,
@@ -169,7 +166,6 @@ private[http] object DocumentsRoutes:
             )
         }
 
-      // TODO Check bytes size?
       private def bytes(): EitherT[F, ErrorDetails, Stream[F, Byte]] = EitherT
         .fromEither {
           m.parts

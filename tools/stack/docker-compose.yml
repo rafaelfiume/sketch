@@ -12,7 +12,7 @@ services:
     image: rafaelfiume/sketch:${SKETCH_IMAGE_TAG}
     container_name: sketch
     ports:
-      - "8080:8080"
+      - "${HTTP_SERVER_PORT}:${HTTP_SERVER_PORT}"
       - "9999:9999" # expose JMX port
     environment:
       - ENV=$ENV

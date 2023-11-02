@@ -35,7 +35,6 @@ class AuthRoutes[F[_]: Async](authenticator: Authenticator[F]) extends Http4sDsl
           case Left(failure) =>
             Ok(
               ErrorInfo.short(
-                // TODO Error code?
                 ErrorMessage("The username or password provided is incorrect.")
               )
             )

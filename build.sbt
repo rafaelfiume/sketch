@@ -32,7 +32,7 @@ lazy val commonSettings = Seq(
   fork := true
 )
 
-// TODO IntegrationTests has been deprecated in sbt 1.9.0
+// IntegrationTests has been deprecated in sbt 1.9.0
 // See https://eed3si9n.com/sbt-1.9.0
 val IntegrationTests = config("it").extend(Test)
 

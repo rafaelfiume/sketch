@@ -35,7 +35,7 @@ This is useful in development mode when we want to work with the most recent ver
 
 Code in `main` should be the same as code live always.
 
-1) There can only be 1 environment: `production`
+1) There can only be a `production` environment besides development (`dev` and `local`).
 
 In other words, no stagging, no QA environments. Our engineering practices and pipeline must ensure that any changes commited to `main` works as expected.
 
