@@ -51,8 +51,6 @@ object Server:
 
 object HttpApi:
   import org.http4s.server.middleware.*
-  import org.http4s.headers.Origin
-  import org.http4s.Uri
 
   def httpApp[F[_]: Async: LoggerFactory](config: EndpointsConfig, res: Resources[F]): F[HttpApp[F]] =
     val authMiddleware = Auth0Middleware(res.authenticator)
@@ -63,13 +61,7 @@ object HttpApi:
     val healthStatusRoutes: HttpRoutes[F] =
       new HealthStatusRoutes[F](res.customWorkerThreadPool, res.versions, res.healthCheck).router()
 
-    val corsMiddleware: CORSPolicy =
-      CORS.policy.withAllowOriginHost(
-        Set(
-          Origin.Host(Uri.Scheme.http, Uri.RegName("localhost"), 5173.some),
-          Origin.Host(Uri.Scheme.http, Uri.RegName("localhost"), 8181.some)
-        )
-      )
+    val corsMiddleware: CORSPolicy = CORS.policy.withAllowOriginHeader(config.cors.allowedOrigins)
     val middlewares = WorkerMiddleware[F](res.customWorkerThreadPool)
       .andThen(SemanticValidationMiddleware.apply)
       .andThen(TraceAuditLogMiddleware[F](Slf4jLogger.getLogger[F], config.requestResponseLoggingEnabled))

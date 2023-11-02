@@ -5,6 +5,7 @@ export ENV=dev
 
 export HTTP_SERVER_PORT=8080
 export HTTP_REQ_RES_LOG_ENABLED=true
+export HTTP_CORS_ALLOWS_ORIGIN="http://localhost:5173|http://localhost:8181"
 
 export DOCUMENT_MB_SIZE_LIMIT=30
 
