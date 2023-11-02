@@ -6,14 +6,13 @@ import cats.implicits.*
 import io.circe.syntax.*
 import munit.{CatsEffectSuite, ScalaCheckEffectSuite}
 import munit.Assertions.*
-import org.fiume.sketch.shared.app.http4s.middlewares.SemanticInputError
+import org.fiume.sketch.shared.app.http4s.middlewares.{SemanticInputError, SemanticValidationMiddleware}
 import org.fiume.sketch.shared.app.troubleshooting.{ErrorInfo, ErrorMessage}
 import org.fiume.sketch.shared.app.troubleshooting.http.json.ErrorInfoCodecs.given
 import org.fiume.sketch.shared.testkit.{ContractContext, Http4sTestingRoutesDsl}
 import org.fiume.sketch.shared.testkit.EitherSyntax.*
 import org.fiume.sketch.storage.documents.{Document, DocumentWithUuid}
 import org.fiume.sketch.storage.documents.Document.Metadata
-import org.fiume.sketch.storage.documents.Document.Metadata.*
 import org.fiume.sketch.storage.documents.algebras.DocumentsStore
 import org.fiume.sketch.storage.documents.http.DocumentsRoutes.Model.*
 import org.fiume.sketch.storage.documents.http.DocumentsRoutes.Model.Json.given
@@ -155,21 +154,17 @@ class DocumentsRoutesSpec
 
         request = POST(uri"/documents").withEntity(multipart).withHeaders(multipart.headers)
         result <- send(request)
-          .to(documentsRoutes.router())
+          .to(SemanticValidationMiddleware(documentsRoutes.router()))
           .expectJsonResponseWith(Status.UnprocessableEntity)
           .map(_.as[ErrorInfo].rightValue)
 
         _ <- IO {
           assertEquals(result.message, SemanticInputError.message)
           assert(
-            result.details
-              .exists {
-                _.tips.keySet.subsetOf(
-                  Name.invariantErrors
-                    .map(_.uniqueCode)
-                    .union(Set("missing.document.metadata.part", "missing.document.bytes.part"))
-                )
-              }
+            result.details.get.tips.keySet.subsetOf(
+              Set("missing.document.metadata.part", "missing.document.bytes.part", "document.name.too.short")
+            ),
+            clue = result.details.get.tips.mkString
           )
         }
       yield ()
@@ -183,16 +178,19 @@ class DocumentsRoutesSpec
 
         request = POST(uri"/documents").withEntity(multipart).withHeaders(multipart.headers)
         result <- send(request)
-          .to(documentsRoutes.router())
+          .to(SemanticValidationMiddleware(documentsRoutes.router()))
           .expectJsonResponseWith(Status.UnprocessableEntity)
           .map(_.as[ErrorInfo].rightValue)
 
         _ <- IO {
           assertEquals(result.message, SemanticInputError.message)
-          assert(result.details.get.tips.contains("malformed.document.metadata.payload"))
+          assertEquals(result.details.get.tips,
+                       Map("malformed.document.metadata.payload" -> "the metadata payload does not meet the contract")
+          )
         }
       yield ()
     }
+
   /*
    * Contracts
    */

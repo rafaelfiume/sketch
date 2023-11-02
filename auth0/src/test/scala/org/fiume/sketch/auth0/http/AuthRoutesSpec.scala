@@ -8,7 +8,7 @@ import org.fiume.sketch.auth0.http.AuthRoutes.Model.{LoginRequestPayload, LoginR
 import org.fiume.sketch.auth0.http.AuthRoutes.Model.Json.given
 import org.fiume.sketch.auth0.testkit.AuthenticatorContext
 import org.fiume.sketch.auth0.testkit.JwtTokenGens.jwtTokens
-import org.fiume.sketch.shared.app.http4s.middlewares.SemanticInputError
+import org.fiume.sketch.shared.app.http4s.middlewares.{SemanticInputError, SemanticValidationMiddleware}
 import org.fiume.sketch.shared.app.troubleshooting.{ErrorDetails, ErrorInfo, ErrorMessage}
 import org.fiume.sketch.shared.app.troubleshooting.http.json.ErrorInfoCodecs.given
 import org.fiume.sketch.shared.auth0.Passwords.PlainPassword
@@ -124,7 +124,7 @@ class AuthRoutesSpec
 
         request = POST(uri"/login").withEntity(loginRequest)
         result <- send(request)
-          .to(new AuthRoutes[IO](authenticator).router())
+          .to(SemanticValidationMiddleware(new AuthRoutes[IO](authenticator).router()))
           .expectJsonResponseWith(Status.UnprocessableEntity)
           .map(_.as[ErrorInfo].rightValue)
 
@@ -146,13 +146,13 @@ class AuthRoutesSpec
 
         request = POST(uri"/login").withEntity(badClientInput)
         result <- send(request)
-          .to(new AuthRoutes[IO](authenticator).router())
+          .to(SemanticValidationMiddleware(new AuthRoutes[IO](authenticator).router()))
           .expectJsonResponseWith(Status.UnprocessableEntity)
           .map(_.as[ErrorInfo].rightValue)
 
         _ <- IO {
           assertEquals(result.message, SemanticInputError.message)
-          assertEquals(result.details, ErrorDetails(Map("input.semantic.error" -> "The request body was invalid.")).some)
+          assertEquals(result.details, ErrorDetails.single("input.semantic.error" -> "The request body was invalid.").some)
         }
       yield ()
     }
