@@ -35,12 +35,9 @@ object JwtError:
 
 private[auth0] object JwtToken:
   // offset: a shift in time from a reference point
-  def makeJwtToken[F[_]](privateKey: PrivateKey, user: User, expirationOffset: Duration)(using
-    F: FlatMap[F],
-    clock: Clock[F]
-  ): F[JwtToken] =
+  def makeJwtToken[F[_]: FlatMap: Clock](privateKey: PrivateKey, user: User, expirationOffset: Duration): F[JwtToken] =
     for
-      now <- clock.realTimeInstant
+      now <- Clock[F].realTimeInstant
       content = Content(
         preferredUsername = user.username
       )

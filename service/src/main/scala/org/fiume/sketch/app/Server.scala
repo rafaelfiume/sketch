@@ -19,7 +19,7 @@ import org.typelevel.log4cats.slf4j.{Slf4jFactory, Slf4jLogger}
 
 object Server:
 
-  def run[F[_]: Network]()(using F: Async[F]): F[ExitCode] =
+  def run[F[_]: Async: Network](): F[ExitCode] =
     given LoggerFactory[F] = Slf4jFactory.create[F]
     val logger = Slf4jLogger.getLogger[F]
     (for
@@ -29,7 +29,7 @@ object Server:
     yield server)
       .use { server =>
         logger.info(s"Server has started at ${server.address}") >>
-          F.never.as(ExitCode.Success)
+          Async[F].never.as(ExitCode.Success)
       }
       .onError { case ex =>
         logger.error(s"The service has failed with $ex")

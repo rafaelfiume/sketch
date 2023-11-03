@@ -1,6 +1,5 @@
 package org.fiume.sketch.auth0
 
-import cats.FlatMap
 import cats.effect.{Clock, Sync}
 import cats.implicits.*
 import org.fiume.sketch.auth0.AuthenticationError.*
@@ -28,7 +27,7 @@ trait Authenticator[F[_]]:
   def verify(jwtToken: JwtToken): Either[JwtError, User]
 
 object Authenticator:
-  def make[F[_], Txn[_]: FlatMap](
+  def make[F[_], Txn[_]](
     store: UsersStore[F, Txn],
     privateKey: PrivateKey,
     publicKey: PublicKey,

@@ -100,7 +100,7 @@ object Passwords:
     val logRounds = 12
 
     /* Suspend the effect of being randomly generated */
-    def generate[F[_]]()(using F: Sync[F]): F[Salt] = F.blocking { BCrypt.gensalt(logRounds) }.map(new Salt(_) {})
+    def generate[F[_]: Sync](): F[Salt] = Sync[F].blocking { BCrypt.gensalt(logRounds) }.map(new Salt(_) {})
 
     def notValidatedFromString(base64Value: String): Salt = new Salt(base64Value) {}
 

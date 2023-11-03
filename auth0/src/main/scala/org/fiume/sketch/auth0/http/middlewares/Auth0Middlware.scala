@@ -14,10 +14,10 @@ import org.http4s.server.AuthMiddleware
 import org.http4s.syntax.header.*
 
 object Auth0Middleware:
-  def apply[F[_]](authenticator: Authenticator[F])(using F: Sync[F]): AuthMiddleware[F, User] =
+  def apply[F[_]: Sync](authenticator: Authenticator[F]): AuthMiddleware[F, User] =
 
     def verify: Kleisli[F, Request[F], Either[String, User]] = Kleisli { req =>
-      F.delay {
+      Sync[F].delay {
         for
           header <- req.headers.get[Authorization].toRight("Couldn't find an Authorization header")
           token = JwtToken.notValidatedFromString(header.value.stripPrefix("Bearer "))

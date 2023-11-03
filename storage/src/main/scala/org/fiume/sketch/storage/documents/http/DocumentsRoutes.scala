@@ -3,7 +3,6 @@ package org.fiume.sketch.storage.documents.http
 import cats.MonadThrow
 import cats.data.EitherT
 import cats.effect.Concurrent
-import cats.effect.kernel.Async
 import cats.implicits.*
 import fs2.Stream
 import io.circe.{Decoder, Encoder, HCursor, *}
@@ -39,12 +38,11 @@ import org.http4s.server.middleware.EntityLimiter
 
 import java.util.UUID
 
-class DocumentsRoutes[F[_], Txn[_]](
+class DocumentsRoutes[F[_]: Concurrent, Txn[_]](
   authMiddleware: AuthMiddleware[F, User],
   documentBytesSizeLimit: Int,
   store: DocumentsStore[F, Txn]
-)(using F: Async[F])
-    extends Http4sDsl[F]:
+) extends Http4sDsl[F]:
 
   private val prefix = "/"
 
