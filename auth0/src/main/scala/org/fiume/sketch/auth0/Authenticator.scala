@@ -1,6 +1,5 @@
 package org.fiume.sketch.auth0
 
-import cats.FlatMap
 import cats.effect.{Clock, Sync}
 import cats.implicits.*
 import org.fiume.sketch.auth0.AuthenticationError.*
@@ -25,10 +24,10 @@ object AuthenticationError:
 
 trait Authenticator[F[_]]:
   def authenticate(username: Username, password: PlainPassword): F[Either[AuthenticationError, JwtToken]]
-  def verify(jwtToken: JwtToken): Either[JwtError, User] // TODO Verify string instead of JwtToken?
+  def verify(jwtToken: JwtToken): Either[JwtError, User]
 
 object Authenticator:
-  def make[F[_], Txn[_]: FlatMap](
+  def make[F[_], Txn[_]](
     store: UsersStore[F, Txn],
     privateKey: PrivateKey,
     publicKey: PublicKey,
@@ -37,7 +36,7 @@ object Authenticator:
     new Authenticator[F]:
       override def authenticate(username: Username, password: PlainPassword): F[Either[AuthenticationError, JwtToken]] =
         for
-          credentials <- store.commit { store.fetchCredentials(username) } // TODO User ccommit syntax
+          credentials <- store.commit { store.fetchCredentials(username) }
           jwtToken <- credentials match
             case None =>
               UserNotFoundError.asLeft.pure[F]

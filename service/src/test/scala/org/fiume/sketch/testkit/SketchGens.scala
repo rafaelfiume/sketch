@@ -6,8 +6,6 @@ import org.scalacheck.{Arbitrary, Gen}
 
 object SketchGens:
 
-  // TODO: Could be moved to a specific test components module?
-  // Maybe to shared-components test module?
   given Arbitrary[Version] = Arbitrary(versions)
   def versions: Gen[Version] =
     def envs: Gen[Environment] = Gen.oneOf(Environment("Dev"), Environment("Prd"))

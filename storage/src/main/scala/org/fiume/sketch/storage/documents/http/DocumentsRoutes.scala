@@ -3,19 +3,13 @@ package org.fiume.sketch.storage.documents.http
 import cats.MonadThrow
 import cats.data.EitherT
 import cats.effect.Concurrent
-import cats.effect.kernel.Async
 import cats.implicits.*
 import fs2.Stream
 import io.circe.{Decoder, Encoder, HCursor, *}
 import io.circe.{Json as JJson}
 import io.circe.Decoder.Result
 import io.circe.syntax.*
-import org.fiume.sketch.shared.app.http4s.middlewares.{
-  SemanticInputError,
-  SemanticValidationMiddleware,
-  TraceAuditLogMiddleware,
-  WorkerMiddleware
-}
+import org.fiume.sketch.shared.app.http4s.middlewares.SemanticInputError
 import org.fiume.sketch.shared.app.troubleshooting.ErrorDetails
 import org.fiume.sketch.shared.app.troubleshooting.ErrorInfo.given
 import org.fiume.sketch.shared.app.troubleshooting.InvariantErrorSyntax.asDetails
@@ -41,33 +35,22 @@ import org.http4s.headers.{`Content-Disposition`, `Content-Type`}
 import org.http4s.multipart.{Multipart, Part, *}
 import org.http4s.server.{AuthMiddleware, Router}
 import org.http4s.server.middleware.EntityLimiter
-import org.typelevel.log4cats.slf4j.Slf4jLogger
 
 import java.util.UUID
-import scala.concurrent.ExecutionContext
 
-/*
- * TODO Update documents
- */
-class DocumentsRoutes[F[_], Txn[_]](
-  enableLogging: Boolean,
-  workerPool: ExecutionContext,
+class DocumentsRoutes[F[_]: Concurrent, Txn[_]](
   authMiddleware: AuthMiddleware[F, User],
-  documentSizeLimit: Int = 6 * 1024 * 1024 /*6Mb*/
-)(
+  documentBytesSizeLimit: Int,
   store: DocumentsStore[F, Txn]
-)(using F: Async[F])
-    extends Http4sDsl[F]:
+) extends Http4sDsl[F]:
 
   private val prefix = "/"
 
   def router(): HttpRoutes[F] = Router(
     prefix ->
       EntityLimiter(
-        WorkerMiddleware[F](workerPool)
-          .andThen(TraceAuditLogMiddleware[F](Slf4jLogger.getLogger[F], enableLogging))
-          .andThen(SemanticValidationMiddleware.apply)(authMiddleware(authedRoutes)),
-        limit = documentSizeLimit
+        authMiddleware(authedRoutes),
+        limit = documentBytesSizeLimit
       )
   )
 
@@ -181,7 +164,6 @@ private[http] object DocumentsRoutes:
             )
         }
 
-      // TODO Check bytes size?
       private def bytes(): EitherT[F, ErrorDetails, Stream[F, Byte]] = EitherT
         .fromEither {
           m.parts

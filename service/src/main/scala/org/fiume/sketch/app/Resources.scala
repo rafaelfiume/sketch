@@ -1,6 +1,6 @@
 package org.fiume.sketch.app
 
-import cats.effect.{Async, Resource}
+import cats.effect.{Async, Resource, Sync}
 import doobie.ConnectionIO
 import org.fiume.sketch.app.SketchVersions.VersionFile
 import org.fiume.sketch.auth0.Authenticator
@@ -23,7 +23,7 @@ trait Resources[F[_]]:
   val documentsStore: DocumentsStore[F, ConnectionIO]
 
 object Resources:
-  def make[F[_]](config: ServiceConfig)(using F: Async[F]): Resource[F, Resources[F]] =
+  def make[F[_]: Async](config: ServiceConfig): Resource[F, Resources[F]] =
     for
       customWorkerThreadPool0 <- newCustomWorkerThreadPool()
       transactor <- DbTransactor.make(config.db)
@@ -45,9 +45,9 @@ object Resources:
       override val authenticator: Authenticator[F] = authenticator0
       override val documentsStore: DocumentsStore[F, ConnectionIO] = documentsStore0
 
-  private def newCustomWorkerThreadPool[F[_]](using F: Async[F])() = Resource
+  private def newCustomWorkerThreadPool[F[_]: Sync]() = Resource
     .make(
-      F.delay(
+      Sync[F].delay(
         Executors.newCachedThreadPool(
           new ThreadFactory:
             private val counter = new AtomicLong(0L)
@@ -58,5 +58,5 @@ object Resources:
               th
         )
       )
-    )(tp => F.delay(tp.shutdown()))
+    )(tp => Sync[F].delay(tp.shutdown()))
     .map(ExecutionContext.fromExecutorService)

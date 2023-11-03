@@ -8,8 +8,8 @@ import java.security.interfaces.{ECPrivateKey, ECPublicKey}
 import java.security.spec.ECGenParameterSpec
 
 object KeysGenerator:
-  def makeEcKeyPairs[F[_]]()(using F: Sync[F]): F[(ECPrivateKey, ECPublicKey)] =
-    F.blocking { // cpu-bound blocking operation
+  def makeEcKeyPairs[F[_]: Sync](): F[(ECPrivateKey, ECPublicKey)] =
+    Sync[F].blocking { // cpu-bound blocking operation
       /* Ensure thread-safety by instantiating a new KeyPairGenerator every time asymetric keys are created */
       val keyPairGenerator = KeyPairGenerator.getInstance("EC", "BC")
       keyPairGenerator.initialize(new ECGenParameterSpec("P-256"))

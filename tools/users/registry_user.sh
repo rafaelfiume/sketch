@@ -72,7 +72,7 @@ function main() {
   local app_name="org.fiume.sketch.auth0.scripts.UsersScript"
   sbt_subproject_run_main "auth0Scripts" "$app_name" "$username" "$password"
 
-  info "Tell '$username' he/she is ready to go in '$env_name' environment!"
+  info "Tell '$username' he or she is ready to go in '$env_name' environment!"
 }
 
 main "$@"

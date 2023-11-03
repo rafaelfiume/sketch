@@ -92,7 +92,7 @@ trait VersionsContext:
     override def currentVersion: F[Version] = returning.pure[F]
 
 trait HealthCheckContext:
-  def makeHealthCheck[F[_]](health: ServiceHealth)(using F: Applicative[F]): HealthCheck[F] = new HealthCheck[F]:
-    override def check: F[ServiceHealth] = F.pure(health)
+  def makeHealthCheck[F[_]: Applicative](health: ServiceHealth): HealthCheck[F] = new HealthCheck[F]:
+    override def check: F[ServiceHealth] = health.pure[F]
 
   def makeHealthCheck[F[_]: Applicative](): HealthCheck[F] = makeHealthCheck(ServiceHealth.faulty(Infra.Database))

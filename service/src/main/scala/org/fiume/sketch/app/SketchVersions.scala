@@ -11,10 +11,10 @@ object SketchVersions:
   /* See `(Compile / resourceManaged).value / "${value}.version"` in build.sbt */
   case class VersionFile(name: String) extends AnyVal
 
-  def make[F[_]](env: Environment, versionFile: VersionFile)(using F: Sync[F]): Resource[F, Versions[F]] =
+  def make[F[_]: Sync](env: Environment, versionFile: VersionFile): Resource[F, Versions[F]] =
     Resource
       .fromAutoCloseable {
-        F.blocking(Source.fromResource(versionFile.name))
+        Sync[F].blocking(Source.fromResource(versionFile.name))
       }
       .map { source =>
         val lines = source.getLines().toSeq

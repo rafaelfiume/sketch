@@ -11,11 +11,11 @@ import scala.io.Source
  */
 trait FileContentContext:
   /* reads nicer in tests */
-  def jsonFrom[F[_]](path: String)(using F: Sync[F]): Resource[F, String] =
+  def jsonFrom[F[_]: Sync](path: String): Resource[F, String] =
     stringsFrom(path)
 
-  def stringsFrom[F[_]](path: String)(using F: Sync[F]): Resource[F, String] =
-    Resource.fromAutoCloseable { F.blocking(Source.fromResource(path)) }.map(_.mkString(""))
+  def stringsFrom[F[_]: Sync](path: String): Resource[F, String] =
+    Resource.fromAutoCloseable { Sync[F].blocking(Source.fromResource(path)) }.map(_.mkString(""))
 
-  def bytesFrom[F[_]](path: String)(using F: Async[F]): fs2.Stream[F, Byte] =
+  def bytesFrom[F[_]: Async](path: String): fs2.Stream[F, Byte] =
     Files.forAsync[F].readAll(Path(getClass.getClassLoader.getResource(path).getPath()))

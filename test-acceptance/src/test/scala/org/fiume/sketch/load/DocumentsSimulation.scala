@@ -57,7 +57,7 @@ class DocumentsSimulation extends Simulation with FileContentContext with Authen
   setUp(
     scn.inject(
       constantUsersPerSec(5).during(10.seconds), // Stay at 5 users for 10 secs
-      rampUsersPerSec(1).to(20).during(60.seconds) // Ramp up to 20 users in 60 secs
+      rampUsersPerSec(1).to(10).during(30.seconds) // Ramp up to 10 users in 30 secs
     )
   ).protocols(httpProtocol)
 

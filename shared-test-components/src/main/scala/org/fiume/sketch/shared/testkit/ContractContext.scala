@@ -22,9 +22,9 @@ import org.fiume.sketch.shared.testkit.EitherSyntax.*
  */
 trait ContractContext extends FileContentContext:
 
-  def assertBijectiveRelationshipBetweenEncoderAndDecoder[A](
+  def assertBijectiveRelationshipBetweenEncoderAndDecoder[A: Decoder: Encoder](
     sample: String
-  )(using encoder: Encoder[A], decoder: Decoder[A]): IO[Unit] =
+  ): IO[Unit] =
     jsonFrom[IO](sample).map { raw =>
       val original = parse(raw).rightValue
       val incorrect = decode[A](original.noSpaces).rightValue

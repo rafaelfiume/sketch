@@ -48,7 +48,8 @@ object User:
 
       case object InvalidChar extends WeakUsernameError:
         override def uniqueCode: String = "username.invalid.character"
-        override val message: String = "must only contain letters (a-z, A-Z), numbers (0-9), underscores (_) and hyphens (-)"
+        override val message: String =
+          "must only contain letters (a-z, A-Z), numbers (0-9), and a the special characters: (_,-,@,.)"
 
       case object ReservedWords extends WeakUsernameError:
         override def uniqueCode: String = "username.reserved.words"
@@ -68,7 +69,7 @@ object User:
     def validated(value: String): EitherNec[WeakUsernameError, Username] =
       val hasMinLength = Validated.condNec[WeakUsernameError, Unit](value.length >= minLength, (), TooShort)
       val hasMaxLength = Validated.condNec(value.length <= maxLength, (), TooLong)
-      val hasNoInvalidChar = Validated.condNec("^[a-zA-Z0-9_-]+$".r.matches(value), (), InvalidChar)
+      val hasNoInvalidChar = Validated.condNec("^[a-zA-Z0-9_@.-]+$".r.matches(value), (), InvalidChar)
       val hasNoReservedWords = Validated.condNec(!reservedWords.exists(value.contains(_)), (), ReservedWords)
       val hasNoExcessiveRepeatedChars = Validated.condNec(!hasExcessiveRepeatedChars(value, 0.7), (), ExcessiveRepeatedChars)
       (hasMinLength, hasMaxLength, hasNoInvalidChar, hasNoReservedWords, hasNoExcessiveRepeatedChars)
