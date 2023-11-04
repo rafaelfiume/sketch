@@ -2,12 +2,10 @@ package org.fiume.sketch.shared.auth0.testkit
 
 import cats.effect.{IO, Ref}
 import cats.implicits.*
+import org.fiume.sketch.shared.auth0.{User, UserId}
 import org.fiume.sketch.shared.auth0.Passwords.HashedPassword
-import org.fiume.sketch.shared.auth0.User
 import org.fiume.sketch.shared.auth0.User.{UserCredentials, UserCredentialsWithId, Username}
 import org.fiume.sketch.shared.auth0.algebras.UsersStore
-
-import java.util.UUID
 
 trait UsersStoreContext:
 
@@ -20,11 +18,11 @@ trait UsersStoreContext:
       )
     )
 
-  def makeUsersStore(state: Map[UUID, UserCredentials]): IO[UsersStore[IO, IO]] =
-    Ref.of[IO, Map[UUID, UserCredentials]](state).map { storage =>
+  def makeUsersStore(state: Map[UserId, UserCredentials]): IO[UsersStore[IO, IO]] =
+    Ref.of[IO, Map[UserId, UserCredentials]](state).map { storage =>
       new UsersStore[IO, IO]:
-        override def store(credentials: UserCredentials): IO[UUID] =
-          IO.randomUUID.flatMap { uuid =>
+        override def store(credentials: UserCredentials): IO[UserId] =
+          IO.randomUUID.map(UserId(_)).flatMap { uuid =>
             storage
               .update {
                 _.updated(uuid, credentials)
@@ -32,7 +30,7 @@ trait UsersStoreContext:
               .as(uuid)
           }
 
-        override def fetchUser(uuid: UUID): IO[Option[User]] =
+        override def fetchUser(uuid: UserId): IO[Option[User]] =
           storage.get.map(_.collectFirst {
             case (storedUuid, storedCreds) if storedUuid == uuid =>
               User(uuid, storedCreds.username)
@@ -44,7 +42,7 @@ trait UsersStoreContext:
               UserCredentials.withUuid(uuid, storedCreds)
           })
 
-        override def updatePassword(uuid: UUID, newPassword: HashedPassword): IO[Unit] =
+        override def updatePassword(uuid: UserId, newPassword: HashedPassword): IO[Unit] =
           storage.update {
             _.updatedWith(uuid) {
               case Some(storedCreds) => UserCredentials(storedCreds.username, newPassword, storedCreds.salt).some
@@ -52,7 +50,7 @@ trait UsersStoreContext:
             }
           }
 
-        override def delete(uuid: UUID): IO[Unit] =
+        override def delete(uuid: UserId): IO[Unit] =
           storage.update(_.removed(uuid))
 
         val commit: [A] => IO[A] => IO[A] = [A] => (action: IO[A]) => action

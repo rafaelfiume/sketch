@@ -6,16 +6,13 @@ import cats.~>
 import doobie.*
 import doobie.free.connection.ConnectionIO
 import doobie.implicits.*
-import doobie.postgres.implicits.*
-import org.fiume.sketch.shared.auth0.{Passwords, User}
+import org.fiume.sketch.shared.auth0.{Passwords, User, UserId}
 import org.fiume.sketch.shared.auth0.Passwords.{HashedPassword, Salt}
 import org.fiume.sketch.shared.auth0.User.*
 import org.fiume.sketch.shared.auth0.algebras.UsersStore
 import org.fiume.sketch.storage.auth0.postgres.DoobieMappings.given
 import org.fiume.sketch.storage.auth0.postgres.Statements.*
 import org.fiume.sketch.storage.postgres.AbstractPostgresStore
-
-import java.util.UUID
 
 object PostgresUsersStore:
   def make[F[_]: Async](tx: Transactor[F]): Resource[F, PostgresUsersStore[F]] =
@@ -25,20 +22,20 @@ private class PostgresUsersStore[F[_]: Async] private (l: F ~> ConnectionIO, tx:
     extends AbstractPostgresStore[F](l, tx)
     with UsersStore[F, ConnectionIO]:
 
-  def store(credentials: UserCredentials): ConnectionIO[UUID] =
+  def store(credentials: UserCredentials): ConnectionIO[UserId] =
     insertUserCredentials(credentials.username, credentials.hashedPassword, credentials.salt)
-      .withUniqueGeneratedKeys[UUID](
+      .withUniqueGeneratedKeys[UserId](
         "uuid"
       )
 
-  def fetchUser(uuid: UUID): ConnectionIO[Option[User]] = selectUser(uuid).option
+  def fetchUser(uuid: UserId): ConnectionIO[Option[User]] = selectUser(uuid).option
 
   def fetchCredentials(username: Username): ConnectionIO[Option[UserCredentialsWithId]] =
     Statements.selectUserCredential(username).option
 
-  def updatePassword(uuid: UUID, password: HashedPassword): ConnectionIO[Unit] =
+  def updatePassword(uuid: UserId, password: HashedPassword): ConnectionIO[Unit] =
     Statements.updatePassword(uuid, password).run.void
-  def delete(uuid: UUID): ConnectionIO[Unit] = Statements.deleteUser(uuid).run.void
+  def delete(uuid: UserId): ConnectionIO[Unit] = Statements.deleteUser(uuid).run.void
 
 private object Statements:
   def insertUserCredentials(username: Username, password: HashedPassword, salt: Salt): Update0 =
@@ -54,7 +51,7 @@ private object Statements:
          |)
     """.stripMargin.update
 
-  def selectUser(uuid: UUID): Query0[User] =
+  def selectUser(uuid: UserId): Query0[User] =
     sql"""
          |SELECT
          |  uuid,
@@ -74,7 +71,7 @@ private object Statements:
          |WHERE username = $username
     """.stripMargin.query
 
-  def updatePassword(uuid: UUID, password: HashedPassword): Update0 =
+  def updatePassword(uuid: UserId, password: HashedPassword): Update0 =
     sql"""
          |UPDATE auth.users
          |SET
@@ -82,7 +79,7 @@ private object Statements:
          |WHERE uuid = $uuid
     """.stripMargin.update
 
-  def deleteUser(uuid: UUID): Update0 =
+  def deleteUser(uuid: UserId): Update0 =
     sql"""
          |DELETE FROM auth.users
          |WHERE uuid = $uuid

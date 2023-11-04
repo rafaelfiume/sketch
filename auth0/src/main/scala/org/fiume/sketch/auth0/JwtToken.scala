@@ -7,15 +7,13 @@ import io.circe.{Decoder, Encoder, HCursor, Json, ParsingFailure}
 import io.circe.parser.parse
 import io.circe.syntax.*
 import org.fiume.sketch.auth0.JwtError.*
-import org.fiume.sketch.shared.auth0.User
+import org.fiume.sketch.shared.auth0.{User, UserId}
 import org.fiume.sketch.shared.auth0.User.Username
 import pdi.jwt.{JwtAlgorithm, JwtCirce, JwtClaim}
 import pdi.jwt.exceptions.*
 
 import java.security.{PrivateKey, PublicKey}
-import java.util.UUID
 import scala.concurrent.duration.Duration
-import scala.util.Try
 import scala.util.control.NoStackTrace
 
 sealed abstract case class JwtToken(value: String)
@@ -42,7 +40,7 @@ private[auth0] object JwtToken:
         preferredUsername = user.username
       )
       claim = JwtClaim(
-        subject = user.uuid.toString.some,
+        subject = user.uuid.value.toString.some,
         content = content.asJson.noSpaces,
         issuedAt = now.getEpochSecond.some,
         expiration = now.plusSeconds(expirationOffset.toSeconds).getEpochSecond.some
@@ -54,7 +52,7 @@ private[auth0] object JwtToken:
       claims <- JwtCirce.decode(token.value, publicKey, Seq(JwtAlgorithm.ES256)).toEither
       uuid <- claims.subject
         .toRight(new RuntimeException("verifyJwtToken: subject is missing"))
-        .flatMap(value => Try(UUID.fromString(value)).toEither)
+        .flatMap(UserId.fromString)
       content <- parse(claims.content).flatMap(_.as[Content])
     yield User(uuid, content.preferredUsername)).leftMap(mapJwtErrors)
 

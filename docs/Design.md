@@ -9,6 +9,12 @@ we are doing that anyway for the following reasons:
  * We don't expect performance problems associated with binaries stored in the db: not too many, nor huge bins expected
  * Easier to keep them secure
 
+### Referencing Tables in Remote Database
+
+There is a relationship between `domain.Documents` and `auth.Users` that currently is easy to manage by way of foreign keys.
+The idea is to migrate `auth` schema to a separate database (tbc explain reasons).
+A couple options then are Foreign Data Wrappers (FDW) and Cross-Database Joins.
+
 ## Endpoints (draft)
 
 Endpoits should be protected:

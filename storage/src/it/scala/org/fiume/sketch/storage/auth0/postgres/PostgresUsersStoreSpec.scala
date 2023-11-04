@@ -6,7 +6,7 @@ import doobie.ConnectionIO
 import doobie.implicits.*
 import doobie.postgres.implicits.*
 import munit.ScalaCheckEffectSuite
-import org.fiume.sketch.shared.auth0.{Passwords, User}
+import org.fiume.sketch.shared.auth0.{Passwords, User, UserId}
 import org.fiume.sketch.shared.auth0.Passwords.HashedPassword
 import org.fiume.sketch.shared.auth0.User.*
 import org.fiume.sketch.shared.auth0.testkit.PasswordsGens.given
@@ -18,7 +18,6 @@ import org.scalacheck.ShrinkLowPriority
 import org.scalacheck.effect.PropF.forAllF
 
 import java.time.Instant
-import java.util.UUID
 
 class PostgresUsersStoreSpec
     extends ScalaCheckEffectSuite
@@ -143,9 +142,9 @@ trait PostgresUsersStoreSpecContext:
   def cleanUsers: ConnectionIO[Unit] = sql"TRUNCATE TABLE auth.users".update.run.void
 
   extension (store: PostgresUsersStore[IO])
-    def fetchPassword(uuid: UUID): ConnectionIO[HashedPassword] =
+    def fetchPassword(uuid: UserId): ConnectionIO[HashedPassword] =
       sql"SELECT password_hash FROM auth.users WHERE uuid = ${uuid}".query[HashedPassword].unique
-    def fetchCreatedAt(uuid: UUID): ConnectionIO[Instant] =
+    def fetchCreatedAt(uuid: UserId): ConnectionIO[Instant] =
       sql"SELECT created_at FROM auth.users WHERE uuid = ${uuid}".query[Instant].unique
-    def fetchUpdatedAt(uuid: UUID): ConnectionIO[Instant] =
+    def fetchUpdatedAt(uuid: UserId): ConnectionIO[Instant] =
       sql"SELECT updated_at FROM auth.users WHERE uuid = ${uuid}".query[Instant].unique

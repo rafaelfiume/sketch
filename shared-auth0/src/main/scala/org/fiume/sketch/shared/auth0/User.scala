@@ -3,7 +3,7 @@ package org.fiume.sketch.shared.auth0
 import cats.{Eq, Show}
 import cats.data.{EitherNec, Validated}
 import cats.implicits.*
-import org.fiume.sketch.shared.app.WithUuid
+import org.fiume.sketch.shared.app.{Entity, EntityUuid, WithUuid}
 import org.fiume.sketch.shared.app.troubleshooting.{InvariantError, InvariantHolder}
 import org.fiume.sketch.shared.auth0.Passwords.{HashedPassword, Salt}
 import org.fiume.sketch.shared.auth0.User.Username
@@ -12,10 +12,16 @@ import org.fiume.sketch.shared.auth0.User.Username.WeakUsernameError.*
 
 import java.util.UUID
 
-case class User(uuid: UUID, username: Username) extends WithUuid
+type UserId = EntityUuid[UserEntity]
+object UserId:
+  def apply(uuid: UUID): UserId = EntityUuid[UserEntity](uuid)
+  def fromString(uuid: String): Either[Throwable, UserId] = EntityUuid.fromString[UserEntity](uuid)
+sealed trait UserEntity extends Entity
+
+case class User(uuid: UserId, username: Username)
 
 object User:
-  type UserCredentialsWithId = UserCredentials & WithUuid
+  type UserCredentialsWithId = UserCredentials & WithUuid[UserId]
 
   // set of information required to authenticate a user
   case class UserCredentials(
@@ -25,12 +31,12 @@ object User:
   )
 
   object UserCredentials:
-    def withUuid(uuid0: UUID, credentials: UserCredentials): UserCredentialsWithId =
-      withUuid(uuid0, credentials.username, credentials.hashedPassword, credentials.salt)
+    def withUuid(uuid: UserId, credentials: UserCredentials): UserCredentialsWithId =
+      withUuid(uuid, credentials.username, credentials.hashedPassword, credentials.salt)
 
-    def withUuid(uuid0: UUID, username: Username, hashedPassword: HashedPassword, salt: Salt): UserCredentialsWithId =
-      new UserCredentials(username, hashedPassword, salt) with WithUuid:
-        override val uuid: UUID = uuid0
+    def withUuid(uuid0: UserId, username: Username, hashedPassword: HashedPassword, salt: Salt): UserCredentialsWithId =
+      new UserCredentials(username, hashedPassword, salt) with WithUuid[UserId]:
+        override val uuid: UserId = uuid0
 
   sealed abstract case class Username(value: String)
 

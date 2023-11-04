@@ -4,7 +4,7 @@ import cats.Eq
 import cats.data.{EitherNec, Validated}
 import cats.implicits.*
 import fs2.Stream
-import org.fiume.sketch.shared.app.WithUuid
+import org.fiume.sketch.shared.app.{Entity, EntityUuid, WithUuid}
 import org.fiume.sketch.shared.app.troubleshooting.{InvariantError, InvariantHolder}
 import org.fiume.sketch.storage.documents.Document.Metadata
 import org.fiume.sketch.storage.documents.Document.Metadata.*
@@ -13,7 +13,13 @@ import org.fiume.sketch.storage.documents.Document.Metadata.Name.InvalidDocument
 
 import java.util.UUID
 
-type DocumentWithUuid[F[_]] = Document[F] & WithUuid
+type DocumentId = EntityUuid[DocumentEntity]
+object DocumentId:
+  def apply(uuid: UUID): DocumentId = EntityUuid[DocumentEntity](uuid)
+  def fromString(uuid: String): Either[Throwable, DocumentId] = EntityUuid.fromString[DocumentEntity](uuid)
+sealed trait DocumentEntity extends Entity
+
+type DocumentWithId[F[_]] = Document[F] & WithUuid[DocumentId]
 
 case class Document[F[_]](
   metadata: Metadata,
@@ -22,16 +28,16 @@ case class Document[F[_]](
 
 object Document:
   def withUuid[F[_]](
-    withUuid: UUID,
+    uuid0: DocumentId,
     metadata: Metadata,
     content: Stream[F, Byte]
-  ): Document[F] & WithUuid =
-    new Document[F](metadata, content) with WithUuid:
-      override val uuid: UUID = withUuid
+  ): Document[F] & WithUuid[DocumentId] =
+    new Document[F](metadata, content) with WithUuid[DocumentId]:
+      override val uuid: DocumentId = uuid0
 
   extension [F[_]](document: Document[F])
-    def withUuid(withUuid: UUID): Document[F] & WithUuid =
-      Document.withUuid[F](withUuid, document.metadata, document.content)
+    def withUuid(uuid: DocumentId): Document[F] & WithUuid[DocumentId] =
+      Document.withUuid[F](uuid, document.metadata, document.content)
 
   case class Metadata(name: Name, description: Description)
 
