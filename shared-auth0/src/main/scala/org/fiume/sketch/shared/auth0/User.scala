@@ -12,10 +12,11 @@ import org.fiume.sketch.shared.auth0.User.Username.WeakUsernameError.*
 
 import java.util.UUID
 
-case class User(uuid: UUID, username: Username) extends WithUuid
+case class UserUuid(uuid: UUID)
+case class User(uuid: UserUuid, username: Username) //extends WithUuid
 
 object User:
-  type UserCredentialsWithId = UserCredentials & WithUuid
+  type UserCredentialsWithId = UserCredentials & WithUuid[UserUuid]
 
   // set of information required to authenticate a user
   case class UserCredentials(
@@ -25,12 +26,12 @@ object User:
   )
 
   object UserCredentials:
-    def withUuid(uuid0: UUID, credentials: UserCredentials): UserCredentialsWithId =
+    def withUuid(uuid0: UserUuid, credentials: UserCredentials): UserCredentialsWithId =
       withUuid(uuid0, credentials.username, credentials.hashedPassword, credentials.salt)
 
-    def withUuid(uuid0: UUID, username: Username, hashedPassword: HashedPassword, salt: Salt): UserCredentialsWithId =
-      new UserCredentials(username, hashedPassword, salt) with WithUuid:
-        override val uuid: UUID = uuid0
+    def withUuid(uuid0: UserUuid, username: Username, hashedPassword: HashedPassword, salt: Salt): UserCredentialsWithId =
+      new UserCredentials(username, hashedPassword, salt) with WithUuid[UserUuid]:
+        override val uuid: UserUuid = uuid0
 
   sealed abstract case class Username(value: String)
 

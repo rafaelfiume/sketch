@@ -1,6 +1,7 @@
 package org.fiume.sketch.shared.app
 
-import java.util.UUID
+//import java.util.UUID
 
-trait WithUuid:
-  val uuid: UUID
+trait WithUuid[T]:
+  val uuid: T
+

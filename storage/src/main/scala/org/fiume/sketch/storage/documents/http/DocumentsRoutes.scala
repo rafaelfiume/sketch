@@ -14,11 +14,12 @@ import org.fiume.sketch.shared.app.troubleshooting.ErrorDetails
 import org.fiume.sketch.shared.app.troubleshooting.ErrorInfo.given
 import org.fiume.sketch.shared.app.troubleshooting.InvariantErrorSyntax.asDetails
 import org.fiume.sketch.shared.auth0.User
-import org.fiume.sketch.storage.documents.{Document, DocumentWithUuid}
+import org.fiume.sketch.storage.documents.{Document, DocumentUuid, DocumentWithUuid}
 import org.fiume.sketch.storage.documents.Document.Metadata
 import org.fiume.sketch.storage.documents.Document.Metadata.*
 import org.fiume.sketch.storage.documents.algebras.DocumentsStore
 import org.fiume.sketch.storage.documents.http.DocumentsRoutes.{
+  DocumentUuidVar,
   Line,
   Linebreak,
   NewlineDelimitedJson,
@@ -35,8 +36,6 @@ import org.http4s.headers.{`Content-Disposition`, `Content-Type`}
 import org.http4s.multipart.{Multipart, Part, *}
 import org.http4s.server.{AuthMiddleware, Router}
 import org.http4s.server.middleware.EntityLimiter
-
-import java.util.UUID
 
 class DocumentsRoutes[F[_]: Concurrent, Txn[_]](
   authMiddleware: AuthMiddleware[F, User],
@@ -67,13 +66,13 @@ class DocumentsRoutes[F[_]: Concurrent, Txn[_]](
           yield created
         }
 
-      case GET -> Root / "documents" / UUIDVar(uuid) / "metadata" as user =>
+      case GET -> Root / "documents" / DocumentUuidVar(uuid) / "metadata" as user =>
         for
           metadata <- store.commit { store.fetchMetadata(uuid) }
           res <- metadata.map(_.toPayload).fold(ifEmpty = NotFound())(Ok(_))
         yield res
 
-      case GET -> Root / "documents" / UUIDVar(uuid) as user =>
+      case GET -> Root / "documents" / DocumentUuidVar(uuid) as user =>
         for
           stream <- store.commit { store.fetchContent(uuid) }
           res <- stream.fold(ifEmpty = NotFound())(Ok(_, `Content-Disposition`("attachment", Map.empty)))
@@ -88,7 +87,7 @@ class DocumentsRoutes[F[_]: Concurrent, Txn[_]](
           .intersperse(Linebreak)
         Ok(responseStream)
 
-      case DELETE -> Root / "documents" / UUIDVar(uuid) as user =>
+      case DELETE -> Root / "documents" / DocumentUuidVar(uuid) as user =>
         for
           metadata <- store.commit { store.fetchMetadata(uuid) }
           res <- metadata match
@@ -98,6 +97,17 @@ class DocumentsRoutes[F[_]: Concurrent, Txn[_]](
     }
 
 private[http] object DocumentsRoutes:
+  import java.util.UUID
+  import scala.util.Try
+  object DocumentUuidVar {
+    def unapply(value: String): Option[DocumentUuid] = {
+      // TODO Extract logic to generate a CustomUuid from String?
+      println(Try(UUID.fromString(value)).toOption.map(DocumentUuid(_)))
+      Try(UUID.fromString(value)).toOption.map(DocumentUuid(_))
+
+    }
+  }
+
   sealed trait NewlineDelimitedJson
   case class Line(json: JJson) extends NewlineDelimitedJson
   case object Linebreak extends NewlineDelimitedJson
@@ -114,7 +124,7 @@ private[http] object DocumentsRoutes:
 
   object Model:
     case class MetadataPayload(name: String, description: String)
-    case class DocumentResponsePayload(uuid: UUID, metadata: MetadataPayload, contentLink: Uri)
+    case class DocumentResponsePayload(uuid: DocumentUuid, metadata: MetadataPayload, contentLink: Uri)
 
     extension (m: Metadata) def toPayload: MetadataPayload = MetadataPayload(m.name.value, m.description.value)
 
@@ -184,13 +194,13 @@ private[http] object DocumentsRoutes:
         Uri.fromString(uri).leftMap { e => e.getMessage }
       }
 
-      given Encoder[UUID] = new Encoder[UUID]:
-        override def apply(uuid: UUID): JJson = JJson.obj("uuid" -> JJson.fromString(uuid.toString))
+      given Encoder[DocumentUuid] = new Encoder[DocumentUuid]:
+        override def apply(uuid: DocumentUuid): JJson = JJson.obj("uuid" -> JJson.fromString(uuid.uuid.toString))
 
-      given Decoder[UUID] = new Decoder[UUID]:
-        override def apply(c: HCursor): Result[UUID] =
+      given Decoder[DocumentUuid] = new Decoder[DocumentUuid]:
+        override def apply(c: HCursor): Result[DocumentUuid] =
           c.downField("uuid").as[String].flatMap { uuid =>
-            Either.catchNonFatal(UUID.fromString(uuid)).leftMap { e => DecodingFailure(e.getMessage, c.history) }
+            Either.catchNonFatal(UUID.fromString(uuid)).map(DocumentUuid(_)).leftMap { e => DecodingFailure(e.getMessage, c.history) }
           }
 
       given Encoder[MetadataPayload] = new Encoder[MetadataPayload]:
