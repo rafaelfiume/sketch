@@ -4,7 +4,7 @@ import cats.effect.IO
 import fs2.Stream
 import org.fiume.sketch.shared.testkit.Gens.Bytes.*
 import org.fiume.sketch.shared.testkit.Gens.Strings.*
-import org.fiume.sketch.storage.documents.{Document, DocumentId, DocumentWithUuid}
+import org.fiume.sketch.storage.documents.{Document, DocumentId, DocumentWithId}
 import org.fiume.sketch.storage.documents.Document.Metadata
 import org.fiume.sketch.storage.documents.Document.Metadata.*
 import org.scalacheck.{Arbitrary, Gen}
@@ -72,8 +72,8 @@ object DocumentsGens:
       content <- bytesG
     yield Document(metadata, content)
 
-  given Arbitrary[DocumentWithUuid[IO]] = Arbitrary(documentsWithId)
-  def documentsWithId: Gen[DocumentWithUuid[IO]] =
+  given Arbitrary[DocumentWithId[IO]] = Arbitrary(documentsWithId)
+  def documentsWithId: Gen[DocumentWithId[IO]] =
     for
       uuid <- Gen.delay(UUID.randomUUID()).map(DocumentId(_))
       document <- documents

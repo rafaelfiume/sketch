@@ -9,7 +9,7 @@ import doobie.postgres.implicits.*
 import fs2.Stream
 import munit.ScalaCheckEffectSuite
 import org.fiume.sketch.shared.testkit.FileContentContext
-import org.fiume.sketch.storage.documents.{Document, DocumentId, DocumentWithUuid}
+import org.fiume.sketch.storage.documents.{Document, DocumentId, DocumentWithId}
 import org.fiume.sketch.storage.documents.Document.Metadata
 import org.fiume.sketch.storage.documents.postgres.DoobieMappings.given
 import org.fiume.sketch.storage.testkit.DockerPostgresSuite
@@ -194,4 +194,4 @@ trait PostgresStoreSpecContext:
     def fetchUpdatedAt(uuid: DocumentId): ConnectionIO[Instant] =
       sql"SELECT updated_at FROM domain.documents WHERE uuid = ${uuid}".query[Instant].unique
 
-  extension (d: DocumentWithUuid[IO]) def discardContent = d.uuid -> d.metadata
+  extension (d: DocumentWithId[IO]) def discardContent = d.uuid -> d.metadata

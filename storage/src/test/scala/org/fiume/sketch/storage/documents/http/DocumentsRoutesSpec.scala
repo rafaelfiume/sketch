@@ -11,7 +11,7 @@ import org.fiume.sketch.shared.app.troubleshooting.{ErrorInfo, ErrorMessage}
 import org.fiume.sketch.shared.app.troubleshooting.http.json.ErrorInfoCodecs.given
 import org.fiume.sketch.shared.testkit.{ContractContext, Http4sTestingRoutesDsl}
 import org.fiume.sketch.shared.testkit.EitherSyntax.*
-import org.fiume.sketch.storage.documents.{Document, DocumentId, DocumentWithUuid}
+import org.fiume.sketch.storage.documents.{Document, DocumentId, DocumentWithId}
 import org.fiume.sketch.storage.documents.Document.Metadata
 import org.fiume.sketch.storage.documents.algebras.DocumentsStore
 import org.fiume.sketch.storage.documents.http.DocumentsRoutes.Model.*
@@ -70,7 +70,7 @@ class DocumentsRoutesSpec
     }
 
   test("Get document metadata"):
-    forAllF { (document: DocumentWithUuid[IO]) =>
+    forAllF { (document: DocumentWithId[IO]) =>
       val request = GET(Uri.unsafeFromString(s"/documents/${document.uuid.value}/metadata"))
       for
         store <- makeDocumentsStore(state = document)
@@ -90,7 +90,7 @@ class DocumentsRoutesSpec
     }
 
   test("Get document content"):
-    forAllF { (document: DocumentWithUuid[IO]) =>
+    forAllF { (document: DocumentWithId[IO]) =>
       val request = GET(Uri.unsafeFromString(s"/documents/${document.uuid.value}"))
       for
         store <- makeDocumentsStore(state = document)
@@ -109,7 +109,7 @@ class DocumentsRoutesSpec
     }
 
   test("Delete document"):
-    forAllF { (document: DocumentWithUuid[IO]) =>
+    forAllF { (document: DocumentWithId[IO]) =>
       val request = DELETE(Uri.unsafeFromString(s"/documents/${document.uuid.value}"))
       for
         store <- makeDocumentsStore(state = document)
@@ -131,7 +131,7 @@ class DocumentsRoutesSpec
     }
 
   test("Delete unexistent document == not found"):
-    forAllF { (document: DocumentWithUuid[IO]) =>
+    forAllF { (document: DocumentWithId[IO]) =>
       val request = DELETE(Uri.unsafeFromString(s"/documents/${document.uuid.value}"))
       for
         store <- makeDocumentsStore()
@@ -309,24 +309,24 @@ trait DocumentsStoreContext:
 
   def makeDocumentsStore(): IO[DocumentsStore[IO, IO]] = makeDocumentsStore(state = Map.empty)
 
-  def makeDocumentsStore(state: DocumentWithUuid[IO]): IO[DocumentsStore[IO, IO]] =
+  def makeDocumentsStore(state: DocumentWithId[IO]): IO[DocumentsStore[IO, IO]] =
     makeDocumentsStore(Map(state.uuid -> state))
 
-  private def makeDocumentsStore(state: Map[DocumentId, DocumentWithUuid[IO]]): IO[DocumentsStore[IO, IO]] =
-    Ref.of[IO, Map[DocumentId, DocumentWithUuid[IO]]](state).map { storage =>
+  private def makeDocumentsStore(state: Map[DocumentId, DocumentWithId[IO]]): IO[DocumentsStore[IO, IO]] =
+    Ref.of[IO, Map[DocumentId, DocumentWithId[IO]]](state).map { storage =>
       new DocumentsStore[IO, IO]:
 
         def store(document: Document[IO]): IO[DocumentId] =
           IO.randomUUID.map(DocumentId(_)).flatMap { uuid =>
             storage
               .update {
-                val DocumentWithUuid = Document.withUuid[IO](uuid, document.metadata, document.content)
-                _.updated(uuid, DocumentWithUuid)
+                val DocumentWithId = Document.withUuid[IO](uuid, document.metadata, document.content)
+                _.updated(uuid, DocumentWithId)
               }
               .as(uuid)
           }
 
-        def update(document: DocumentWithUuid[IO]): IO[Unit] =
+        def update(document: DocumentWithId[IO]): IO[Unit] =
           storage.update {
             _.updatedWith(document.uuid) {
               case Some(document) =>
@@ -345,7 +345,7 @@ trait DocumentsStoreContext:
             case (storedUuid, document) if storedUuid === uuid => document.content
           })
 
-        def fetchAll(): Stream[IO, DocumentWithUuid[IO]] = ??? // TODO
+        def fetchAll(): Stream[IO, DocumentWithId[IO]] = ??? // TODO
 
         def delete(uuid: DocumentId): IO[Unit] =
           storage.update { _.removed(uuid) }

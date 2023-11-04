@@ -19,7 +19,7 @@ object DocumentId:
   def fromString(uuid: String): Either[Throwable, DocumentId] = EntityUuid.fromString[DocumentEntity](uuid)
 sealed trait DocumentEntity extends Entity
 
-type DocumentWithUuid[F[_]] = Document[F] & WithUuid[DocumentId]
+type DocumentWithId[F[_]] = Document[F] & WithUuid[DocumentId]
 
 case class Document[F[_]](
   metadata: Metadata,

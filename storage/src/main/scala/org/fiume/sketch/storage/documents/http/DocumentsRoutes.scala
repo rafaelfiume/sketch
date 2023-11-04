@@ -14,7 +14,7 @@ import org.fiume.sketch.shared.app.troubleshooting.ErrorDetails
 import org.fiume.sketch.shared.app.troubleshooting.ErrorInfo.given
 import org.fiume.sketch.shared.app.troubleshooting.InvariantErrorSyntax.asDetails
 import org.fiume.sketch.shared.auth0.User
-import org.fiume.sketch.storage.documents.{Document, DocumentId, DocumentWithUuid}
+import org.fiume.sketch.storage.documents.{Document, DocumentId, DocumentWithId}
 import org.fiume.sketch.storage.documents.Document.Metadata
 import org.fiume.sketch.storage.documents.Document.Metadata.*
 import org.fiume.sketch.storage.documents.algebras.DocumentsStore
@@ -120,7 +120,7 @@ private[http] object DocumentsRoutes:
 
     extension (m: Metadata) def toPayload: MetadataPayload = MetadataPayload(m.name.value, m.description.value)
 
-    extension [F[_]](d: DocumentWithUuid[F])
+    extension [F[_]](d: DocumentWithId[F])
       def toPayload: DocumentResponsePayload =
         DocumentResponsePayload(d.uuid, d.metadata.toPayload, Uri.unsafeFromString(s"/documents/${d.uuid.toString}"))
 

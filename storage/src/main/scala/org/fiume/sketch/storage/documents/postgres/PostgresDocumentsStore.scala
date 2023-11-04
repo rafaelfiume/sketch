@@ -8,7 +8,7 @@ import doobie.*
 import doobie.free.connection.ConnectionIO
 import doobie.implicits.*
 import fs2.Stream
-import org.fiume.sketch.storage.documents.{Document, DocumentId, DocumentWithUuid}
+import org.fiume.sketch.storage.documents.{Document, DocumentId, DocumentWithId}
 import org.fiume.sketch.storage.documents.Document.Metadata
 import org.fiume.sketch.storage.documents.algebras.DocumentsStore
 import org.fiume.sketch.storage.documents.postgres.DoobieMappings.given
@@ -36,7 +36,7 @@ private class PostgresDocumentsStore[F[_]: Async] private (l: F ~> ConnectionIO,
         )
     yield uuid
 
-  override def update(document: DocumentWithUuid[F]): ConnectionIO[Unit] =
+  override def update(document: DocumentWithId[F]): ConnectionIO[Unit] =
     for
       bytes <- lift { Async[F].cede *> document.content.compile.toVector.map(_.toArray) <* Async[F].cede }
       _ <- Statements.update(document.uuid, document.metadata, bytes).run.void
@@ -53,7 +53,7 @@ private class PostgresDocumentsStore[F[_]: Async] private (l: F ~> ConnectionIO,
       .map(Stream.emits)
       .value
 
-  override def fetchAll(): fs2.Stream[F, DocumentWithUuid[F]] =
+  override def fetchAll(): fs2.Stream[F, DocumentWithId[F]] =
     Statements.selectAllDocuments().transact(tx)
 
   override def delete(uuid: DocumentId): ConnectionIO[Unit] =
@@ -101,7 +101,7 @@ private object Statements:
          |WHERE d.uuid = $uuid
     """.stripMargin.query[Array[Byte]]
 
-  def selectAllDocuments[F[_]](): fs2.Stream[ConnectionIO, DocumentWithUuid[F]] =
+  def selectAllDocuments[F[_]](): fs2.Stream[ConnectionIO, DocumentWithId[F]] =
     sql"""
          |SELECT
          |  d.uuid,
@@ -109,7 +109,7 @@ private object Statements:
          |  d.description,
          |  ''::bytea as content
          |FROM domain.documents d
-    """.stripMargin.query[DocumentWithUuid[F]].stream
+    """.stripMargin.query[DocumentWithId[F]].stream
 
   def delete(uuid: DocumentId): Update0 =
     sql"""
