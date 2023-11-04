@@ -42,7 +42,7 @@ private[auth0] object JwtToken:
         preferredUsername = user.username
       )
       claim = JwtClaim(
-        subject = user.uuid.uuid.toString.some,
+        subject = user.uuid.value.toString.some,
         content = content.asJson.noSpaces,
         issuedAt = now.getEpochSecond.some,
         expiration = now.plusSeconds(expirationOffset.toSeconds).getEpochSecond.some

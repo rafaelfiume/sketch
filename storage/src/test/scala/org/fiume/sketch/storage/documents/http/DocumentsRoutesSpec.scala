@@ -71,8 +71,8 @@ class DocumentsRoutesSpec
 
   test("Get document metadata"):
     forAllF { (document: DocumentWithUuid[IO]) =>
-      println(s"/documents/${document.uuid.uuid}/metadata")
-      val request = GET(Uri.unsafeFromString(s"/documents/${document.uuid.uuid}/metadata"))
+      println(s"/documents/${document.uuid.value}/metadata")
+      val request = GET(Uri.unsafeFromString(s"/documents/${document.uuid.value}/metadata"))
       for
         store <- makeDocumentsStore(state = document)
         documentsRoutes <- makeDocumentsRoutes(store)
@@ -92,7 +92,7 @@ class DocumentsRoutesSpec
 
   test("Get document content"):
     forAllF { (document: DocumentWithUuid[IO]) =>
-      val request = GET(Uri.unsafeFromString(s"/documents/${document.uuid.uuid}"))
+      val request = GET(Uri.unsafeFromString(s"/documents/${document.uuid.value}"))
       for
         store <- makeDocumentsStore(state = document)
         documentsRoutes <- makeDocumentsRoutes(store)
@@ -111,7 +111,7 @@ class DocumentsRoutesSpec
 
   test("Delete document"):
     forAllF { (document: DocumentWithUuid[IO]) =>
-      val request = DELETE(Uri.unsafeFromString(s"/documents/${document.uuid.uuid}"))
+      val request = DELETE(Uri.unsafeFromString(s"/documents/${document.uuid.value}"))
       for
         store <- makeDocumentsStore(state = document)
         documentsRoutes <- makeDocumentsRoutes(store)
@@ -133,7 +133,7 @@ class DocumentsRoutesSpec
 
   test("Delete unexistent document == not found"):
     forAllF { (document: DocumentWithUuid[IO]) =>
-      val request = DELETE(Uri.unsafeFromString(s"/documents/${document.uuid.uuid}"))
+      val request = DELETE(Uri.unsafeFromString(s"/documents/${document.uuid.value}"))
       for
         store <- makeDocumentsStore()
         documentsRoutes <- makeDocumentsRoutes(store)

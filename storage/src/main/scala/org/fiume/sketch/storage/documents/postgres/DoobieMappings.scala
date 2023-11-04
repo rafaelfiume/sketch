@@ -11,7 +11,7 @@ import org.fiume.sketch.storage.documents.Document.Metadata.*
 import java.util.UUID
 
 private[documents] object DoobieMappings:
-  given Meta[DocumentUuid] = Meta[UUID].timap(DocumentUuid(_))(_.uuid)
+  given Meta[DocumentUuid] = Meta[UUID].timap(DocumentUuid(_))(_.value)
   given Meta[Name] = Meta[String].timap(Name.notValidatedFromString)(_.value)
   given Meta[Description] = Meta[String].timap(Description.apply)(_.value)
 

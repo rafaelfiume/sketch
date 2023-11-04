@@ -6,6 +6,8 @@ import org.fiume.sketch.shared.auth0.{User, UserUuid}
 import org.fiume.sketch.shared.auth0.Passwords.{HashedPassword, Salt}
 import org.fiume.sketch.shared.auth0.User.*
 
+import java.util.UUID
+
 private[postgres] object DoobieMappings:
 
   given Meta[HashedPassword] = Meta[String].timap(HashedPassword.notValidatedFromString)(_.base64Value)
@@ -13,6 +15,8 @@ private[postgres] object DoobieMappings:
   given Meta[Salt] = Meta[String].timap(Salt.notValidatedFromString)(_.base64Value)
 
   given Meta[Username] = Meta[String].timap(Username.notValidatedFromString)(_.value)
+
+  given Meta[UserUuid] = Meta[UUID].timap(UserUuid(_))(_.value)
 
   given Read[User] = Read[(UserUuid, Username)].map { case (uuid, username) => User(uuid, username) }
 

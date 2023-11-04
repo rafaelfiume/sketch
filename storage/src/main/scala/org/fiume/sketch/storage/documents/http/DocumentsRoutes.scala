@@ -99,14 +99,11 @@ class DocumentsRoutes[F[_]: Concurrent, Txn[_]](
 private[http] object DocumentsRoutes:
   import java.util.UUID
   import scala.util.Try
-  object DocumentUuidVar {
-    def unapply(value: String): Option[DocumentUuid] = {
+  object DocumentUuidVar:
+    def unapply(value: String): Option[DocumentUuid] =
       // TODO Extract logic to generate a CustomUuid from String?
       println(Try(UUID.fromString(value)).toOption.map(DocumentUuid(_)))
       Try(UUID.fromString(value)).toOption.map(DocumentUuid(_))
-
-    }
-  }
 
   sealed trait NewlineDelimitedJson
   case class Line(json: JJson) extends NewlineDelimitedJson
@@ -195,12 +192,14 @@ private[http] object DocumentsRoutes:
       }
 
       given Encoder[DocumentUuid] = new Encoder[DocumentUuid]:
-        override def apply(uuid: DocumentUuid): JJson = JJson.obj("uuid" -> JJson.fromString(uuid.uuid.toString))
+        override def apply(uuid: DocumentUuid): JJson = JJson.obj("uuid" -> JJson.fromString(uuid.value.toString))
 
       given Decoder[DocumentUuid] = new Decoder[DocumentUuid]:
         override def apply(c: HCursor): Result[DocumentUuid] =
           c.downField("uuid").as[String].flatMap { uuid =>
-            Either.catchNonFatal(UUID.fromString(uuid)).map(DocumentUuid(_)).leftMap { e => DecodingFailure(e.getMessage, c.history) }
+            Either.catchNonFatal(UUID.fromString(uuid)).map(DocumentUuid(_)).leftMap { e =>
+              DecodingFailure(e.getMessage, c.history)
+            }
           }
 
       given Encoder[MetadataPayload] = new Encoder[MetadataPayload]:

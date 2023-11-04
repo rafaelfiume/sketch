@@ -6,7 +6,6 @@ import cats.~>
 import doobie.*
 import doobie.free.connection.ConnectionIO
 import doobie.implicits.*
-import doobie.postgres.implicits.*
 import org.fiume.sketch.shared.auth0.{Passwords, User, UserUuid}
 import org.fiume.sketch.shared.auth0.Passwords.{HashedPassword, Salt}
 import org.fiume.sketch.shared.auth0.User.*

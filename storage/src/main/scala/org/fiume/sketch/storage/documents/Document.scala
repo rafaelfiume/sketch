@@ -4,7 +4,7 @@ import cats.Eq
 import cats.data.{EitherNec, Validated}
 import cats.implicits.*
 import fs2.Stream
-import org.fiume.sketch.shared.app.WithUuid
+import org.fiume.sketch.shared.app.{EntityUuid, WithUuid}
 import org.fiume.sketch.shared.app.troubleshooting.{InvariantError, InvariantHolder}
 import org.fiume.sketch.storage.documents.Document.Metadata
 import org.fiume.sketch.storage.documents.Document.Metadata.*
@@ -13,13 +13,12 @@ import org.fiume.sketch.storage.documents.Document.Metadata.Name.InvalidDocument
 
 import java.util.UUID
 
-type DocumentWithUuid[F[_]] = Document[F] & WithUuid[DocumentUuid]
-
+type DocumentUuid = EntityUuid[DocTag]
 object DocumentUuid:
-  // TODO Possible to generalise it?
-  given Eq[DocumentUuid] = Eq.fromUniversalEquals[DocumentUuid]
+  def apply(uuid: UUID): DocumentUuid = EntityUuid[DocTag](uuid)
+private sealed trait DocTag
 
-case class DocumentUuid(uuid: UUID) extends AnyVal
+type DocumentWithUuid[F[_]] = Document[F] & WithUuid[DocumentUuid]
 
 case class Document[F[_]](
   metadata: Metadata,

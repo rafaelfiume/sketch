@@ -18,7 +18,6 @@ import org.scalacheck.ShrinkLowPriority
 import org.scalacheck.effect.PropF.forAllF
 
 import java.time.Instant
-import java.util.UUID
 
 class PostgresUsersStoreSpec
     extends ScalaCheckEffectSuite
