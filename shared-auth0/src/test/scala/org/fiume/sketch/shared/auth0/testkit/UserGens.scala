@@ -1,6 +1,6 @@
 package org.fiume.sketch.shared.auth0.testkit
 
-import org.fiume.sketch.shared.auth0.{User, UserUuid}
+import org.fiume.sketch.shared.auth0.{User, UserId}
 import org.fiume.sketch.shared.auth0.Passwords.{HashedPassword, PlainPassword}
 import org.fiume.sketch.shared.auth0.User.{UserCredentials, UserCredentialsWithId, Username}
 import org.fiume.sketch.shared.auth0.testkit.PasswordsGens.*
@@ -76,7 +76,7 @@ object UserGens:
   given Arbitrary[User] = Arbitrary(users)
   def users: Gen[User] =
     for
-      uuid <- Gen.uuid.map(UserUuid(_))
+      uuid <- Gen.uuid.map(UserId(_))
       username <- validUsernames
     yield User(uuid, username)
 
@@ -90,7 +90,7 @@ object UserGens:
 
   def validCredentialsWithIdAndPlainPassword: Gen[(UserCredentialsWithId, PlainPassword)] =
     for
-      uuid <- Gen.uuid.map(UserUuid(_))
+      uuid <- Gen.uuid.map(UserId(_))
       username <- validUsernames
       plainPassword <- validPlainPasswords
       salt <- salts

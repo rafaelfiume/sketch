@@ -12,16 +12,16 @@ import org.fiume.sketch.shared.auth0.User.Username.WeakUsernameError.*
 
 import java.util.UUID
 
-type UserUuid = EntityUuid[UserEntity]
-object UserUuid:
-  def apply(uuid: UUID): UserUuid = EntityUuid[UserEntity](uuid)
-  def fromString(uuid: String): Either[Throwable, UserUuid] = EntityUuid.fromString[UserEntity](uuid)
+type UserId = EntityUuid[UserEntity]
+object UserId:
+  def apply(uuid: UUID): UserId = EntityUuid[UserEntity](uuid)
+  def fromString(uuid: String): Either[Throwable, UserId] = EntityUuid.fromString[UserEntity](uuid)
 sealed trait UserEntity extends Entity
 
-case class User(uuid: UserUuid, username: Username)
+case class User(uuid: UserId, username: Username)
 
 object User:
-  type UserCredentialsWithId = UserCredentials & WithUuid[UserUuid]
+  type UserCredentialsWithId = UserCredentials & WithUuid[UserId]
 
   // set of information required to authenticate a user
   case class UserCredentials(
@@ -31,12 +31,12 @@ object User:
   )
 
   object UserCredentials:
-    def withUuid(uuid0: UserUuid, credentials: UserCredentials): UserCredentialsWithId =
-      withUuid(uuid0, credentials.username, credentials.hashedPassword, credentials.salt)
+    def withUuid(uuid: UserId, credentials: UserCredentials): UserCredentialsWithId =
+      withUuid(uuid, credentials.username, credentials.hashedPassword, credentials.salt)
 
-    def withUuid(uuid0: UserUuid, username: Username, hashedPassword: HashedPassword, salt: Salt): UserCredentialsWithId =
-      new UserCredentials(username, hashedPassword, salt) with WithUuid[UserUuid]:
-        override val uuid: UserUuid = uuid0
+    def withUuid(uuid0: UserId, username: Username, hashedPassword: HashedPassword, salt: Salt): UserCredentialsWithId =
+      new UserCredentials(username, hashedPassword, salt) with WithUuid[UserId]:
+        override val uuid: UserId = uuid0
 
   sealed abstract case class Username(value: String)
 

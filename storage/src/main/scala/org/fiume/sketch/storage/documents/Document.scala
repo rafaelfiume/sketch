@@ -28,16 +28,16 @@ case class Document[F[_]](
 
 object Document:
   def withUuid[F[_]](
-    withUuid: DocumentUuid,
+    uuid0: DocumentUuid,
     metadata: Metadata,
     content: Stream[F, Byte]
   ): Document[F] & WithUuid[DocumentUuid] =
     new Document[F](metadata, content) with WithUuid[DocumentUuid]:
-      override val uuid: DocumentUuid = withUuid
+      override val uuid: DocumentUuid = uuid0
 
   extension [F[_]](document: Document[F])
-    def withUuid(withUuid: DocumentUuid): Document[F] & WithUuid[DocumentUuid] =
-      Document.withUuid[F](withUuid, document.metadata, document.content)
+    def withUuid(uuid: DocumentUuid): Document[F] & WithUuid[DocumentUuid] =
+      Document.withUuid[F](uuid, document.metadata, document.content)
 
   case class Metadata(name: Name, description: Description)
 

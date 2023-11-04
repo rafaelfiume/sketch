@@ -7,7 +7,7 @@ import io.circe.{Decoder, Encoder, HCursor, Json, ParsingFailure}
 import io.circe.parser.parse
 import io.circe.syntax.*
 import org.fiume.sketch.auth0.JwtError.*
-import org.fiume.sketch.shared.auth0.{User, UserUuid}
+import org.fiume.sketch.shared.auth0.{User, UserId}
 import org.fiume.sketch.shared.auth0.User.Username
 import pdi.jwt.{JwtAlgorithm, JwtCirce, JwtClaim}
 import pdi.jwt.exceptions.*
@@ -52,7 +52,7 @@ private[auth0] object JwtToken:
       claims <- JwtCirce.decode(token.value, publicKey, Seq(JwtAlgorithm.ES256)).toEither
       uuid <- claims.subject
         .toRight(new RuntimeException("verifyJwtToken: subject is missing"))
-        .flatMap(UserUuid.fromString)
+        .flatMap(UserId.fromString)
       content <- parse(claims.content).flatMap(_.as[Content])
     yield User(uuid, content.preferredUsername)).leftMap(mapJwtErrors)
 
