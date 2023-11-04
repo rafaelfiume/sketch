@@ -71,7 +71,6 @@ class DocumentsRoutesSpec
 
   test("Get document metadata"):
     forAllF { (document: DocumentWithUuid[IO]) =>
-      println(s"/documents/${document.uuid.value}/metadata")
       val request = GET(Uri.unsafeFromString(s"/documents/${document.uuid.value}/metadata"))
       for
         store <- makeDocumentsStore(state = document)

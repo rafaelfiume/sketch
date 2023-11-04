@@ -97,13 +97,8 @@ class DocumentsRoutes[F[_]: Concurrent, Txn[_]](
     }
 
 private[http] object DocumentsRoutes:
-  import java.util.UUID
-  import scala.util.Try
   object DocumentUuidVar:
-    def unapply(value: String): Option[DocumentUuid] =
-      // TODO Extract logic to generate a CustomUuid from String?
-      println(Try(UUID.fromString(value)).toOption.map(DocumentUuid(_)))
-      Try(UUID.fromString(value)).toOption.map(DocumentUuid(_))
+    def unapply(value: String): Option[DocumentUuid] = DocumentUuid.fromString(value).toOption
 
   sealed trait NewlineDelimitedJson
   case class Line(json: JJson) extends NewlineDelimitedJson
@@ -197,9 +192,7 @@ private[http] object DocumentsRoutes:
       given Decoder[DocumentUuid] = new Decoder[DocumentUuid]:
         override def apply(c: HCursor): Result[DocumentUuid] =
           c.downField("uuid").as[String].flatMap { uuid =>
-            Either.catchNonFatal(UUID.fromString(uuid)).map(DocumentUuid(_)).leftMap { e =>
-              DecodingFailure(e.getMessage, c.history)
-            }
+            DocumentUuid.fromString(uuid).leftMap { e => DecodingFailure(e.getMessage, c.history) }
           }
 
       given Encoder[MetadataPayload] = new Encoder[MetadataPayload]:

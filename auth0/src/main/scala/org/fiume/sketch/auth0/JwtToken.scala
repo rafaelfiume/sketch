@@ -13,9 +13,7 @@ import pdi.jwt.{JwtAlgorithm, JwtCirce, JwtClaim}
 import pdi.jwt.exceptions.*
 
 import java.security.{PrivateKey, PublicKey}
-import java.util.UUID
 import scala.concurrent.duration.Duration
-import scala.util.Try
 import scala.util.control.NoStackTrace
 
 sealed abstract case class JwtToken(value: String)
@@ -54,8 +52,7 @@ private[auth0] object JwtToken:
       claims <- JwtCirce.decode(token.value, publicKey, Seq(JwtAlgorithm.ES256)).toEither
       uuid <- claims.subject
         .toRight(new RuntimeException("verifyJwtToken: subject is missing"))
-        // TODO Extract logic to generate a CustomUuid from String?
-        .flatMap(value => Try(UUID.fromString(value)).toEither.map(UserUuid(_)))
+        .flatMap(UserUuid.fromString)
       content <- parse(claims.content).flatMap(_.as[Content])
     yield User(uuid, content.preferredUsername)).leftMap(mapJwtErrors)
 

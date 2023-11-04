@@ -4,7 +4,7 @@ import cats.Eq
 import cats.data.{EitherNec, Validated}
 import cats.implicits.*
 import fs2.Stream
-import org.fiume.sketch.shared.app.{EntityUuid, WithUuid}
+import org.fiume.sketch.shared.app.{Entity, EntityUuid, WithUuid}
 import org.fiume.sketch.shared.app.troubleshooting.{InvariantError, InvariantHolder}
 import org.fiume.sketch.storage.documents.Document.Metadata
 import org.fiume.sketch.storage.documents.Document.Metadata.*
@@ -13,10 +13,11 @@ import org.fiume.sketch.storage.documents.Document.Metadata.Name.InvalidDocument
 
 import java.util.UUID
 
-type DocumentUuid = EntityUuid[DocTag]
+type DocumentUuid = EntityUuid[DocumentEntity]
 object DocumentUuid:
-  def apply(uuid: UUID): DocumentUuid = EntityUuid[DocTag](uuid)
-private sealed trait DocTag
+  def apply(uuid: UUID): DocumentUuid = EntityUuid[DocumentEntity](uuid)
+  def fromString(uuid: String): Either[Throwable, DocumentUuid] = EntityUuid.fromString[DocumentEntity](uuid)
+sealed trait DocumentEntity extends Entity
 
 type DocumentWithUuid[F[_]] = Document[F] & WithUuid[DocumentUuid]
 
