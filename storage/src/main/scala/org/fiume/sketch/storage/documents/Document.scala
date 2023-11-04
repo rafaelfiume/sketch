@@ -13,13 +13,13 @@ import org.fiume.sketch.storage.documents.Document.Metadata.Name.InvalidDocument
 
 import java.util.UUID
 
-type DocumentUuid = EntityUuid[DocumentEntity]
-object DocumentUuid:
-  def apply(uuid: UUID): DocumentUuid = EntityUuid[DocumentEntity](uuid)
-  def fromString(uuid: String): Either[Throwable, DocumentUuid] = EntityUuid.fromString[DocumentEntity](uuid)
+type DocumentId = EntityUuid[DocumentEntity]
+object DocumentId:
+  def apply(uuid: UUID): DocumentId = EntityUuid[DocumentEntity](uuid)
+  def fromString(uuid: String): Either[Throwable, DocumentId] = EntityUuid.fromString[DocumentEntity](uuid)
 sealed trait DocumentEntity extends Entity
 
-type DocumentWithUuid[F[_]] = Document[F] & WithUuid[DocumentUuid]
+type DocumentWithUuid[F[_]] = Document[F] & WithUuid[DocumentId]
 
 case class Document[F[_]](
   metadata: Metadata,
@@ -28,15 +28,15 @@ case class Document[F[_]](
 
 object Document:
   def withUuid[F[_]](
-    uuid0: DocumentUuid,
+    uuid0: DocumentId,
     metadata: Metadata,
     content: Stream[F, Byte]
-  ): Document[F] & WithUuid[DocumentUuid] =
-    new Document[F](metadata, content) with WithUuid[DocumentUuid]:
-      override val uuid: DocumentUuid = uuid0
+  ): Document[F] & WithUuid[DocumentId] =
+    new Document[F](metadata, content) with WithUuid[DocumentId]:
+      override val uuid: DocumentId = uuid0
 
   extension [F[_]](document: Document[F])
-    def withUuid(uuid: DocumentUuid): Document[F] & WithUuid[DocumentUuid] =
+    def withUuid(uuid: DocumentId): Document[F] & WithUuid[DocumentId] =
       Document.withUuid[F](uuid, document.metadata, document.content)
 
   case class Metadata(name: Name, description: Description)

@@ -8,7 +8,7 @@ import doobie.*
 import doobie.free.connection.ConnectionIO
 import doobie.implicits.*
 import fs2.Stream
-import org.fiume.sketch.storage.documents.{Document, DocumentUuid, DocumentWithUuid}
+import org.fiume.sketch.storage.documents.{Document, DocumentId, DocumentWithUuid}
 import org.fiume.sketch.storage.documents.Document.Metadata
 import org.fiume.sketch.storage.documents.algebras.DocumentsStore
 import org.fiume.sketch.storage.documents.postgres.DoobieMappings.given
@@ -22,7 +22,7 @@ private class PostgresDocumentsStore[F[_]: Async] private (l: F ~> ConnectionIO,
     extends AbstractPostgresStore[F](l, tx)
     with DocumentsStore[F, ConnectionIO]:
 
-  override def store(document: Document[F]): ConnectionIO[DocumentUuid] =
+  override def store(document: Document[F]): ConnectionIO[DocumentId] =
     for
       // Avoid reading all bytes into memory by using a large object?
       // https://tpolecat.github.io/doobie-cats-0.4.2/15-Extensions-PostgreSQL.html
@@ -31,7 +31,7 @@ private class PostgresDocumentsStore[F[_]: Async] private (l: F ~> ConnectionIO,
       bytes <- lift { Async[F].cede *> document.content.compile.toVector.map(_.toArray) <* Async[F].cede }
       uuid <- Statements
         .insertDocument(document.metadata, bytes)
-        .withUniqueGeneratedKeys[DocumentUuid](
+        .withUniqueGeneratedKeys[DocumentId](
           "uuid"
         )
     yield uuid
@@ -42,10 +42,10 @@ private class PostgresDocumentsStore[F[_]: Async] private (l: F ~> ConnectionIO,
       _ <- Statements.update(document.uuid, document.metadata, bytes).run.void
     yield ()
 
-  override def fetchMetadata(uuid: DocumentUuid): ConnectionIO[Option[Metadata]] =
+  override def fetchMetadata(uuid: DocumentId): ConnectionIO[Option[Metadata]] =
     Statements.selectDocumentMetadata(uuid).option
 
-  override def fetchContent(uuid: DocumentUuid): ConnectionIO[Option[Stream[F, Byte]]] =
+  override def fetchContent(uuid: DocumentId): ConnectionIO[Option[Stream[F, Byte]]] =
     // not the greatest implementation, since it will require bytes to be fully read from the db before the stream can start emiting bytes
     // this can be better optimised later (perhaps by storing/reading documents using a file sytem? or large objects?)
     // API is the most important part here.
@@ -56,7 +56,7 @@ private class PostgresDocumentsStore[F[_]: Async] private (l: F ~> ConnectionIO,
   override def fetchAll(): fs2.Stream[F, DocumentWithUuid[F]] =
     Statements.selectAllDocuments().transact(tx)
 
-  override def delete(uuid: DocumentUuid): ConnectionIO[Unit] =
+  override def delete(uuid: DocumentId): ConnectionIO[Unit] =
     Statements.delete(uuid).run.void
 
 private object Statements:
@@ -74,7 +74,7 @@ private object Statements:
          |)
     """.stripMargin.update
 
-  def update(uuid: DocumentUuid, metadata: Metadata, content: Array[Byte]): Update0 =
+  def update(uuid: DocumentId, metadata: Metadata, content: Array[Byte]): Update0 =
     sql"""
          |UPDATE domain.documents
          |SET
@@ -84,7 +84,7 @@ private object Statements:
          |WHERE uuid = $uuid
     """.stripMargin.update
 
-  def selectDocumentMetadata(uuid: DocumentUuid): Query0[Metadata] =
+  def selectDocumentMetadata(uuid: DocumentId): Query0[Metadata] =
     sql"""
          |SELECT
          |  d.name,
@@ -93,7 +93,7 @@ private object Statements:
          |WHERE d.uuid = $uuid
     """.stripMargin.query[Metadata]
 
-  def selectDocumentBytes(uuid: DocumentUuid): Query0[Array[Byte]] =
+  def selectDocumentBytes(uuid: DocumentId): Query0[Array[Byte]] =
     sql"""
          |SELECT
          |  d.bytes
@@ -111,7 +111,7 @@ private object Statements:
          |FROM domain.documents d
     """.stripMargin.query[DocumentWithUuid[F]].stream
 
-  def delete(uuid: DocumentUuid): Update0 =
+  def delete(uuid: DocumentId): Update0 =
     sql"""
          |DELETE
          |FROM domain.documents d

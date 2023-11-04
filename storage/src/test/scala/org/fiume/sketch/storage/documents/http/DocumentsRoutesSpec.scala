@@ -11,7 +11,7 @@ import org.fiume.sketch.shared.app.troubleshooting.{ErrorInfo, ErrorMessage}
 import org.fiume.sketch.shared.app.troubleshooting.http.json.ErrorInfoCodecs.given
 import org.fiume.sketch.shared.testkit.{ContractContext, Http4sTestingRoutesDsl}
 import org.fiume.sketch.shared.testkit.EitherSyntax.*
-import org.fiume.sketch.storage.documents.{Document, DocumentUuid, DocumentWithUuid}
+import org.fiume.sketch.storage.documents.{Document, DocumentId, DocumentWithUuid}
 import org.fiume.sketch.storage.documents.Document.Metadata
 import org.fiume.sketch.storage.documents.algebras.DocumentsStore
 import org.fiume.sketch.storage.documents.http.DocumentsRoutes.Model.*
@@ -57,10 +57,10 @@ class DocumentsRoutesSpec
           .to(documentsRoutes.router())
           .expectJsonResponseWith(Status.Created)
 
-        storedMetadata <- store.fetchMetadata(jsonResponse.as[DocumentUuid].rightValue)
+        storedMetadata <- store.fetchMetadata(jsonResponse.as[DocumentId].rightValue)
         uploadedContent <- bytesFrom[IO]("mountain-bike-liguria-ponent.jpg").compile.toList
         storedBytes <- OptionT(
-          store.fetchContent(jsonResponse.as[DocumentUuid].rightValue)
+          store.fetchContent(jsonResponse.as[DocumentId].rightValue)
         ).semiflatMap(_.compile.toList).value
         _ <- IO {
           assertEquals(storedMetadata.map(_.toPayload), metadataPayload.some)
@@ -312,12 +312,12 @@ trait DocumentsStoreContext:
   def makeDocumentsStore(state: DocumentWithUuid[IO]): IO[DocumentsStore[IO, IO]] =
     makeDocumentsStore(Map(state.uuid -> state))
 
-  private def makeDocumentsStore(state: Map[DocumentUuid, DocumentWithUuid[IO]]): IO[DocumentsStore[IO, IO]] =
-    Ref.of[IO, Map[DocumentUuid, DocumentWithUuid[IO]]](state).map { storage =>
+  private def makeDocumentsStore(state: Map[DocumentId, DocumentWithUuid[IO]]): IO[DocumentsStore[IO, IO]] =
+    Ref.of[IO, Map[DocumentId, DocumentWithUuid[IO]]](state).map { storage =>
       new DocumentsStore[IO, IO]:
 
-        def store(document: Document[IO]): IO[DocumentUuid] =
-          IO.randomUUID.map(DocumentUuid(_)).flatMap { uuid =>
+        def store(document: Document[IO]): IO[DocumentId] =
+          IO.randomUUID.map(DocumentId(_)).flatMap { uuid =>
             storage
               .update {
                 val DocumentWithUuid = Document.withUuid[IO](uuid, document.metadata, document.content)
@@ -335,19 +335,19 @@ trait DocumentsStoreContext:
             }
           }.void
 
-        def fetchMetadata(uuid: DocumentUuid): IO[Option[Metadata]] =
+        def fetchMetadata(uuid: DocumentId): IO[Option[Metadata]] =
           storage.get.map(_.collectFirst {
             case (storedUuid, document) if storedUuid === uuid => document.metadata
           })
 
-        def fetchContent(uuid: DocumentUuid): IO[Option[fs2.Stream[IO, Byte]]] =
+        def fetchContent(uuid: DocumentId): IO[Option[fs2.Stream[IO, Byte]]] =
           storage.get.map(_.collectFirst {
             case (storedUuid, document) if storedUuid === uuid => document.content
           })
 
         def fetchAll(): Stream[IO, DocumentWithUuid[IO]] = ??? // TODO
 
-        def delete(uuid: DocumentUuid): IO[Unit] =
+        def delete(uuid: DocumentId): IO[Unit] =
           storage.update { _.removed(uuid) }
 
         val commit: [A] => IO[A] => IO[A] = [A] => (action: IO[A]) => action

@@ -14,12 +14,12 @@ import org.fiume.sketch.shared.app.troubleshooting.ErrorDetails
 import org.fiume.sketch.shared.app.troubleshooting.ErrorInfo.given
 import org.fiume.sketch.shared.app.troubleshooting.InvariantErrorSyntax.asDetails
 import org.fiume.sketch.shared.auth0.User
-import org.fiume.sketch.storage.documents.{Document, DocumentUuid, DocumentWithUuid}
+import org.fiume.sketch.storage.documents.{Document, DocumentId, DocumentWithUuid}
 import org.fiume.sketch.storage.documents.Document.Metadata
 import org.fiume.sketch.storage.documents.Document.Metadata.*
 import org.fiume.sketch.storage.documents.algebras.DocumentsStore
 import org.fiume.sketch.storage.documents.http.DocumentsRoutes.{
-  DocumentUuidVar,
+  DocumentIdVar,
   Line,
   Linebreak,
   NewlineDelimitedJson,
@@ -66,13 +66,13 @@ class DocumentsRoutes[F[_]: Concurrent, Txn[_]](
           yield created
         }
 
-      case GET -> Root / "documents" / DocumentUuidVar(uuid) / "metadata" as user =>
+      case GET -> Root / "documents" / DocumentIdVar(uuid) / "metadata" as user =>
         for
           metadata <- store.commit { store.fetchMetadata(uuid) }
           res <- metadata.map(_.toPayload).fold(ifEmpty = NotFound())(Ok(_))
         yield res
 
-      case GET -> Root / "documents" / DocumentUuidVar(uuid) as user =>
+      case GET -> Root / "documents" / DocumentIdVar(uuid) as user =>
         for
           stream <- store.commit { store.fetchContent(uuid) }
           res <- stream.fold(ifEmpty = NotFound())(Ok(_, `Content-Disposition`("attachment", Map.empty)))
@@ -87,7 +87,7 @@ class DocumentsRoutes[F[_]: Concurrent, Txn[_]](
           .intersperse(Linebreak)
         Ok(responseStream)
 
-      case DELETE -> Root / "documents" / DocumentUuidVar(uuid) as user =>
+      case DELETE -> Root / "documents" / DocumentIdVar(uuid) as user =>
         for
           metadata <- store.commit { store.fetchMetadata(uuid) }
           res <- metadata match
@@ -97,8 +97,8 @@ class DocumentsRoutes[F[_]: Concurrent, Txn[_]](
     }
 
 private[http] object DocumentsRoutes:
-  object DocumentUuidVar:
-    def unapply(value: String): Option[DocumentUuid] = DocumentUuid.fromString(value).toOption
+  object DocumentIdVar:
+    def unapply(value: String): Option[DocumentId] = DocumentId.fromString(value).toOption
 
   sealed trait NewlineDelimitedJson
   case class Line(json: JJson) extends NewlineDelimitedJson
@@ -116,7 +116,7 @@ private[http] object DocumentsRoutes:
 
   object Model:
     case class MetadataPayload(name: String, description: String)
-    case class DocumentResponsePayload(uuid: DocumentUuid, metadata: MetadataPayload, contentLink: Uri)
+    case class DocumentResponsePayload(uuid: DocumentId, metadata: MetadataPayload, contentLink: Uri)
 
     extension (m: Metadata) def toPayload: MetadataPayload = MetadataPayload(m.name.value, m.description.value)
 
@@ -186,13 +186,13 @@ private[http] object DocumentsRoutes:
         Uri.fromString(uri).leftMap { e => e.getMessage }
       }
 
-      given Encoder[DocumentUuid] = new Encoder[DocumentUuid]:
-        override def apply(uuid: DocumentUuid): JJson = JJson.obj("uuid" -> JJson.fromString(uuid.value.toString))
+      given Encoder[DocumentId] = new Encoder[DocumentId]:
+        override def apply(uuid: DocumentId): JJson = JJson.obj("uuid" -> JJson.fromString(uuid.value.toString))
 
-      given Decoder[DocumentUuid] = new Decoder[DocumentUuid]:
-        override def apply(c: HCursor): Result[DocumentUuid] =
+      given Decoder[DocumentId] = new Decoder[DocumentId]:
+        override def apply(c: HCursor): Result[DocumentId] =
           c.downField("uuid").as[String].flatMap { uuid =>
-            DocumentUuid.fromString(uuid).leftMap { e => DecodingFailure(e.getMessage, c.history) }
+            DocumentId.fromString(uuid).leftMap { e => DecodingFailure(e.getMessage, c.history) }
           }
 
       given Encoder[MetadataPayload] = new Encoder[MetadataPayload]:
