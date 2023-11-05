@@ -38,7 +38,7 @@ val IntegrationTests = config("it").extend(Test)
 
 lazy val auth0 =
    project.in(file("auth0"))
-     .dependsOn(sharedAuth0 % "test->test;compile->compile")
+     .dependsOn(sharedAuth0 % "compile->compile;test->test")
      .dependsOn(sharedTestComponents % Test)
      .disablePlugins(plugins.JUnitXmlReportPlugin)
      .settings(commonSettings: _*)
@@ -221,7 +221,7 @@ lazy val sketch =
 
 lazy val storage =
    project.in(file("storage"))
-     .dependsOn(sharedAuth0 % "test->test;compile->compile")
+     .dependsOn(sharedAuth0 % "compile->compile;test->test")
      .dependsOn(sharedComponents)
      .dependsOn(sharedTestComponents % Test)
      .disablePlugins(plugins.JUnitXmlReportPlugin)
