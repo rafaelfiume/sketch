@@ -8,6 +8,7 @@ import doobie.*
 import doobie.free.connection.ConnectionIO
 import doobie.implicits.*
 import fs2.Stream
+import org.fiume.sketch.storage.auth0.postgres.DoobieMappings.given
 import org.fiume.sketch.storage.documents.{Document, DocumentId, DocumentWithId}
 import org.fiume.sketch.storage.documents.Document.Metadata
 import org.fiume.sketch.storage.documents.algebras.DocumentsStore
@@ -65,11 +66,13 @@ private object Statements:
          |INSERT INTO domain.documents(
          |  name,
          |  description,
+         |  created_by,
          |  bytes
          |)
          |VALUES (
          |  ${metadata.name},
          |  ${metadata.description},
+         |  ${metadata.createdBy},
          |  $content
          |)
     """.stripMargin.update
@@ -80,6 +83,7 @@ private object Statements:
          |SET
          |  name = ${metadata.name},
          |  description = ${metadata.description},
+         |  created_by = ${metadata.createdBy},
          |  bytes = $content
          |WHERE uuid = $uuid
     """.stripMargin.update
@@ -88,7 +92,8 @@ private object Statements:
     sql"""
          |SELECT
          |  d.name,
-         |  d.description
+         |  d.description,
+         |  d.created_by
          |FROM domain.documents d
          |WHERE d.uuid = $uuid
     """.stripMargin.query[Metadata]
@@ -107,6 +112,7 @@ private object Statements:
          |  d.uuid,
          |  d.name,
          |  d.description,
+         |  d.created_by,
          |  ''::bytea as content
          |FROM domain.documents d
     """.stripMargin.query[DocumentWithId[F]].stream

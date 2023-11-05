@@ -6,6 +6,7 @@ import cats.implicits.*
 import fs2.Stream
 import org.fiume.sketch.shared.app.{Entity, EntityUuid, WithUuid}
 import org.fiume.sketch.shared.app.troubleshooting.{InvariantError, InvariantHolder}
+import org.fiume.sketch.shared.auth0.UserId
 import org.fiume.sketch.storage.documents.Document.Metadata
 import org.fiume.sketch.storage.documents.Document.Metadata.*
 import org.fiume.sketch.storage.documents.Document.Metadata.Name.InvalidDocumentNameError
@@ -39,7 +40,7 @@ object Document:
     def withUuid(uuid: DocumentId): Document[F] & WithUuid[DocumentId] =
       Document.withUuid[F](uuid, document.metadata, document.content)
 
-  case class Metadata(name: Name, description: Description)
+  case class Metadata(name: Name, description: Description, createdBy: UserId)
 
   object Metadata:
     sealed abstract case class Name(value: String)

@@ -46,7 +46,7 @@ CREATE TABLE domain.documents (
   name VARCHAR NOT NULL,
   description VARCHAR,
   bytes BYTEA,
---  created_by UUID NOT NULL REFERENCES auth.users(uuid),
+  created_by UUID NOT NULL,--REFERENCES auth.users(uuid), Worth the trouble?
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );

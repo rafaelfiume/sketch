@@ -2,6 +2,7 @@ package org.fiume.sketch.storage.testkit
 
 import cats.effect.IO
 import fs2.Stream
+import org.fiume.sketch.shared.auth0.testkit.UserGens.userIds
 import org.fiume.sketch.shared.testkit.Gens.Bytes.*
 import org.fiume.sketch.shared.testkit.Gens.Strings.*
 import org.fiume.sketch.storage.documents.{Document, DocumentId, DocumentWithId}
@@ -60,7 +61,8 @@ object DocumentsGens:
     for
       name <- validNames
       description <- descriptions
-    yield Metadata(name, description)
+      createdBy <- userIds
+    yield Metadata(name, description, createdBy)
 
   given Arbitrary[Stream[IO, Byte]] = Arbitrary(bytesG)
   def bytesG: Gen[Stream[IO, Byte]] = Gen.nonEmptyListOf(bytes).map(Stream.emits)

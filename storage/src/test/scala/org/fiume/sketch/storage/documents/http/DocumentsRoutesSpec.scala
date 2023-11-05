@@ -9,6 +9,9 @@ import munit.Assertions.*
 import org.fiume.sketch.shared.app.http4s.middlewares.{SemanticInputError, SemanticValidationMiddleware}
 import org.fiume.sketch.shared.app.troubleshooting.{ErrorInfo, ErrorMessage}
 import org.fiume.sketch.shared.app.troubleshooting.http.json.ErrorInfoCodecs.given
+import org.fiume.sketch.shared.auth0.User
+import org.fiume.sketch.shared.auth0.testkit.UserGens.given
+import org.fiume.sketch.shared.auth0.testkit.UserGens.userIds
 import org.fiume.sketch.shared.testkit.{ContractContext, Http4sTestingRoutesDsl}
 import org.fiume.sketch.shared.testkit.EitherSyntax.*
 import org.fiume.sketch.storage.documents.{Document, DocumentId, DocumentWithId}
@@ -16,7 +19,6 @@ import org.fiume.sketch.storage.documents.Document.Metadata
 import org.fiume.sketch.storage.documents.algebras.DocumentsStore
 import org.fiume.sketch.storage.documents.http.DocumentsRoutes.Model.*
 import org.fiume.sketch.storage.documents.http.DocumentsRoutes.Model.Json.given
-import org.fiume.sketch.storage.testkit.DocumentsGens
 import org.fiume.sketch.storage.testkit.DocumentsGens.*
 import org.fiume.sketch.storage.testkit.DocumentsGens.given
 import org.http4s.{MediaType, *}
@@ -25,6 +27,7 @@ import org.http4s.client.dsl.io.*
 import org.http4s.headers.`Content-Type`
 import org.http4s.implicits.*
 import org.http4s.multipart.{Boundary, Multipart, Part}
+import org.http4s.server.AuthMiddleware
 import org.scalacheck.{Arbitrary, Gen, ShrinkLowPriority}
 import org.scalacheck.effect.PropF.forAllF
 
@@ -40,7 +43,7 @@ class DocumentsRoutesSpec
   override def scalaCheckTestParameters = super.scalaCheckTestParameters.withMinSuccessfulTests(10)
 
   test("Post document"):
-    forAllF { (metadataPayload: MetadataPayload) =>
+    forAllF { (metadataPayload: MetadataRequestPayload, user: User) =>
       val multipart = Multipart[IO](
         parts = Vector(
           Part.formData("metadata", metadataPayload.asJson.spaces2SortKeys),
@@ -51,7 +54,8 @@ class DocumentsRoutesSpec
       val request = POST(uri"/documents").withEntity(multipart).withHeaders(multipart.headers)
       for
         store <- makeDocumentsStore()
-        documentsRoutes <- makeDocumentsRoutes(store)
+        authMiddleware = makeAuthMiddleware(authenticated = user)
+        documentsRoutes <- makeDocumentsRoutes(authMiddleware, store)
 
         jsonResponse <- send(request)
           .to(documentsRoutes.router())
@@ -63,7 +67,10 @@ class DocumentsRoutesSpec
           store.fetchContent(jsonResponse.as[DocumentId].rightValue)
         ).semiflatMap(_.compile.toList).value
         _ <- IO {
-          assertEquals(storedMetadata.map(_.toPayload), metadataPayload.some)
+          assertEquals(
+            storedMetadata.map(_.toResponsePayload),
+            MetadataResponsePayload(metadataPayload.name, metadataPayload.description, user.uuid.value.toString).some
+          )
           assertEquals(storedBytes.map(_.toList), uploadedContent.some)
         }
       yield ()
@@ -74,7 +81,8 @@ class DocumentsRoutesSpec
       val request = GET(Uri.unsafeFromString(s"/documents/${document.uuid.value}/metadata"))
       for
         store <- makeDocumentsStore(state = document)
-        documentsRoutes <- makeDocumentsRoutes(store)
+        authMiddleware = makeAuthMiddleware()
+        documentsRoutes <- makeDocumentsRoutes(authMiddleware, store)
 
         jsonResponse <- send(request)
           .to(documentsRoutes.router())
@@ -82,8 +90,8 @@ class DocumentsRoutesSpec
 
         _ <- IO {
           assertEquals(
-            jsonResponse.as[MetadataPayload].rightValue,
-            document.metadata.toPayload
+            jsonResponse.as[MetadataResponsePayload].rightValue,
+            document.metadata.toResponsePayload
           )
         }
       yield ()
@@ -94,7 +102,8 @@ class DocumentsRoutesSpec
       val request = GET(Uri.unsafeFromString(s"/documents/${document.uuid.value}"))
       for
         store <- makeDocumentsStore(state = document)
-        documentsRoutes <- makeDocumentsRoutes(store)
+        authMiddleware = makeAuthMiddleware()
+        documentsRoutes <- makeDocumentsRoutes(authMiddleware, store)
 
         contentStream <- send(request)
           .to(documentsRoutes.router())
@@ -113,7 +122,8 @@ class DocumentsRoutesSpec
       val request = DELETE(Uri.unsafeFromString(s"/documents/${document.uuid.value}"))
       for
         store <- makeDocumentsStore(state = document)
-        documentsRoutes <- makeDocumentsRoutes(store)
+        authMiddleware = makeAuthMiddleware()
+        documentsRoutes <- makeDocumentsRoutes(authMiddleware, store)
 
         _ <- send(request)
           .to(documentsRoutes.router())
@@ -135,7 +145,8 @@ class DocumentsRoutesSpec
       val request = DELETE(Uri.unsafeFromString(s"/documents/${document.uuid.value}"))
       for
         store <- makeDocumentsStore()
-        documentsRoutes <- makeDocumentsRoutes(store)
+        authMiddleware = makeAuthMiddleware()
+        documentsRoutes <- makeDocumentsRoutes(authMiddleware, store)
         _ <- send(request)
           .to(documentsRoutes.router())
           .expectEmptyResponseWith(Status.NotFound)
@@ -148,7 +159,8 @@ class DocumentsRoutesSpec
     forAllF(semanticallyInvalidDocumentRequests) { (multipart: Multipart[IO]) =>
       for
         store <- makeDocumentsStore()
-        documentsRoutes <- makeDocumentsRoutes(store)
+        authMiddleware = makeAuthMiddleware()
+        documentsRoutes <- makeDocumentsRoutes(authMiddleware, store)
 
         request = POST(uri"/documents").withEntity(multipart).withHeaders(multipart.headers)
         result <- send(request)
@@ -172,7 +184,8 @@ class DocumentsRoutesSpec
     forAllF(malformedDocumentRequests) { (multipart: Multipart[IO]) =>
       for
         store <- makeDocumentsStore()
-        documentsRoutes <- makeDocumentsRoutes(store)
+        authMiddleware = makeAuthMiddleware()
+        documentsRoutes <- makeDocumentsRoutes(authMiddleware, store)
 
         request = POST(uri"/documents").withEntity(multipart).withHeaders(multipart.headers)
         result <- send(request)
@@ -194,7 +207,7 @@ class DocumentsRoutesSpec
    */
 
   test("bijective relationship between encoded and decoded Documents.Metadata"):
-    assertBijectiveRelationshipBetweenEncoderAndDecoder[MetadataPayload](
+    assertBijectiveRelationshipBetweenEncoderAndDecoder[MetadataRequestPayload](
       "contract/documents/http/metadata.json"
     )
 
@@ -202,8 +215,9 @@ class DocumentsRoutesSpec
     /* Also see `given accumulatingParallel: cats.Parallel[EitherT[IO, String, *]] = EitherT.accumulatingParallel` */
     // no metadata part / no bytes part
     val noMultiparts = Multipart[IO](parts = Vector.empty, boundary = Boundary("boundary"))
+    val createdBy = userIds.sample.get
     for
-      inputErrors <- noMultiparts.validated().attempt.map(_.leftValue)
+      inputErrors <- noMultiparts.validated(createdBy).attempt.map(_.leftValue)
 
       _ <- IO {
         assert(
@@ -219,8 +233,8 @@ trait DocumentsRoutesSpecContext extends AuthMiddlewareContext:
 
   def montainBikeInLiguriaImageFile = getClass.getClassLoader.getResource("mountain-bike-liguria-ponent.jpg")
 
-  given Arbitrary[MetadataPayload] = Arbitrary(metadataPayloads)
-  def metadataPayloads: Gen[MetadataPayload] = metadataG.map(_.toPayload) :| "metadataPayloads"
+  given Arbitrary[MetadataRequestPayload] = Arbitrary(metadataRequestPayloads)
+  def metadataRequestPayloads: Gen[MetadataRequestPayload] = metadataG.map(_.toRequestPayload) :| "metadataRequestPayloads"
 
   def malformedDocumentRequests: Gen[Multipart[IO]] = Gen.delay {
     Multipart[IO](
@@ -238,7 +252,7 @@ trait DocumentsRoutesSpecContext extends AuthMiddlewareContext:
     invalidTooShortDocumentName
   )
 
-  private def invalidPartWithNoContent: Gen[Multipart[IO]] = metadataPayloads.flatMap { metadata =>
+  private def invalidPartWithNoContent: Gen[Multipart[IO]] = metadataRequestPayloads.flatMap { metadata =>
     Gen.delay {
       Multipart[IO](
         // no file mamma!
@@ -261,7 +275,7 @@ trait DocumentsRoutesSpecContext extends AuthMiddlewareContext:
   def invalidTooShortDocumentName: Gen[Multipart[IO]] =
     (for
       name <- shortNames
-      metadata <- metadataPayloads.map(_.copy(name = name))
+      metadata <- metadataRequestPayloads.map(_.copy(name = name))
     yield Multipart[IO](
       parts = Vector(
         Part.formData("metadata", metadata.asJson.spaces2SortKeys),
@@ -270,8 +284,9 @@ trait DocumentsRoutesSpecContext extends AuthMiddlewareContext:
       boundary = Boundary("boundary")
     )) :| "invalidTooShortDocumentName"
 
-  def makeDocumentsRoutes(withStore: DocumentsStore[IO, IO]): IO[DocumentsRoutes[IO, IO]] =
-    val authMiddleware = makeAuthMiddleware()
+  def makeDocumentsRoutes(authMiddleware: AuthMiddleware[IO, User],
+                          withStore: DocumentsStore[IO, IO]
+  ): IO[DocumentsRoutes[IO, IO]] =
     val documentBytesSizeLimit = 5 * 1024 * 1024
     IO.delay { new DocumentsRoutes[IO, IO](authMiddleware, documentBytesSizeLimit, withStore) }
 
@@ -292,7 +307,11 @@ trait AuthMiddlewareContext:
 
   def makeAuthMiddleware(): AuthMiddleware[IO, User] =
     def aUser(): User = users.sample.get
-    def verify: Kleisli[IO, Request[IO], Either[String, User]] = Kleisli.liftF(aUser().asRight[String].pure[IO])
+    makeAuthMiddleware(aUser())
+
+  def makeAuthMiddleware(authenticated: User): AuthMiddleware[IO, User] =
+    def verify: Kleisli[IO, Request[IO], Either[String, User]] = Kleisli.liftF(authenticated.asRight[String].pure[IO])
+
     val onFailure: AuthedRoutes[String, IO] = Kleisli { cx =>
       OptionT.pure(
         Response[IO](Status.Unauthorized)
