@@ -14,7 +14,7 @@ import org.fiume.sketch.shared.app.troubleshooting.ErrorDetails
 import org.fiume.sketch.shared.app.troubleshooting.ErrorInfo.given
 import org.fiume.sketch.shared.app.troubleshooting.InvariantErrorSyntax.asDetails
 import org.fiume.sketch.shared.auth0.{User, UserId}
-import org.fiume.sketch.storage.documents.{Document, DocumentId, DocumentWithId}
+import org.fiume.sketch.storage.documents.{Document, DocumentId, DocumentWithId, DocumentWithStream}
 import org.fiume.sketch.storage.documents.Document.Metadata
 import org.fiume.sketch.storage.documents.Document.Metadata.*
 import org.fiume.sketch.storage.documents.algebras.DocumentsStore
@@ -126,12 +126,12 @@ private[http] object DocumentsRoutes:
       def toResponsePayload: MetadataResponsePayload =
         MetadataResponsePayload(m.name.value, m.description.value, m.createdBy.value.toString, m.ownedBy.value.toString)
 
-    extension [F[_]](d: DocumentWithId[F])
+    extension [F[_]](d: DocumentWithId)
       def toResponsePayload: DocumentResponsePayload =
         DocumentResponsePayload(d.uuid, d.metadata.toResponsePayload, Uri.unsafeFromString(s"/documents/${d.uuid.toString}"))
 
     extension [F[_]: MonadThrow: Concurrent](m: Multipart[F])
-      def validated(authorId: UserId): F[Document[F]] =
+      def validated(authorId: UserId): F[DocumentWithStream[F]] =
         (m.metadata(), m.bytes()).parTupled
           .foldF(
             details => SemanticInputError.makeFrom(details).raiseError,
@@ -155,11 +155,12 @@ private[http] object DocumentsRoutes:
               EitherT.pure(Description(payload.description)),
               EitherT.pure(stream),
               EitherT.fromEither(UserId.fromString(payload.ownedBy).leftMap(_.asDetails)) // Yolo
-            ).parMapN((name, description, bytes, ownedBy) => Document(Metadata(name, description, authorId, ownedBy), bytes))
-              .foldF(
-                details => SemanticInputError.makeFrom(details).raiseError,
-                _.pure[F]
-              )
+            ).parMapN((name, description, bytes, ownedBy) =>
+              Document.withStream[F](bytes, Metadata(name, description, authorId, ownedBy))
+            ).foldF(
+              details => SemanticInputError.makeFrom(details).raiseError,
+              _.pure[F]
+            )
           }
 
       private def metadata(): EitherT[F, ErrorDetails, Part[F]] = EitherT

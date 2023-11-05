@@ -6,6 +6,7 @@ import cats.implicits.*
 import io.circe.syntax.*
 import munit.{CatsEffectSuite, ScalaCheckEffectSuite}
 import munit.Assertions.*
+import org.fiume.sketch.shared.app.WithUuid
 import org.fiume.sketch.shared.app.http4s.middlewares.{SemanticInputError, SemanticValidationMiddleware}
 import org.fiume.sketch.shared.app.troubleshooting.{ErrorInfo, ErrorMessage}
 import org.fiume.sketch.shared.app.troubleshooting.http.json.ErrorInfoCodecs.given
@@ -14,7 +15,7 @@ import org.fiume.sketch.shared.auth0.testkit.UserGens.given
 import org.fiume.sketch.shared.auth0.testkit.UserGens.userIds
 import org.fiume.sketch.shared.testkit.{ContractContext, Http4sTestingRoutesDsl}
 import org.fiume.sketch.shared.testkit.EitherSyntax.*
-import org.fiume.sketch.storage.documents.{Document, DocumentId, DocumentWithId}
+import org.fiume.sketch.storage.documents.{Document, DocumentId, DocumentWithStream, DocumentWithUuidAndStream}
 import org.fiume.sketch.storage.documents.Document.Metadata
 import org.fiume.sketch.storage.documents.algebras.DocumentsStore
 import org.fiume.sketch.storage.documents.http.DocumentsRoutes.Model.*
@@ -82,7 +83,7 @@ class DocumentsRoutesSpec
     }
 
   test("Get document metadata"):
-    forAllF { (document: DocumentWithId[IO]) =>
+    forAllF { (document: DocumentWithUuidAndStream[IO]) =>
       val request = GET(Uri.unsafeFromString(s"/documents/${document.uuid.value}/metadata"))
       for
         store <- makeDocumentsStore(state = document)
@@ -103,7 +104,7 @@ class DocumentsRoutesSpec
     }
 
   test("Get document content"):
-    forAllF { (document: DocumentWithId[IO]) =>
+    forAllF { (document: DocumentWithUuidAndStream[IO]) =>
       val request = GET(Uri.unsafeFromString(s"/documents/${document.uuid.value}"))
       for
         store <- makeDocumentsStore(state = document)
@@ -115,7 +116,7 @@ class DocumentsRoutesSpec
           .expectByteStreamResponseWith(Status.Ok)
 
         obtainedStream <- contentStream.compile.toList
-        expectedStream <- document.content.compile.toList
+        expectedStream <- document.stream.compile.toList
         _ <- IO {
           assertEquals(obtainedStream, expectedStream)
         }
@@ -123,7 +124,7 @@ class DocumentsRoutesSpec
     }
 
   test("Delete document"):
-    forAllF { (document: DocumentWithId[IO]) =>
+    forAllF { (document: DocumentWithUuidAndStream[IO]) =>
       val request = DELETE(Uri.unsafeFromString(s"/documents/${document.uuid.value}"))
       for
         store <- makeDocumentsStore(state = document)
@@ -146,7 +147,7 @@ class DocumentsRoutesSpec
     }
 
   test("Delete unexistent document == not found"):
-    forAllF { (document: DocumentWithId[IO]) =>
+    forAllF { (document: DocumentWithUuidAndStream[IO]) =>
       val request = DELETE(Uri.unsafeFromString(s"/documents/${document.uuid.value}"))
       for
         store <- makeDocumentsStore()
@@ -330,34 +331,28 @@ trait AuthMiddlewareContext:
 
 trait DocumentsStoreContext:
   import fs2.Stream
+  import org.fiume.sketch.storage.documents.{Document, DocumentId, DocumentWithId, WithStream}
 
   def makeDocumentsStore(): IO[DocumentsStore[IO, IO]] = makeDocumentsStore(state = Map.empty)
 
-  def makeDocumentsStore(state: DocumentWithId[IO]): IO[DocumentsStore[IO, IO]] =
+  def makeDocumentsStore(state: DocumentWithUuidAndStream[IO]): IO[DocumentsStore[IO, IO]] =
     makeDocumentsStore(Map(state.uuid -> state))
 
-  private def makeDocumentsStore(state: Map[DocumentId, DocumentWithId[IO]]): IO[DocumentsStore[IO, IO]] =
-    Ref.of[IO, Map[DocumentId, DocumentWithId[IO]]](state).map { storage =>
+  private def makeDocumentsStore(state: Map[DocumentId, DocumentWithUuidAndStream[IO]]): IO[DocumentsStore[IO, IO]] =
+    Ref.of[IO, Map[DocumentId, DocumentWithUuidAndStream[IO]]](state).map { storage =>
       new DocumentsStore[IO, IO]:
-
-        def store(document: Document[IO]): IO[DocumentId] =
+        def store(document: DocumentWithStream[IO]): IO[DocumentId] =
+          import scala.language.adhocExtensions
           IO.randomUUID.map(DocumentId(_)).flatMap { uuid =>
             storage
               .update {
-                val DocumentWithId = Document.withUuid[IO](uuid, document.metadata, document.content)
-                _.updated(uuid, DocumentWithId)
+                val doc = new Document(document.metadata) with WithUuid[DocumentId] with WithStream[IO]:
+                  val uuid = uuid
+                  val stream = document.stream
+                _.updated(uuid, doc)
               }
               .as(uuid)
           }
-
-        def update(document: DocumentWithId[IO]): IO[Unit] =
-          storage.update {
-            _.updatedWith(document.uuid) {
-              case Some(document) =>
-                Document.withUuid[IO](document.uuid, document.metadata, document.content).some
-              case None => none
-            }
-          }.void
 
         def fetchMetadata(uuid: DocumentId): IO[Option[Metadata]] =
           storage.get.map(_.collectFirst {
@@ -366,10 +361,10 @@ trait DocumentsStoreContext:
 
         def fetchContent(uuid: DocumentId): IO[Option[fs2.Stream[IO, Byte]]] =
           storage.get.map(_.collectFirst {
-            case (storedUuid, document) if storedUuid === uuid => document.content
+            case (storedUuid, document) if storedUuid === uuid => document.stream
           })
 
-        def fetchAll(): Stream[IO, DocumentWithId[IO]] = ??? // TODO
+        def fetchAll(): Stream[IO, DocumentWithId] = ??? // TODO
 
         def delete(uuid: DocumentId): IO[Unit] =
           storage.update { _.removed(uuid) }

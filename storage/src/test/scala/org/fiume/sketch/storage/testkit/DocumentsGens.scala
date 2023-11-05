@@ -2,10 +2,11 @@ package org.fiume.sketch.storage.testkit
 
 import cats.effect.IO
 import fs2.Stream
+import org.fiume.sketch.shared.app.WithUuid
 import org.fiume.sketch.shared.auth0.testkit.UserGens.userIds
 import org.fiume.sketch.shared.testkit.Gens.Bytes.*
 import org.fiume.sketch.shared.testkit.Gens.Strings.*
-import org.fiume.sketch.storage.documents.{Document, DocumentId, DocumentWithId}
+import org.fiume.sketch.storage.documents.{Document, DocumentId, DocumentWithId, DocumentWithStream, DocumentWithUuidAndStream, WithStream}
 import org.fiume.sketch.storage.documents.Document.Metadata
 import org.fiume.sketch.storage.documents.Document.Metadata.*
 import org.scalacheck.{Arbitrary, Gen}
@@ -68,19 +69,35 @@ object DocumentsGens:
   given Arbitrary[Stream[IO, Byte]] = Arbitrary(bytesG)
   def bytesG: Gen[Stream[IO, Byte]] = Gen.nonEmptyListOf(bytes).map(Stream.emits)
 
-  given Arbitrary[Document[IO]] = Arbitrary(documents)
-  def documents: Gen[Document[IO]] =
-    for
-      metadata <- metadataG
-      content <- bytesG
-    yield Document(metadata, content)
+  given Arbitrary[Document] = Arbitrary(documents)
+  def documents: Gen[Document] =
+    for metadata <- metadataG
+    yield Document(metadata)
 
-  given Arbitrary[DocumentWithId[IO]] = Arbitrary(documentsWithId)
-  def documentsWithId: Gen[DocumentWithId[IO]] =
+  given Arbitrary[DocumentWithId] = Arbitrary(documentsWithId)
+  def documentsWithId: Gen[DocumentWithId] =
     for
       uuid <- Gen.delay(UUID.randomUUID()).map(DocumentId(_))
       document <- documents
-    yield Document.withUuid(uuid, document.metadata, document.content)
+    yield Document.withUuid(uuid, document.metadata)
+
+  given Arbitrary[DocumentWithStream[IO]] = Arbitrary(documentsWithStream)
+  def documentsWithStream: Gen[DocumentWithStream[IO]] =
+    for
+      metadata <- metadataG
+      content <- bytesG
+    yield Document.withStream[IO](content, metadata)
+
+  import scala.language.adhocExtensions
+  given Arbitrary[DocumentWithUuidAndStream[IO]] = Arbitrary(documentWithUuidAndStreams)
+  def documentWithUuidAndStreams: Gen[DocumentWithUuidAndStream[IO]] =
+    for
+      uuid0 <- Gen.delay(UUID.randomUUID()).map(DocumentId(_))
+      metadata <- metadataG
+      stream0 <- bytesG
+    yield new Document(metadata) with WithUuid[DocumentId] with WithStream[IO]:
+      val uuid = uuid0
+      val stream = stream0
 
 private def nameChars: Gen[Char] =
   Gen.frequency(9 -> Gen.alphaNumChar, 1 -> Gen.const(' '), 1 -> Gen.const('_'), 1 -> Gen.const('-'), 1 -> Gen.const('.'))

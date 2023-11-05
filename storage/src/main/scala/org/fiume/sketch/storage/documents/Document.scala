@@ -3,7 +3,6 @@ package org.fiume.sketch.storage.documents
 import cats.Eq
 import cats.data.{EitherNec, Validated}
 import cats.implicits.*
-import fs2.Stream
 import org.fiume.sketch.shared.app.{Entity, EntityUuid, InvalidId, WithUuid}
 import org.fiume.sketch.shared.app.troubleshooting.InvariantError
 import org.fiume.sketch.shared.auth0.UserId
@@ -20,25 +19,25 @@ object DocumentId:
   def fromString(uuid: String): Either[InvalidId, DocumentId] = EntityUuid.fromString[DocumentEntity]("document.id")(uuid)
 sealed trait DocumentEntity extends Entity
 
-type DocumentWithId[F[_]] = Document[F] & WithUuid[DocumentId]
+case class Document(metadata: Metadata)
 
-case class Document[F[_]](
-  metadata: Metadata,
-  content: Stream[F, Byte]
-)
+type DocumentWithId = Document & WithUuid[DocumentId]
+
+trait WithStream[F[_]]:
+  val stream: fs2.Stream[F, Byte]
+
+type DocumentWithStream[F[_]] = Document & WithStream[F]
+
+type DocumentWithUuidAndStream[F[_]] = Document & WithUuid[DocumentId] & WithStream[F]
 
 object Document:
-  def withUuid[F[_]](
-    uuid0: DocumentId,
-    metadata: Metadata,
-    content: Stream[F, Byte]
-  ): Document[F] & WithUuid[DocumentId] =
-    new Document[F](metadata, content) with WithUuid[DocumentId]:
+  def withUuid(uuid0: DocumentId, metadata: Metadata): Document & WithUuid[DocumentId] =
+    new Document(metadata) with WithUuid[DocumentId]:
       override val uuid: DocumentId = uuid0
 
-  extension [F[_]](document: Document[F])
-    def withUuid(uuid: DocumentId): Document[F] & WithUuid[DocumentId] =
-      Document.withUuid[F](uuid, document.metadata, document.content)
+  def withStream[F[_]](stream0: fs2.Stream[F, Byte], metadata: Metadata): Document & WithStream[F] =
+    new Document(metadata) with WithStream[F]:
+      override val stream: fs2.Stream[F, Byte] = stream0
 
   case class Metadata(name: Name, description: Description, createdBy: UserId, ownedBy: UserId)
 
@@ -79,3 +78,6 @@ object Document:
       given Eq[InvalidDocumentNameError] = Eq.fromUniversalEquals[InvalidDocumentNameError]
 
     case class Description(value: String) extends AnyVal
+
+  extension (document: Document)
+    def withUuid(uuid: DocumentId): Document & WithUuid[DocumentId] = Document.withUuid(uuid, document.metadata)
