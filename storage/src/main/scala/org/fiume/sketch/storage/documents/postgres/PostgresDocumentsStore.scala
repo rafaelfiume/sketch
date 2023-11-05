@@ -55,7 +55,7 @@ private class PostgresDocumentsStore[F[_]: Async] private (l: F ~> ConnectionIO,
     Statements.delete(uuid).run.void
 
 private object Statements:
-  def insertDocument[F[_]](metadata: Metadata, content: Array[Byte]): Update0 =
+  def insertDocument(metadata: Metadata, bytes: Array[Byte]): Update0 =
     sql"""
          |INSERT INTO domain.documents(
          |  name,
@@ -69,7 +69,7 @@ private object Statements:
          |  ${metadata.description},
          |  ${metadata.createdBy},
          |  ${metadata.ownedBy},
-         |  $content
+         |  $bytes
          |)
     """.stripMargin.update
 
@@ -92,15 +92,14 @@ private object Statements:
          |WHERE d.uuid = $uuid
     """.stripMargin.query[Array[Byte]]
 
-  def selectAllDocuments[F[_]](): fs2.Stream[ConnectionIO, DocumentWithId] =
+  def selectAllDocuments(): fs2.Stream[ConnectionIO, DocumentWithId] =
     sql"""
          |SELECT
          |  d.uuid,
          |  d.name,
          |  d.description,
          |  d.created_by,
-         |  d.owned_by,
-         |  ''::bytea as content
+         |  d.owned_by
          |FROM domain.documents d
     """.stripMargin.query[DocumentWithId].stream
 

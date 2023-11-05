@@ -6,7 +6,14 @@ import org.fiume.sketch.shared.app.WithUuid
 import org.fiume.sketch.shared.auth0.testkit.UserGens.userIds
 import org.fiume.sketch.shared.testkit.Gens.Bytes.*
 import org.fiume.sketch.shared.testkit.Gens.Strings.*
-import org.fiume.sketch.storage.documents.{Document, DocumentId, DocumentWithId, DocumentWithStream, DocumentWithUuidAndStream, WithStream}
+import org.fiume.sketch.storage.documents.{
+  Document,
+  DocumentId,
+  DocumentWithId,
+  DocumentWithStream,
+  DocumentWithUuidAndStream,
+  WithStream
+}
 import org.fiume.sketch.storage.documents.Document.Metadata
 import org.fiume.sketch.storage.documents.Document.Metadata.*
 import org.scalacheck.{Arbitrary, Gen}
