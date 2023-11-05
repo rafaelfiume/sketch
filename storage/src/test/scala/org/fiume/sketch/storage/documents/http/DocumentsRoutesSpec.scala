@@ -69,7 +69,12 @@ class DocumentsRoutesSpec
         _ <- IO {
           assertEquals(
             storedMetadata.map(_.toResponsePayload),
-            MetadataResponsePayload(metadataPayload.name, metadataPayload.description, user.uuid.value.toString).some
+            MetadataResponsePayload(
+              name = metadataPayload.name,
+              description = metadataPayload.description,
+              createdBy = user.uuid.value.toString,
+              ownedBy = metadataPayload.ownedBy
+            ).some
           )
           assertEquals(storedBytes.map(_.toList), uploadedContent.some)
         }

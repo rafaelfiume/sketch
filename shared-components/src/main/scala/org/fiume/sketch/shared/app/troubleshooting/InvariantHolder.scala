@@ -12,7 +12,7 @@ import cats.implicits.*
  * Invariants: set of properties a component must hold at all times to be valid.
  */
 trait InvariantHolder[E <: InvariantError]:
-  val invariantErrors: Set[E]
+  val invariantErrors: Set[E] // TODO Is this really necessary? I don't think it is
 
 /*
  * Invariant errors caused by lack of or wrong input sent by users or 3rd party services,
@@ -26,6 +26,8 @@ trait InvariantError:
   def message: String
 
 object InvariantErrorSyntax:
+  extension [T <: InvariantError](inputError: T)
+    def asDetails: ErrorDetails = ErrorDetails.single(inputError.uniqueCode -> inputError.message) // Yolo
+
   extension (inputErrors: NonEmptyChain[InvariantError])
-    def asString: String = asDetails.tips.toString() // TODO testThis
     def asDetails: ErrorDetails = ErrorDetails(inputErrors.map(e => e.uniqueCode -> e.message).toList.toMap)

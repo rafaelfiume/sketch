@@ -115,16 +115,16 @@ private[http] object DocumentsRoutes:
         .withContentType(`Content-Type`(MediaType.application.json, Charset.`UTF-8`))
 
   object Model:
-    case class MetadataRequestPayload(name: String, description: String)
-    case class MetadataResponsePayload(name: String, description: String, createdBy: String)
+    case class MetadataRequestPayload(name: String, description: String, ownedBy: String)
+    case class MetadataResponsePayload(name: String, description: String, createdBy: String, ownedBy: String)
     case class DocumentResponsePayload(uuid: DocumentId, metadata: MetadataResponsePayload, contentLink: Uri)
 
     extension (m: Metadata)
       def toRequestPayload: MetadataRequestPayload =
-        MetadataRequestPayload(m.name.value, m.description.value)
+        MetadataRequestPayload(m.name.value, m.description.value, m.ownedBy.value.toString)
 
       def toResponsePayload: MetadataResponsePayload =
-        MetadataResponsePayload(m.name.value, m.description.value, m.createdBy.value.toString)
+        MetadataResponsePayload(m.name.value, m.description.value, m.createdBy.value.toString, m.ownedBy.value.toString)
 
     extension [F[_]](d: DocumentWithId[F])
       def toResponsePayload: DocumentResponsePayload =
@@ -153,8 +153,9 @@ private[http] object DocumentsRoutes:
             (
               EitherT.fromEither(Name.validated(payload.name).leftMap(_.asDetails)),
               EitherT.pure(Description(payload.description)),
-              EitherT.pure(stream)
-            ).parMapN((name, description, bytes) => Document(Metadata(name, description, createdBy = authorId), bytes))
+              EitherT.pure(stream),
+              EitherT.fromEither(UserId.fromString(payload.ownedBy).leftMap(_.asDetails))
+            ).parMapN((name, description, bytes, ownedBy) => Document(Metadata(name, description, authorId, ownedBy), bytes))
               .foldF(
                 details => SemanticInputError.makeFrom(details).raiseError,
                 _.pure[F]
@@ -198,13 +199,14 @@ private[http] object DocumentsRoutes:
       given Decoder[DocumentId] = new Decoder[DocumentId]:
         override def apply(c: HCursor): Result[DocumentId] =
           c.downField("uuid").as[String].flatMap { uuid =>
-            DocumentId.fromString(uuid).leftMap { e => DecodingFailure(e.getMessage, c.history) }
+            DocumentId.fromString(uuid).leftMap { e => DecodingFailure(e.message, c.history) }
           }
 
       given Encoder[MetadataRequestPayload] = new Encoder[MetadataRequestPayload]:
         override def apply(m: MetadataRequestPayload): JJson = JJson.obj(
           "name" -> m.name.asJson,
-          "description" -> m.description.asJson
+          "description" -> m.description.asJson,
+          "ownedBy" -> m.ownedBy.asJson
         )
 
       given Decoder[MetadataRequestPayload] = new Decoder[MetadataRequestPayload]:
@@ -212,14 +214,16 @@ private[http] object DocumentsRoutes:
           for
             name <- c.downField("name").as[String]
             description <- c.downField("description").as[String]
-          yield MetadataRequestPayload(name, description)
+            ownedBy <- c.downField("ownedBy").as[String]
+          yield MetadataRequestPayload(name, description, ownedBy)
 
       // TODO Contract test
       given Encoder[MetadataResponsePayload] = new Encoder[MetadataResponsePayload]:
         override def apply(m: MetadataResponsePayload): JJson = JJson.obj(
           "name" -> m.name.asJson,
           "description" -> m.description.asJson,
-          "createdBy" -> m.createdBy.asJson
+          "createdBy" -> m.createdBy.asJson,
+          "ownedBy" -> m.ownedBy.asJson
         )
 
       given Decoder[MetadataResponsePayload] = new Decoder[MetadataResponsePayload]:
@@ -228,7 +232,8 @@ private[http] object DocumentsRoutes:
             name <- c.downField("name").as[String]
             description <- c.downField("description").as[String]
             createdBy <- c.downField("createdBy").as[String]
-          yield MetadataResponsePayload(name, description, createdBy)
+            ownedBy <- c.downField("ownedBy").as[String]
+          yield MetadataResponsePayload(name, description, createdBy, ownedBy)
 
       // TODO Contract test
       given Encoder[DocumentResponsePayload] = new Encoder[DocumentResponsePayload]:

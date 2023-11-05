@@ -17,7 +17,8 @@ private[storage] object DoobieMappings:
   given Meta[Name] = Meta[String].timap(Name.notValidatedFromString)(_.value)
   given Meta[Description] = Meta[String].timap(Description.apply)(_.value)
 
-  given readDocumentWithId[F[_]]: Read[DocumentWithId[F]] = Read[(DocumentId, Name, Description, UserId, Array[Byte])].map {
-    case (uuid, name, description, createdBy, content) =>
-      Document.withUuid(uuid, Metadata(name, description, createdBy), Stream.emits(content))
-  }
+  given readDocumentWithId[F[_]]: Read[DocumentWithId[F]] =
+    Read[(DocumentId, Name, Description, UserId, UserId, Array[Byte])].map {
+      case (uuid, name, description, createdBy, ownedBy, content) =>
+        Document.withUuid(uuid, Metadata(name, description, createdBy, ownedBy), Stream.emits(content))
+    }

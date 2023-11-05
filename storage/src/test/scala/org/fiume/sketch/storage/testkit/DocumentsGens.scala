@@ -62,7 +62,8 @@ object DocumentsGens:
       name <- validNames
       description <- descriptions
       createdBy <- userIds
-    yield Metadata(name, description, createdBy)
+      ownedBy <- Gen.frequency(5 -> Gen.const(createdBy), 5 -> userIds)
+    yield Metadata(name, description, createdBy, ownedBy)
 
   given Arbitrary[Stream[IO, Byte]] = Arbitrary(bytesG)
   def bytesG: Gen[Stream[IO, Byte]] = Gen.nonEmptyListOf(bytes).map(Stream.emits)

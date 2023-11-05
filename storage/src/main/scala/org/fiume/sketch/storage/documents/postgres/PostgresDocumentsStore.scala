@@ -67,12 +67,14 @@ private object Statements:
          |  name,
          |  description,
          |  created_by,
+         |  owned_by,
          |  bytes
          |)
          |VALUES (
          |  ${metadata.name},
          |  ${metadata.description},
          |  ${metadata.createdBy},
+         |  ${metadata.ownedBy},
          |  $content
          |)
     """.stripMargin.update
@@ -84,6 +86,7 @@ private object Statements:
          |  name = ${metadata.name},
          |  description = ${metadata.description},
          |  created_by = ${metadata.createdBy},
+         |  owned_by = ${metadata.ownedBy},
          |  bytes = $content
          |WHERE uuid = $uuid
     """.stripMargin.update
@@ -93,7 +96,8 @@ private object Statements:
          |SELECT
          |  d.name,
          |  d.description,
-         |  d.created_by
+         |  d.created_by,
+         |  d.owned_by
          |FROM domain.documents d
          |WHERE d.uuid = $uuid
     """.stripMargin.query[Metadata]
@@ -113,6 +117,7 @@ private object Statements:
          |  d.name,
          |  d.description,
          |  d.created_by,
+         |  d.owned_by,
          |  ''::bytea as content
          |FROM domain.documents d
     """.stripMargin.query[DocumentWithId[F]].stream
