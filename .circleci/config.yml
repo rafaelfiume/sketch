@@ -85,7 +85,7 @@ jobs:
             mv start-local.log pipeline/stack/logs/start-local.log
             mv tools/stack/logs/sketch.log pipeline/stack/logs/sketch.log
             mv tools/stack/logs/database.log pipeline/stack/logs/database.log
-            ./tools/tests/run-acc-tests.sh
+            ./tools/tests/acc-tests.sh
 
       - store_artifacts:
           path: pipeline/stack/logs
