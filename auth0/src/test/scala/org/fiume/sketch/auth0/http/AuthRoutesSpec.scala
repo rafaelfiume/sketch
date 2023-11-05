@@ -12,8 +12,10 @@ import org.fiume.sketch.shared.app.http4s.middlewares.{SemanticInputError, Seman
 import org.fiume.sketch.shared.app.troubleshooting.{ErrorDetails, ErrorInfo, ErrorMessage}
 import org.fiume.sketch.shared.app.troubleshooting.http.json.ErrorInfoCodecs.given
 import org.fiume.sketch.shared.auth0.Passwords.PlainPassword
+import org.fiume.sketch.shared.auth0.Passwords.PlainPassword.WeakPasswordError
 import org.fiume.sketch.shared.auth0.User
 import org.fiume.sketch.shared.auth0.User.Username
+import org.fiume.sketch.shared.auth0.User.Username.WeakUsernameError
 import org.fiume.sketch.shared.auth0.testkit.PasswordsGens.*
 import org.fiume.sketch.shared.auth0.testkit.UserGens.*
 import org.fiume.sketch.shared.testkit.{ContractContext, Http4sTestingRoutesDsl}
@@ -130,7 +132,7 @@ class AuthRoutesSpec
 
         _ <- IO {
           assertEquals(result.message, SemanticInputError.message)
-          val allInputErrors = Username.invariantErrors.map(_.uniqueCode) ++ PlainPassword.invariantErrors.map(_.uniqueCode)
+          val allInputErrors = usernameInvariantErrors.map(_.uniqueCode) ++ plainPasswordInvariantErrors.map(_.uniqueCode)
           val actualInputErrors = result.details.get.tips.keys.toSet
           assert(actualInputErrors.subsetOf(allInputErrors),
                  clue = s"actualInputErrors: $actualInputErrors\nallInputErrors: $allInputErrors"
@@ -189,4 +191,24 @@ trait AuthRoutesSpecContext:
     Gen.frequency(
       1 -> Gen.const("{\"unexpected\":\"payload\"}"),
       9 -> Gen.alphaNumStr
+    )
+
+  def usernameInvariantErrors = Set(
+    WeakUsernameError.TooShort,
+    WeakUsernameError.TooLong,
+    WeakUsernameError.InvalidChar,
+    WeakUsernameError.ReservedWords,
+    WeakUsernameError.ExcessiveRepeatedChars
+  )
+  def plainPasswordInvariantErrors =
+    Set(
+      WeakPasswordError.TooShort,
+      WeakPasswordError.TooLong,
+      WeakPasswordError.NoUpperCase,
+      WeakPasswordError.NoLowerCase,
+      WeakPasswordError.NoDigit,
+      WeakPasswordError.NoSpecialChar,
+      WeakPasswordError.InvalidSpecialChar,
+      WeakPasswordError.Whitespace,
+      WeakPasswordError.InvalidChar
     )

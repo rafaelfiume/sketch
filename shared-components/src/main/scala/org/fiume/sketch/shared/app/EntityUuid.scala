@@ -3,7 +3,7 @@ package org.fiume.sketch.shared.app
 import cats.Eq
 import cats.implicits.*
 import org.fiume.sketch.shared.app.InvalidId.UnparsableUuid
-import org.fiume.sketch.shared.app.troubleshooting.{InvariantError, InvariantHolder}
+import org.fiume.sketch.shared.app.troubleshooting.InvariantError
 
 import java.util.UUID
 import scala.util.Try
@@ -13,13 +13,11 @@ import scala.util.control.NoStackTrace
 // See https://wiki.haskell.org/Phantom_type
 case class EntityUuid[T <: Entity](value: UUID) extends AnyVal
 
-object EntityUuid extends InvariantHolder[InvalidId]:
+object EntityUuid:
   def fromString[T <: Entity](idKey: String)(uuid: String): Either[InvalidId, EntityUuid[T]] = // Yolo
     Try(UUID.fromString(uuid)).toEither.map(EntityUuid[T](_)).leftMap(_ => UnparsableUuid(idKey, uuid))
 
   given equality[T <: Entity]: Eq[EntityUuid[T]] = Eq.fromUniversalEquals[EntityUuid[T]]
-
-  val invariantErrors: Set[InvalidId] = Set.empty // TODO get rid of invariantErrors?
 
 trait Entity
 

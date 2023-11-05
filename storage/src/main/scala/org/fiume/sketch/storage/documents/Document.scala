@@ -5,7 +5,7 @@ import cats.data.{EitherNec, Validated}
 import cats.implicits.*
 import fs2.Stream
 import org.fiume.sketch.shared.app.{Entity, EntityUuid, InvalidId, WithUuid}
-import org.fiume.sketch.shared.app.troubleshooting.{InvariantError, InvariantHolder}
+import org.fiume.sketch.shared.app.troubleshooting.InvariantError
 import org.fiume.sketch.shared.auth0.UserId
 import org.fiume.sketch.storage.documents.Document.Metadata
 import org.fiume.sketch.storage.documents.Document.Metadata.*
@@ -45,7 +45,7 @@ object Document:
   object Metadata:
     sealed abstract case class Name(value: String)
 
-    object Name extends InvariantHolder[InvalidDocumentNameError]:
+    object Name:
       sealed trait InvalidDocumentNameError extends InvariantError
 
       object InvalidDocumentNameError:
@@ -64,7 +64,6 @@ object Document:
 
       val minLength = 4
       val maxLength = 64
-      override val invariantErrors = Set(TooShort, TooLong, InvalidChar)
 
       def validated(value: String): EitherNec[InvalidDocumentNameError, Name] =
         val hasMinLength = Validated.condNec[InvalidDocumentNameError, Unit](value.length >= minLength, (), TooShort)

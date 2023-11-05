@@ -154,7 +154,7 @@ private[http] object DocumentsRoutes:
               EitherT.fromEither(Name.validated(payload.name).leftMap(_.asDetails)),
               EitherT.pure(Description(payload.description)),
               EitherT.pure(stream),
-              EitherT.fromEither(UserId.fromString(payload.ownedBy).leftMap(_.asDetails))
+              EitherT.fromEither(UserId.fromString(payload.ownedBy).leftMap(_.asDetails)) // Yolo
             ).parMapN((name, description, bytes, ownedBy) => Document(Metadata(name, description, authorId, ownedBy), bytes))
               .foldF(
                 details => SemanticInputError.makeFrom(details).raiseError,
