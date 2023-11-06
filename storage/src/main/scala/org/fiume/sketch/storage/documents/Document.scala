@@ -28,7 +28,7 @@ trait WithStream[F[_]]:
 
 type DocumentWithStream[F[_]] = Document & WithStream[F]
 
-type DocumentWithUuidAndStream[F[_]] = Document & WithUuid[DocumentId] & WithStream[F]
+type DocumentWithIdAndStream[F[_]] = Document & WithUuid[DocumentId] & WithStream[F]
 
 object Document:
   def withUuid(uuid0: DocumentId, metadata: Metadata): Document & WithUuid[DocumentId] =

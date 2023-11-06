@@ -6,14 +6,7 @@ import org.fiume.sketch.shared.app.WithUuid
 import org.fiume.sketch.shared.auth0.testkit.UserGens.userIds
 import org.fiume.sketch.shared.testkit.Gens.Bytes.*
 import org.fiume.sketch.shared.testkit.Gens.Strings.*
-import org.fiume.sketch.storage.documents.{
-  Document,
-  DocumentId,
-  DocumentWithId,
-  DocumentWithStream,
-  DocumentWithUuidAndStream,
-  WithStream
-}
+import org.fiume.sketch.storage.documents.{Document, DocumentId, DocumentWithId, DocumentWithIdAndStream, DocumentWithStream, WithStream}
 import org.fiume.sketch.storage.documents.Document.Metadata
 import org.fiume.sketch.storage.documents.Document.Metadata.*
 import org.scalacheck.{Arbitrary, Gen}
@@ -96,8 +89,8 @@ object DocumentsGens:
     yield Document.withStream[IO](content, metadata)
 
   import scala.language.adhocExtensions
-  given Arbitrary[DocumentWithUuidAndStream[IO]] = Arbitrary(documentWithUuidAndStreams)
-  def documentWithUuidAndStreams: Gen[DocumentWithUuidAndStream[IO]] =
+  given Arbitrary[DocumentWithIdAndStream[IO]] = Arbitrary(documentWithIdAndStreams)
+  def documentWithIdAndStreams: Gen[DocumentWithIdAndStream[IO]] =
     for
       uuid0 <- Gen.delay(UUID.randomUUID()).map(DocumentId(_))
       metadata <- metadataG

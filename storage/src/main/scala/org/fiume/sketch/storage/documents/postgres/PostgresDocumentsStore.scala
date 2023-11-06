@@ -8,6 +8,7 @@ import doobie.*
 import doobie.free.connection.ConnectionIO
 import doobie.implicits.*
 import fs2.Stream
+import org.fiume.sketch.shared.auth0.UserId
 import org.fiume.sketch.storage.auth0.postgres.DoobieMappings.given
 import org.fiume.sketch.storage.documents.{Document, DocumentId, DocumentWithId, DocumentWithStream}
 import org.fiume.sketch.storage.documents.Document.Metadata
@@ -47,6 +48,12 @@ private class PostgresDocumentsStore[F[_]: Async] private (l: F ~> ConnectionIO,
     OptionT { Statements.selectDocumentBytes(uuid).option }
       .map(Stream.emits)
       .value
+
+  def fetchByAuthor(createdBy: UserId): fs2.Stream[F, DocumentWithId] =
+    Statements.selectByAuthor(createdBy).transact(tx)
+
+  def fetchByOwner(ownerId: UserId): fs2.Stream[F, DocumentWithId] =
+    Statements.selectByOwner(ownerId).transact(tx)
 
   override def fetchAll(): fs2.Stream[F, DocumentWithId] =
     Statements.selectAllDocuments().transact(tx)
@@ -91,6 +98,30 @@ private object Statements:
          |FROM domain.documents d
          |WHERE d.uuid = $uuid
     """.stripMargin.query[Array[Byte]]
+
+  def selectByAuthor(createdBy: UserId): fs2.Stream[ConnectionIO, DocumentWithId] =
+    sql"""
+         |SELECT
+         |  d.uuid,
+         |  d.name,
+         |  d.description,
+         |  d.created_by,
+         |  d.owned_by
+         |FROM domain.documents d
+         |WHERE d.created_by = $createdBy
+    """.stripMargin.query[DocumentWithId].stream
+
+  def selectByOwner(ownerId: UserId): fs2.Stream[ConnectionIO, DocumentWithId] =
+    sql"""
+         |SELECT
+         |  d.uuid,
+         |  d.name,
+         |  d.description,
+         |  d.created_by,
+         |  d.owned_by
+         |FROM domain.documents d
+         |WHERE d.owned_by = $ownerId
+    """.stripMargin.query[DocumentWithId].stream
 
   def selectAllDocuments(): fs2.Stream[ConnectionIO, DocumentWithId] =
     sql"""

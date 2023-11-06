@@ -9,8 +9,7 @@ import doobie.postgres.implicits.*
 import fs2.Stream
 import munit.ScalaCheckEffectSuite
 import org.fiume.sketch.shared.testkit.FileContentContext
-import org.fiume.sketch.storage.documents.{Document, DocumentId, DocumentWithId, DocumentWithStream}
-import org.fiume.sketch.storage.documents.Document.Metadata
+import org.fiume.sketch.storage.documents.{Document, DocumentId, DocumentWithStream}
 import org.fiume.sketch.storage.documents.postgres.DoobieMappings.given
 import org.fiume.sketch.storage.testkit.DockerPostgresSuite
 import org.fiume.sketch.storage.testkit.DocumentsGens.*
@@ -64,6 +63,42 @@ class PostgresDocumentsStoreSpec
       }
     }
 
+  test("fetch documents by author"):
+    forAllF { (fstDoc: DocumentWithStream[IO], sndDoc: DocumentWithStream[IO]) =>
+      will(cleanDocuments) {
+        PostgresDocumentsStore.make[IO](transactor()).use { store =>
+          for
+            fstUuid <- store.store(fstDoc).ccommit
+            sndUuid <- store.store(sndDoc).ccommit
+
+            result <- store.fetchByAuthor(fstDoc.metadata.createdBy).compile.toList
+
+            _ <- IO {
+              assertEquals(result, List(fstDoc.withUuid(fstUuid)))
+            }
+          yield ()
+        }
+      }
+    }
+
+  test("fetch documents by owner"):
+    forAllF { (fstDoc: DocumentWithStream[IO], sndDoc: DocumentWithStream[IO]) =>
+      will(cleanDocuments) {
+        PostgresDocumentsStore.make[IO](transactor()).use { store =>
+          for
+            fstUuid <- store.store(fstDoc).ccommit
+            sndUuid <- store.store(sndDoc).ccommit
+
+            result <- store.fetchByOwner(sndDoc.metadata.ownedBy).compile.toList
+
+            _ <- IO {
+              assertEquals(result, List(sndDoc.withUuid(sndUuid)))
+            }
+          yield ()
+        }
+      }
+    }
+
   test("fetch all documents"):
     forAllF { (fstDoc: DocumentWithStream[IO], sndDoc: DocumentWithStream[IO]) =>
       will(cleanDocuments) {
@@ -76,8 +111,8 @@ class PostgresDocumentsStoreSpec
 
             _ <- IO {
               assertEquals(
-                result.map(_.discardContent),
-                List(fstDoc.withUuid(fstUuid), sndDoc.withUuid(sndUuid)).map(_.discardContent)
+                result,
+                List(fstDoc.withUuid(fstUuid), sndDoc.withUuid(sndUuid))
               )
             }
           yield ()
@@ -157,5 +192,3 @@ trait PostgresStoreSpecContext:
       sql"SELECT created_at FROM domain.documents WHERE uuid = ${uuid}".query[Instant].unique
     def fetchUpdatedAt(uuid: DocumentId): ConnectionIO[Instant] =
       sql"SELECT updated_at FROM domain.documents WHERE uuid = ${uuid}".query[Instant].unique
-
-  extension (d: DocumentWithId) def discardContent = d.uuid -> d.metadata

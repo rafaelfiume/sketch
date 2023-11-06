@@ -15,7 +15,7 @@ import org.fiume.sketch.shared.auth0.testkit.UserGens.given
 import org.fiume.sketch.shared.auth0.testkit.UserGens.userIds
 import org.fiume.sketch.shared.testkit.{ContractContext, Http4sTestingRoutesDsl}
 import org.fiume.sketch.shared.testkit.EitherSyntax.*
-import org.fiume.sketch.storage.documents.{Document, DocumentId, DocumentWithStream, DocumentWithUuidAndStream}
+import org.fiume.sketch.storage.documents.{Document, DocumentId, DocumentWithIdAndStream, DocumentWithStream}
 import org.fiume.sketch.storage.documents.algebras.DocumentsStore
 import org.fiume.sketch.storage.documents.http.DocumentsRoutes.Model.*
 import org.fiume.sketch.storage.documents.http.DocumentsRoutes.Model.Json.given
@@ -82,7 +82,7 @@ class DocumentsRoutesSpec
     }
 
   test("Get document metadata"):
-    forAllF { (document: DocumentWithUuidAndStream[IO]) =>
+    forAllF { (document: DocumentWithIdAndStream[IO]) =>
       val request = GET(Uri.unsafeFromString(s"/documents/${document.uuid.value}/metadata"))
       for
         store <- makeDocumentsStore(state = document)
@@ -103,7 +103,7 @@ class DocumentsRoutesSpec
     }
 
   test("Get document content"):
-    forAllF { (document: DocumentWithUuidAndStream[IO]) =>
+    forAllF { (document: DocumentWithIdAndStream[IO]) =>
       val request = GET(Uri.unsafeFromString(s"/documents/${document.uuid.value}"))
       for
         store <- makeDocumentsStore(state = document)
@@ -123,7 +123,7 @@ class DocumentsRoutesSpec
     }
 
   test("Delete document"):
-    forAllF { (document: DocumentWithUuidAndStream[IO]) =>
+    forAllF { (document: DocumentWithIdAndStream[IO]) =>
       val request = DELETE(Uri.unsafeFromString(s"/documents/${document.uuid.value}"))
       for
         store <- makeDocumentsStore(state = document)
@@ -146,7 +146,7 @@ class DocumentsRoutesSpec
     }
 
   test("Delete unexistent document == not found"):
-    forAllF { (document: DocumentWithUuidAndStream[IO]) =>
+    forAllF { (document: DocumentWithIdAndStream[IO]) =>
       val request = DELETE(Uri.unsafeFromString(s"/documents/${document.uuid.value}"))
       for
         store <- makeDocumentsStore()
@@ -331,14 +331,15 @@ trait AuthMiddlewareContext:
 trait DocumentsStoreContext:
   import fs2.Stream
   import org.fiume.sketch.storage.documents.{Document, DocumentId, DocumentWithId, WithStream}
+  import org.fiume.sketch.shared.auth0.UserId
 
   def makeDocumentsStore(): IO[DocumentsStore[IO, IO]] = makeDocumentsStore(state = Map.empty)
 
-  def makeDocumentsStore(state: DocumentWithUuidAndStream[IO]): IO[DocumentsStore[IO, IO]] =
+  def makeDocumentsStore(state: DocumentWithIdAndStream[IO]): IO[DocumentsStore[IO, IO]] =
     makeDocumentsStore(Map(state.uuid -> state))
 
-  private def makeDocumentsStore(state: Map[DocumentId, DocumentWithUuidAndStream[IO]]): IO[DocumentsStore[IO, IO]] =
-    Ref.of[IO, Map[DocumentId, DocumentWithUuidAndStream[IO]]](state).map { storage =>
+  private def makeDocumentsStore(state: Map[DocumentId, DocumentWithIdAndStream[IO]]): IO[DocumentsStore[IO, IO]] =
+    Ref.of[IO, Map[DocumentId, DocumentWithIdAndStream[IO]]](state).map { storage =>
       new DocumentsStore[IO, IO]:
         def store(document: DocumentWithStream[IO]): IO[DocumentId] =
           import scala.language.adhocExtensions
@@ -362,6 +363,10 @@ trait DocumentsStoreContext:
           storage.get.map(_.collectFirst {
             case (storedUuid, document) if storedUuid === uuid => document.stream
           })
+
+        def fetchByAuthor(createdBy: UserId): fs2.Stream[IO, DocumentWithId] = ???
+
+        def fetchByOwner(ownerId: UserId): fs2.Stream[IO, DocumentWithId] = ???
 
         def fetchAll(): Stream[IO, DocumentWithId] = ??? // TODO
 
