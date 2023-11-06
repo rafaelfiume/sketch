@@ -5,6 +5,7 @@ import cats.effect.unsafe.IORuntime
 import io.gatling.core.Predef.*
 import io.gatling.http.Predef.{http, *}
 import org.fiume.sketch.acceptance.testkit.AuthenticationContext
+import org.fiume.sketch.shared.auth0.testkit.UserGens
 import org.fiume.sketch.shared.testkit.FileContentContext
 
 import scala.concurrent.duration.*
@@ -14,6 +15,7 @@ class DocumentsSimulation extends Simulation with FileContentContext with Authen
   val docName = "Nicolas_e_Joana"
   val docDesc = "Meus amores <3"
   val pathToFile = "meus-fofinhos.jpg"
+  val ownedBy = UserGens.userIds.sample.get.value.toString()
   given IORuntime = IORuntime.global
   val bytes = bytesFrom[IO](pathToFile).compile.toVector.map(_.toArray).unsafeRunSync()
 
@@ -33,7 +35,7 @@ class DocumentsSimulation extends Simulation with FileContentContext with Authen
         .post("/documents")
         .header("Content-Type", "multipart/form-data")
         .bodyParts(
-          StringBodyPart("metadata", payload(docName, docDesc)),
+          StringBodyPart("metadata", payload(docName, docDesc, ownedBy)),
           ByteArrayBodyPart("bytes", bytes)
             .fileName(docName)
             .contentType("application/octet-stream")
@@ -63,11 +65,11 @@ class DocumentsSimulation extends Simulation with FileContentContext with Authen
 
 // TODO: duplicated
 trait DocumentsSimulationContext:
-  // TODO Load from storage/src/test/resources/storage/contract/http/document.metadata.json
-  def payload(name: String, description: String): String =
+  def payload(name: String, description: String, ownedBy: String): String =
     s"""
        |{
        |  "name": "$name",
-       |  "description": "$description"
+       |  "description": "$description",
+       |  "ownedBy": "$ownedBy"
        |}
       """.stripMargin

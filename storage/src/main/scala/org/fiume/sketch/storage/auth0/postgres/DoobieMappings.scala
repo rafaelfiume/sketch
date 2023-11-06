@@ -8,7 +8,7 @@ import org.fiume.sketch.shared.auth0.User.*
 
 import java.util.UUID
 
-private[postgres] object DoobieMappings:
+private[storage] object DoobieMappings:
 
   given Meta[HashedPassword] = Meta[String].timap(HashedPassword.notValidatedFromString)(_.base64Value)
 

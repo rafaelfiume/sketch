@@ -12,9 +12,8 @@ Future metadata might include `owner`, `workflow`, `fileSize`, `fileType`, `file
 
 ### Authorship, Ownership & Workflows (proposal)
 
-Documents should have one owner, which is the person or entity responsible for it:
  * The person uploading the document (author) can be someone that represents the business, or a client of the business (owner).
- * If author and ownder are not the same person, then the former is representing the latter.
+ * If author and owner are not the same person, then the former represents the latter if document is part of a workflow.
  * The author must be authenticated by the system.
 
 ### Endpoints (proposal)

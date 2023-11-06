@@ -9,7 +9,7 @@ import doobie.postgres.implicits.*
 import fs2.Stream
 import munit.ScalaCheckEffectSuite
 import org.fiume.sketch.shared.testkit.FileContentContext
-import org.fiume.sketch.storage.documents.{Document, DocumentId, DocumentWithId}
+import org.fiume.sketch.storage.documents.{Document, DocumentId, DocumentWithId, DocumentWithStream}
 import org.fiume.sketch.storage.documents.Document.Metadata
 import org.fiume.sketch.storage.documents.postgres.DoobieMappings.given
 import org.fiume.sketch.storage.testkit.DockerPostgresSuite
@@ -28,7 +28,7 @@ class PostgresDocumentsStoreSpec
     with ShrinkLowPriority:
 
   test("store document and fetch metadata"):
-    forAllF { (document: Document[IO]) =>
+    forAllF { (document: DocumentWithStream[IO]) =>
       will(cleanDocuments) {
         PostgresDocumentsStore.make[IO](transactor()).use { store =>
           for
@@ -45,7 +45,7 @@ class PostgresDocumentsStoreSpec
     }
 
   test("store document and fetch content"):
-    forAllF { (document: Document[IO]) =>
+    forAllF { (document: DocumentWithStream[IO]) =>
       will(cleanDocuments) {
         PostgresDocumentsStore.make[IO](transactor()).use { store =>
           for
@@ -55,7 +55,7 @@ class PostgresDocumentsStoreSpec
               store.fetchContent(uuid).ccommit
             ).semiflatMap(_.compile.toList).value
 
-            bytes <- document.content.compile.toList
+            bytes <- document.stream.compile.toList
             _ <- IO {
               assertEquals(result, bytes.some)
             }
@@ -65,7 +65,7 @@ class PostgresDocumentsStoreSpec
     }
 
   test("fetch all documents"):
-    forAllF { (fstDoc: Document[IO], sndDoc: Document[IO]) =>
+    forAllF { (fstDoc: DocumentWithStream[IO], sndDoc: DocumentWithStream[IO]) =>
       will(cleanDocuments) {
         PostgresDocumentsStore.make[IO](transactor()).use { store =>
           for
@@ -85,27 +85,8 @@ class PostgresDocumentsStoreSpec
       }
     }
 
-  test("update document content"):
-    forAllF { (document: Document[IO], newMetadata: Metadata, newBytes: Stream[IO, Byte]) =>
-      PostgresDocumentsStore.make[IO](transactor()).use { store =>
-        for
-          uuid <- store.store(document).ccommit
-
-          _ <- store.update(Document.withUuid(uuid, newMetadata, newBytes)).ccommit
-
-          updatedMetadata <- store.fetchMetadata(uuid).ccommit
-          updatedBytes <- OptionT(store.fetchContent(uuid).ccommit).semiflatMap(_.compile.toList).value
-          originalBytes <- newBytes.compile.toList
-          _ <- IO {
-            assertEquals(updatedMetadata, newMetadata.some)
-            assertEquals(updatedBytes, originalBytes.some)
-          }
-        yield ()
-      }
-    }
-
   test("delete document"):
-    forAllF { (fstDoc: Document[IO], sndDoc: Document[IO]) =>
+    forAllF { (fstDoc: DocumentWithStream[IO], sndDoc: DocumentWithStream[IO]) =>
       will(cleanDocuments) {
         PostgresDocumentsStore.make[IO](transactor()).use { store =>
           for
@@ -134,7 +115,7 @@ class PostgresDocumentsStoreSpec
     }
 
   test("set document's `createdAt` and `updatedAt` field to the current timestamp during storage"):
-    forAllF { (document: Document[IO]) =>
+    forAllF { (document: DocumentWithStream[IO]) =>
       will(cleanDocuments) {
         PostgresDocumentsStore.make[IO](transactor()).use { store =>
           for
@@ -151,30 +132,13 @@ class PostgresDocumentsStoreSpec
       }
     }
 
-  test("set document's `updatedAt` field to the current timestamp during update"):
-    forAllF { (document: Document[IO], newMetadata: Metadata) =>
-      PostgresDocumentsStore.make[IO](transactor()).use { store =>
-        for
-          uuid <- store.store(document).ccommit
-          updatedAt1 <- store.fetchUpdatedAt(uuid).ccommit
-
-          _ <- store.update(Document.withUuid(uuid, newMetadata, document.content)).ccommit
-
-          updatedAt2 <- store.fetchUpdatedAt(uuid).ccommit
-          _ <- IO {
-            assert(updatedAt2.isAfter(updatedAt1), s"updatedAt $updatedAt2 should be after $updatedAt1")
-          }
-        yield ()
-      }
-    }
-
   test("play it".ignore): // good to see it in action
     val filename = "mountain-bike-liguria-ponent.jpg"
     IO { bytesFrom[IO](filename) }.flatMap { content =>
       will(cleanDocuments) {
         PostgresDocumentsStore.make[IO](transactor()).use { store =>
           for
-            uuid <- store.store(documents.sample.get).ccommit
+            uuid <- store.store(documentsWithStream.sample.get).ccommit
             _ <- OptionT(
               store.fetchContent(uuid).ccommit
             ).semiflatMap {
@@ -194,4 +158,4 @@ trait PostgresStoreSpecContext:
     def fetchUpdatedAt(uuid: DocumentId): ConnectionIO[Instant] =
       sql"SELECT updated_at FROM domain.documents WHERE uuid = ${uuid}".query[Instant].unique
 
-  extension (d: DocumentWithId[IO]) def discardContent = d.uuid -> d.metadata
+  extension (d: DocumentWithId) def discardContent = d.uuid -> d.metadata

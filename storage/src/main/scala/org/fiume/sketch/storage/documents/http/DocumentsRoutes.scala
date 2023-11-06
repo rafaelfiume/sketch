@@ -13,8 +13,8 @@ import org.fiume.sketch.shared.app.http4s.middlewares.SemanticInputError
 import org.fiume.sketch.shared.app.troubleshooting.ErrorDetails
 import org.fiume.sketch.shared.app.troubleshooting.ErrorInfo.given
 import org.fiume.sketch.shared.app.troubleshooting.InvariantErrorSyntax.asDetails
-import org.fiume.sketch.shared.auth0.User
-import org.fiume.sketch.storage.documents.{Document, DocumentId, DocumentWithId}
+import org.fiume.sketch.shared.auth0.{User, UserId}
+import org.fiume.sketch.storage.documents.{Document, DocumentId, DocumentWithId, DocumentWithStream}
 import org.fiume.sketch.storage.documents.Document.Metadata
 import org.fiume.sketch.storage.documents.Document.Metadata.*
 import org.fiume.sketch.storage.documents.algebras.DocumentsStore
@@ -60,7 +60,7 @@ class DocumentsRoutes[F[_]: Concurrent, Txn[_]](
       case cx @ POST -> Root / "documents" as user =>
         cx.req.decode { (uploadRequest: Multipart[F]) =>
           for
-            document <- uploadRequest.validated()
+            document <- uploadRequest.validated(authorId = user.uuid)
             uuid <- store.commit { store.store(document) }
             created <- Created(uuid)
           yield created
@@ -69,7 +69,7 @@ class DocumentsRoutes[F[_]: Concurrent, Txn[_]](
       case GET -> Root / "documents" / DocumentIdVar(uuid) / "metadata" as user =>
         for
           metadata <- store.commit { store.fetchMetadata(uuid) }
-          res <- metadata.map(_.toPayload).fold(ifEmpty = NotFound())(Ok(_))
+          res <- metadata.map(_.toResponsePayload).fold(ifEmpty = NotFound())(Ok(_))
         yield res
 
       case GET -> Root / "documents" / DocumentIdVar(uuid) as user =>
@@ -82,7 +82,7 @@ class DocumentsRoutes[F[_]: Concurrent, Txn[_]](
       case GET -> Root / "documents" as user =>
         val responseStream = store
           .fetchAll()
-          .map(_.toPayload.asJson)
+          .map(_.toResponsePayload.asJson)
           .map(Line(_))
           .intersperse(Linebreak)
         Ok(responseStream)
@@ -115,17 +115,23 @@ private[http] object DocumentsRoutes:
         .withContentType(`Content-Type`(MediaType.application.json, Charset.`UTF-8`))
 
   object Model:
-    case class MetadataPayload(name: String, description: String)
-    case class DocumentResponsePayload(uuid: DocumentId, metadata: MetadataPayload, contentLink: Uri)
+    case class MetadataRequestPayload(name: String, description: String, ownedBy: String)
+    case class MetadataResponsePayload(name: String, description: String, createdBy: String, ownedBy: String)
+    case class DocumentResponsePayload(uuid: DocumentId, metadata: MetadataResponsePayload, contentLink: Uri)
 
-    extension (m: Metadata) def toPayload: MetadataPayload = MetadataPayload(m.name.value, m.description.value)
+    extension (m: Metadata)
+      def toRequestPayload: MetadataRequestPayload =
+        MetadataRequestPayload(m.name.value, m.description.value, m.ownedBy.value.toString)
 
-    extension [F[_]](d: DocumentWithId[F])
-      def toPayload: DocumentResponsePayload =
-        DocumentResponsePayload(d.uuid, d.metadata.toPayload, Uri.unsafeFromString(s"/documents/${d.uuid.toString}"))
+      def toResponsePayload: MetadataResponsePayload =
+        MetadataResponsePayload(m.name.value, m.description.value, m.createdBy.value.toString, m.ownedBy.value.toString)
+
+    extension [F[_]](d: DocumentWithId)
+      def toResponsePayload: DocumentResponsePayload =
+        DocumentResponsePayload(d.uuid, d.metadata.toResponsePayload, Uri.unsafeFromString(s"/documents/${d.uuid.toString}"))
 
     extension [F[_]: MonadThrow: Concurrent](m: Multipart[F])
-      def validated(): F[Document[F]] =
+      def validated(authorId: UserId): F[DocumentWithStream[F]] =
         (m.metadata(), m.bytes()).parTupled
           .foldF(
             details => SemanticInputError.makeFrom(details).raiseError,
@@ -133,7 +139,7 @@ private[http] object DocumentsRoutes:
           )
           .flatMap { case (metadataPayload, bytes) =>
             metadataPayload
-              .as[MetadataPayload]
+              .as[MetadataRequestPayload]
               .attemptT
               .leftMap(_ =>
                 ErrorDetails(Map("malformed.document.metadata.payload" -> "the metadata payload does not meet the contract"))
@@ -147,12 +153,14 @@ private[http] object DocumentsRoutes:
             (
               EitherT.fromEither(Name.validated(payload.name).leftMap(_.asDetails)),
               EitherT.pure(Description(payload.description)),
-              EitherT.pure(stream)
-            ).parMapN((name, description, bytes) => Document(Metadata(name, description), bytes))
-              .foldF(
-                details => SemanticInputError.makeFrom(details).raiseError,
-                _.pure[F]
-              )
+              EitherT.pure(stream),
+              EitherT.fromEither(UserId.fromString(payload.ownedBy).leftMap(_.asDetails)) // Yolo
+            ).parMapN((name, description, bytes, ownedBy) =>
+              Document.withStream[F](bytes, Metadata(name, description, authorId, ownedBy))
+            ).foldF(
+              details => SemanticInputError.makeFrom(details).raiseError,
+              _.pure[F]
+            )
           }
 
       private def metadata(): EitherT[F, ErrorDetails, Part[F]] = EitherT
@@ -192,25 +200,46 @@ private[http] object DocumentsRoutes:
       given Decoder[DocumentId] = new Decoder[DocumentId]:
         override def apply(c: HCursor): Result[DocumentId] =
           c.downField("uuid").as[String].flatMap { uuid =>
-            DocumentId.fromString(uuid).leftMap { e => DecodingFailure(e.getMessage, c.history) }
+            DocumentId.fromString(uuid).leftMap { e => DecodingFailure(e.message, c.history) }
           }
 
-      given Encoder[MetadataPayload] = new Encoder[MetadataPayload]:
-        override def apply(m: MetadataPayload): JJson = JJson.obj(
+      given Encoder[MetadataRequestPayload] = new Encoder[MetadataRequestPayload]:
+        override def apply(m: MetadataRequestPayload): JJson = JJson.obj(
           "name" -> m.name.asJson,
-          "description" -> m.description.asJson
+          "description" -> m.description.asJson,
+          "ownedBy" -> m.ownedBy.asJson
         )
 
-      given Decoder[MetadataPayload] = new Decoder[MetadataPayload]:
-        override def apply(c: HCursor): Result[MetadataPayload] =
+      given Decoder[MetadataRequestPayload] = new Decoder[MetadataRequestPayload]:
+        override def apply(c: HCursor): Result[MetadataRequestPayload] =
           for
             name <- c.downField("name").as[String]
             description <- c.downField("description").as[String]
-          yield MetadataPayload(name, description)
+            ownedBy <- c.downField("ownedBy").as[String]
+          yield MetadataRequestPayload(name, description, ownedBy)
 
+      // TODO Contract test
+      given Encoder[MetadataResponsePayload] = new Encoder[MetadataResponsePayload]:
+        override def apply(m: MetadataResponsePayload): JJson = JJson.obj(
+          "name" -> m.name.asJson,
+          "description" -> m.description.asJson,
+          "createdBy" -> m.createdBy.asJson,
+          "ownedBy" -> m.ownedBy.asJson
+        )
+
+      given Decoder[MetadataResponsePayload] = new Decoder[MetadataResponsePayload]:
+        override def apply(c: HCursor): Result[MetadataResponsePayload] =
+          for
+            name <- c.downField("name").as[String]
+            description <- c.downField("description").as[String]
+            createdBy <- c.downField("createdBy").as[String]
+            ownedBy <- c.downField("ownedBy").as[String]
+          yield MetadataResponsePayload(name, description, createdBy, ownedBy)
+
+      // TODO Contract test
       given Encoder[DocumentResponsePayload] = new Encoder[DocumentResponsePayload]:
         override def apply(d: DocumentResponsePayload): JJson = JJson.obj(
-          "uuid" -> d.uuid.toString.asJson,
+          "uuid" -> d.uuid.value.toString.asJson,
           "metadata" -> d.metadata.asJson,
           "content_link" -> d.contentLink.asJson
         )

@@ -51,8 +51,10 @@ private[auth0] object JwtToken:
     (for
       claims <- JwtCirce.decode(token.value, publicKey, Seq(JwtAlgorithm.ES256)).toEither
       uuid <- claims.subject
-        .toRight(new RuntimeException("verifyJwtToken: subject is missing"))
-        .flatMap(UserId.fromString)
+        .toRight(JwtUnknownError("verifyJwtToken: subject is missing"))
+        .flatMap { id =>
+          UserId.fromString(id).leftMap(e => JwtUnknownError(e.message))
+        }
       content <- parse(claims.content).flatMap(_.as[Content])
     yield User(uuid, content.preferredUsername)).leftMap(mapJwtErrors)
 

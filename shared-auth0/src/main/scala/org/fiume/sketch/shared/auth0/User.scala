@@ -3,8 +3,8 @@ package org.fiume.sketch.shared.auth0
 import cats.{Eq, Show}
 import cats.data.{EitherNec, Validated}
 import cats.implicits.*
-import org.fiume.sketch.shared.app.{Entity, EntityUuid, WithUuid}
-import org.fiume.sketch.shared.app.troubleshooting.{InvariantError, InvariantHolder}
+import org.fiume.sketch.shared.app.{Entity, EntityUuid, InvalidId, WithUuid}
+import org.fiume.sketch.shared.app.troubleshooting.InvariantError
 import org.fiume.sketch.shared.auth0.Passwords.{HashedPassword, Salt}
 import org.fiume.sketch.shared.auth0.User.Username
 import org.fiume.sketch.shared.auth0.User.Username.WeakUsernameError
@@ -15,7 +15,7 @@ import java.util.UUID
 type UserId = EntityUuid[UserEntity]
 object UserId:
   def apply(uuid: UUID): UserId = EntityUuid[UserEntity](uuid)
-  def fromString(uuid: String): Either[Throwable, UserId] = EntityUuid.fromString[UserEntity](uuid)
+  def fromString(uuid: String): Either[InvalidId, UserId] = EntityUuid.fromString[UserEntity]("user.id")(uuid)
 sealed trait UserEntity extends Entity
 
 case class User(uuid: UserId, username: Username)
@@ -40,7 +40,7 @@ object User:
 
   sealed abstract case class Username(value: String)
 
-  object Username extends InvariantHolder[WeakUsernameError]:
+  object Username:
     sealed trait WeakUsernameError extends InvariantError
 
     object WeakUsernameError:
@@ -69,7 +69,6 @@ object User:
     val maxLength = 40
     val reservedWords = Set("administrator", "superuser", "moderator")
     val maxRepeatedCharsPercentage = 0.7f
-    override val invariantErrors = Set(TooShort, TooLong, InvalidChar, ReservedWords, ExcessiveRepeatedChars)
 
     /* must be used during user sign up */
     def validated(value: String): EitherNec[WeakUsernameError, Username] =

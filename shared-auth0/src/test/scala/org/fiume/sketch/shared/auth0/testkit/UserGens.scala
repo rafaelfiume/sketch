@@ -10,6 +10,9 @@ import scala.util.Random
 
 object UserGens:
 
+  given Arbitrary[UserId] = Arbitrary(userIds)
+  def userIds: Gen[UserId] = Gen.uuid.map(UserId(_))
+
   given Arbitrary[Username] = Arbitrary(validUsernames)
   def validUsernames: Gen[Username] =
     usernames.map(Username.notValidatedFromString)
@@ -76,7 +79,7 @@ object UserGens:
   given Arbitrary[User] = Arbitrary(users)
   def users: Gen[User] =
     for
-      uuid <- Gen.uuid.map(UserId(_))
+      uuid <- userIds
       username <- validUsernames
     yield User(uuid, username)
 
@@ -90,7 +93,7 @@ object UserGens:
 
   def validCredentialsWithIdAndPlainPassword: Gen[(UserCredentialsWithId, PlainPassword)] =
     for
-      uuid <- Gen.uuid.map(UserId(_))
+      uuid <- userIds
       username <- validUsernames
       plainPassword <- validPlainPasswords
       salt <- salts
