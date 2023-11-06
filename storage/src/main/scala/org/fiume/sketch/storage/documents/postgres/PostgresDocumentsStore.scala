@@ -37,10 +37,10 @@ private class PostgresDocumentsStore[F[_]: Async] private (l: F ~> ConnectionIO,
         )
     yield uuid
 
-  override def fetchMetadata(uuid: DocumentId): ConnectionIO[Option[Metadata]] =
-    Statements.selectDocumentMetadata(uuid).option
+  override def fetchDocument(uuid: DocumentId): ConnectionIO[Option[Document]] =
+    Statements.selectDocument(uuid).option
 
-  override def fetchContent(uuid: DocumentId): ConnectionIO[Option[Stream[F, Byte]]] =
+  override def documentStream(uuid: DocumentId): ConnectionIO[Option[Stream[F, Byte]]] =
     // not the greatest implementation, since it will require bytes to be fully read from the db before the stream can start emiting bytes
     // this can be better optimised later (perhaps by storing/reading documents using a file sytem? or large objects?)
     // API is the most important part here.
@@ -73,7 +73,7 @@ private object Statements:
          |)
     """.stripMargin.update
 
-  def selectDocumentMetadata(uuid: DocumentId): Query0[Metadata] =
+  def selectDocument(uuid: DocumentId): Query0[Document] =
     sql"""
          |SELECT
          |  d.name,
@@ -82,7 +82,7 @@ private object Statements:
          |  d.owned_by
          |FROM domain.documents d
          |WHERE d.uuid = $uuid
-    """.stripMargin.query[Metadata]
+    """.stripMargin.query[Document]
 
   def selectDocumentBytes(uuid: DocumentId): Query0[Array[Byte]] =
     sql"""

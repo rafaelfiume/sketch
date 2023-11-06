@@ -68,13 +68,14 @@ class DocumentsRoutes[F[_]: Concurrent, Txn[_]](
 
       case GET -> Root / "documents" / DocumentIdVar(uuid) / "metadata" as user =>
         for
-          metadata <- store.commit { store.fetchMetadata(uuid) }
-          res <- metadata.map(_.toResponsePayload).fold(ifEmpty = NotFound())(Ok(_))
+          document <- store.commit { store.fetchDocument(uuid) }
+          // TODO Change response payload
+          res <- document.map(_.metadata.toResponsePayload).fold(ifEmpty = NotFound())(Ok(_))
         yield res
 
       case GET -> Root / "documents" / DocumentIdVar(uuid) as user =>
         for
-          stream <- store.commit { store.fetchContent(uuid) }
+          stream <- store.commit { store.documentStream(uuid) }
           res <- stream.fold(ifEmpty = NotFound())(Ok(_, `Content-Disposition`("attachment", Map.empty)))
         yield res
 
@@ -89,7 +90,7 @@ class DocumentsRoutes[F[_]: Concurrent, Txn[_]](
 
       case DELETE -> Root / "documents" / DocumentIdVar(uuid) as user =>
         for
-          metadata <- store.commit { store.fetchMetadata(uuid) }
+          metadata <- store.commit { store.fetchDocument(uuid) }
           res <- metadata match
             case None    => NotFound()
             case Some(_) => store.commit { store.delete(uuid) } >> NoContent()

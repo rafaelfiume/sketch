@@ -34,10 +34,10 @@ class PostgresDocumentsStoreSpec
           for
             uuid <- store.store(document).ccommit
 
-            result <- store.fetchMetadata(uuid).ccommit
+            result <- store.fetchDocument(uuid).ccommit
 
             _ <- IO {
-              assertEquals(result, document.metadata.some)
+              assertEquals(result, document.some)
             }
           yield ()
         }
@@ -52,7 +52,7 @@ class PostgresDocumentsStoreSpec
             uuid <- store.store(document).ccommit
 
             result <- OptionT(
-              store.fetchContent(uuid).ccommit
+              store.documentStream(uuid).ccommit
             ).semiflatMap(_.compile.toList).value
 
             bytes <- document.stream.compile.toList
@@ -96,12 +96,12 @@ class PostgresDocumentsStoreSpec
             _ <- store.delete(fstUuid).ccommit
 
             fstResult <- IO.both(
-              store.fetchMetadata(fstUuid).ccommit,
-              store.fetchContent(fstUuid).ccommit
+              store.fetchDocument(fstUuid).ccommit,
+              store.documentStream(fstUuid).ccommit
             )
             sndResult <- IO.both(
-              store.fetchMetadata(sndUuid).ccommit,
-              store.fetchContent(sndUuid).ccommit
+              store.fetchDocument(sndUuid).ccommit,
+              store.documentStream(sndUuid).ccommit
             )
             _ <- IO {
               assertEquals(fstResult._1, none)
@@ -140,7 +140,7 @@ class PostgresDocumentsStoreSpec
           for
             uuid <- store.store(documentsWithStream.sample.get).ccommit
             _ <- OptionT(
-              store.fetchContent(uuid).ccommit
+              store.documentStream(uuid).ccommit
             ).semiflatMap {
               _.through(fs2.io.file.Files[IO].writeAll(fs2.io.file.Path(filename))).compile.drain
             }.value

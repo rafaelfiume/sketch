@@ -80,7 +80,7 @@ trait DocumentsSpecContext extends Http4sClientContext:
     )
     "http://localhost:8080/documents".post.withEntity(multipart).withHeaders(multipart.headers.put(authHeader))
 
-  // TODO Load from storage/src/test/resources/storage/contract/http/document.metadata.json
+  // TODO Load from storage/src/test/resources/storage/contract/http/document.json
   def payload(name: String, description: String, ownedBy: String): String =
     s"""
        |{

@@ -16,7 +16,6 @@ import org.fiume.sketch.shared.auth0.testkit.UserGens.userIds
 import org.fiume.sketch.shared.testkit.{ContractContext, Http4sTestingRoutesDsl}
 import org.fiume.sketch.shared.testkit.EitherSyntax.*
 import org.fiume.sketch.storage.documents.{Document, DocumentId, DocumentWithStream, DocumentWithUuidAndStream}
-import org.fiume.sketch.storage.documents.Document.Metadata
 import org.fiume.sketch.storage.documents.algebras.DocumentsStore
 import org.fiume.sketch.storage.documents.http.DocumentsRoutes.Model.*
 import org.fiume.sketch.storage.documents.http.DocumentsRoutes.Model.Json.given
@@ -62,14 +61,14 @@ class DocumentsRoutesSpec
           .to(documentsRoutes.router())
           .expectJsonResponseWith(Status.Created)
 
-        storedMetadata <- store.fetchMetadata(jsonResponse.as[DocumentId].rightValue)
+        stored <- store.fetchDocument(jsonResponse.as[DocumentId].rightValue)
         uploadedContent <- bytesFrom[IO]("mountain-bike-liguria-ponent.jpg").compile.toList
         storedBytes <- OptionT(
-          store.fetchContent(jsonResponse.as[DocumentId].rightValue)
+          store.documentStream(jsonResponse.as[DocumentId].rightValue)
         ).semiflatMap(_.compile.toList).value
         _ <- IO {
           assertEquals(
-            storedMetadata.map(_.toResponsePayload),
+            stored.map(_.metadata.toResponsePayload),
             MetadataResponsePayload(
               name = metadataPayload.name,
               description = metadataPayload.description,
@@ -136,8 +135,8 @@ class DocumentsRoutesSpec
           .expectEmptyResponseWith(Status.NoContent)
 
         stored <- IO.both(
-          store.fetchMetadata(document.uuid),
-          OptionT(store.fetchContent(document.uuid)).semiflatMap(_.compile.toList).value
+          store.fetchDocument(document.uuid),
+          OptionT(store.documentStream(document.uuid)).semiflatMap(_.compile.toList).value
         )
         _ <- IO {
           assertEquals(stored._1, none)
@@ -214,7 +213,7 @@ class DocumentsRoutesSpec
 
   test("bijective relationship between encoded and decoded Documents.Metadata"):
     assertBijectiveRelationshipBetweenEncoderAndDecoder[MetadataRequestPayload](
-      "contract/documents/http/metadata.json"
+      "contract/documents/http/document.json" // TODO Change it
     )
 
   test("validation accumulates") {
@@ -354,12 +353,12 @@ trait DocumentsStoreContext:
               .as(uuid)
           }
 
-        def fetchMetadata(uuid: DocumentId): IO[Option[Metadata]] =
+        def fetchDocument(uuid: DocumentId): IO[Option[Document]] =
           storage.get.map(_.collectFirst {
-            case (storedUuid, document) if storedUuid === uuid => document.metadata
+            case (storedUuid, document) if storedUuid === uuid => document
           })
 
-        def fetchContent(uuid: DocumentId): IO[Option[fs2.Stream[IO, Byte]]] =
+        def documentStream(uuid: DocumentId): IO[Option[fs2.Stream[IO, Byte]]] =
           storage.get.map(_.collectFirst {
             case (storedUuid, document) if storedUuid === uuid => document.stream
           })
