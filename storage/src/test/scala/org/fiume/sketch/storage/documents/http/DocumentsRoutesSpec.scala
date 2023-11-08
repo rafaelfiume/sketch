@@ -347,8 +347,8 @@ trait DocumentsRoutesSpecContext extends AuthMiddlewareContext:
     override def apply(c: HCursor): Result[DocumentResponsePayload] =
       for
         uuid <- c.downField("uuid").as[DocumentId]
+        contentLink <- c.downField("uri").as[Uri]
         metadata <- c.downField("metadata").as[MetadataResponsePayload]
-        contentLink <- c.downField("content_link").as[Uri]
       yield DocumentResponsePayload(uuid, metadata, contentLink)
 
   given Decoder[DocumentIdResponsePayload] = new Decoder[DocumentIdResponsePayload]:
