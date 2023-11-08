@@ -119,7 +119,7 @@ class DocumentsRoutesSpec
 
         result <- send(request)
           .to(documentsRoutes.router())
-          .expectJsonResponseWith(Status.Ok, debugJsonResponse = true)
+          .expectJsonResponseWith(Status.Ok)
 
         _ <- IO {
           assertEquals(
@@ -140,7 +140,7 @@ class DocumentsRoutesSpec
 
         result <- send(request)
           .to(documentsRoutes.router())
-          .expectJsonResponseWith(Status.Ok, debugJsonResponse = true)
+          .expectJsonResponseWith(Status.Ok)
 
         _ <- IO {
           assertEquals(
@@ -239,9 +239,19 @@ class DocumentsRoutesSpec
    * Contracts
    */
 
-  test("bijective relationship between encoded and decoded Documents.Metadata"):
+  test("bijective relationship between encoded and decoded document MetadataRequestPayload"):
     assertBijectiveRelationshipBetweenEncoderAndDecoder[MetadataRequestPayload](
-      "contract/documents/http/document.json" // TODO Change it
+      "contract/documents/document.metadata.request.json"
+    )
+
+  test("bijective relationship between encoded and decoded DocumentResponsePayload"):
+    assertBijectiveRelationshipBetweenEncoderAndDecoder[DocumentResponsePayload](
+      "contract/documents/document.response.json"
+    )
+
+  test("bijective relationship between encoded and decoded DocumentIdResponsePayload"):
+    assertBijectiveRelationshipBetweenEncoderAndDecoder[DocumentIdResponsePayload](
+      "contract/documents/document.uuid.response.json"
     )
 
   test("validation accumulates") {
@@ -254,8 +264,8 @@ class DocumentsRoutesSpec
 
       _ <- IO {
         assert(
-          inputErrors.asInstanceOf[SemanticInputError].details.tips.size > 1,
-          clue = "errors must accumulate"
+          inputErrors.asInstanceOf[SemanticInputError].details.tips.size === 2,
+          clue = inputErrors
         )
       }
     yield ()

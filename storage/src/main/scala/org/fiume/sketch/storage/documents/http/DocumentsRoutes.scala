@@ -174,7 +174,7 @@ private[http] object DocumentsRoutes:
               EitherT.fromEither(Name.validated(payload.name).leftMap(_.asDetails)),
               EitherT.pure(Description(payload.description)),
               EitherT.pure(stream),
-              EitherT.fromEither(UserId.fromString(payload.ownedBy).leftMap(_.asDetails)) // Yolo
+              EitherT.fromEither(UserId.fromString(payload.ownedBy).leftMap(_.asDetails))
             ).parMapN((name, description, bytes, ownedBy) =>
               Document.withStream[F](bytes, Metadata(name, description, authorId, ownedBy))
             ).foldF(
@@ -223,7 +223,6 @@ private[http] object DocumentsRoutes:
             ownedBy <- c.downField("ownedBy").as[String]
           yield MetadataRequestPayload(name, description, ownedBy)
 
-      // TODO Contract test
       given Encoder[MetadataResponsePayload] = new Encoder[MetadataResponsePayload]:
         override def apply(m: MetadataResponsePayload): JJson = JJson.obj(
           "name" -> m.name.asJson,
@@ -232,7 +231,6 @@ private[http] object DocumentsRoutes:
           "ownedBy" -> m.ownedBy.asJson
         )
 
-      // TODO Contract test
       given Encoder[DocumentResponsePayload] = new Encoder[DocumentResponsePayload]:
         override def apply(d: DocumentResponsePayload): JJson = JJson.obj(
           "uuid" -> d.uuid.asJson,
@@ -240,6 +238,5 @@ private[http] object DocumentsRoutes:
           "metadata" -> d.metadata.asJson
         )
 
-      // TODO Contract test
       given Encoder[DocumentIdResponsePayload] = new Encoder[DocumentIdResponsePayload]:
         override def apply(uuid: DocumentIdResponsePayload): JJson = JJson.obj("uuid" -> uuid.value.asJson)
