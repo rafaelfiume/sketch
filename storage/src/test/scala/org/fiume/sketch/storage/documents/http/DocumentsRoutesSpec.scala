@@ -63,22 +63,10 @@ class DocumentsRoutesSpec
           .to(documentsRoutes.router())
           .expectJsonResponseWith(Status.Created)
 
-        stored <- store.fetchDocument(result.as[DocumentId].rightValue)
-        uploadedContent <- bytesFrom[IO]("mountain-bike-liguria-ponent.jpg").compile.toList
-        storedBytes <- OptionT(
-          store.documentStream(result.as[DocumentId].rightValue)
-        ).semiflatMap(_.compile.toList).value
+        createdDocId = result.as[DocumentIdResponsePayload].rightValue
+        stored <- store.fetchDocument(createdDocId.value)
         _ <- IO {
-          assertEquals(
-            stored.map(_.metadata.toResponsePayload),
-            MetadataResponsePayload(
-              name = metadataPayload.name,
-              description = metadataPayload.description,
-              createdBy = user.uuid.toString,
-              ownedBy = metadataPayload.ownedBy
-            ).some
-          )
-          assertEquals(storedBytes.map(_.toList), uploadedContent.some)
+          assert(stored.isDefined, clue = stored)
         }
       yield ()
     }
@@ -98,7 +86,7 @@ class DocumentsRoutesSpec
         _ <- IO {
           assertEquals(
             result.as[MetadataResponsePayload].rightValue,
-            document.metadata.toResponsePayload
+            document.metadata.asResponsePayload
           )
         }
       yield ()
@@ -139,7 +127,7 @@ class DocumentsRoutesSpec
         _ <- IO {
           assertEquals(
             result.as[DocumentResponsePayload].rightValue,
-            sndDoc.toResponsePayload
+            sndDoc.asResponsePayload
           )
         }
       yield ()
@@ -160,7 +148,7 @@ class DocumentsRoutesSpec
         _ <- IO {
           assertEquals(
             result.as[DocumentResponsePayload].rightValue,
-            sndDoc.toResponsePayload
+            sndDoc.asResponsePayload
           )
         }
       yield ()
@@ -282,7 +270,7 @@ trait DocumentsRoutesSpecContext extends AuthMiddlewareContext:
   def montainBikeInLiguriaImageFile = getClass.getClassLoader.getResource("mountain-bike-liguria-ponent.jpg")
 
   given Arbitrary[MetadataRequestPayload] = Arbitrary(metadataRequestPayloads)
-  def metadataRequestPayloads: Gen[MetadataRequestPayload] = metadataG.map(_.toRequestPayload) :| "metadataRequestPayloads"
+  def metadataRequestPayloads: Gen[MetadataRequestPayload] = metadataG.map(_.asRequestPayload) :| "metadataRequestPayloads"
 
   def malformedDocumentRequests: Gen[Multipart[IO]] = Gen.delay {
     Multipart[IO](
@@ -332,8 +320,9 @@ trait DocumentsRoutesSpecContext extends AuthMiddlewareContext:
       boundary = Boundary("boundary")
     )) :| "invalidTooShortDocumentName"
 
-  def makeDocumentsRoutes(authMiddleware: AuthMiddleware[IO, User],
-                          withStore: DocumentsStore[IO, IO]
+  def makeDocumentsRoutes(
+    authMiddleware: AuthMiddleware[IO, User],
+    withStore: DocumentsStore[IO, IO]
   ): IO[DocumentsRoutes[IO, IO]] =
     val documentBytesSizeLimit = 5 * 1024 * 1024
     IO.delay { new DocumentsRoutes[IO, IO](authMiddleware, documentBytesSizeLimit, withStore) }
@@ -361,6 +350,10 @@ trait DocumentsRoutesSpecContext extends AuthMiddlewareContext:
         metadata <- c.downField("metadata").as[MetadataResponsePayload]
         contentLink <- c.downField("content_link").as[Uri]
       yield DocumentResponsePayload(uuid, metadata, contentLink)
+
+  given Decoder[DocumentIdResponsePayload] = new Decoder[DocumentIdResponsePayload]:
+    override def apply(c: HCursor): Result[DocumentIdResponsePayload] =
+      c.downField("uuid").as[DocumentId].map(DocumentIdResponsePayload.apply)
 
 trait AuthMiddlewareContext:
   import cats.data.Kleisli

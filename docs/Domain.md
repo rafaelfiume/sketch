@@ -19,9 +19,9 @@ Future metadata might include `owner`, `workflow`, `fileSize`, `fileType`, `file
 ### Endpoints (proposal)
 
 ```
-GET /documents?created_by=<user_uuid>      # Only documents authored by user unless 'admin'
-GET /documents?owned_by=<user_uuid>        # Only documents ownded by user unless 'admin'
-GET /documents?workflow_id=<workflow_uuid> # Only workflow owned by user unless 'admin'
+GET /documents?author=<user_uuid>          # Only documents authored by user
+GET /documents?owner=<user_uuid>           # Only documents owned by user
+GET /documents?workflow=<workflow_uuid>    # Only workflow owned by user
 GET /documents                             # Returns 400
 ```
 

@@ -18,7 +18,15 @@ import org.fiume.sketch.storage.documents.{Document, DocumentId, DocumentWithId,
 import org.fiume.sketch.storage.documents.Document.Metadata
 import org.fiume.sketch.storage.documents.Document.Metadata.*
 import org.fiume.sketch.storage.documents.algebras.DocumentsStore
-import org.fiume.sketch.storage.documents.http.DocumentsRoutes.{AuthorQueryParamMatcher, DocumentIdVar, Line, Linebreak, NewlineDelimitedJson, NewlineDelimitedJsonEncoder, OwnerQueryParamMatcher}
+import org.fiume.sketch.storage.documents.http.DocumentsRoutes.{
+  AuthorQueryParamMatcher,
+  DocumentIdVar,
+  Line,
+  Linebreak,
+  NewlineDelimitedJson,
+  NewlineDelimitedJsonEncoder,
+  OwnerQueryParamMatcher
+}
 import org.fiume.sketch.storage.documents.http.DocumentsRoutes.Model.*
 import org.fiume.sketch.storage.documents.http.DocumentsRoutes.Model.Json.given
 import org.http4s.{Charset, EntityEncoder, HttpRoutes, MediaType, *}
@@ -57,7 +65,7 @@ class DocumentsRoutes[F[_]: Concurrent, Txn[_]](
           for
             document <- uploadRequest.validated(authorId = user.uuid)
             uuid <- store.commit { store.store(document) }
-            created <- Created(uuid)
+            created <- Created(uuid.asResponsePayload)
           yield created
         }
 
@@ -65,7 +73,7 @@ class DocumentsRoutes[F[_]: Concurrent, Txn[_]](
         for
           document <- store.commit { store.fetchDocument(uuid) }
           // TODO Change response payload
-          res <- document.map(_.metadata.toResponsePayload).fold(ifEmpty = NotFound())(Ok(_))
+          res <- document.map(_.metadata.asResponsePayload).fold(ifEmpty = NotFound())(Ok(_))
         yield res
 
       case GET -> Root / "documents" / DocumentIdVar(uuid) as user =>
@@ -78,7 +86,7 @@ class DocumentsRoutes[F[_]: Concurrent, Txn[_]](
       case GET -> Root / "documents" :? AuthorQueryParamMatcher(userId) as user =>
         val responseStream = store
           .fetchByAuthor(by = userId)
-          .map(_.toResponsePayload.asJson)
+          .map(_.asResponsePayload.asJson)
           .map(Line(_))
           .intersperse(Linebreak)
         Ok(responseStream)
@@ -86,7 +94,7 @@ class DocumentsRoutes[F[_]: Concurrent, Txn[_]](
       case GET -> Root / "documents" :? OwnerQueryParamMatcher(userId) as user =>
         val responseStream = store
           .fetchByOwner(by = userId)
-          .map(_.toResponsePayload.asJson)
+          .map(_.asResponsePayload.asJson)
           .map(Line(_))
           .intersperse(Linebreak)
         Ok(responseStream)
@@ -131,17 +139,20 @@ private[http] object DocumentsRoutes:
     case class MetadataRequestPayload(name: String, description: String, ownedBy: String)
     case class MetadataResponsePayload(name: String, description: String, createdBy: String, ownedBy: String)
     case class DocumentResponsePayload(uuid: DocumentId, metadata: MetadataResponsePayload, contentLink: Uri)
+    case class DocumentIdResponsePayload(value: DocumentId)
 
     extension (m: Metadata)
-      def toRequestPayload: MetadataRequestPayload =
+      def asRequestPayload: MetadataRequestPayload =
         MetadataRequestPayload(m.name.value, m.description.value, m.ownedBy.toString)
 
-      def toResponsePayload: MetadataResponsePayload =
+      def asResponsePayload: MetadataResponsePayload =
         MetadataResponsePayload(m.name.value, m.description.value, m.createdBy.toString, m.ownedBy.toString)
 
     extension [F[_]](d: DocumentWithId)
-      def toResponsePayload: DocumentResponsePayload =
-        DocumentResponsePayload(d.uuid, d.metadata.toResponsePayload, Uri.unsafeFromString(s"/documents/${d.uuid.toString}"))
+      def asResponsePayload: DocumentResponsePayload =
+        DocumentResponsePayload(d.uuid, d.metadata.asResponsePayload, Uri.unsafeFromString(s"/documents/${d.uuid.toString}"))
+
+    extension [F[_]](id: DocumentId) def asResponsePayload: DocumentIdResponsePayload = DocumentIdResponsePayload(id)
 
     extension [F[_]: MonadThrow: Concurrent](m: Multipart[F])
       def validated(authorId: UserId): F[DocumentWithStream[F]] =
@@ -203,9 +214,7 @@ private[http] object DocumentsRoutes:
 
     object Json:
       given Encoder[Uri] = Encoder.encodeString.contramap(_.renderString)
-      given Decoder[Uri] = Decoder.decodeString.emap { uri =>
-        Uri.fromString(uri).leftMap { e => e.getMessage }
-      }
+      given Decoder[Uri] = Decoder.decodeString.emap { uri => Uri.fromString(uri).leftMap(_.getMessage) }
 
       given Encoder[DocumentId] = Encoder[String].contramap[DocumentId](_.toString)
       given Decoder[DocumentId] = Decoder[String].emap(uuid => DocumentId.fromString(uuid).leftMap(_.message))
@@ -234,3 +243,6 @@ private[http] object DocumentsRoutes:
           "metadata" -> d.metadata.asJson,
           "content_link" -> d.contentLink.asJson
         )
+
+      given Encoder[DocumentIdResponsePayload] = new Encoder[DocumentIdResponsePayload]:
+        override def apply(uuid: DocumentIdResponsePayload): JJson = JJson.obj("uuid" -> uuid.value.asJson)
