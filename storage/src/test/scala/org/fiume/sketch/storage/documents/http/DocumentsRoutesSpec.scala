@@ -128,7 +128,7 @@ class DocumentsRoutesSpec
     forAllF { (fstDoc: DocumentWithIdAndStream[IO], sndDoc: DocumentWithIdAndStream[IO]) =>
       val request = GET(Uri.unsafeFromString(s"/documents?author=${sndDoc.metadata.createdBy}"))
       for
-        store <- makeDocumentsStore(fstDoc, sndDoc)
+        store <- makeDocumentsStore(state = fstDoc, sndDoc)
         authMiddleware = makeAuthMiddleware()
         documentsRoutes <- makeDocumentsRoutes(authMiddleware, store)
 
@@ -145,6 +145,26 @@ class DocumentsRoutesSpec
       yield ()
     }
 
+  test("Get document by owner"):
+    forAllF { (fstDoc: DocumentWithIdAndStream[IO], sndDoc: DocumentWithIdAndStream[IO]) =>
+      val request = GET(Uri.unsafeFromString(s"/documents?owner=${sndDoc.metadata.ownedBy}"))
+      for
+        store <- makeDocumentsStore(state = fstDoc, sndDoc)
+        authMiddleware = makeAuthMiddleware()
+        documentsRoutes <- makeDocumentsRoutes(authMiddleware, store)
+
+        result <- send(request)
+          .to(documentsRoutes.router())
+          .expectJsonResponseWith(Status.Ok, debugJsonResponse = true)
+
+        _ <- IO {
+          assertEquals(
+            result.as[DocumentResponsePayload].rightValue,
+            sndDoc.toResponsePayload
+          )
+        }
+      yield ()
+    }
   test("Delete document"):
     forAllF { (document: DocumentWithIdAndStream[IO]) =>
       val request = DELETE(Uri.unsafeFromString(s"/documents/${document.uuid.value}"))
@@ -414,13 +434,10 @@ trait DocumentsStoreContext:
 
         given IORuntime = IORuntime.global
         def fetchByAuthor(by: UserId): fs2.Stream[IO, DocumentWithId] =
-          fs2.Stream.emits(
-            storage.get.unsafeRunSync().values.filter(_.metadata.createdBy === by).toSeq
-          )
+          fetchAll().filter(_.metadata.createdBy === by)
 
-        def fetchByOwner(by: UserId): fs2.Stream[IO, DocumentWithId] = ???
-
-        def fetchAll(): Stream[IO, DocumentWithId] = fail("should be invoking filtered endpoint") // TODO
+        def fetchByOwner(by: UserId): fs2.Stream[IO, DocumentWithId] =
+          fetchAll().filter(_.metadata.ownedBy === by)
 
         def delete(uuid: DocumentId): IO[Unit] =
           storage.update { _.removed(uuid) }
@@ -428,4 +445,8 @@ trait DocumentsStoreContext:
         val commit: [A] => IO[A] => IO[A] = [A] => (action: IO[A]) => action
 
         val lift: [A] => IO[A] => IO[A] = [A] => (action: IO[A]) => action
+
+        private def fetchAll(): Stream[IO, DocumentWithId] = fs2.Stream.emits(
+          storage.get.unsafeRunSync().values.toSeq
+        )
     }

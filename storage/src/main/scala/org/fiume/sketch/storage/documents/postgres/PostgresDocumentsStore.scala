@@ -55,9 +55,6 @@ private class PostgresDocumentsStore[F[_]: Async] private (l: F ~> ConnectionIO,
   def fetchByOwner(by: UserId): fs2.Stream[F, DocumentWithId] =
     Statements.selectByOwner(by).transact(tx)
 
-  override def fetchAll(): fs2.Stream[F, DocumentWithId] =
-    Statements.selectAllDocuments().transact(tx)
-
   override def delete(uuid: DocumentId): ConnectionIO[Unit] =
     Statements.delete(uuid).run.void
 
@@ -121,17 +118,6 @@ private object Statements:
          |  d.owned_by
          |FROM domain.documents d
          |WHERE d.owned_by = $ownerId
-    """.stripMargin.query[DocumentWithId].stream
-
-  def selectAllDocuments(): fs2.Stream[ConnectionIO, DocumentWithId] =
-    sql"""
-         |SELECT
-         |  d.uuid,
-         |  d.name,
-         |  d.description,
-         |  d.created_by,
-         |  d.owned_by
-         |FROM domain.documents d
     """.stripMargin.query[DocumentWithId].stream
 
   def delete(uuid: DocumentId): Update0 =

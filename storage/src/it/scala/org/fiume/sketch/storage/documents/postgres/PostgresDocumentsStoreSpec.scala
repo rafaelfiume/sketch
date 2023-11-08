@@ -99,27 +99,6 @@ class PostgresDocumentsStoreSpec
       }
     }
 
-  test("fetch all documents"):
-    forAllF { (fstDoc: DocumentWithStream[IO], sndDoc: DocumentWithStream[IO]) =>
-      will(cleanDocuments) {
-        PostgresDocumentsStore.make[IO](transactor()).use { store =>
-          for
-            fstUuid <- store.store(fstDoc).ccommit
-            sndUuid <- store.store(sndDoc).ccommit
-
-            result <- store.fetchAll().compile.toList
-
-            _ <- IO {
-              assertEquals(
-                result,
-                List(fstDoc.withUuid(fstUuid), sndDoc.withUuid(sndUuid))
-              )
-            }
-          yield ()
-        }
-      }
-    }
-
   test("delete document"):
     forAllF { (fstDoc: DocumentWithStream[IO], sndDoc: DocumentWithStream[IO]) =>
       will(cleanDocuments) {

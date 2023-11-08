@@ -18,14 +18,7 @@ import org.fiume.sketch.storage.documents.{Document, DocumentId, DocumentWithId,
 import org.fiume.sketch.storage.documents.Document.Metadata
 import org.fiume.sketch.storage.documents.Document.Metadata.*
 import org.fiume.sketch.storage.documents.algebras.DocumentsStore
-import org.fiume.sketch.storage.documents.http.DocumentsRoutes.{
-  AuthorQueryParamMatcher,
-  DocumentIdVar,
-  Line,
-  Linebreak,
-  NewlineDelimitedJson,
-  NewlineDelimitedJsonEncoder
-}
+import org.fiume.sketch.storage.documents.http.DocumentsRoutes.{AuthorQueryParamMatcher, DocumentIdVar, Line, Linebreak, NewlineDelimitedJson, NewlineDelimitedJsonEncoder, OwnerQueryParamMatcher}
 import org.fiume.sketch.storage.documents.http.DocumentsRoutes.Model.*
 import org.fiume.sketch.storage.documents.http.DocumentsRoutes.Model.Json.given
 import org.http4s.{Charset, EntityEncoder, HttpRoutes, MediaType, *}
@@ -81,7 +74,7 @@ class DocumentsRoutes[F[_]: Concurrent, Txn[_]](
           res <- stream.fold(ifEmpty = NotFound())(Ok(_, `Content-Disposition`("attachment", Map.empty)))
         yield res
 
-      // experimental newline delimented json: no tests and subject to change
+      // experimental newline delimented json
       case GET -> Root / "documents" :? AuthorQueryParamMatcher(userId) as user =>
         val responseStream = store
           .fetchByAuthor(by = userId)
@@ -90,9 +83,9 @@ class DocumentsRoutes[F[_]: Concurrent, Txn[_]](
           .intersperse(Linebreak)
         Ok(responseStream)
 
-      case GET -> Root / "documents" as user =>
+      case GET -> Root / "documents" :? OwnerQueryParamMatcher(userId) as user =>
         val responseStream = store
-          .fetchAll()
+          .fetchByOwner(by = userId)
           .map(_.toResponsePayload.asJson)
           .map(Line(_))
           .intersperse(Linebreak)
@@ -131,6 +124,8 @@ private[http] object DocumentsRoutes:
   )
 
   object AuthorQueryParamMatcher extends QueryParamDecoderMatcher[UserId]("author")
+
+  object OwnerQueryParamMatcher extends QueryParamDecoderMatcher[UserId]("owner")
 
   object Model:
     case class MetadataRequestPayload(name: String, description: String, ownedBy: String)
