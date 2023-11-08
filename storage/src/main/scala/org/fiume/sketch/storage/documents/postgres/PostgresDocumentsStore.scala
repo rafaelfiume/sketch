@@ -38,7 +38,7 @@ private class PostgresDocumentsStore[F[_]: Async] private (l: F ~> ConnectionIO,
         )
     yield uuid
 
-  override def fetchDocument(uuid: DocumentId): ConnectionIO[Option[Document]] =
+  override def fetchDocument(uuid: DocumentId): ConnectionIO[Option[DocumentWithId]] =
     Statements.selectDocument(uuid).option
 
   override def documentStream(uuid: DocumentId): ConnectionIO[Option[Stream[F, Byte]]] =
@@ -77,16 +77,17 @@ private object Statements:
          |)
     """.stripMargin.update
 
-  def selectDocument(uuid: DocumentId): Query0[Document] =
+  def selectDocument(uuid: DocumentId): Query0[DocumentWithId] =
     sql"""
          |SELECT
+         |  d.uuid,
          |  d.name,
          |  d.description,
          |  d.created_by,
          |  d.owned_by
          |FROM domain.documents d
          |WHERE d.uuid = $uuid
-    """.stripMargin.query[Document]
+    """.stripMargin.query[DocumentWithId]
 
   def selectDocumentBytes(uuid: DocumentId): Query0[Array[Byte]] =
     sql"""

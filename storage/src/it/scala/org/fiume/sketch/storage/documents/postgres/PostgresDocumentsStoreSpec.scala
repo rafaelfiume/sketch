@@ -9,7 +9,7 @@ import doobie.postgres.implicits.*
 import fs2.Stream
 import munit.ScalaCheckEffectSuite
 import org.fiume.sketch.shared.testkit.FileContentContext
-import org.fiume.sketch.storage.documents.{Document, DocumentId, DocumentWithStream}
+import org.fiume.sketch.storage.documents.{Document, DocumentId, DocumentWithIdAndStream, DocumentWithStream}
 import org.fiume.sketch.storage.documents.postgres.DoobieMappings.given
 import org.fiume.sketch.storage.testkit.DockerPostgresSuite
 import org.fiume.sketch.storage.testkit.DocumentsGens.*
@@ -27,7 +27,7 @@ class PostgresDocumentsStoreSpec
     with ShrinkLowPriority:
 
   test("store document and fetch metadata"):
-    forAllF { (document: DocumentWithStream[IO]) =>
+    forAllF { (document: DocumentWithIdAndStream[IO]) =>
       will(cleanDocuments) {
         PostgresDocumentsStore.make[IO](transactor()).use { store =>
           for
@@ -50,9 +50,7 @@ class PostgresDocumentsStoreSpec
           for
             uuid <- store.store(document).ccommit
 
-            result <- OptionT(
-              store.documentStream(uuid).ccommit
-            ).semiflatMap(_.compile.toList).value
+            result <- OptionT(store.documentStream(uuid).ccommit).semiflatMap(_.compile.toList).value
 
             bytes <- document.stream.compile.toList
             _ <- IO {

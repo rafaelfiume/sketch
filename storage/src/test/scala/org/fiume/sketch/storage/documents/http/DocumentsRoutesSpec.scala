@@ -84,10 +84,7 @@ class DocumentsRoutesSpec
           .expectJsonResponseWith(Status.Ok)
 
         _ <- IO {
-          assertEquals(
-            result.as[MetadataResponsePayload].rightValue,
-            document.metadata.asResponsePayload
-          )
+          assertEquals(result.as[DocumentResponsePayload].rightValue, document.asResponsePayload)
         }
       yield ()
     }
@@ -415,7 +412,7 @@ trait DocumentsStoreContext:
               .as(uuid)
           }
 
-        def fetchDocument(uuid: DocumentId): IO[Option[Document]] =
+        def fetchDocument(uuid: DocumentId): IO[Option[DocumentWithId]] =
           storage.get.map(_.collectFirst {
             case (storedUuid, document) if storedUuid === uuid => document
           })

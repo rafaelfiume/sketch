@@ -49,11 +49,7 @@ class DocumentsRoutes[F[_]: Concurrent, Txn[_]](
   private val prefix = "/"
 
   def router(): HttpRoutes[F] = Router(
-    prefix ->
-      EntityLimiter(
-        authMiddleware(authedRoutes),
-        limit = documentBytesSizeLimit
-      )
+    prefix -> EntityLimiter(authMiddleware(authedRoutes), documentBytesSizeLimit)
   )
 
   given EntityEncoder[F, NewlineDelimitedJson] = NewlineDelimitedJsonEncoder.make[F]
@@ -73,7 +69,7 @@ class DocumentsRoutes[F[_]: Concurrent, Txn[_]](
         for
           document <- store.commit { store.fetchDocument(uuid) }
           // TODO Change response payload
-          res <- document.map(_.metadata.asResponsePayload).fold(ifEmpty = NotFound())(Ok(_))
+          res <- document.map(_.asResponsePayload).fold(ifEmpty = NotFound())(Ok(_))
         yield res
 
       case GET -> Root / "documents" / DocumentIdVar(uuid) as user =>
@@ -82,7 +78,7 @@ class DocumentsRoutes[F[_]: Concurrent, Txn[_]](
           res <- stream.fold(ifEmpty = NotFound())(Ok(_, `Content-Disposition`("attachment", Map.empty)))
         yield res
 
-      // experimental newline delimented json
+      // experimental newline delimited json
       case GET -> Root / "documents" :? AuthorQueryParamMatcher(userId) as user =>
         val responseStream = store
           .fetchByAuthor(by = userId)
@@ -138,14 +134,14 @@ private[http] object DocumentsRoutes:
   object Model:
     case class MetadataRequestPayload(name: String, description: String, ownedBy: String)
     case class MetadataResponsePayload(name: String, description: String, createdBy: String, ownedBy: String)
-    case class DocumentResponsePayload(uuid: DocumentId, metadata: MetadataResponsePayload, contentLink: Uri)
+    case class DocumentResponsePayload(uuid: DocumentId, metadata: MetadataResponsePayload, uri: Uri)
     case class DocumentIdResponsePayload(value: DocumentId)
 
     extension (m: Metadata)
       def asRequestPayload: MetadataRequestPayload =
         MetadataRequestPayload(m.name.value, m.description.value, m.ownedBy.toString)
 
-      def asResponsePayload: MetadataResponsePayload =
+      private def asResponsePayload: MetadataResponsePayload =
         MetadataResponsePayload(m.name.value, m.description.value, m.createdBy.toString, m.ownedBy.toString)
 
     extension [F[_]](d: DocumentWithId)
@@ -240,9 +236,10 @@ private[http] object DocumentsRoutes:
       given Encoder[DocumentResponsePayload] = new Encoder[DocumentResponsePayload]:
         override def apply(d: DocumentResponsePayload): JJson = JJson.obj(
           "uuid" -> d.uuid.asJson,
-          "metadata" -> d.metadata.asJson,
-          "content_link" -> d.contentLink.asJson
+          "uri" -> d.uri.asJson,
+          "metadata" -> d.metadata.asJson
         )
 
+      // TODO Contract test
       given Encoder[DocumentIdResponsePayload] = new Encoder[DocumentIdResponsePayload]:
         override def apply(uuid: DocumentIdResponsePayload): JJson = JJson.obj("uuid" -> uuid.value.asJson)
