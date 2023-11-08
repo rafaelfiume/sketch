@@ -20,18 +20,22 @@ class DocumentsSpec extends CatsEffectSuite with FileContentContext with Authent
 
   test("store documents"):
     for
-      authHeader <- loginAndGetAuthenticationHeader()
+      authenticated <- loginAndGetAuthenticatedUser()
+      authorizationHeader = authenticated.authorization
       _ <- withHttp { client =>
         for
-          uuid <- client.expect[Json](fileUploadRequest(payload(docName, docDesc, ownedBy), pathToFile, authHeader)).map(_.uuid)
+          uuid <- client.expect[Json](fileUploadRequest(payload(docName, docDesc, ownedBy), pathToFile, authorizationHeader)).map(_.uuid)
 
-          _ <- client.expect[Json](s"http://localhost:8080/documents/$uuid/metadata".get.withHeaders(authHeader)).map { res =>
+          _ <- client.expect[Json](s"http://localhost:8080/documents/$uuid/metadata".get.withHeaders(authorizationHeader)).map { res =>
+            assertEquals(res.uuid, uuid)
             assertEquals(res.docName, docName)
             assertEquals(res.description, docDesc)
+            assertEquals(res.createdBy, authenticated.user.uuid.toString)
+            assertEquals(res.ownedBy, ownedBy)
           }
 
           content <- client
-            .stream(s"http://localhost:8080/documents/$uuid".get.withHeaders(authHeader))
+            .stream(s"http://localhost:8080/documents/$uuid".get.withHeaders(authorizationHeader))
             .flatMap(_.body)
             .compile
             .toList
@@ -43,20 +47,21 @@ class DocumentsSpec extends CatsEffectSuite with FileContentContext with Authent
 
   test("delete documents"):
     for
-      authHeader <- loginAndGetAuthenticationHeader()
+      authenticated <- loginAndGetAuthenticatedUser()
+      authorizationHeader = authenticated.authorization
       _ <- withHttp { client =>
         for
-          uuid <- client.expect[Json](fileUploadRequest(payload(docName, docDesc, ownedBy), pathToFile, authHeader)).map(_.uuid)
+          uuid <- client.expect[Json](fileUploadRequest(payload(docName, docDesc, ownedBy), pathToFile, authorizationHeader)).map(_.uuid)
 
-          _ <- client.status(s"http://localhost:8080/documents/$uuid".delete.withHeaders(authHeader)).map { status =>
+          _ <- client.status(s"http://localhost:8080/documents/$uuid".delete.withHeaders(authorizationHeader)).map { status =>
             assertEquals(status, NoContent)
           }
 
-          _ <- client.status(s"http://localhost:8080/documents/$uuid/metadata".get.withHeaders(authHeader)).map { status =>
+          _ <- client.status(s"http://localhost:8080/documents/$uuid/metadata".get.withHeaders(authorizationHeader)).map { status =>
             assertEquals(status, NotFound)
           }
 
-          _ <- client.status(s"http://localhost:8080/documents/$uuid".get.withHeaders(authHeader)).map { status =>
+          _ <- client.status(s"http://localhost:8080/documents/$uuid".get.withHeaders(authorizationHeader)).map { status =>
             assertEquals(status, NotFound)
           }
         yield ()
@@ -92,6 +97,7 @@ trait DocumentsSpecContext extends Http4sClientContext:
 
   extension (json: Json)
     def uuid: String = json.hcursor.get[String]("uuid").getOrElse(fail("'uuid' field not found"))
-    def docName: String = json.hcursor.get[String]("name").getOrElse(fail("'name' field not found"))
-    def description: String = json.hcursor.get[String]("description").getOrElse(fail("'description' field not found"))
-    def ownedBy: String = json.hcursor.get[String]("ownedBy").getOrElse(fail("'ownedBy' field not found"))
+    def docName: String = json.hcursor.downField("metadata").get[String]("name").getOrElse(fail("'name' field not found"))
+    def description: String = json.hcursor.downField("metadata").get[String]("description").getOrElse(fail("'description' field not found"))
+    def createdBy: String = json.hcursor.downField("metadata").get[String]("createdBy").getOrElse(fail("'createdBy' field not found"))
+    def ownedBy: String = json.hcursor.downField("metadata").get[String]("ownedBy").getOrElse(fail("'ownedBy' field not found"))

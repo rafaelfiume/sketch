@@ -19,15 +19,16 @@ class DocumentsSimulation extends Simulation with FileContentContext with Authen
   given IORuntime = IORuntime.global
   val bytes = bytesFrom[IO](pathToFile).compile.toVector.map(_.toArray).unsafeRunSync()
 
-  val authHeader = loginAndGetAuthenticationHeader().unsafeRunSync()
+  val authenticated = loginAndGetAuthenticatedUser().unsafeRunSync()
+  val authorizationHeader = authenticated.authorization
 
-  println(authHeader.credentials.toString)
+  println(authorizationHeader.credentials.toString)
 
   val httpProtocol = http
     .baseUrl("http://localhost:8080")
     .acceptHeader("application/json")
     .contentTypeHeader("multipart/form-data")
-    .header("Authorization", authHeader.credentials.toString)
+    .header("Authorization", authorizationHeader.credentials.toString)
 
   val scn = scenario("DocumentsRoutes")
     .exec(

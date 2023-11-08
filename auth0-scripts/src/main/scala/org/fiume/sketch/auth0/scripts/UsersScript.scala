@@ -50,10 +50,10 @@ object UsersScript extends IOApp:
         ErrorInfo.short(ErrorMessage(s"Invalid parameters: expected `username` and `password`; got $unknown")).asLeft[Args]
 
 class UsersScript private (private val config: DatabaseConfig):
-  def registreUser(username: Username, password: PlainPassword): IO[Unit] =
+  def registreUser(username: Username, password: PlainPassword): IO[User] =
     DbTransactor.make[IO](config).flatMap(PostgresUsersStore.make[IO]).use { store =>
       for
         usersManager <- UsersManager.make[IO, ConnectionIO](store)
-        _ <- usersManager.registreUser(username, password)
-      yield ()
+        user <- usersManager.registreUser(username, password)
+      yield user
     }
