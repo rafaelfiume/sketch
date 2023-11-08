@@ -93,9 +93,9 @@ object PasswordsGens:
     passwordsWithControlCharsOrEmojis
   ) :| "one of password input errors"
 
+  given IORuntime = IORuntime.global
   given Arbitrary[Salt] = Arbitrary(salts)
   def salts: Gen[Salt] =
-    given IORuntime = IORuntime.global
     Gen.delay(Salt.generate[IO]().unsafeRunSync())
 
   // a bcrypt hash approximation for efficience (store assumes correctness)

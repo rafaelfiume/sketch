@@ -19,6 +19,7 @@ import org.fiume.sketch.storage.documents.Document.Metadata
 import org.fiume.sketch.storage.documents.Document.Metadata.*
 import org.fiume.sketch.storage.documents.algebras.DocumentsStore
 import org.fiume.sketch.storage.documents.http.DocumentsRoutes.{
+  AuthorQueryParamMatcher,
   DocumentIdVar,
   Line,
   Linebreak,
@@ -32,6 +33,7 @@ import org.http4s.MediaType.application
 import org.http4s.circe.CirceEntityDecoder.*
 import org.http4s.circe.CirceEntityEncoder.*
 import org.http4s.dsl.Http4sDsl
+import org.http4s.dsl.impl.*
 import org.http4s.headers.{`Content-Disposition`, `Content-Type`}
 import org.http4s.multipart.{Multipart, Part, *}
 import org.http4s.server.{AuthMiddleware, Router}
@@ -80,6 +82,14 @@ class DocumentsRoutes[F[_]: Concurrent, Txn[_]](
         yield res
 
       // experimental newline delimented json: no tests and subject to change
+      case GET -> Root / "documents" :? AuthorQueryParamMatcher(userId) as user =>
+        val responseStream = store
+          .fetchByAuthor(by = userId)
+          .map(_.toResponsePayload.asJson)
+          .map(Line(_))
+          .intersperse(Linebreak)
+        Ok(responseStream)
+
       case GET -> Root / "documents" as user =>
         val responseStream = store
           .fetchAll()
@@ -98,8 +108,6 @@ class DocumentsRoutes[F[_]: Concurrent, Txn[_]](
     }
 
 private[http] object DocumentsRoutes:
-  object DocumentIdVar:
-    def unapply(value: String): Option[DocumentId] = DocumentId.fromString(value).toOption
 
   sealed trait NewlineDelimitedJson
   case class Line(json: JJson) extends NewlineDelimitedJson
@@ -114,6 +122,15 @@ private[http] object DocumentsRoutes:
             case Linebreak   => "\n"
         }
         .withContentType(`Content-Type`(MediaType.application.json, Charset.`UTF-8`))
+
+  object DocumentIdVar:
+    def unapply(value: String): Option[DocumentId] = DocumentId.fromString(value).toOption
+
+  given QueryParamDecoder[UserId] = QueryParamDecoder[String].emap(s =>
+    UserId.fromString(s).leftMap(e => ParseFailure("invalid or missing userId", s"${e.message}"))
+  )
+
+  object AuthorQueryParamMatcher extends QueryParamDecoderMatcher[UserId]("author")
 
   object Model:
     case class MetadataRequestPayload(name: String, description: String, ownedBy: String)
@@ -195,21 +212,8 @@ private[http] object DocumentsRoutes:
         Uri.fromString(uri).leftMap { e => e.getMessage }
       }
 
-      given Encoder[DocumentId] = new Encoder[DocumentId]:
-        override def apply(uuid: DocumentId): JJson = JJson.obj("uuid" -> JJson.fromString(uuid.value.toString))
-
-      given Decoder[DocumentId] = new Decoder[DocumentId]:
-        override def apply(c: HCursor): Result[DocumentId] =
-          c.downField("uuid").as[String].flatMap { uuid =>
-            DocumentId.fromString(uuid).leftMap { e => DecodingFailure(e.message, c.history) }
-          }
-
-      given Encoder[MetadataRequestPayload] = new Encoder[MetadataRequestPayload]:
-        override def apply(m: MetadataRequestPayload): JJson = JJson.obj(
-          "name" -> m.name.asJson,
-          "description" -> m.description.asJson,
-          "ownedBy" -> m.ownedBy.asJson
-        )
+      given Encoder[DocumentId] = Encoder[String].contramap[DocumentId](_.value.toString)
+      given Decoder[DocumentId] = Decoder[String].emap(uuid => DocumentId.fromString(uuid).leftMap(_.message))
 
       given Decoder[MetadataRequestPayload] = new Decoder[MetadataRequestPayload]:
         override def apply(c: HCursor): Result[MetadataRequestPayload] =
@@ -227,15 +231,6 @@ private[http] object DocumentsRoutes:
           "createdBy" -> m.createdBy.asJson,
           "ownedBy" -> m.ownedBy.asJson
         )
-
-      given Decoder[MetadataResponsePayload] = new Decoder[MetadataResponsePayload]:
-        override def apply(c: HCursor): Result[MetadataResponsePayload] =
-          for
-            name <- c.downField("name").as[String]
-            description <- c.downField("description").as[String]
-            createdBy <- c.downField("createdBy").as[String]
-            ownedBy <- c.downField("ownedBy").as[String]
-          yield MetadataResponsePayload(name, description, createdBy, ownedBy)
 
       // TODO Contract test
       given Encoder[DocumentResponsePayload] = new Encoder[DocumentResponsePayload]:

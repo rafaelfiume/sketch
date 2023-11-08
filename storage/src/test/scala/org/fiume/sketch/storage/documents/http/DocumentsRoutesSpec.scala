@@ -3,6 +3,8 @@ package org.fiume.sketch.storage.documents.http
 import cats.data.OptionT
 import cats.effect.{IO, Ref}
 import cats.implicits.*
+import io.circe.{Decoder, Encoder, HCursor, Json}
+import io.circe.Decoder.Result
 import io.circe.syntax.*
 import munit.{CatsEffectSuite, ScalaCheckEffectSuite}
 import munit.Assertions.*
@@ -57,14 +59,14 @@ class DocumentsRoutesSpec
         authMiddleware = makeAuthMiddleware(authenticated = user)
         documentsRoutes <- makeDocumentsRoutes(authMiddleware, store)
 
-        jsonResponse <- send(request)
+        result <- send(request)
           .to(documentsRoutes.router())
           .expectJsonResponseWith(Status.Created)
 
-        stored <- store.fetchDocument(jsonResponse.as[DocumentId].rightValue)
+        stored <- store.fetchDocument(result.as[DocumentId].rightValue)
         uploadedContent <- bytesFrom[IO]("mountain-bike-liguria-ponent.jpg").compile.toList
         storedBytes <- OptionT(
-          store.documentStream(jsonResponse.as[DocumentId].rightValue)
+          store.documentStream(result.as[DocumentId].rightValue)
         ).semiflatMap(_.compile.toList).value
         _ <- IO {
           assertEquals(
@@ -89,13 +91,13 @@ class DocumentsRoutesSpec
         authMiddleware = makeAuthMiddleware()
         documentsRoutes <- makeDocumentsRoutes(authMiddleware, store)
 
-        jsonResponse <- send(request)
+        result <- send(request)
           .to(documentsRoutes.router())
           .expectJsonResponseWith(Status.Ok)
 
         _ <- IO {
           assertEquals(
-            jsonResponse.as[MetadataResponsePayload].rightValue,
+            result.as[MetadataResponsePayload].rightValue,
             document.metadata.toResponsePayload
           )
         }
@@ -110,14 +112,35 @@ class DocumentsRoutesSpec
         authMiddleware = makeAuthMiddleware()
         documentsRoutes <- makeDocumentsRoutes(authMiddleware, store)
 
-        contentStream <- send(request)
+        result <- send(request)
           .to(documentsRoutes.router())
           .expectByteStreamResponseWith(Status.Ok)
 
-        obtainedStream <- contentStream.compile.toList
+        obtainedStream <- result.compile.toList
         expectedStream <- document.stream.compile.toList
         _ <- IO {
           assertEquals(obtainedStream, expectedStream)
+        }
+      yield ()
+    }
+
+  test("Get document by author"):
+    forAllF { (fstDoc: DocumentWithIdAndStream[IO], sndDoc: DocumentWithIdAndStream[IO]) =>
+      val request = GET(Uri.unsafeFromString(s"/documents?author=${sndDoc.metadata.createdBy.value.toString}"))
+      for
+        store <- makeDocumentsStore(fstDoc, sndDoc)
+        authMiddleware = makeAuthMiddleware()
+        documentsRoutes <- makeDocumentsRoutes(authMiddleware, store)
+
+        result <- send(request)
+          .to(documentsRoutes.router())
+          .expectJsonResponseWith(Status.Ok, debugJsonResponse = true)
+
+        _ <- IO {
+          assertEquals(
+            result.as[DocumentResponsePayload].rightValue,
+            sndDoc.toResponsePayload
+          )
         }
       yield ()
     }
@@ -295,6 +318,30 @@ trait DocumentsRoutesSpecContext extends AuthMiddlewareContext:
     val documentBytesSizeLimit = 5 * 1024 * 1024
     IO.delay { new DocumentsRoutes[IO, IO](authMiddleware, documentBytesSizeLimit, withStore) }
 
+  given Encoder[MetadataRequestPayload] = new Encoder[MetadataRequestPayload]:
+    override def apply(m: MetadataRequestPayload): Json = Json.obj(
+      "name" -> m.name.asJson,
+      "description" -> m.description.asJson,
+      "ownedBy" -> m.ownedBy.asJson
+    )
+
+  given Decoder[MetadataResponsePayload] = new Decoder[MetadataResponsePayload]:
+    override def apply(c: HCursor): Result[MetadataResponsePayload] =
+      for
+        name <- c.downField("name").as[String]
+        description <- c.downField("description").as[String]
+        createdBy <- c.downField("createdBy").as[String]
+        ownedBy <- c.downField("ownedBy").as[String]
+      yield MetadataResponsePayload(name, description, createdBy, ownedBy)
+
+  given Decoder[DocumentResponsePayload] = new Decoder[DocumentResponsePayload]:
+    override def apply(c: HCursor): Result[DocumentResponsePayload] =
+      for
+        uuid <- c.downField("uuid").as[DocumentId]
+        metadata <- c.downField("metadata").as[MetadataResponsePayload]
+        contentLink <- c.downField("content_link").as[Uri]
+      yield DocumentResponsePayload(uuid, metadata, contentLink)
+
 trait AuthMiddlewareContext:
   import cats.data.Kleisli
   import org.fiume.sketch.shared.auth0.User
@@ -332,11 +379,12 @@ trait DocumentsStoreContext:
   import fs2.Stream
   import org.fiume.sketch.storage.documents.{Document, DocumentId, DocumentWithId, WithStream}
   import org.fiume.sketch.shared.auth0.UserId
+  import cats.effect.unsafe.IORuntime
 
   def makeDocumentsStore(): IO[DocumentsStore[IO, IO]] = makeDocumentsStore(state = Map.empty)
 
-  def makeDocumentsStore(state: DocumentWithIdAndStream[IO]): IO[DocumentsStore[IO, IO]] =
-    makeDocumentsStore(Map(state.uuid -> state))
+  def makeDocumentsStore(state: DocumentWithIdAndStream[IO]*): IO[DocumentsStore[IO, IO]] =
+    makeDocumentsStore(state.map(doc => doc.uuid -> doc).toMap)
 
   private def makeDocumentsStore(state: Map[DocumentId, DocumentWithIdAndStream[IO]]): IO[DocumentsStore[IO, IO]] =
     Ref.of[IO, Map[DocumentId, DocumentWithIdAndStream[IO]]](state).map { storage =>
@@ -364,11 +412,15 @@ trait DocumentsStoreContext:
             case (storedUuid, document) if storedUuid === uuid => document.stream
           })
 
-        def fetchByAuthor(createdBy: UserId): fs2.Stream[IO, DocumentWithId] = ???
+        given IORuntime = IORuntime.global
+        def fetchByAuthor(by: UserId): fs2.Stream[IO, DocumentWithId] =
+          fs2.Stream.emits(
+            storage.get.unsafeRunSync().values.filter(_.metadata.createdBy === by).toSeq
+          )
 
-        def fetchByOwner(ownerId: UserId): fs2.Stream[IO, DocumentWithId] = ???
+        def fetchByOwner(by: UserId): fs2.Stream[IO, DocumentWithId] = ???
 
-        def fetchAll(): Stream[IO, DocumentWithId] = ??? // TODO
+        def fetchAll(): Stream[IO, DocumentWithId] = fail("should be invoking filtered endpoint") // TODO
 
         def delete(uuid: DocumentId): IO[Unit] =
           storage.update { _.removed(uuid) }

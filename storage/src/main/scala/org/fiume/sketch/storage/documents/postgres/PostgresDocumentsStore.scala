@@ -49,11 +49,11 @@ private class PostgresDocumentsStore[F[_]: Async] private (l: F ~> ConnectionIO,
       .map(Stream.emits)
       .value
 
-  def fetchByAuthor(createdBy: UserId): fs2.Stream[F, DocumentWithId] =
-    Statements.selectByAuthor(createdBy).transact(tx)
+  def fetchByAuthor(by: UserId): fs2.Stream[F, DocumentWithId] =
+    Statements.selectByAuthor(by).transact(tx)
 
-  def fetchByOwner(ownerId: UserId): fs2.Stream[F, DocumentWithId] =
-    Statements.selectByOwner(ownerId).transact(tx)
+  def fetchByOwner(by: UserId): fs2.Stream[F, DocumentWithId] =
+    Statements.selectByOwner(by).transact(tx)
 
   override def fetchAll(): fs2.Stream[F, DocumentWithId] =
     Statements.selectAllDocuments().transact(tx)
