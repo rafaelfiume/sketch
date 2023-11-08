@@ -74,7 +74,7 @@ class DocumentsRoutesSpec
             MetadataResponsePayload(
               name = metadataPayload.name,
               description = metadataPayload.description,
-              createdBy = user.uuid.value.toString,
+              createdBy = user.uuid.toString,
               ownedBy = metadataPayload.ownedBy
             ).some
           )
@@ -126,7 +126,7 @@ class DocumentsRoutesSpec
 
   test("Get document by author"):
     forAllF { (fstDoc: DocumentWithIdAndStream[IO], sndDoc: DocumentWithIdAndStream[IO]) =>
-      val request = GET(Uri.unsafeFromString(s"/documents?author=${sndDoc.metadata.createdBy.value.toString}"))
+      val request = GET(Uri.unsafeFromString(s"/documents?author=${sndDoc.metadata.createdBy}"))
       for
         store <- makeDocumentsStore(fstDoc, sndDoc)
         authMiddleware = makeAuthMiddleware()

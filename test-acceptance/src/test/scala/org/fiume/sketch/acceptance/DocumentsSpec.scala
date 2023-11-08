@@ -15,7 +15,7 @@ class DocumentsSpec extends CatsEffectSuite with FileContentContext with Authent
 
   val docName = "a-unique-name-for-altamural.jpg"
   val docDesc = "La bella Altamura in Puglia <3"
-  val ownedBy = UserGens.userIds.sample.get.value.toString()
+  val ownedBy = UserGens.userIds.sample.get.toString()
   val pathToFile = "altamura.jpg"
 
   test("store documents"):

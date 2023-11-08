@@ -139,10 +139,10 @@ private[http] object DocumentsRoutes:
 
     extension (m: Metadata)
       def toRequestPayload: MetadataRequestPayload =
-        MetadataRequestPayload(m.name.value, m.description.value, m.ownedBy.value.toString)
+        MetadataRequestPayload(m.name.value, m.description.value, m.ownedBy.toString)
 
       def toResponsePayload: MetadataResponsePayload =
-        MetadataResponsePayload(m.name.value, m.description.value, m.createdBy.value.toString, m.ownedBy.value.toString)
+        MetadataResponsePayload(m.name.value, m.description.value, m.createdBy.toString, m.ownedBy.toString)
 
     extension [F[_]](d: DocumentWithId)
       def toResponsePayload: DocumentResponsePayload =
@@ -212,7 +212,7 @@ private[http] object DocumentsRoutes:
         Uri.fromString(uri).leftMap { e => e.getMessage }
       }
 
-      given Encoder[DocumentId] = Encoder[String].contramap[DocumentId](_.value.toString)
+      given Encoder[DocumentId] = Encoder[String].contramap[DocumentId](_.toString)
       given Decoder[DocumentId] = Decoder[String].emap(uuid => DocumentId.fromString(uuid).leftMap(_.message))
 
       given Decoder[MetadataRequestPayload] = new Decoder[MetadataRequestPayload]:
@@ -235,7 +235,7 @@ private[http] object DocumentsRoutes:
       // TODO Contract test
       given Encoder[DocumentResponsePayload] = new Encoder[DocumentResponsePayload]:
         override def apply(d: DocumentResponsePayload): JJson = JJson.obj(
-          "uuid" -> d.uuid.value.toString.asJson,
+          "uuid" -> d.uuid.asJson,
           "metadata" -> d.metadata.asJson,
           "content_link" -> d.contentLink.asJson
         )
