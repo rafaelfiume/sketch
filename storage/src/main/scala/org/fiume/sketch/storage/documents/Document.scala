@@ -39,7 +39,7 @@ object Document:
     new Document(metadata) with WithStream[F]:
       override val stream: fs2.Stream[F, Byte] = stream0
 
-  case class Metadata(name: Name, description: Description, createdBy: UserId, ownedBy: UserId)
+  case class Metadata(name: Name, description: Description, author: UserId, owner: UserId)
 
   object Metadata:
     sealed abstract case class Name(value: String)

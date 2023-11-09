@@ -132,17 +132,14 @@ private[http] object DocumentsRoutes:
   object OwnerQueryParamMatcher extends QueryParamDecoderMatcher[UserId]("owner")
 
   object Model:
-    case class MetadataRequestPayload(name: String, description: String, ownedBy: String)
-    case class MetadataResponsePayload(name: String, description: String, createdBy: String, ownedBy: String)
+    case class MetadataRequestPayload(name: String, description: String, owner: String)
+    case class MetadataResponsePayload(name: String, description: String, author: String, owner: String)
     case class DocumentResponsePayload(uuid: DocumentId, metadata: MetadataResponsePayload, uri: Uri)
     case class DocumentIdResponsePayload(value: DocumentId)
 
     extension (m: Metadata)
-      def asRequestPayload: MetadataRequestPayload =
-        MetadataRequestPayload(m.name.value, m.description.value, m.ownedBy.toString)
-
       private def asResponsePayload: MetadataResponsePayload =
-        MetadataResponsePayload(m.name.value, m.description.value, m.createdBy.toString, m.ownedBy.toString)
+        MetadataResponsePayload(m.name.value, m.description.value, m.author.toString, m.owner.toString)
 
     extension [F[_]](d: DocumentWithId)
       def asResponsePayload: DocumentResponsePayload =
@@ -174,9 +171,9 @@ private[http] object DocumentsRoutes:
               EitherT.fromEither(Name.validated(payload.name).leftMap(_.asDetails)),
               EitherT.pure(Description(payload.description)),
               EitherT.pure(stream),
-              EitherT.fromEither(UserId.fromString(payload.ownedBy).leftMap(_.asDetails))
-            ).parMapN((name, description, bytes, ownedBy) =>
-              Document.withStream[F](bytes, Metadata(name, description, authorId, ownedBy))
+              EitherT.fromEither(UserId.fromString(payload.owner).leftMap(_.asDetails))
+            ).parMapN((name, description, bytes, owner) =>
+              Document.withStream[F](bytes, Metadata(name, description, authorId, owner))
             ).foldF(
               details => SemanticInputError.makeFrom(details).raiseError,
               _.pure[F]
@@ -220,15 +217,15 @@ private[http] object DocumentsRoutes:
           for
             name <- c.downField("name").as[String]
             description <- c.downField("description").as[String]
-            ownedBy <- c.downField("ownedBy").as[String]
-          yield MetadataRequestPayload(name, description, ownedBy)
+            owner <- c.downField("owner").as[String]
+          yield MetadataRequestPayload(name, description, owner)
 
       given Encoder[MetadataResponsePayload] = new Encoder[MetadataResponsePayload]:
         override def apply(m: MetadataResponsePayload): JJson = JJson.obj(
           "name" -> m.name.asJson,
           "description" -> m.description.asJson,
-          "createdBy" -> m.createdBy.asJson,
-          "ownedBy" -> m.ownedBy.asJson
+          "author" -> m.author.asJson,
+          "owner" -> m.owner.asJson
         )
 
       given Encoder[DocumentResponsePayload] = new Encoder[DocumentResponsePayload]:

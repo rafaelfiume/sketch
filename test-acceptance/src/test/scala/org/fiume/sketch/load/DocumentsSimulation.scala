@@ -15,7 +15,7 @@ class DocumentsSimulation extends Simulation with FileContentContext with Authen
   val docName = "Nicolas_e_Joana"
   val docDesc = "Meus amores <3"
   val pathToFile = "meus-fofinhos.jpg"
-  val ownedBy = UserGens.userIds.sample.get.toString()
+  val owner = UserGens.userIds.sample.get.toString()
   given IORuntime = IORuntime.global
   val bytes = bytesFrom[IO](pathToFile).compile.toVector.map(_.toArray).unsafeRunSync()
 
@@ -36,7 +36,7 @@ class DocumentsSimulation extends Simulation with FileContentContext with Authen
         .post("/documents")
         .header("Content-Type", "multipart/form-data")
         .bodyParts(
-          StringBodyPart("metadata", payload(docName, docDesc, ownedBy)),
+          StringBodyPart("metadata", payload(docName, docDesc, owner)),
           ByteArrayBodyPart("bytes", bytes)
             .fileName(docName)
             .contentType("application/octet-stream")
@@ -66,11 +66,11 @@ class DocumentsSimulation extends Simulation with FileContentContext with Authen
 
 // TODO: duplicated
 trait DocumentsSimulationContext:
-  def payload(name: String, description: String, ownedBy: String): String =
+  def payload(name: String, description: String, owner: String): String =
     s"""
        |{
        |  "name": "$name",
        |  "description": "$description",
-       |  "ownedBy": "$ownedBy"
+       |  "owner": "$owner"
        |}
       """.stripMargin

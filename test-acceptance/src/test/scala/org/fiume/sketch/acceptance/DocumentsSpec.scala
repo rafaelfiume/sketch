@@ -15,7 +15,7 @@ class DocumentsSpec extends CatsEffectSuite with FileContentContext with Authent
 
   val docName = "a-unique-name-for-altamural.jpg"
   val docDesc = "La bella Altamura in Puglia <3"
-  val ownedBy = UserGens.userIds.sample.get.toString()
+  val owner = UserGens.userIds.sample.get.toString()
   val pathToFile = "altamura.jpg"
 
   test("store documents"):
@@ -25,7 +25,7 @@ class DocumentsSpec extends CatsEffectSuite with FileContentContext with Authent
       _ <- withHttp { client =>
         for
           uuid <- client
-            .expect[Json](fileUploadRequest(payload(docName, docDesc, ownedBy), pathToFile, authorizationHeader))
+            .expect[Json](fileUploadRequest(payload(docName, docDesc, owner), pathToFile, authorizationHeader))
             .map(_.uuid)
 
           _ <- client.expect[Json](s"http://localhost:8080/documents/$uuid/metadata".get.withHeaders(authorizationHeader)).map {
@@ -33,8 +33,8 @@ class DocumentsSpec extends CatsEffectSuite with FileContentContext with Authent
               assertEquals(res.uuid, uuid)
               assertEquals(res.docName, docName)
               assertEquals(res.description, docDesc)
-              assertEquals(res.createdBy, authenticated.user.uuid.toString)
-              assertEquals(res.ownedBy, ownedBy)
+              assertEquals(res.author, authenticated.user.uuid.toString)
+              assertEquals(res.owner, owner)
           }
 
           content <- client
@@ -55,7 +55,7 @@ class DocumentsSpec extends CatsEffectSuite with FileContentContext with Authent
       _ <- withHttp { client =>
         for
           uuid <- client
-            .expect[Json](fileUploadRequest(payload(docName, docDesc, ownedBy), pathToFile, authorizationHeader))
+            .expect[Json](fileUploadRequest(payload(docName, docDesc, owner), pathToFile, authorizationHeader))
             .map(_.uuid)
 
           _ <- client.status(s"http://localhost:8080/documents/$uuid".delete.withHeaders(authorizationHeader)).map { status =>
@@ -92,12 +92,12 @@ trait DocumentsSpecContext extends Http4sClientContext:
     "http://localhost:8080/documents".post.withEntity(multipart).withHeaders(multipart.headers.put(authHeader))
 
   // TODO Load from storage/src/test/resources/storage/contract/http/document.json
-  def payload(name: String, description: String, ownedBy: String): String =
+  def payload(name: String, description: String, owner: String): String =
     s"""
        |{
        |  "name": "$name",
        |  "description": "$description",
-       |  "ownedBy": "$ownedBy"
+       |  "owner": "$owner"
        |}
       """.stripMargin
 
@@ -106,6 +106,6 @@ trait DocumentsSpecContext extends Http4sClientContext:
     def docName: String = json.hcursor.downField("metadata").get[String]("name").getOrElse(fail("'name' field not found"))
     def description: String =
       json.hcursor.downField("metadata").get[String]("description").getOrElse(fail("'description' field not found"))
-    def createdBy: String =
-      json.hcursor.downField("metadata").get[String]("createdBy").getOrElse(fail("'createdBy' field not found"))
-    def ownedBy: String = json.hcursor.downField("metadata").get[String]("ownedBy").getOrElse(fail("'ownedBy' field not found"))
+    def author: String =
+      json.hcursor.downField("metadata").get[String]("author").getOrElse(fail("'author' field not found"))
+    def owner: String = json.hcursor.downField("metadata").get[String]("owner").getOrElse(fail("'owner' field not found"))

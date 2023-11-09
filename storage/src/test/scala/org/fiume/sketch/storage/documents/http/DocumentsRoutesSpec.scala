@@ -71,7 +71,7 @@ class DocumentsRoutesSpec
       yield ()
     }
 
-  test("Get document metadata"):
+  test("Get document"):
     forAllF { (document: DocumentWithIdAndStream[IO]) =>
       val request = GET(Uri.unsafeFromString(s"/documents/${document.uuid.value}/metadata"))
       for
@@ -111,7 +111,7 @@ class DocumentsRoutesSpec
 
   test("Get document by author"):
     forAllF { (fstDoc: DocumentWithIdAndStream[IO], sndDoc: DocumentWithIdAndStream[IO]) =>
-      val request = GET(Uri.unsafeFromString(s"/documents?author=${sndDoc.metadata.createdBy}"))
+      val request = GET(Uri.unsafeFromString(s"/documents?author=${sndDoc.metadata.author}"))
       for
         store <- makeDocumentsStore(state = fstDoc, sndDoc)
         authMiddleware = makeAuthMiddleware()
@@ -132,7 +132,7 @@ class DocumentsRoutesSpec
 
   test("Get document by owner"):
     forAllF { (fstDoc: DocumentWithIdAndStream[IO], sndDoc: DocumentWithIdAndStream[IO]) =>
-      val request = GET(Uri.unsafeFromString(s"/documents?owner=${sndDoc.metadata.ownedBy}"))
+      val request = GET(Uri.unsafeFromString(s"/documents?owner=${sndDoc.metadata.owner}"))
       for
         store <- makeDocumentsStore(state = fstDoc, sndDoc)
         authMiddleware = makeAuthMiddleware()
@@ -258,9 +258,9 @@ class DocumentsRoutesSpec
     /* Also see `given accumulatingParallel: cats.Parallel[EitherT[IO, String, *]] = EitherT.accumulatingParallel` */
     // no metadata part / no bytes part
     val noMultiparts = Multipart[IO](parts = Vector.empty, boundary = Boundary("boundary"))
-    val createdBy = userIds.sample.get
+    val author = userIds.sample.get
     for
-      inputErrors <- noMultiparts.validated(createdBy).attempt.map(_.leftValue)
+      inputErrors <- noMultiparts.validated(author).attempt.map(_.leftValue)
 
       _ <- IO {
         assert(
@@ -334,11 +334,15 @@ trait DocumentsRoutesSpecContext extends AuthMiddlewareContext:
     val documentBytesSizeLimit = 5 * 1024 * 1024
     IO.delay { new DocumentsRoutes[IO, IO](authMiddleware, documentBytesSizeLimit, withStore) }
 
+  extension (m: Document.Metadata)
+    def asRequestPayload: MetadataRequestPayload =
+      MetadataRequestPayload(m.name.value, m.description.value, m.owner.toString)
+
   given Encoder[MetadataRequestPayload] = new Encoder[MetadataRequestPayload]:
     override def apply(m: MetadataRequestPayload): Json = Json.obj(
       "name" -> m.name.asJson,
       "description" -> m.description.asJson,
-      "ownedBy" -> m.ownedBy.asJson
+      "owner" -> m.owner.asJson
     )
 
   given Decoder[MetadataResponsePayload] = new Decoder[MetadataResponsePayload]:
@@ -346,9 +350,9 @@ trait DocumentsRoutesSpecContext extends AuthMiddlewareContext:
       for
         name <- c.downField("name").as[String]
         description <- c.downField("description").as[String]
-        createdBy <- c.downField("createdBy").as[String]
-        ownedBy <- c.downField("ownedBy").as[String]
-      yield MetadataResponsePayload(name, description, createdBy, ownedBy)
+        author <- c.downField("author").as[String]
+        owner <- c.downField("owner").as[String]
+      yield MetadataResponsePayload(name, description, author, owner)
 
   given Decoder[DocumentResponsePayload] = new Decoder[DocumentResponsePayload]:
     override def apply(c: HCursor): Result[DocumentResponsePayload] =
@@ -432,12 +436,11 @@ trait DocumentsStoreContext:
             case (storedUuid, document) if storedUuid === uuid => document.stream
           })
 
-        given IORuntime = IORuntime.global
         def fetchByAuthor(by: UserId): fs2.Stream[IO, DocumentWithId] =
-          fetchAll().filter(_.metadata.createdBy === by)
+          fetchAll().filter(_.metadata.author === by)
 
         def fetchByOwner(by: UserId): fs2.Stream[IO, DocumentWithId] =
-          fetchAll().filter(_.metadata.ownedBy === by)
+          fetchAll().filter(_.metadata.owner === by)
 
         def delete(uuid: DocumentId): IO[Unit] =
           storage.update { _.removed(uuid) }
@@ -446,6 +449,7 @@ trait DocumentsStoreContext:
 
         val lift: [A] => IO[A] => IO[A] = [A] => (action: IO[A]) => action
 
+        given IORuntime = IORuntime.global
         private def fetchAll(): Stream[IO, DocumentWithId] = fs2.Stream.emits(
           storage.get.unsafeRunSync().values.toSeq
         )

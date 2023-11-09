@@ -64,15 +64,15 @@ private object Statements:
          |INSERT INTO domain.documents(
          |  name,
          |  description,
-         |  created_by,
-         |  owned_by,
+         |  author,
+         |  owner,
          |  bytes
          |)
          |VALUES (
          |  ${metadata.name},
          |  ${metadata.description},
-         |  ${metadata.createdBy},
-         |  ${metadata.ownedBy},
+         |  ${metadata.author},
+         |  ${metadata.owner},
          |  $bytes
          |)
     """.stripMargin.update
@@ -83,8 +83,8 @@ private object Statements:
          |  d.uuid,
          |  d.name,
          |  d.description,
-         |  d.created_by,
-         |  d.owned_by
+         |  d.author,
+         |  d.owner
          |FROM domain.documents d
          |WHERE d.uuid = $uuid
     """.stripMargin.query[DocumentWithId]
@@ -97,16 +97,16 @@ private object Statements:
          |WHERE d.uuid = $uuid
     """.stripMargin.query[Array[Byte]]
 
-  def selectByAuthor(createdBy: UserId): fs2.Stream[ConnectionIO, DocumentWithId] =
+  def selectByAuthor(author: UserId): fs2.Stream[ConnectionIO, DocumentWithId] =
     sql"""
          |SELECT
          |  d.uuid,
          |  d.name,
          |  d.description,
-         |  d.created_by,
-         |  d.owned_by
+         |  d.author,
+         |  d.owner
          |FROM domain.documents d
-         |WHERE d.created_by = $createdBy
+         |WHERE d.author = $author
     """.stripMargin.query[DocumentWithId].stream
 
   def selectByOwner(ownerId: UserId): fs2.Stream[ConnectionIO, DocumentWithId] =
@@ -115,10 +115,10 @@ private object Statements:
          |  d.uuid,
          |  d.name,
          |  d.description,
-         |  d.created_by,
-         |  d.owned_by
+         |  d.author,
+         |  d.owner
          |FROM domain.documents d
-         |WHERE d.owned_by = $ownerId
+         |WHERE d.owner = $ownerId
     """.stripMargin.query[DocumentWithId].stream
 
   def delete(uuid: DocumentId): Update0 =

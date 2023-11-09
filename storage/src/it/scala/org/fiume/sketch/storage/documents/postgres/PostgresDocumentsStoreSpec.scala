@@ -69,7 +69,7 @@ class PostgresDocumentsStoreSpec
             fstUuid <- store.store(fstDoc).ccommit
             sndUuid <- store.store(sndDoc).ccommit
 
-            result <- store.fetchByAuthor(fstDoc.metadata.createdBy).compile.toList
+            result <- store.fetchByAuthor(fstDoc.metadata.author).compile.toList
 
             _ <- IO {
               assertEquals(result, List(fstDoc.withUuid(fstUuid)))
@@ -87,7 +87,7 @@ class PostgresDocumentsStoreSpec
             fstUuid <- store.store(fstDoc).ccommit
             sndUuid <- store.store(sndDoc).ccommit
 
-            result <- store.fetchByOwner(sndDoc.metadata.ownedBy).compile.toList
+            result <- store.fetchByOwner(sndDoc.metadata.owner).compile.toList
 
             _ <- IO {
               assertEquals(result, List(sndDoc.withUuid(sndUuid)))

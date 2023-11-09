@@ -4,7 +4,7 @@
   "metadata": {
     "name": "a-unique-name-for-altamura.jpg",
     "description": "La bella Altamura in Puglia <3",
-    "createdBy": "7a21d5bc-9e3a-4c1b-bf6c-33cc9926c3ac",
-    "ownedBy": "7a21d5bc-9e3a-4c1b-bf6c-33cc9926c3ac"
+    "author": "7a21d5bc-9e3a-4c1b-bf6c-33cc9926c3ac",
+    "owner": "7a21d5bc-9e3a-4c1b-bf6c-33cc9926c3ac"
   }
 }

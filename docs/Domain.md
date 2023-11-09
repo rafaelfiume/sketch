@@ -19,9 +19,9 @@ Future metadata might include `owner`, `workflow`, `fileSize`, `fileType`, `file
 ### Endpoints (proposal)
 
 ```
-GET /documents?author=<user_uuid>          # Only documents authored by user
-GET /documents?owner=<user_uuid>           # Only documents owned by user
-GET /documents?workflow=<workflow_uuid>    # Only workflow owned by user
+GET /documents?author=<user_uuid>          # All documents created by user
+GET /documents?owner=<user_uuid>           # All documents owned by user
+GET /documents?workflow=<workflow_uuid>    # All documents associated with a workflow
 GET /documents                             # Returns 400
 ```
 
@@ -35,7 +35,7 @@ A document 'no longer neeed' will be specific to the business.
 +------------------------------------------------------------------------------------------------------------------------------------------------------------------+
 +                                                                            Documents                                                                             +
 +------------------------------------------------------------------------------------------------------------------------------------------------------------------+
-+                  uuid                | ...  |               created_by             |               owned_by               |              workflow_id             |
++                  uuid                | ...  |                 author               |                 owner                |              workflow_id             |
 +--------------------------------------+------+--------------------------------------+--------------------------------------+--------------------------------------+
 | 1a7fd9a4-1a23-45c6-91a0-71c4c4d95036 | ...  | 7a21d5bc-9e3a-4c1b-bf6c-33cc9926c3ac | 7a21d5bc-9e3a-4c1b-bf6c-33cc9926c3ac | 4b2a3091-7d2e-46f8-a4eb-25bc4ff695c6 |
 | f4e3b2a0-8f6c-43b2-9a9e-34d82a48b22d | ...  | 7a21d5bc-9e3a-4c1b-bf6c-33cc9926c3ac | 9f7d71c5-d8d0-49e3-913d-59b0a5d5d20c | 4b2a3091-7d2e-46f8-a4eb-25bc4ff695c6 |
