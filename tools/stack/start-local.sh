@@ -13,6 +13,7 @@ Available options:
 -s, --sketch-tag     \`sketch\` image tag (default: \`latest\`)
 -u, --sketch-ui-tag  \`sketch-ui\` image tag (default: \`latest\`)
 -p, --pull           Always pull docker image before running
+-r, --remove         Stop and remove a docker container
 -d, --debug          Enable debug level logs
 -t, --trace          Enable trace level logs
 EOF
@@ -23,6 +24,7 @@ parse_params() {
   sketch_image_tag='latest'
   sketch_ui_image_tag='latest'
   pull_latest_images=''
+  container_for_removal=''
 
   while :; do
     case "${1-}" in
@@ -36,6 +38,10 @@ parse_params() {
       shift
       ;;
     -p | --pull) pull_latest_images="--pull=always" ;;
+    -r | --remove)
+      container_for_removal="${2-}"
+      shift
+      ;;
     -d | --debug) enable_debug_level ;; # see logs.sh
     -t | --trace) enable_trace_level ;; # see logs.sh
     -?*) exit_with_error "Unknown option: $1" ;;
@@ -91,6 +97,13 @@ function main() {
   export SKETCH_UI_IMAGE_TAG="$sketch_ui_image_tag"
 
   load_env_vars dev
+
+  if [ -n "$container_for_removal" ]; then
+    info "Removing container $container_for_removal..."
+    local remove_command="docker-compose -f $docker_compose_yml rm -v -s -f  $container_for_removal >&2"
+    debug "$ $remove_command"
+    eval "$remove_command"
+  fi
 
   info "Starting containers with sketch tag '$SKETCH_IMAGE_TAG'..."
   local command="docker-compose \
