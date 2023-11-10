@@ -15,19 +15,20 @@ class DocumentsSimulation extends Simulation with FileContentContext with Authen
   val docName = "Nicolas_e_Joana"
   val docDesc = "Meus amores <3"
   val pathToFile = "meus-fofinhos.jpg"
-  val ownedBy = UserGens.userIds.sample.get.value.toString()
+  val owner = UserGens.userIds.sample.get.toString()
   given IORuntime = IORuntime.global
   val bytes = bytesFrom[IO](pathToFile).compile.toVector.map(_.toArray).unsafeRunSync()
 
-  val authHeader = loginAndGetAuthenticationHeader().unsafeRunSync()
+  val authenticated = loginAndGetAuthenticatedUser().unsafeRunSync()
+  val authorizationHeader = authenticated.authorization
 
-  println(authHeader.credentials.toString)
+  println(authorizationHeader.credentials.toString)
 
   val httpProtocol = http
     .baseUrl("http://localhost:8080")
     .acceptHeader("application/json")
     .contentTypeHeader("multipart/form-data")
-    .header("Authorization", authHeader.credentials.toString)
+    .header("Authorization", authorizationHeader.credentials.toString)
 
   val scn = scenario("DocumentsRoutes")
     .exec(
@@ -35,7 +36,7 @@ class DocumentsSimulation extends Simulation with FileContentContext with Authen
         .post("/documents")
         .header("Content-Type", "multipart/form-data")
         .bodyParts(
-          StringBodyPart("metadata", payload(docName, docDesc, ownedBy)),
+          StringBodyPart("metadata", payload(docName, docDesc, owner)),
           ByteArrayBodyPart("bytes", bytes)
             .fileName(docName)
             .contentType("application/octet-stream")
@@ -65,11 +66,11 @@ class DocumentsSimulation extends Simulation with FileContentContext with Authen
 
 // TODO: duplicated
 trait DocumentsSimulationContext:
-  def payload(name: String, description: String, ownedBy: String): String =
+  def payload(name: String, description: String, owner: String): String =
     s"""
        |{
        |  "name": "$name",
        |  "description": "$description",
-       |  "ownedBy": "$ownedBy"
+       |  "owner": "$owner"
        |}
       """.stripMargin

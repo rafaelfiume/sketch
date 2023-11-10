@@ -15,23 +15,30 @@ class DocumentsSpec extends CatsEffectSuite with FileContentContext with Authent
 
   val docName = "a-unique-name-for-altamural.jpg"
   val docDesc = "La bella Altamura in Puglia <3"
-  val ownedBy = UserGens.userIds.sample.get.value.toString()
+  val owner = UserGens.userIds.sample.get.toString()
   val pathToFile = "altamura.jpg"
 
   test("store documents"):
     for
-      authHeader <- loginAndGetAuthenticationHeader()
+      authenticated <- loginAndGetAuthenticatedUser()
+      authorizationHeader = authenticated.authorization
       _ <- withHttp { client =>
         for
-          uuid <- client.expect[Json](fileUploadRequest(payload(docName, docDesc, ownedBy), pathToFile, authHeader)).map(_.uuid)
+          uuid <- client
+            .expect[Json](fileUploadRequest(payload(docName, docDesc, owner), pathToFile, authorizationHeader))
+            .map(_.uuid)
 
-          _ <- client.expect[Json](s"http://localhost:8080/documents/$uuid/metadata".get.withHeaders(authHeader)).map { res =>
-            assertEquals(res.docName, docName)
-            assertEquals(res.description, docDesc)
+          _ <- client.expect[Json](s"http://localhost:8080/documents/$uuid/metadata".get.withHeaders(authorizationHeader)).map {
+            res =>
+              assertEquals(res.uuid, uuid)
+              assertEquals(res.docName, docName)
+              assertEquals(res.description, docDesc)
+              assertEquals(res.author, authenticated.user.uuid.toString)
+              assertEquals(res.owner, owner)
           }
 
           content <- client
-            .stream(s"http://localhost:8080/documents/$uuid".get.withHeaders(authHeader))
+            .stream(s"http://localhost:8080/documents/$uuid".get.withHeaders(authorizationHeader))
             .flatMap(_.body)
             .compile
             .toList
@@ -43,20 +50,24 @@ class DocumentsSpec extends CatsEffectSuite with FileContentContext with Authent
 
   test("delete documents"):
     for
-      authHeader <- loginAndGetAuthenticationHeader()
+      authenticated <- loginAndGetAuthenticatedUser()
+      authorizationHeader = authenticated.authorization
       _ <- withHttp { client =>
         for
-          uuid <- client.expect[Json](fileUploadRequest(payload(docName, docDesc, ownedBy), pathToFile, authHeader)).map(_.uuid)
+          uuid <- client
+            .expect[Json](fileUploadRequest(payload(docName, docDesc, owner), pathToFile, authorizationHeader))
+            .map(_.uuid)
 
-          _ <- client.status(s"http://localhost:8080/documents/$uuid".delete.withHeaders(authHeader)).map { status =>
+          _ <- client.status(s"http://localhost:8080/documents/$uuid".delete.withHeaders(authorizationHeader)).map { status =>
             assertEquals(status, NoContent)
           }
 
-          _ <- client.status(s"http://localhost:8080/documents/$uuid/metadata".get.withHeaders(authHeader)).map { status =>
-            assertEquals(status, NotFound)
+          _ <- client.status(s"http://localhost:8080/documents/$uuid/metadata".get.withHeaders(authorizationHeader)).map {
+            status =>
+              assertEquals(status, NotFound)
           }
 
-          _ <- client.status(s"http://localhost:8080/documents/$uuid".get.withHeaders(authHeader)).map { status =>
+          _ <- client.status(s"http://localhost:8080/documents/$uuid".get.withHeaders(authorizationHeader)).map { status =>
             assertEquals(status, NotFound)
           }
         yield ()
@@ -80,18 +91,21 @@ trait DocumentsSpecContext extends Http4sClientContext:
     )
     "http://localhost:8080/documents".post.withEntity(multipart).withHeaders(multipart.headers.put(authHeader))
 
-  // TODO Load from storage/src/test/resources/storage/contract/http/document.metadata.json
-  def payload(name: String, description: String, ownedBy: String): String =
+  // TODO Load from storage/src/test/resources/storage/contract/http/document.json
+  def payload(name: String, description: String, owner: String): String =
     s"""
        |{
        |  "name": "$name",
        |  "description": "$description",
-       |  "ownedBy": "$ownedBy"
+       |  "owner": "$owner"
        |}
       """.stripMargin
 
   extension (json: Json)
     def uuid: String = json.hcursor.get[String]("uuid").getOrElse(fail("'uuid' field not found"))
-    def docName: String = json.hcursor.get[String]("name").getOrElse(fail("'name' field not found"))
-    def description: String = json.hcursor.get[String]("description").getOrElse(fail("'description' field not found"))
-    def ownedBy: String = json.hcursor.get[String]("ownedBy").getOrElse(fail("'ownedBy' field not found"))
+    def docName: String = json.hcursor.downField("metadata").get[String]("name").getOrElse(fail("'name' field not found"))
+    def description: String =
+      json.hcursor.downField("metadata").get[String]("description").getOrElse(fail("'description' field not found"))
+    def author: String =
+      json.hcursor.downField("metadata").get[String]("author").getOrElse(fail("'author' field not found"))
+    def owner: String = json.hcursor.downField("metadata").get[String]("owner").getOrElse(fail("'owner' field not found"))

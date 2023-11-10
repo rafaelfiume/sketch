@@ -10,8 +10,8 @@ import org.fiume.sketch.storage.documents.{
   Document,
   DocumentId,
   DocumentWithId,
+  DocumentWithIdAndStream,
   DocumentWithStream,
-  DocumentWithUuidAndStream,
   WithStream
 }
 import org.fiume.sketch.storage.documents.Document.Metadata
@@ -69,9 +69,9 @@ object DocumentsGens:
     for
       name <- validNames
       description <- descriptions
-      createdBy <- userIds
-      ownedBy <- Gen.frequency(5 -> Gen.const(createdBy), 5 -> userIds)
-    yield Metadata(name, description, createdBy, ownedBy)
+      author <- userIds
+      owner <- Gen.frequency(5 -> Gen.const(author), 5 -> userIds)
+    yield Metadata(name, description, author, owner)
 
   given Arbitrary[Stream[IO, Byte]] = Arbitrary(bytesG)
   def bytesG: Gen[Stream[IO, Byte]] = Gen.nonEmptyListOf(bytes).map(Stream.emits)
@@ -96,8 +96,8 @@ object DocumentsGens:
     yield Document.withStream[IO](content, metadata)
 
   import scala.language.adhocExtensions
-  given Arbitrary[DocumentWithUuidAndStream[IO]] = Arbitrary(documentWithUuidAndStreams)
-  def documentWithUuidAndStreams: Gen[DocumentWithUuidAndStream[IO]] =
+  given Arbitrary[DocumentWithIdAndStream[IO]] = Arbitrary(documentWithIdAndStreams)
+  def documentWithIdAndStreams: Gen[DocumentWithIdAndStream[IO]] =
     for
       uuid0 <- Gen.delay(UUID.randomUUID()).map(DocumentId(_))
       metadata <- metadataG

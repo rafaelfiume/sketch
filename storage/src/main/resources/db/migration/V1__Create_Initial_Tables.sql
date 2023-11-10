@@ -47,8 +47,8 @@ CREATE TABLE domain.documents (
   description VARCHAR,
   bytes BYTEA,
   -- Worth the trouble? Are FKs necessary here?
-  created_by UUID NOT NULL,--REFERENCES auth.users(uuid),
-  owned_by UUID NOT NULL,--REFERENCES auth.users(uuid),
+  author UUID NOT NULL,--REFERENCES auth.users(uuid),
+  owner UUID NOT NULL,--REFERENCES auth.users(uuid),
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );

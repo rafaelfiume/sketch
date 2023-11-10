@@ -8,6 +8,7 @@ import doobie.*
 import doobie.free.connection.ConnectionIO
 import doobie.implicits.*
 import fs2.Stream
+import org.fiume.sketch.shared.auth0.UserId
 import org.fiume.sketch.storage.auth0.postgres.DoobieMappings.given
 import org.fiume.sketch.storage.documents.{Document, DocumentId, DocumentWithId, DocumentWithStream}
 import org.fiume.sketch.storage.documents.Document.Metadata
@@ -37,10 +38,10 @@ private class PostgresDocumentsStore[F[_]: Async] private (l: F ~> ConnectionIO,
         )
     yield uuid
 
-  override def fetchMetadata(uuid: DocumentId): ConnectionIO[Option[Metadata]] =
-    Statements.selectDocumentMetadata(uuid).option
+  override def fetchDocument(uuid: DocumentId): ConnectionIO[Option[DocumentWithId]] =
+    Statements.selectDocument(uuid).option
 
-  override def fetchContent(uuid: DocumentId): ConnectionIO[Option[Stream[F, Byte]]] =
+  override def documentStream(uuid: DocumentId): ConnectionIO[Option[Stream[F, Byte]]] =
     // not the greatest implementation, since it will require bytes to be fully read from the db before the stream can start emiting bytes
     // this can be better optimised later (perhaps by storing/reading documents using a file sytem? or large objects?)
     // API is the most important part here.
@@ -48,8 +49,11 @@ private class PostgresDocumentsStore[F[_]: Async] private (l: F ~> ConnectionIO,
       .map(Stream.emits)
       .value
 
-  override def fetchAll(): fs2.Stream[F, DocumentWithId] =
-    Statements.selectAllDocuments().transact(tx)
+  def fetchByAuthor(by: UserId): fs2.Stream[F, DocumentWithId] =
+    Statements.selectByAuthor(by).transact(tx)
+
+  def fetchByOwner(by: UserId): fs2.Stream[F, DocumentWithId] =
+    Statements.selectByOwner(by).transact(tx)
 
   override def delete(uuid: DocumentId): ConnectionIO[Unit] =
     Statements.delete(uuid).run.void
@@ -60,29 +64,30 @@ private object Statements:
          |INSERT INTO domain.documents(
          |  name,
          |  description,
-         |  created_by,
-         |  owned_by,
+         |  author,
+         |  owner,
          |  bytes
          |)
          |VALUES (
          |  ${metadata.name},
          |  ${metadata.description},
-         |  ${metadata.createdBy},
-         |  ${metadata.ownedBy},
+         |  ${metadata.author},
+         |  ${metadata.owner},
          |  $bytes
          |)
     """.stripMargin.update
 
-  def selectDocumentMetadata(uuid: DocumentId): Query0[Metadata] =
+  def selectDocument(uuid: DocumentId): Query0[DocumentWithId] =
     sql"""
          |SELECT
+         |  d.uuid,
          |  d.name,
          |  d.description,
-         |  d.created_by,
-         |  d.owned_by
+         |  d.author,
+         |  d.owner
          |FROM domain.documents d
          |WHERE d.uuid = $uuid
-    """.stripMargin.query[Metadata]
+    """.stripMargin.query[DocumentWithId]
 
   def selectDocumentBytes(uuid: DocumentId): Query0[Array[Byte]] =
     sql"""
@@ -92,15 +97,28 @@ private object Statements:
          |WHERE d.uuid = $uuid
     """.stripMargin.query[Array[Byte]]
 
-  def selectAllDocuments(): fs2.Stream[ConnectionIO, DocumentWithId] =
+  def selectByAuthor(author: UserId): fs2.Stream[ConnectionIO, DocumentWithId] =
     sql"""
          |SELECT
          |  d.uuid,
          |  d.name,
          |  d.description,
-         |  d.created_by,
-         |  d.owned_by
+         |  d.author,
+         |  d.owner
          |FROM domain.documents d
+         |WHERE d.author = $author
+    """.stripMargin.query[DocumentWithId].stream
+
+  def selectByOwner(ownerId: UserId): fs2.Stream[ConnectionIO, DocumentWithId] =
+    sql"""
+         |SELECT
+         |  d.uuid,
+         |  d.name,
+         |  d.description,
+         |  d.author,
+         |  d.owner
+         |FROM domain.documents d
+         |WHERE d.owner = $ownerId
     """.stripMargin.query[DocumentWithId].stream
 
   def delete(uuid: DocumentId): Update0 =

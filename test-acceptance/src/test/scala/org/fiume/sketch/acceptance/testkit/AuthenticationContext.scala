@@ -5,6 +5,7 @@ import org.fiume.sketch.auth0.http.AuthRoutes.Model.Json.given
 import org.fiume.sketch.auth0.http.AuthRoutes.Model.LoginResponsePayload
 import org.fiume.sketch.auth0.scripts.UsersScript.*
 import org.fiume.sketch.shared.auth0.Passwords.PlainPassword
+import org.fiume.sketch.shared.auth0.User
 import org.fiume.sketch.shared.auth0.User.Username
 import org.fiume.sketch.shared.auth0.testkit.PasswordsGens.*
 import org.fiume.sketch.shared.auth0.testkit.UserGens.*
@@ -20,16 +21,21 @@ trait AuthenticationContext extends Http4sClientContext:
   private def loginRequest(username: Username, password: PlainPassword) =
     "http://localhost:8080/login".post.withEntity(payload(username, password))
 
-  def loginAndGetAuthenticationHeader(): IO[Authorization] =
+  case class AuthenticatedUser(user: User, authorization: Authorization)
+
+  def loginAndGetAuthenticatedUser(): IO[AuthenticatedUser] =
     val username = aUsername()
     val password = aPassword()
-    makeScript().flatMap { _.registreUser(username, password) } *>
-      withHttp {
+    for
+      script <- makeScript()
+      user <- script.registreUser(username, password)
+      authorization <- withHttp {
         _.expect[LoginResponsePayload](loginRequest(username, password))
           .map(_.token)
           .map(jwtToken => Authorization.parse(s"Bearer $jwtToken"))
           .map(_.rightValue)
       }
+    yield AuthenticatedUser(user, authorization)
 
   // TODO Improve this somehow....
   private def payload(username: Username, password: PlainPassword): String =

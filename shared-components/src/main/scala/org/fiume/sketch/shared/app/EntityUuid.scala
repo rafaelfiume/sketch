@@ -11,7 +11,8 @@ import scala.util.control.NoStackTrace
 
 // A phantom type is a parameterised type whose parameters do not all appear on the right-hand side of its definition.
 // See https://wiki.haskell.org/Phantom_type
-case class EntityUuid[T <: Entity](value: UUID) extends AnyVal
+case class EntityUuid[T <: Entity](value: UUID) extends AnyVal:
+  override def toString: String = value.toString
 
 object EntityUuid:
   def fromString[T <: Entity](idKey: String)(uuid: String): Either[InvalidId, EntityUuid[T]] = // Yolo

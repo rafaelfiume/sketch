@@ -9,8 +9,7 @@ import doobie.postgres.implicits.*
 import fs2.Stream
 import munit.ScalaCheckEffectSuite
 import org.fiume.sketch.shared.testkit.FileContentContext
-import org.fiume.sketch.storage.documents.{Document, DocumentId, DocumentWithId, DocumentWithStream}
-import org.fiume.sketch.storage.documents.Document.Metadata
+import org.fiume.sketch.storage.documents.{Document, DocumentId, DocumentWithIdAndStream, DocumentWithStream}
 import org.fiume.sketch.storage.documents.postgres.DoobieMappings.given
 import org.fiume.sketch.storage.testkit.DockerPostgresSuite
 import org.fiume.sketch.storage.testkit.DocumentsGens.*
@@ -28,16 +27,16 @@ class PostgresDocumentsStoreSpec
     with ShrinkLowPriority:
 
   test("store document and fetch metadata"):
-    forAllF { (document: DocumentWithStream[IO]) =>
+    forAllF { (document: DocumentWithIdAndStream[IO]) =>
       will(cleanDocuments) {
         PostgresDocumentsStore.make[IO](transactor()).use { store =>
           for
             uuid <- store.store(document).ccommit
 
-            result <- store.fetchMetadata(uuid).ccommit
+            result <- store.fetchDocument(uuid).ccommit
 
             _ <- IO {
-              assertEquals(result, document.metadata.some)
+              assertEquals(result, document.some)
             }
           yield ()
         }
@@ -51,9 +50,7 @@ class PostgresDocumentsStoreSpec
           for
             uuid <- store.store(document).ccommit
 
-            result <- OptionT(
-              store.fetchContent(uuid).ccommit
-            ).semiflatMap(_.compile.toList).value
+            result <- OptionT(store.documentStream(uuid).ccommit).semiflatMap(_.compile.toList).value
 
             bytes <- document.stream.compile.toList
             _ <- IO {
@@ -64,7 +61,7 @@ class PostgresDocumentsStoreSpec
       }
     }
 
-  test("fetch all documents"):
+  test("fetch documents by author"):
     forAllF { (fstDoc: DocumentWithStream[IO], sndDoc: DocumentWithStream[IO]) =>
       will(cleanDocuments) {
         PostgresDocumentsStore.make[IO](transactor()).use { store =>
@@ -72,13 +69,28 @@ class PostgresDocumentsStoreSpec
             fstUuid <- store.store(fstDoc).ccommit
             sndUuid <- store.store(sndDoc).ccommit
 
-            result <- store.fetchAll().compile.toList
+            result <- store.fetchByAuthor(fstDoc.metadata.author).compile.toList
 
             _ <- IO {
-              assertEquals(
-                result.map(_.discardContent),
-                List(fstDoc.withUuid(fstUuid), sndDoc.withUuid(sndUuid)).map(_.discardContent)
-              )
+              assertEquals(result, List(fstDoc.withUuid(fstUuid)))
+            }
+          yield ()
+        }
+      }
+    }
+
+  test("fetch documents by owner"):
+    forAllF { (fstDoc: DocumentWithStream[IO], sndDoc: DocumentWithStream[IO]) =>
+      will(cleanDocuments) {
+        PostgresDocumentsStore.make[IO](transactor()).use { store =>
+          for
+            fstUuid <- store.store(fstDoc).ccommit
+            sndUuid <- store.store(sndDoc).ccommit
+
+            result <- store.fetchByOwner(sndDoc.metadata.owner).compile.toList
+
+            _ <- IO {
+              assertEquals(result, List(sndDoc.withUuid(sndUuid)))
             }
           yield ()
         }
@@ -96,12 +108,12 @@ class PostgresDocumentsStoreSpec
             _ <- store.delete(fstUuid).ccommit
 
             fstResult <- IO.both(
-              store.fetchMetadata(fstUuid).ccommit,
-              store.fetchContent(fstUuid).ccommit
+              store.fetchDocument(fstUuid).ccommit,
+              store.documentStream(fstUuid).ccommit
             )
             sndResult <- IO.both(
-              store.fetchMetadata(sndUuid).ccommit,
-              store.fetchContent(sndUuid).ccommit
+              store.fetchDocument(sndUuid).ccommit,
+              store.documentStream(sndUuid).ccommit
             )
             _ <- IO {
               assertEquals(fstResult._1, none)
@@ -140,7 +152,7 @@ class PostgresDocumentsStoreSpec
           for
             uuid <- store.store(documentsWithStream.sample.get).ccommit
             _ <- OptionT(
-              store.fetchContent(uuid).ccommit
+              store.documentStream(uuid).ccommit
             ).semiflatMap {
               _.through(fs2.io.file.Files[IO].writeAll(fs2.io.file.Path(filename))).compile.drain
             }.value
@@ -157,5 +169,3 @@ trait PostgresStoreSpecContext:
       sql"SELECT created_at FROM domain.documents WHERE uuid = ${uuid}".query[Instant].unique
     def fetchUpdatedAt(uuid: DocumentId): ConnectionIO[Instant] =
       sql"SELECT updated_at FROM domain.documents WHERE uuid = ${uuid}".query[Instant].unique
-
-  extension (d: DocumentWithId) def discardContent = d.uuid -> d.metadata

@@ -3,6 +3,8 @@ package org.fiume.sketch.storage.documents.http
 import cats.data.OptionT
 import cats.effect.{IO, Ref}
 import cats.implicits.*
+import io.circe.{Decoder, Encoder, HCursor, Json}
+import io.circe.Decoder.Result
 import io.circe.syntax.*
 import munit.{CatsEffectSuite, ScalaCheckEffectSuite}
 import munit.Assertions.*
@@ -15,8 +17,7 @@ import org.fiume.sketch.shared.auth0.testkit.UserGens.given
 import org.fiume.sketch.shared.auth0.testkit.UserGens.userIds
 import org.fiume.sketch.shared.testkit.{ContractContext, Http4sTestingRoutesDsl}
 import org.fiume.sketch.shared.testkit.EitherSyntax.*
-import org.fiume.sketch.storage.documents.{Document, DocumentId, DocumentWithStream, DocumentWithUuidAndStream}
-import org.fiume.sketch.storage.documents.Document.Metadata
+import org.fiume.sketch.storage.documents.{Document, DocumentId, DocumentWithIdAndStream, DocumentWithStream}
 import org.fiume.sketch.storage.documents.algebras.DocumentsStore
 import org.fiume.sketch.storage.documents.http.DocumentsRoutes.Model.*
 import org.fiume.sketch.storage.documents.http.DocumentsRoutes.Model.Json.given
@@ -58,64 +59,49 @@ class DocumentsRoutesSpec
         authMiddleware = makeAuthMiddleware(authenticated = user)
         documentsRoutes <- makeDocumentsRoutes(authMiddleware, store)
 
-        jsonResponse <- send(request)
+        result <- send(request)
           .to(documentsRoutes.router())
           .expectJsonResponseWith(Status.Created)
 
-        storedMetadata <- store.fetchMetadata(jsonResponse.as[DocumentId].rightValue)
-        uploadedContent <- bytesFrom[IO]("mountain-bike-liguria-ponent.jpg").compile.toList
-        storedBytes <- OptionT(
-          store.fetchContent(jsonResponse.as[DocumentId].rightValue)
-        ).semiflatMap(_.compile.toList).value
+        createdDocId = result.as[DocumentIdResponsePayload].rightValue
+        stored <- store.fetchDocument(createdDocId.value)
         _ <- IO {
-          assertEquals(
-            storedMetadata.map(_.toResponsePayload),
-            MetadataResponsePayload(
-              name = metadataPayload.name,
-              description = metadataPayload.description,
-              createdBy = user.uuid.value.toString,
-              ownedBy = metadataPayload.ownedBy
-            ).some
-          )
-          assertEquals(storedBytes.map(_.toList), uploadedContent.some)
+          assert(stored.isDefined, clue = stored)
         }
       yield ()
     }
 
-  test("Get document metadata"):
-    forAllF { (document: DocumentWithUuidAndStream[IO]) =>
+  test("Get document"):
+    forAllF { (document: DocumentWithIdAndStream[IO]) =>
       val request = GET(Uri.unsafeFromString(s"/documents/${document.uuid.value}/metadata"))
       for
         store <- makeDocumentsStore(state = document)
         authMiddleware = makeAuthMiddleware()
         documentsRoutes <- makeDocumentsRoutes(authMiddleware, store)
 
-        jsonResponse <- send(request)
+        result <- send(request)
           .to(documentsRoutes.router())
           .expectJsonResponseWith(Status.Ok)
 
         _ <- IO {
-          assertEquals(
-            jsonResponse.as[MetadataResponsePayload].rightValue,
-            document.metadata.toResponsePayload
-          )
+          assertEquals(result.as[DocumentResponsePayload].rightValue, document.asResponsePayload)
         }
       yield ()
     }
 
   test("Get document content"):
-    forAllF { (document: DocumentWithUuidAndStream[IO]) =>
+    forAllF { (document: DocumentWithIdAndStream[IO]) =>
       val request = GET(Uri.unsafeFromString(s"/documents/${document.uuid.value}"))
       for
         store <- makeDocumentsStore(state = document)
         authMiddleware = makeAuthMiddleware()
         documentsRoutes <- makeDocumentsRoutes(authMiddleware, store)
 
-        contentStream <- send(request)
+        result <- send(request)
           .to(documentsRoutes.router())
           .expectByteStreamResponseWith(Status.Ok)
 
-        obtainedStream <- contentStream.compile.toList
+        obtainedStream <- result.compile.toList
         expectedStream <- document.stream.compile.toList
         _ <- IO {
           assertEquals(obtainedStream, expectedStream)
@@ -123,8 +109,49 @@ class DocumentsRoutesSpec
       yield ()
     }
 
+  test("Get document by author"):
+    forAllF { (fstDoc: DocumentWithIdAndStream[IO], sndDoc: DocumentWithIdAndStream[IO]) =>
+      val request = GET(Uri.unsafeFromString(s"/documents?author=${sndDoc.metadata.author}"))
+      for
+        store <- makeDocumentsStore(state = fstDoc, sndDoc)
+        authMiddleware = makeAuthMiddleware()
+        documentsRoutes <- makeDocumentsRoutes(authMiddleware, store)
+
+        result <- send(request)
+          .to(documentsRoutes.router())
+          .expectJsonResponseWith(Status.Ok)
+
+        _ <- IO {
+          assertEquals(
+            result.as[DocumentResponsePayload].rightValue,
+            sndDoc.asResponsePayload
+          )
+        }
+      yield ()
+    }
+
+  test("Get document by owner"):
+    forAllF { (fstDoc: DocumentWithIdAndStream[IO], sndDoc: DocumentWithIdAndStream[IO]) =>
+      val request = GET(Uri.unsafeFromString(s"/documents?owner=${sndDoc.metadata.owner}"))
+      for
+        store <- makeDocumentsStore(state = fstDoc, sndDoc)
+        authMiddleware = makeAuthMiddleware()
+        documentsRoutes <- makeDocumentsRoutes(authMiddleware, store)
+
+        result <- send(request)
+          .to(documentsRoutes.router())
+          .expectJsonResponseWith(Status.Ok)
+
+        _ <- IO {
+          assertEquals(
+            result.as[DocumentResponsePayload].rightValue,
+            sndDoc.asResponsePayload
+          )
+        }
+      yield ()
+    }
   test("Delete document"):
-    forAllF { (document: DocumentWithUuidAndStream[IO]) =>
+    forAllF { (document: DocumentWithIdAndStream[IO]) =>
       val request = DELETE(Uri.unsafeFromString(s"/documents/${document.uuid.value}"))
       for
         store <- makeDocumentsStore(state = document)
@@ -136,8 +163,8 @@ class DocumentsRoutesSpec
           .expectEmptyResponseWith(Status.NoContent)
 
         stored <- IO.both(
-          store.fetchMetadata(document.uuid),
-          OptionT(store.fetchContent(document.uuid)).semiflatMap(_.compile.toList).value
+          store.fetchDocument(document.uuid),
+          OptionT(store.documentStream(document.uuid)).semiflatMap(_.compile.toList).value
         )
         _ <- IO {
           assertEquals(stored._1, none)
@@ -147,7 +174,7 @@ class DocumentsRoutesSpec
     }
 
   test("Delete unexistent document == not found"):
-    forAllF { (document: DocumentWithUuidAndStream[IO]) =>
+    forAllF { (document: DocumentWithIdAndStream[IO]) =>
       val request = DELETE(Uri.unsafeFromString(s"/documents/${document.uuid.value}"))
       for
         store <- makeDocumentsStore()
@@ -212,23 +239,33 @@ class DocumentsRoutesSpec
    * Contracts
    */
 
-  test("bijective relationship between encoded and decoded Documents.Metadata"):
+  test("bijective relationship between encoded and decoded document MetadataRequestPayload"):
     assertBijectiveRelationshipBetweenEncoderAndDecoder[MetadataRequestPayload](
-      "contract/documents/http/metadata.json"
+      "contract/documents/document.metadata.request.json"
+    )
+
+  test("bijective relationship between encoded and decoded DocumentResponsePayload"):
+    assertBijectiveRelationshipBetweenEncoderAndDecoder[DocumentResponsePayload](
+      "contract/documents/document.response.json"
+    )
+
+  test("bijective relationship between encoded and decoded DocumentIdResponsePayload"):
+    assertBijectiveRelationshipBetweenEncoderAndDecoder[DocumentIdResponsePayload](
+      "contract/documents/document.uuid.response.json"
     )
 
   test("validation accumulates") {
     /* Also see `given accumulatingParallel: cats.Parallel[EitherT[IO, String, *]] = EitherT.accumulatingParallel` */
     // no metadata part / no bytes part
     val noMultiparts = Multipart[IO](parts = Vector.empty, boundary = Boundary("boundary"))
-    val createdBy = userIds.sample.get
+    val author = userIds.sample.get
     for
-      inputErrors <- noMultiparts.validated(createdBy).attempt.map(_.leftValue)
+      inputErrors <- noMultiparts.validated(author).attempt.map(_.leftValue)
 
       _ <- IO {
         assert(
-          inputErrors.asInstanceOf[SemanticInputError].details.tips.size > 1,
-          clue = "errors must accumulate"
+          inputErrors.asInstanceOf[SemanticInputError].details.tips.size === 2,
+          clue = inputErrors
         )
       }
     yield ()
@@ -240,7 +277,7 @@ trait DocumentsRoutesSpecContext extends AuthMiddlewareContext:
   def montainBikeInLiguriaImageFile = getClass.getClassLoader.getResource("mountain-bike-liguria-ponent.jpg")
 
   given Arbitrary[MetadataRequestPayload] = Arbitrary(metadataRequestPayloads)
-  def metadataRequestPayloads: Gen[MetadataRequestPayload] = metadataG.map(_.toRequestPayload) :| "metadataRequestPayloads"
+  def metadataRequestPayloads: Gen[MetadataRequestPayload] = metadataG.map(_.asRequestPayload) :| "metadataRequestPayloads"
 
   def malformedDocumentRequests: Gen[Multipart[IO]] = Gen.delay {
     Multipart[IO](
@@ -290,11 +327,44 @@ trait DocumentsRoutesSpecContext extends AuthMiddlewareContext:
       boundary = Boundary("boundary")
     )) :| "invalidTooShortDocumentName"
 
-  def makeDocumentsRoutes(authMiddleware: AuthMiddleware[IO, User],
-                          withStore: DocumentsStore[IO, IO]
+  def makeDocumentsRoutes(
+    authMiddleware: AuthMiddleware[IO, User],
+    withStore: DocumentsStore[IO, IO]
   ): IO[DocumentsRoutes[IO, IO]] =
     val documentBytesSizeLimit = 5 * 1024 * 1024
     IO.delay { new DocumentsRoutes[IO, IO](authMiddleware, documentBytesSizeLimit, withStore) }
+
+  extension (m: Document.Metadata)
+    def asRequestPayload: MetadataRequestPayload =
+      MetadataRequestPayload(m.name.value, m.description.value, m.owner.toString)
+
+  given Encoder[MetadataRequestPayload] = new Encoder[MetadataRequestPayload]:
+    override def apply(m: MetadataRequestPayload): Json = Json.obj(
+      "name" -> m.name.asJson,
+      "description" -> m.description.asJson,
+      "owner" -> m.owner.asJson
+    )
+
+  given Decoder[MetadataResponsePayload] = new Decoder[MetadataResponsePayload]:
+    override def apply(c: HCursor): Result[MetadataResponsePayload] =
+      for
+        name <- c.downField("name").as[String]
+        description <- c.downField("description").as[String]
+        author <- c.downField("author").as[String]
+        owner <- c.downField("owner").as[String]
+      yield MetadataResponsePayload(name, description, author, owner)
+
+  given Decoder[DocumentResponsePayload] = new Decoder[DocumentResponsePayload]:
+    override def apply(c: HCursor): Result[DocumentResponsePayload] =
+      for
+        uuid <- c.downField("uuid").as[DocumentId]
+        contentLink <- c.downField("byteStreamUri").as[Uri]
+        metadata <- c.downField("metadata").as[MetadataResponsePayload]
+      yield DocumentResponsePayload(uuid, metadata, contentLink)
+
+  given Decoder[DocumentIdResponsePayload] = new Decoder[DocumentIdResponsePayload]:
+    override def apply(c: HCursor): Result[DocumentIdResponsePayload] =
+      c.downField("uuid").as[DocumentId].map(DocumentIdResponsePayload.apply)
 
 trait AuthMiddlewareContext:
   import cats.data.Kleisli
@@ -332,14 +402,16 @@ trait AuthMiddlewareContext:
 trait DocumentsStoreContext:
   import fs2.Stream
   import org.fiume.sketch.storage.documents.{Document, DocumentId, DocumentWithId, WithStream}
+  import org.fiume.sketch.shared.auth0.UserId
+  import cats.effect.unsafe.IORuntime
 
   def makeDocumentsStore(): IO[DocumentsStore[IO, IO]] = makeDocumentsStore(state = Map.empty)
 
-  def makeDocumentsStore(state: DocumentWithUuidAndStream[IO]): IO[DocumentsStore[IO, IO]] =
-    makeDocumentsStore(Map(state.uuid -> state))
+  def makeDocumentsStore(state: DocumentWithIdAndStream[IO]*): IO[DocumentsStore[IO, IO]] =
+    makeDocumentsStore(state.map(doc => doc.uuid -> doc).toMap)
 
-  private def makeDocumentsStore(state: Map[DocumentId, DocumentWithUuidAndStream[IO]]): IO[DocumentsStore[IO, IO]] =
-    Ref.of[IO, Map[DocumentId, DocumentWithUuidAndStream[IO]]](state).map { storage =>
+  private def makeDocumentsStore(state: Map[DocumentId, DocumentWithIdAndStream[IO]]): IO[DocumentsStore[IO, IO]] =
+    Ref.of[IO, Map[DocumentId, DocumentWithIdAndStream[IO]]](state).map { storage =>
       new DocumentsStore[IO, IO]:
         def store(document: DocumentWithStream[IO]): IO[DocumentId] =
           import scala.language.adhocExtensions
@@ -354,17 +426,21 @@ trait DocumentsStoreContext:
               .as(uuid)
           }
 
-        def fetchMetadata(uuid: DocumentId): IO[Option[Metadata]] =
+        def fetchDocument(uuid: DocumentId): IO[Option[DocumentWithId]] =
           storage.get.map(_.collectFirst {
-            case (storedUuid, document) if storedUuid === uuid => document.metadata
+            case (storedUuid, document) if storedUuid === uuid => document
           })
 
-        def fetchContent(uuid: DocumentId): IO[Option[fs2.Stream[IO, Byte]]] =
+        def documentStream(uuid: DocumentId): IO[Option[fs2.Stream[IO, Byte]]] =
           storage.get.map(_.collectFirst {
             case (storedUuid, document) if storedUuid === uuid => document.stream
           })
 
-        def fetchAll(): Stream[IO, DocumentWithId] = ??? // TODO
+        def fetchByAuthor(by: UserId): fs2.Stream[IO, DocumentWithId] =
+          fetchAll().filter(_.metadata.author === by)
+
+        def fetchByOwner(by: UserId): fs2.Stream[IO, DocumentWithId] =
+          fetchAll().filter(_.metadata.owner === by)
 
         def delete(uuid: DocumentId): IO[Unit] =
           storage.update { _.removed(uuid) }
@@ -372,4 +448,9 @@ trait DocumentsStoreContext:
         val commit: [A] => IO[A] => IO[A] = [A] => (action: IO[A]) => action
 
         val lift: [A] => IO[A] => IO[A] = [A] => (action: IO[A]) => action
+
+        given IORuntime = IORuntime.global
+        private def fetchAll(): Stream[IO, DocumentWithId] = fs2.Stream.emits(
+          storage.get.unsafeRunSync().values.toSeq
+        )
     }

@@ -9,7 +9,8 @@ import java.security.interfaces.{ECPrivateKey, ECPublicKey}
 
 trait EcKeysGens:
 
+  given IORuntime = IORuntime.global
+
   given Arbitrary[(ECPrivateKey, ECPublicKey)] = Arbitrary(ecKeyPairs)
   def ecKeyPairs: Gen[(ECPrivateKey, ECPublicKey)] =
-    given IORuntime = IORuntime.global
     Gen.delay(KeysGenerator.makeEcKeyPairs[IO]().unsafeRunSync())
