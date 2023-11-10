@@ -358,7 +358,7 @@ trait DocumentsRoutesSpecContext extends AuthMiddlewareContext:
     override def apply(c: HCursor): Result[DocumentResponsePayload] =
       for
         uuid <- c.downField("uuid").as[DocumentId]
-        contentLink <- c.downField("uri").as[Uri]
+        contentLink <- c.downField("byteStreamUri").as[Uri]
         metadata <- c.downField("metadata").as[MetadataResponsePayload]
       yield DocumentResponsePayload(uuid, metadata, contentLink)
 

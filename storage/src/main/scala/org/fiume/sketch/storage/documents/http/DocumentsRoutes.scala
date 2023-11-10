@@ -134,7 +134,7 @@ private[http] object DocumentsRoutes:
   object Model:
     case class MetadataRequestPayload(name: String, description: String, owner: String)
     case class MetadataResponsePayload(name: String, description: String, author: String, owner: String)
-    case class DocumentResponsePayload(uuid: DocumentId, metadata: MetadataResponsePayload, uri: Uri)
+    case class DocumentResponsePayload(uuid: DocumentId, metadata: MetadataResponsePayload, byteStreamUri: Uri)
     case class DocumentIdResponsePayload(value: DocumentId)
 
     extension (m: Metadata)
@@ -231,7 +231,7 @@ private[http] object DocumentsRoutes:
       given Encoder[DocumentResponsePayload] = new Encoder[DocumentResponsePayload]:
         override def apply(d: DocumentResponsePayload): JJson = JJson.obj(
           "uuid" -> d.uuid.asJson,
-          "uri" -> d.uri.asJson,
+          "byteStreamUri" -> d.byteStreamUri.asJson,
           "metadata" -> d.metadata.asJson
         )
 
