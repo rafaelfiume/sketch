@@ -3,7 +3,7 @@ package org.fiume.sketch.shared.auth0
 import cats.{Eq, Show}
 import cats.data.{EitherNec, Validated}
 import cats.implicits.*
-import org.fiume.sketch.shared.app.{Entity, EntityUuid, InvalidId, WithUuid}
+import org.fiume.sketch.shared.app.{Entity, EntityId, WithUuid}
 import org.fiume.sketch.shared.app.troubleshooting.InvariantError
 import org.fiume.sketch.shared.auth0.Passwords.{HashedPassword, Salt}
 import org.fiume.sketch.shared.auth0.User.Username
@@ -12,10 +12,9 @@ import org.fiume.sketch.shared.auth0.User.Username.WeakUsernameError.*
 
 import java.util.UUID
 
-type UserId = EntityUuid[UserEntity]
+type UserId = EntityId[UserEntity]
 object UserId:
-  def apply(uuid: UUID): UserId = EntityUuid[UserEntity](uuid)
-  def fromString(uuid: String): Either[InvalidId, UserId] = EntityUuid.fromString[UserEntity]("user.id")(uuid)
+  def apply(uuid: UUID): UserId = EntityId[UserEntity](uuid)
 sealed trait UserEntity extends Entity
 
 case class User(uuid: UserId, username: Username)

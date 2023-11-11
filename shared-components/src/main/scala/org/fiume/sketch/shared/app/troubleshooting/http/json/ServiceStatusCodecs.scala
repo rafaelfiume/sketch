@@ -7,11 +7,12 @@ import org.fiume.sketch.shared.app.algebras.HealthCheck.ServiceHealth
 import org.fiume.sketch.shared.app.algebras.Versions
 import org.fiume.sketch.shared.app.algebras.Versions.Version
 import org.fiume.sketch.shared.app.troubleshooting.ServiceStatus
+import org.fiume.sketch.shared.typeclasses.SemanticStringSyntax.*
 
 object ServiceStatusCodecs:
   given Encoder[Versions.Environment] = Encoder.encodeString.contramap(_.name)
   given Decoder[Versions.Environment] = Decoder.decodeString.map(Versions.Environment.apply)
-  given Encoder[ServiceHealth.Infra] = Encoder.encodeString.contramap(_.toString)
+  given Encoder[ServiceHealth.Infra] = Encoder.encodeString.contramap(_.asString)
   given Decoder[ServiceHealth.Infra] = Decoder.decodeString.map(ServiceHealth.Infra.valueOf(_))
   given Codec.AsObject[ServiceHealth] = Codec.codecForEither("Fail", "Ok")
 

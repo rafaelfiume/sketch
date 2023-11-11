@@ -7,8 +7,11 @@ import io.circe.{Decoder, Encoder, HCursor, Json, ParsingFailure}
 import io.circe.parser.parse
 import io.circe.syntax.*
 import org.fiume.sketch.auth0.JwtError.*
+import org.fiume.sketch.shared.app.EntityId.given
 import org.fiume.sketch.shared.auth0.{User, UserId}
 import org.fiume.sketch.shared.auth0.User.Username
+import org.fiume.sketch.shared.typeclasses.FromStringSyntax.*
+import org.fiume.sketch.shared.typeclasses.SemanticStringSyntax.*
 import pdi.jwt.{JwtAlgorithm, JwtCirce, JwtClaim}
 import pdi.jwt.exceptions.*
 
@@ -40,7 +43,7 @@ private[auth0] object JwtToken:
         preferredUsername = user.username
       )
       claim = JwtClaim(
-        subject = user.uuid.toString.some,
+        subject = user.uuid.asString.some,
         content = content.asJson.noSpaces,
         issuedAt = now.getEpochSecond.some,
         expiration = now.plusSeconds(expirationOffset.toSeconds).getEpochSecond.some
@@ -50,11 +53,9 @@ private[auth0] object JwtToken:
   def verifyJwtToken(token: JwtToken, publicKey: PublicKey): Either[JwtError, User] =
     (for
       claims <- JwtCirce.decode(token.value, publicKey, Seq(JwtAlgorithm.ES256)).toEither
-      uuid <- claims.subject
+      uuid: UserId <- claims.subject
         .toRight(JwtUnknownError("verifyJwtToken: subject is missing"))
-        .flatMap { id =>
-          UserId.fromString(id).leftMap(e => JwtUnknownError(e.message))
-        }
+        .flatMap { _.parsed().leftMap(e => JwtUnknownError(e.message)) }
       content <- parse(claims.content).flatMap(_.as[Content])
     yield User(uuid, content.preferredUsername)).leftMap(mapJwtErrors)
 

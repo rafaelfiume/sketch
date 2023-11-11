@@ -23,6 +23,9 @@ import scala.util.Random
 
 object DocumentsGens:
 
+  given Arbitrary[DocumentId] = Arbitrary(documentsIds)
+  def documentsIds: Gen[DocumentId] = Gen.delay(UUID.randomUUID()).map(DocumentId(_))
+
   given Arbitrary[Name] = Arbitrary(validNames)
   def validNames: Gen[Name] =
     names.map(Name.notValidatedFromString)
@@ -84,9 +87,9 @@ object DocumentsGens:
   given Arbitrary[DocumentWithId] = Arbitrary(documentsWithId)
   def documentsWithId: Gen[DocumentWithId] =
     for
-      uuid <- Gen.delay(UUID.randomUUID()).map(DocumentId(_))
+      id <- documentsIds
       document <- documents
-    yield Document.withUuid(uuid, document.metadata)
+    yield Document.withUuid(id, document.metadata)
 
   given Arbitrary[DocumentWithStream[IO]] = Arbitrary(documentsWithStream)
   def documentsWithStream: Gen[DocumentWithStream[IO]] =
@@ -99,11 +102,11 @@ object DocumentsGens:
   given Arbitrary[DocumentWithIdAndStream[IO]] = Arbitrary(documentWithIdAndStreams)
   def documentWithIdAndStreams: Gen[DocumentWithIdAndStream[IO]] =
     for
-      uuid0 <- Gen.delay(UUID.randomUUID()).map(DocumentId(_))
+      id <- documentsIds
       metadata <- metadataG
       stream0 <- bytesG
     yield new Document(metadata) with WithUuid[DocumentId] with WithStream[IO]:
-      val uuid = uuid0
+      val uuid = id
       val stream = stream0
 
 private def nameChars: Gen[Char] =

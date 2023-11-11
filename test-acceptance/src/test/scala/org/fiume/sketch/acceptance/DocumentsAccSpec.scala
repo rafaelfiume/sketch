@@ -7,15 +7,16 @@ import munit.CatsEffectSuite
 import org.fiume.sketch.acceptance.testkit.{AuthenticationContext, Http4sClientContext}
 import org.fiume.sketch.shared.auth0.testkit.UserGens
 import org.fiume.sketch.shared.testkit.FileContentContext
+import org.fiume.sketch.shared.typeclasses.SemanticStringSyntax.asString
 import org.http4s.Status.*
 import org.http4s.circe.*
 import org.http4s.headers.Authorization
 
-class DocumentsSpec extends CatsEffectSuite with FileContentContext with AuthenticationContext with DocumentsSpecContext:
+class DocumentsAccSpec extends CatsEffectSuite with FileContentContext with AuthenticationContext with DocumentsSpecContext:
 
   val docName = "a-unique-name-for-altamural.jpg"
   val docDesc = "La bella Altamura in Puglia <3"
-  val owner = UserGens.userIds.sample.get.toString()
+  val owner = UserGens.userIds.sample.get.asString
   val pathToFile = "altamura.jpg"
 
   test("store documents"):
@@ -33,7 +34,7 @@ class DocumentsSpec extends CatsEffectSuite with FileContentContext with Authent
               assertEquals(res.uuid, uuid)
               assertEquals(res.docName, docName)
               assertEquals(res.description, docDesc)
-              assertEquals(res.author, authenticated.user.uuid.toString)
+              assertEquals(res.author, authenticated.user.uuid.asString)
               assertEquals(res.owner, owner)
           }
 

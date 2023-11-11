@@ -2,8 +2,7 @@ package org.fiume.sketch.shared.app.troubleshooting
 
 import cats.Semigroup
 import cats.implicits.*
-import org.fiume.sketch.shared.app.typeclasses.ToSemanticString
-import org.fiume.sketch.shared.app.typeclasses.ToSemanticStringSyntax.*
+import org.fiume.sketch.shared.typeclasses.SemanticString
 
 // Let's adopt a flat structure and shere it leads us
 case class ErrorInfo(message: ErrorMessage, details: Option[ErrorDetails])
@@ -19,23 +18,20 @@ object ErrorInfo:
   given Semigroup[ErrorDetails] = new Semigroup[ErrorDetails]:
     def combine(x: ErrorDetails, y: ErrorDetails): ErrorDetails = ErrorDetails(x.tips.combine(y.tips))
 
-  given ToSemanticString[ErrorInfo] = new ToSemanticString[ErrorInfo]:
-    def toSemanticString(error: ErrorInfo): String =
-      val semanticErrorMessage = error.message.asSemanticString()
+  given SemanticString[ErrorInfo] = new SemanticString[ErrorInfo]:
+    override def asString(error: ErrorInfo): String =
+      val semanticErrorMessage = error.message.asString
       error.details.fold(
         ifEmpty = semanticErrorMessage
       ) { details =>
         s"""|${semanticErrorMessage}:
-            |${details.asSemanticString()}""".stripMargin
+            |${details.asString}""".stripMargin
       }
 
 object ErrorMessage:
-  given ToSemanticString[ErrorMessage] = new ToSemanticString[ErrorMessage]:
-    def toSemanticString(msg: ErrorMessage): String = s"${msg.value}"
+  extension (msg: ErrorMessage) def asString: String = s"${msg.value}"
 
 object ErrorDetails:
   def single(detail: (String, String)) = ErrorDetails(Map(detail))
 
-  given ToSemanticString[ErrorDetails] = new ToSemanticString[ErrorDetails]:
-    def toSemanticString(dtl: ErrorDetails): String =
-      dtl.tips.mkString(" * ", "\n * ", "")
+  extension (details: ErrorDetails) def asString: String = details.tips.mkString(" * ", "\n * ", "")
