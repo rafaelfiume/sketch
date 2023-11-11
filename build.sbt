@@ -50,20 +50,10 @@ lazy val auth0 =
        name := "auth0",
        libraryDependencies ++= Seq(
          Dependency.bouncycastle,
-         Dependency.cats,
          Dependency.catsEffect,
-         Dependency.circeCore,
-         Dependency.circeGeneric,
-         Dependency.circeParser,
-         Dependency.ciris,
-         Dependency.fs2Core,
-         Dependency.http4sCirce,
-         Dependency.http4sDsl,
          Dependency.http4sEmberServer,
+         Dependency.http4sEmberClient % Test,
          Dependency.jwtCirce,
-         Dependency.log4catsCore,
-         Dependency.log4catsSlf4j,
-         Dependency.slf4jSimple,
          Dependency.munit % "test,it",
          Dependency.munitCatsEffect % "test,it",
          Dependency.munitScalaCheck % "test,it",
@@ -95,26 +85,17 @@ lazy val service =
      .settings(
        name := "sketch",
        libraryDependencies ++= Seq(
-         Dependency.cats,
          Dependency.catsEffect,
-         Dependency.circeCore,
-         Dependency.circeGeneric,
-         Dependency.circeParser,
          Dependency.ciris,
-         Dependency.doobieCore,
-         Dependency.http4sCirce,
-         Dependency.http4sDsl,
-         Dependency.http4sEmberClient,
          Dependency.http4sEmberServer,
+         Dependency.http4sEmberClient % Test,
          Dependency.log4catsCore,
          Dependency.log4catsSlf4j,
          Dependency.slf4jSimple,
          Dependency.munit % "test,it",
          Dependency.munitCatsEffect % "test,it",
          Dependency.munitScalaCheck % "test,it",
-         Dependency.munitScalaCheckEffect % "test,it",
-         Dependency.munitTestcontainersScala % "it",
-         Dependency.munitTestcontainersScalaPG % "it"
+         Dependency.munitScalaCheckEffect % "test,it"
        ),
        Compile / resourceGenerators += Def.task {
          val versionFile = (Compile / resourceManaged).value / "sketch.version"
@@ -149,13 +130,7 @@ lazy val sharedAuth0 =
       name := "shared-auth0",
       libraryDependencies ++= Seq(
         Dependency.jbcrypt,
-        Dependency.cats,
-        Dependency.circeCore,
-        Dependency.circeParser,
-        Dependency.fs2Core,
-        Dependency.munit % "test,it",
         Dependency.munitCatsEffect % "test,it",
-        Dependency.munitScalaCheck % "test,it",
         Dependency.munitScalaCheckEffect % "test,it"
       )
     )
@@ -172,11 +147,8 @@ lazy val sharedComponents =
       libraryDependencies ++= Seq(
         Dependency.cats,
         Dependency.circeCore,
-        Dependency.circeParser,
-        Dependency.fs2Core,
         Dependency.http4sCirce,
         Dependency.http4sDsl,
-        Dependency.http4sEmberServer,
         Dependency.munit % "test,it",
         Dependency.munitCatsEffect % "test,it",
         Dependency.munitScalaCheck % "test,it",
@@ -202,7 +174,6 @@ lazy val sharedTestComponents =
          Dependency.fs2Core,
          Dependency.fs2Io,
          Dependency.http4sCirce,
-         Dependency.http4sEmberClient,
          Dependency.munit,
          Dependency.munitScalaCheck
        )
@@ -233,11 +204,7 @@ lazy val storage =
      .settings(
        name := "storage",
        libraryDependencies ++= Seq(
-         Dependency.cats,
          Dependency.catsEffect,
-         Dependency.circeCore,
-         Dependency.circeGeneric,
-         Dependency.circeParser,
          Dependency.ciris,
          Dependency.doobieCirce,
          Dependency.doobieCore,
@@ -248,9 +215,7 @@ lazy val storage =
          Dependency.http4sCirce,
          Dependency.http4sDsl,
          Dependency.http4sEmberServer,
-         Dependency.log4catsCore,
-         Dependency.log4catsSlf4j,
-         Dependency.slf4jSimple,
+         Dependency.http4sEmberClient % Test,
          Dependency.munit % "test,it",
          Dependency.munitCatsEffect % "test,it",
          Dependency.munitScalaCheck % "test,it",
