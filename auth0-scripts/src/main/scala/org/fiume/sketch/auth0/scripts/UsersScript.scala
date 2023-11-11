@@ -8,7 +8,6 @@ import org.fiume.sketch.auth0.UsersManager
 import org.fiume.sketch.shared.app.troubleshooting.{ErrorInfo, ErrorMessage}
 import org.fiume.sketch.shared.app.troubleshooting.ErrorInfo.given
 import org.fiume.sketch.shared.app.troubleshooting.InvariantErrorSyntax.asDetails
-import org.fiume.sketch.shared.app.typeclasses.ToSemanticStringSyntax.*
 import org.fiume.sketch.shared.auth0.Passwords.PlainPassword
 import org.fiume.sketch.shared.auth0.User
 import org.fiume.sketch.shared.auth0.User.Username
@@ -28,7 +27,7 @@ object UsersScript extends IOApp:
           _.registreUser(username, password).as(ExitCode.Success)
         }
       case Left(invalidInput) =>
-        Console[IO].error(invalidInput.asSemanticString()) *>
+        Console[IO].error(invalidInput.asString()) *>
           IO.pure(scriptErrorCode)
 
   def makeScript(): IO[UsersScript] =
