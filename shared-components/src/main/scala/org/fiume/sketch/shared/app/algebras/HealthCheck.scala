@@ -4,6 +4,7 @@ import cats.data.NonEmptyList
 import cats.implicits.*
 import org.fiume.sketch.shared.app.algebras.HealthCheck.ServiceHealth
 import org.fiume.sketch.shared.app.algebras.HealthCheck.ServiceHealth.Infra
+import org.fiume.sketch.shared.app.typeclasses.SemanticString
 
 /*
  * Responsible for checking the overall health of a resource a services relies on.
@@ -30,3 +31,7 @@ object HealthCheck:
 
     enum Infra:
       case Database
+
+    object Infra:
+      given SemanticString[Infra] = new SemanticString[Infra]:
+        override def asString(value: Infra): String = value.toString()
