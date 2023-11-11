@@ -5,6 +5,7 @@ import cats.effect.unsafe.IORuntime
 import io.gatling.core.Predef.*
 import io.gatling.http.Predef.{http, *}
 import org.fiume.sketch.acceptance.testkit.AuthenticationContext
+import org.fiume.sketch.shared.app.typeclasses.SemanticStringSyntax.asString
 import org.fiume.sketch.shared.auth0.testkit.UserGens
 import org.fiume.sketch.shared.testkit.FileContentContext
 
