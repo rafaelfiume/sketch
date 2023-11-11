@@ -12,7 +12,7 @@ import org.http4s.Status.*
 import org.http4s.circe.*
 import org.http4s.headers.Authorization
 
-class DocumentsSpec extends CatsEffectSuite with FileContentContext with AuthenticationContext with DocumentsSpecContext:
+class DocumentsAccSpec extends CatsEffectSuite with FileContentContext with AuthenticationContext with DocumentsSpecContext:
 
   val docName = "a-unique-name-for-altamural.jpg"
   val docDesc = "La bella Altamura in Puglia <3"
