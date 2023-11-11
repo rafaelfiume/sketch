@@ -3,7 +3,7 @@ package org.fiume.sketch.storage.documents
 import cats.Eq
 import cats.data.{EitherNec, Validated}
 import cats.implicits.*
-import org.fiume.sketch.shared.app.{Entity, EntityUuid, InvalidId, WithUuid}
+import org.fiume.sketch.shared.app.{Entity, EntityId, InvalidId, WithUuid}
 import org.fiume.sketch.shared.app.troubleshooting.InvariantError
 import org.fiume.sketch.shared.auth0.UserId
 import org.fiume.sketch.storage.documents.Document.Metadata
@@ -13,10 +13,10 @@ import org.fiume.sketch.storage.documents.Document.Metadata.Name.InvalidDocument
 
 import java.util.UUID
 
-type DocumentId = EntityUuid[DocumentEntity]
+type DocumentId = EntityId[DocumentEntity]
 object DocumentId:
-  def apply(uuid: UUID): DocumentId = EntityUuid[DocumentEntity](uuid)
-  def fromString(uuid: String): Either[InvalidId, DocumentId] = EntityUuid.fromString[DocumentEntity]("document.id")(uuid)
+  def apply(uuid: UUID): DocumentId = EntityId[DocumentEntity](uuid)
+  def fromString(uuid: String): Either[InvalidId, DocumentId] = EntityId.fromString[DocumentEntity]("document.id")(uuid)
 sealed trait DocumentEntity extends Entity
 
 case class Document(metadata: Metadata)

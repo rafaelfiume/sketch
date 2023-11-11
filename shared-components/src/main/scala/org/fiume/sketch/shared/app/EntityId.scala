@@ -11,14 +11,14 @@ import scala.util.control.NoStackTrace
 
 // A phantom type is a parameterised type whose parameters do not all appear on the right-hand side of its definition.
 // See https://wiki.haskell.org/Phantom_type
-case class EntityUuid[T <: Entity](value: UUID) extends AnyVal:
+case class EntityId[T <: Entity](value: UUID) extends AnyVal:
   override def toString: String = value.toString
 
-object EntityUuid:
-  def fromString[T <: Entity](idKey: String)(uuid: String): Either[InvalidId, EntityUuid[T]] = // Yolo
-    Try(UUID.fromString(uuid)).toEither.map(EntityUuid[T](_)).leftMap(_ => UnparsableUuid(idKey, uuid))
+object EntityId:
+  def fromString[T <: Entity](idKey: String)(uuid: String): Either[InvalidId, EntityId[T]] = // Yolo
+    Try(UUID.fromString(uuid)).toEither.map(EntityId[T](_)).leftMap(_ => UnparsableUuid(idKey, uuid))
 
-  given equality[T <: Entity]: Eq[EntityUuid[T]] = Eq.fromUniversalEquals[EntityUuid[T]]
+  given equality[T <: Entity]: Eq[EntityId[T]] = Eq.fromUniversalEquals[EntityId[T]]
 
 trait Entity
 
@@ -28,5 +28,5 @@ object InvalidId:
     override def uniqueCode: String = s"invalid.${idKey}"
     override val message: String = s"invalid uuid '$value'"
 
-trait WithUuid[T <: EntityUuid[?]]:
+trait WithUuid[T <: EntityId[?]]:
   val uuid: T
