@@ -1,8 +1,8 @@
 version: "3.8"
 
 services:
-  sketch-ui:
-    image: rafaelfiume/sketch-ui:${SKETCH_UI_IMAGE_TAG}
+  visual-sketch:
+    image: rafaelfiume/visual-sketch:${VISUAL_SKETCH_IMAGE_TAG}
     ports:
       - "8181:80"
     depends_on:

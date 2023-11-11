@@ -9,20 +9,20 @@ Usage: $(basename "${BASH_SOURCE[0]}") [-h] [-s] [-u] [-p] [-t] [-d]
 Start sketch stack containers.
 
 Available options:
--h, --help           Print this help and exit
--s, --sketch-tag     \`sketch\` image tag (default: \`latest\`)
--u, --sketch-ui-tag  \`sketch-ui\` image tag (default: \`latest\`)
--p, --pull           Always pull docker image before running
--r, --remove         Stop and remove a docker container
--d, --debug          Enable debug level logs
--t, --trace          Enable trace level logs
+-h, --help               Print this help and exit
+-s, --sketch-tag         \`sketch\` image tag (default: \`latest\`)
+-v, --visual-sketch-tag  \`visual-sketch\` image tag (default: \`latest\`)
+-p, --pull               Always pull docker image before running
+-r, --remove             Stop and remove a docker container
+-d, --debug              Enable debug level logs
+-t, --trace              Enable trace level logs
 EOF
   exit
 }
 
 parse_params() {
   sketch_image_tag='latest'
-  sketch_ui_image_tag='latest'
+  visual_sketch_image_tag='latest'
   pull_latest_images=''
   container_for_removal=''
 
@@ -33,8 +33,8 @@ parse_params() {
       sketch_image_tag="${2-}"
       shift
       ;;
-    -u | --sketch-ui-tag)
-      sketch_ui_image_tag="${2-}"
+    -v | --visual-sketch-tag)
+      visual_sketch_image_tag="${2-}"
       shift
       ;;
     -p | --pull) pull_latest_images="--pull=always" ;;
@@ -94,7 +94,7 @@ function main() {
 
   parse_params "$@"
   export SKETCH_IMAGE_TAG="$sketch_image_tag"
-  export SKETCH_UI_IMAGE_TAG="$sketch_ui_image_tag"
+  export VISUAL_SKETCH_IMAGE_TAG="$visual_sketch_image_tag"
 
   load_env_vars dev
 
