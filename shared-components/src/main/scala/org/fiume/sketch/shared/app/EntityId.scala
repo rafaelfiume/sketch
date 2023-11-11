@@ -4,7 +4,7 @@ import cats.Eq
 import cats.implicits.*
 import org.fiume.sketch.shared.app.InvalidId.UnparsableUuid
 import org.fiume.sketch.shared.app.troubleshooting.InvariantError
-import org.fiume.sketch.shared.app.typeclasses.{FromString, SemanticString}
+import org.fiume.sketch.shared.typeclasses.{FromString, SemanticString}
 
 import java.util.UUID
 import scala.util.Try

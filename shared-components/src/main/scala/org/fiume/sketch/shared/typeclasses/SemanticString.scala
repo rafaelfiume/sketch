@@ -1,4 +1,4 @@
-package org.fiume.sketch.shared.app.typeclasses
+package org.fiume.sketch.shared.typeclasses
 
 /*
  * Examples of semantic strings:

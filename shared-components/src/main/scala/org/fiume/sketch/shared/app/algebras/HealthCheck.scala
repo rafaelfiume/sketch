@@ -4,7 +4,7 @@ import cats.data.NonEmptyList
 import cats.implicits.*
 import org.fiume.sketch.shared.app.algebras.HealthCheck.ServiceHealth
 import org.fiume.sketch.shared.app.algebras.HealthCheck.ServiceHealth.Infra
-import org.fiume.sketch.shared.app.typeclasses.SemanticString
+import org.fiume.sketch.shared.typeclasses.SemanticString
 
 /*
  * Responsible for checking the overall health of a resource a services relies on.

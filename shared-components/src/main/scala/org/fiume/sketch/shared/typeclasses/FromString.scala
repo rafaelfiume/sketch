@@ -1,4 +1,4 @@
-package org.fiume.sketch.shared.app.typeclasses
+package org.fiume.sketch.shared.typeclasses
 
 trait FromString[E, T]:
   def fromString(s: String): Either[E, T]

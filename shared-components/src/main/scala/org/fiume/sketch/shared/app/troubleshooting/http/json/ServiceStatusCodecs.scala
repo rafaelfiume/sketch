@@ -7,7 +7,7 @@ import org.fiume.sketch.shared.app.algebras.HealthCheck.ServiceHealth
 import org.fiume.sketch.shared.app.algebras.Versions
 import org.fiume.sketch.shared.app.algebras.Versions.Version
 import org.fiume.sketch.shared.app.troubleshooting.ServiceStatus
-import org.fiume.sketch.shared.app.typeclasses.SemanticStringSyntax.*
+import org.fiume.sketch.shared.typeclasses.SemanticStringSyntax.*
 
 object ServiceStatusCodecs:
   given Encoder[Versions.Environment] = Encoder.encodeString.contramap(_.name)
