@@ -5,9 +5,9 @@ import io.circe.Json
 import munit.Assertions.*
 import munit.CatsEffectSuite
 import org.fiume.sketch.acceptance.testkit.{AuthenticationContext, Http4sClientContext}
-import org.fiume.sketch.shared.typeclasses.SemanticStringSyntax.asString
 import org.fiume.sketch.shared.auth0.testkit.UserGens
 import org.fiume.sketch.shared.testkit.FileContentContext
+import org.fiume.sketch.shared.typeclasses.SemanticStringSyntax.asString
 import org.http4s.Status.*
 import org.http4s.circe.*
 import org.http4s.headers.Authorization
