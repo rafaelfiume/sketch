@@ -9,10 +9,12 @@ import io.circe.{Decoder, Encoder, HCursor, *}
 import io.circe.{Json as JJson}
 import io.circe.Decoder.Result
 import io.circe.syntax.*
+import org.fiume.sketch.shared.app.EntityId.given
 import org.fiume.sketch.shared.app.http4s.middlewares.SemanticInputError
 import org.fiume.sketch.shared.app.troubleshooting.ErrorDetails
 import org.fiume.sketch.shared.app.troubleshooting.ErrorInfo.given
 import org.fiume.sketch.shared.app.troubleshooting.InvariantErrorSyntax.asDetails
+import org.fiume.sketch.shared.app.typeclasses.FromStringSyntax.*
 import org.fiume.sketch.shared.app.typeclasses.SemanticStringSyntax.*
 import org.fiume.sketch.shared.auth0.{User, UserId}
 import org.fiume.sketch.storage.documents.{Document, DocumentId, DocumentWithId, DocumentWithStream}
@@ -122,10 +124,10 @@ private[http] object DocumentsRoutes:
         .withContentType(`Content-Type`(MediaType.application.json, Charset.`UTF-8`))
 
   object DocumentIdVar:
-    def unapply(value: String): Option[DocumentId] = DocumentId.fromString(value).toOption
+    def unapply(uuid: String): Option[DocumentId] = uuid.parsed().toOption
 
-  given QueryParamDecoder[UserId] = QueryParamDecoder[String].emap(s =>
-    UserId.fromString(s).leftMap(e => ParseFailure("invalid or missing userId", s"${e.message}"))
+  given QueryParamDecoder[UserId] = QueryParamDecoder[String].emap(
+    _.parsed().leftMap(e => ParseFailure("invalid or missing userId", s"${e.message}"))
   )
 
   object AuthorQueryParamMatcher extends QueryParamDecoderMatcher[UserId]("author")
@@ -172,9 +174,9 @@ private[http] object DocumentsRoutes:
               EitherT.fromEither(Name.validated(payload.name).leftMap(_.asDetails)),
               EitherT.pure(Description(payload.description)),
               EitherT.pure(stream),
-              EitherT.fromEither(UserId.fromString(payload.owner).leftMap(_.asDetails))
-            ).parMapN((name, description, bytes, owner) =>
-              Document.withStream[F](bytes, Metadata(name, description, authorId, owner))
+              EitherT.fromEither(payload.owner.parsed().leftMap(_.asDetails))
+            ).parMapN((name, description, bytes, ownerId: UserId) =>
+              Document.withStream[F](bytes, Metadata(name, description, authorId, ownerId))
             ).foldF(
               details => SemanticInputError.makeFrom(details).raiseError,
               _.pure[F]
@@ -214,8 +216,7 @@ private[http] object DocumentsRoutes:
       import org.fiume.sketch.shared.app.EntityId
       import org.fiume.sketch.shared.app.Entity
       given [T <: Entity]: Encoder[EntityId[T]] = Encoder[String].contramap[EntityId[T]](_.asString)
-      given [T <: Entity]: Decoder[EntityId[T]] =
-        Decoder[String].emap(uuid => EntityId.fromString[T]("?.id")(uuid).leftMap(_.message))
+      given [T <: Entity]: Decoder[EntityId[T]] = Decoder[String].emap(_.parsed().leftMap(_.message))
 
       given Decoder[MetadataRequestPayload] = new Decoder[MetadataRequestPayload]:
         override def apply(c: HCursor): Result[MetadataRequestPayload] =
