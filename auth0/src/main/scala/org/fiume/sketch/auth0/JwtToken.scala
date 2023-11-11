@@ -7,6 +7,7 @@ import io.circe.{Decoder, Encoder, HCursor, Json, ParsingFailure}
 import io.circe.parser.parse
 import io.circe.syntax.*
 import org.fiume.sketch.auth0.JwtError.*
+import org.fiume.sketch.shared.app.typeclasses.SemanticStringSyntax.*
 import org.fiume.sketch.shared.auth0.{User, UserId}
 import org.fiume.sketch.shared.auth0.User.Username
 import pdi.jwt.{JwtAlgorithm, JwtCirce, JwtClaim}
@@ -40,7 +41,7 @@ private[auth0] object JwtToken:
         preferredUsername = user.username
       )
       claim = JwtClaim(
-        subject = user.uuid.toString.some,
+        subject = user.uuid.asString.some,
         content = content.asJson.noSpaces,
         issuedAt = now.getEpochSecond.some,
         expiration = now.plusSeconds(expirationOffset.toSeconds).getEpochSecond.some

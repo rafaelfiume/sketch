@@ -15,14 +15,12 @@ class DocumentsSimulation extends Simulation with FileContentContext with Authen
   val docName = "Nicolas_e_Joana"
   val docDesc = "Meus amores <3"
   val pathToFile = "meus-fofinhos.jpg"
-  val owner = UserGens.userIds.sample.get.toString()
+  val owner = UserGens.userIds.sample.get.asString
   given IORuntime = IORuntime.global
   val bytes = bytesFrom[IO](pathToFile).compile.toVector.map(_.toArray).unsafeRunSync()
 
   val authenticated = loginAndGetAuthenticatedUser().unsafeRunSync()
   val authorizationHeader = authenticated.authorization
-
-  println(authorizationHeader.credentials.toString)
 
   val httpProtocol = http
     .baseUrl("http://localhost:8080")

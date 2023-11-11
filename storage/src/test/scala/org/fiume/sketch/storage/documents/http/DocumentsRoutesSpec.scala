@@ -12,6 +12,7 @@ import org.fiume.sketch.shared.app.WithUuid
 import org.fiume.sketch.shared.app.http4s.middlewares.{SemanticInputError, SemanticValidationMiddleware}
 import org.fiume.sketch.shared.app.troubleshooting.{ErrorInfo, ErrorMessage}
 import org.fiume.sketch.shared.app.troubleshooting.http.json.ErrorInfoCodecs.given
+import org.fiume.sketch.shared.app.typeclasses.SemanticStringSyntax.*
 import org.fiume.sketch.shared.auth0.User
 import org.fiume.sketch.shared.auth0.testkit.UserGens.given
 import org.fiume.sketch.shared.auth0.testkit.UserGens.userIds
@@ -111,7 +112,7 @@ class DocumentsRoutesSpec
 
   test("Get document by author"):
     forAllF { (fstDoc: DocumentWithIdAndStream[IO], sndDoc: DocumentWithIdAndStream[IO]) =>
-      val request = GET(Uri.unsafeFromString(s"/documents?author=${sndDoc.metadata.author}"))
+      val request = GET(Uri.unsafeFromString(s"/documents?author=${sndDoc.metadata.author.asString}"))
       for
         store <- makeDocumentsStore(state = fstDoc, sndDoc)
         authMiddleware = makeAuthMiddleware()
@@ -132,7 +133,7 @@ class DocumentsRoutesSpec
 
   test("Get document by owner"):
     forAllF { (fstDoc: DocumentWithIdAndStream[IO], sndDoc: DocumentWithIdAndStream[IO]) =>
-      val request = GET(Uri.unsafeFromString(s"/documents?owner=${sndDoc.metadata.owner}"))
+      val request = GET(Uri.unsafeFromString(s"/documents?owner=${sndDoc.metadata.owner.asString}"))
       for
         store <- makeDocumentsStore(state = fstDoc, sndDoc)
         authMiddleware = makeAuthMiddleware()
@@ -336,7 +337,7 @@ trait DocumentsRoutesSpecContext extends AuthMiddlewareContext:
 
   extension (m: Document.Metadata)
     def asRequestPayload: MetadataRequestPayload =
-      MetadataRequestPayload(m.name.value, m.description.value, m.owner.toString)
+      MetadataRequestPayload(m.name.value, m.description.value, m.owner.asString)
 
   given Encoder[MetadataRequestPayload] = new Encoder[MetadataRequestPayload]:
     override def apply(m: MetadataRequestPayload): Json = Json.obj(

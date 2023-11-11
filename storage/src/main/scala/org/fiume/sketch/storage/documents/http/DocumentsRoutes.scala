@@ -13,6 +13,7 @@ import org.fiume.sketch.shared.app.http4s.middlewares.SemanticInputError
 import org.fiume.sketch.shared.app.troubleshooting.ErrorDetails
 import org.fiume.sketch.shared.app.troubleshooting.ErrorInfo.given
 import org.fiume.sketch.shared.app.troubleshooting.InvariantErrorSyntax.asDetails
+import org.fiume.sketch.shared.app.typeclasses.SemanticStringSyntax.*
 import org.fiume.sketch.shared.auth0.{User, UserId}
 import org.fiume.sketch.storage.documents.{Document, DocumentId, DocumentWithId, DocumentWithStream}
 import org.fiume.sketch.storage.documents.Document.Metadata
@@ -139,11 +140,11 @@ private[http] object DocumentsRoutes:
 
     extension (m: Metadata)
       private def asResponsePayload: MetadataResponsePayload =
-        MetadataResponsePayload(m.name.value, m.description.value, m.author.toString, m.owner.toString)
+        MetadataResponsePayload(m.name.value, m.description.value, m.author.asString, m.owner.asString)
 
     extension [F[_]](d: DocumentWithId)
       def asResponsePayload: DocumentResponsePayload =
-        DocumentResponsePayload(d.uuid, d.metadata.asResponsePayload, Uri.unsafeFromString(s"/documents/${d.uuid.toString}"))
+        DocumentResponsePayload(d.uuid, d.metadata.asResponsePayload, Uri.unsafeFromString(s"/documents/${d.uuid.asString}"))
 
     extension [F[_]](id: DocumentId) def asResponsePayload: DocumentIdResponsePayload = DocumentIdResponsePayload(id)
 
@@ -209,8 +210,12 @@ private[http] object DocumentsRoutes:
       given Encoder[Uri] = Encoder.encodeString.contramap(_.renderString)
       given Decoder[Uri] = Decoder.decodeString.emap { uri => Uri.fromString(uri).leftMap(_.getMessage) }
 
-      given Encoder[DocumentId] = Encoder[String].contramap[DocumentId](_.toString)
-      given Decoder[DocumentId] = Decoder[String].emap(uuid => DocumentId.fromString(uuid).leftMap(_.message))
+      // TODO Move it to a common package?
+      import org.fiume.sketch.shared.app.EntityId
+      import org.fiume.sketch.shared.app.Entity
+      given [T <: Entity]: Encoder[EntityId[T]] = Encoder[String].contramap[EntityId[T]](_.asString)
+      given [T <: Entity]: Decoder[EntityId[T]] =
+        Decoder[String].emap(uuid => EntityId.fromString[T]("?.id")(uuid).leftMap(_.message))
 
       given Decoder[MetadataRequestPayload] = new Decoder[MetadataRequestPayload]:
         override def apply(c: HCursor): Result[MetadataRequestPayload] =

@@ -15,7 +15,7 @@ class DocumentsSpec extends CatsEffectSuite with FileContentContext with Authent
 
   val docName = "a-unique-name-for-altamural.jpg"
   val docDesc = "La bella Altamura in Puglia <3"
-  val owner = UserGens.userIds.sample.get.toString()
+  val owner = UserGens.userIds.sample.get.asString
   val pathToFile = "altamura.jpg"
 
   test("store documents"):
@@ -33,7 +33,7 @@ class DocumentsSpec extends CatsEffectSuite with FileContentContext with Authent
               assertEquals(res.uuid, uuid)
               assertEquals(res.docName, docName)
               assertEquals(res.description, docDesc)
-              assertEquals(res.author, authenticated.user.uuid.toString)
+              assertEquals(res.author, authenticated.user.uuid.asString)
               assertEquals(res.owner, owner)
           }
 
