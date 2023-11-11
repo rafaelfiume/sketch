@@ -2,6 +2,7 @@ package org.fiume.sketch.shared.app.troubleshooting
 
 import cats.Semigroup
 import cats.implicits.*
+import org.fiume.sketch.shared.app.typeclasses.SemanticString
 
 // Let's adopt a flat structure and shere it leads us
 case class ErrorInfo(message: ErrorMessage, details: Option[ErrorDetails])
@@ -17,20 +18,20 @@ object ErrorInfo:
   given Semigroup[ErrorDetails] = new Semigroup[ErrorDetails]:
     def combine(x: ErrorDetails, y: ErrorDetails): ErrorDetails = ErrorDetails(x.tips.combine(y.tips))
 
-  extension (error: ErrorInfo)
-    def asString(): String =
-      val semanticErrorMessage = error.message.asString()
+  given SemanticString[ErrorInfo] = new SemanticString[ErrorInfo]:
+    override def asString(error: ErrorInfo): String =
+      val semanticErrorMessage = error.message.asString
       error.details.fold(
         ifEmpty = semanticErrorMessage
       ) { details =>
         s"""|${semanticErrorMessage}:
-            |${details.asString()}""".stripMargin
+            |${details.asString}""".stripMargin
       }
 
 object ErrorMessage:
-  extension (msg: ErrorMessage) def asString(): String = s"${msg.value}"
+  extension (msg: ErrorMessage) def asString: String = s"${msg.value}"
 
 object ErrorDetails:
   def single(detail: (String, String)) = ErrorDetails(Map(detail))
 
-  extension (details: ErrorDetails) def asString(): String = details.tips.mkString(" * ", "\n * ", "")
+  extension (details: ErrorDetails) def asString: String = details.tips.mkString(" * ", "\n * ", "")
