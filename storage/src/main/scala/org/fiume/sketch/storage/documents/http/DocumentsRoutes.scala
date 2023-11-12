@@ -15,12 +15,12 @@ import org.fiume.sketch.shared.app.troubleshooting.ErrorDetails
 import org.fiume.sketch.shared.app.troubleshooting.ErrorInfo.given
 import org.fiume.sketch.shared.app.troubleshooting.InvariantErrorSyntax.asDetails
 import org.fiume.sketch.shared.auth0.{User, UserId}
+import org.fiume.sketch.shared.domain.documents.{Document, DocumentId, DocumentWithId, DocumentWithStream}
+import org.fiume.sketch.shared.domain.documents.Document.Metadata
+import org.fiume.sketch.shared.domain.documents.Document.Metadata.*
+import org.fiume.sketch.shared.domain.documents.algebras.DocumentsStore
 import org.fiume.sketch.shared.typeclasses.FromStringSyntax.*
 import org.fiume.sketch.shared.typeclasses.SemanticStringSyntax.*
-import org.fiume.sketch.storage.documents.{Document, DocumentId, DocumentWithId, DocumentWithStream}
-import org.fiume.sketch.storage.documents.Document.Metadata
-import org.fiume.sketch.storage.documents.Document.Metadata.*
-import org.fiume.sketch.storage.documents.algebras.DocumentsStore
 import org.fiume.sketch.storage.documents.http.DocumentsRoutes.{
   AuthorQueryParamMatcher,
   DocumentIdVar,

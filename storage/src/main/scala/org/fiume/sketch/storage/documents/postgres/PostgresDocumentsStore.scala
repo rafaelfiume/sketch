@@ -9,10 +9,10 @@ import doobie.free.connection.ConnectionIO
 import doobie.implicits.*
 import fs2.Stream
 import org.fiume.sketch.shared.auth0.UserId
+import org.fiume.sketch.shared.domain.documents.{Document, DocumentId, DocumentWithId, DocumentWithStream}
+import org.fiume.sketch.shared.domain.documents.Document.Metadata
+import org.fiume.sketch.shared.domain.documents.algebras.DocumentsStore
 import org.fiume.sketch.storage.auth0.postgres.DoobieMappings.given
-import org.fiume.sketch.storage.documents.{Document, DocumentId, DocumentWithId, DocumentWithStream}
-import org.fiume.sketch.storage.documents.Document.Metadata
-import org.fiume.sketch.storage.documents.algebras.DocumentsStore
 import org.fiume.sketch.storage.documents.postgres.DoobieMappings.given
 import org.fiume.sketch.storage.postgres.AbstractPostgresStore
 

@@ -4,10 +4,10 @@ import doobie.Meta
 import doobie.postgres.implicits.*
 import doobie.util.Read
 import org.fiume.sketch.shared.auth0.UserId
+import org.fiume.sketch.shared.domain.documents.{Document, DocumentId, DocumentWithId}
+import org.fiume.sketch.shared.domain.documents.Document.Metadata
+import org.fiume.sketch.shared.domain.documents.Document.Metadata.*
 import org.fiume.sketch.storage.auth0.postgres.DoobieMappings.given
-import org.fiume.sketch.storage.documents.{Document, DocumentId, DocumentWithId}
-import org.fiume.sketch.storage.documents.Document.Metadata
-import org.fiume.sketch.storage.documents.Document.Metadata.*
 
 import java.util.UUID
 

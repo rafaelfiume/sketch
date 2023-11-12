@@ -1,12 +1,10 @@
-package org.fiume.sketch.storage.testkit
+package org.fiume.sketch.shared.domain.testkit
 
 import cats.effect.IO
 import fs2.Stream
 import org.fiume.sketch.shared.app.WithUuid
 import org.fiume.sketch.shared.auth0.testkit.UserGens.userIds
-import org.fiume.sketch.shared.testkit.Gens.Bytes.*
-import org.fiume.sketch.shared.testkit.Gens.Strings.*
-import org.fiume.sketch.storage.documents.{
+import org.fiume.sketch.shared.domain.documents.{
   Document,
   DocumentId,
   DocumentWithId,
@@ -14,8 +12,10 @@ import org.fiume.sketch.storage.documents.{
   DocumentWithStream,
   WithStream
 }
-import org.fiume.sketch.storage.documents.Document.Metadata
-import org.fiume.sketch.storage.documents.Document.Metadata.*
+import org.fiume.sketch.shared.domain.documents.Document.Metadata
+import org.fiume.sketch.shared.domain.documents.Document.Metadata.*
+import org.fiume.sketch.shared.testkit.Gens.Bytes.*
+import org.fiume.sketch.shared.testkit.Gens.Strings.*
 import org.scalacheck.{Arbitrary, Gen}
 
 import java.util.UUID
