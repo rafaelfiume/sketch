@@ -7,9 +7,8 @@ import doobie.ConnectionIO
 import fs2.io.net.Network
 import org.fiume.sketch.auth0.http.AuthRoutes
 import org.fiume.sketch.auth0.http.middlewares.Auth0Middleware
-import org.fiume.sketch.http.HealthStatusRoutes
+import org.fiume.sketch.http.{DocumentsRoutes, HealthStatusRoutes}
 import org.fiume.sketch.shared.app.http4s.middlewares.{SemanticValidationMiddleware, TraceAuditLogMiddleware, WorkerMiddleware}
-import org.fiume.sketch.storage.documents.http.DocumentsRoutes
 import org.http4s.{HttpApp, HttpRoutes}
 import org.http4s.ember.server.EmberServerBuilder
 import org.http4s.implicits.*

@@ -1,4 +1,4 @@
-package org.fiume.sketch.storage.documents.http
+package org.fiume.sketch.http
 
 import cats.data.OptionT
 import cats.effect.{IO, Ref}
@@ -8,6 +8,8 @@ import io.circe.Decoder.Result
 import io.circe.syntax.*
 import munit.{CatsEffectSuite, ScalaCheckEffectSuite}
 import munit.Assertions.*
+import org.fiume.sketch.http.DocumentsRoutes.Model.*
+import org.fiume.sketch.http.DocumentsRoutes.Model.Json.given
 import org.fiume.sketch.shared.app.WithUuid
 import org.fiume.sketch.shared.app.http4s.middlewares.{SemanticInputError, SemanticValidationMiddleware}
 import org.fiume.sketch.shared.app.troubleshooting.{ErrorInfo, ErrorMessage}
@@ -22,8 +24,6 @@ import org.fiume.sketch.shared.domain.testkit.DocumentsGens.given
 import org.fiume.sketch.shared.testkit.{ContractContext, Http4sTestingRoutesDsl}
 import org.fiume.sketch.shared.testkit.EitherSyntax.*
 import org.fiume.sketch.shared.typeclasses.SemanticStringSyntax.*
-import org.fiume.sketch.storage.documents.http.DocumentsRoutes.Model.*
-import org.fiume.sketch.storage.documents.http.DocumentsRoutes.Model.Json.given
 import org.http4s.{MediaType, *}
 import org.http4s.Method.*
 import org.http4s.client.dsl.io.*

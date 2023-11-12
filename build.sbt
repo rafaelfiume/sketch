@@ -67,10 +67,12 @@ lazy val auth0Scripts =
 
 lazy val service =
    project.in(file("service"))
-     .dependsOn(sharedComponents)
      .dependsOn(auth0)
-     .dependsOn(storage)
+     .dependsOn(sharedAuth0 % "compile->compile;test->test")
+     .dependsOn(sharedComponents)
+     .dependsOn(sharedDomain % "compile->compile;test->test")
      .dependsOn(sharedTestComponents % Test)
+     .dependsOn(storage)
      .enablePlugins(JavaAppPackaging)
      .disablePlugins(plugins.JUnitXmlReportPlugin) // see https://www.scala-sbt.org/1.x/docs/Testing.html
      .settings(commonSettings: _*)
@@ -83,6 +85,7 @@ lazy val service =
        libraryDependencies ++= Seq(
          Dependency.catsEffect,
          Dependency.ciris,
+         Dependency.http4sDsl,
          Dependency.http4sEmberServer,
          Dependency.http4sEmberClient % Test,
          Dependency.log4catsCore,
@@ -159,6 +162,7 @@ lazy val sharedDomain =
     .settings(
       name := "shared-domain",
       libraryDependencies ++= Seq(
+        Dependency.fs2Core
       )
     )
 
@@ -219,11 +223,6 @@ lazy val storage =
          Dependency.doobiePostgres,
          Dependency.doobieHikari,
          Dependency.flyway,
-         Dependency.fs2Core,
-         Dependency.http4sCirce,
-         Dependency.http4sDsl,
-         Dependency.http4sEmberServer,
-         Dependency.http4sEmberClient % Test,
          Dependency.munit % "test,it",
          Dependency.munitCatsEffect % "test,it",
          Dependency.munitScalaCheck % "test,it",
