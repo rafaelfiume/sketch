@@ -7,4 +7,6 @@ trait Versions[F[_]]:
 
 object Versions:
   case class Environment(name: String) extends AnyVal
-  case class Version(env: Environment, build: String, commit: String)
+  case class Build(name: String) extends AnyVal
+  case class Commit(name: String) extends AnyVal
+  case class Version(env: Environment, build: Build, commit: Commit)
