@@ -1,4 +1,4 @@
-package org.fiume.sketch.storage.documents.http
+package org.fiume.sketch.http
 
 import cats.MonadThrow
 import cats.data.EitherT
@@ -9,19 +9,7 @@ import io.circe.{Decoder, Encoder, HCursor, *}
 import io.circe.{Json as JJson}
 import io.circe.Decoder.Result
 import io.circe.syntax.*
-import org.fiume.sketch.shared.app.EntityId.given
-import org.fiume.sketch.shared.app.http4s.middlewares.SemanticInputError
-import org.fiume.sketch.shared.app.troubleshooting.ErrorDetails
-import org.fiume.sketch.shared.app.troubleshooting.ErrorInfo.given
-import org.fiume.sketch.shared.app.troubleshooting.InvariantErrorSyntax.asDetails
-import org.fiume.sketch.shared.auth0.{User, UserId}
-import org.fiume.sketch.shared.typeclasses.FromStringSyntax.*
-import org.fiume.sketch.shared.typeclasses.SemanticStringSyntax.*
-import org.fiume.sketch.storage.documents.{Document, DocumentId, DocumentWithId, DocumentWithStream}
-import org.fiume.sketch.storage.documents.Document.Metadata
-import org.fiume.sketch.storage.documents.Document.Metadata.*
-import org.fiume.sketch.storage.documents.algebras.DocumentsStore
-import org.fiume.sketch.storage.documents.http.DocumentsRoutes.{
+import org.fiume.sketch.http.DocumentsRoutes.{
   AuthorQueryParamMatcher,
   DocumentIdVar,
   Line,
@@ -30,8 +18,20 @@ import org.fiume.sketch.storage.documents.http.DocumentsRoutes.{
   NewlineDelimitedJsonEncoder,
   OwnerQueryParamMatcher
 }
-import org.fiume.sketch.storage.documents.http.DocumentsRoutes.Model.*
-import org.fiume.sketch.storage.documents.http.DocumentsRoutes.Model.Json.given
+import org.fiume.sketch.http.DocumentsRoutes.Model.*
+import org.fiume.sketch.http.DocumentsRoutes.Model.Json.given
+import org.fiume.sketch.shared.app.EntityId.given
+import org.fiume.sketch.shared.app.http4s.middlewares.SemanticInputError
+import org.fiume.sketch.shared.app.troubleshooting.ErrorDetails
+import org.fiume.sketch.shared.app.troubleshooting.ErrorInfo.given
+import org.fiume.sketch.shared.app.troubleshooting.InvariantErrorSyntax.asDetails
+import org.fiume.sketch.shared.auth0.{User, UserId}
+import org.fiume.sketch.shared.domain.documents.{Document, DocumentId, DocumentWithId, DocumentWithStream}
+import org.fiume.sketch.shared.domain.documents.Document.Metadata
+import org.fiume.sketch.shared.domain.documents.Document.Metadata.*
+import org.fiume.sketch.shared.domain.documents.algebras.DocumentsStore
+import org.fiume.sketch.shared.typeclasses.FromStringSyntax.*
+import org.fiume.sketch.shared.typeclasses.SemanticStringSyntax.*
 import org.http4s.{Charset, EntityEncoder, HttpRoutes, MediaType, *}
 import org.http4s.MediaType.application
 import org.http4s.circe.CirceEntityDecoder.*

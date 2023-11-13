@@ -1,4 +1,4 @@
-package org.fiume.sketch.storage.documents.http
+package org.fiume.sketch.http
 
 import cats.data.OptionT
 import cats.effect.{IO, Ref}
@@ -8,6 +8,8 @@ import io.circe.Decoder.Result
 import io.circe.syntax.*
 import munit.{CatsEffectSuite, ScalaCheckEffectSuite}
 import munit.Assertions.*
+import org.fiume.sketch.http.DocumentsRoutes.Model.*
+import org.fiume.sketch.http.DocumentsRoutes.Model.Json.given
 import org.fiume.sketch.shared.app.WithUuid
 import org.fiume.sketch.shared.app.http4s.middlewares.{SemanticInputError, SemanticValidationMiddleware}
 import org.fiume.sketch.shared.app.troubleshooting.{ErrorInfo, ErrorMessage}
@@ -15,15 +17,13 @@ import org.fiume.sketch.shared.app.troubleshooting.http.json.ErrorInfoCodecs.giv
 import org.fiume.sketch.shared.auth0.User
 import org.fiume.sketch.shared.auth0.testkit.UserGens.given
 import org.fiume.sketch.shared.auth0.testkit.UserGens.userIds
+import org.fiume.sketch.shared.domain.documents.{Document, DocumentId, DocumentWithIdAndStream, DocumentWithStream}
+import org.fiume.sketch.shared.domain.documents.algebras.DocumentsStore
+import org.fiume.sketch.shared.domain.testkit.DocumentsGens.*
+import org.fiume.sketch.shared.domain.testkit.DocumentsGens.given
 import org.fiume.sketch.shared.testkit.{ContractContext, Http4sTestingRoutesDsl}
 import org.fiume.sketch.shared.testkit.EitherSyntax.*
 import org.fiume.sketch.shared.typeclasses.SemanticStringSyntax.*
-import org.fiume.sketch.storage.documents.{Document, DocumentId, DocumentWithIdAndStream, DocumentWithStream}
-import org.fiume.sketch.storage.documents.algebras.DocumentsStore
-import org.fiume.sketch.storage.documents.http.DocumentsRoutes.Model.*
-import org.fiume.sketch.storage.documents.http.DocumentsRoutes.Model.Json.given
-import org.fiume.sketch.storage.testkit.DocumentsGens.*
-import org.fiume.sketch.storage.testkit.DocumentsGens.given
 import org.http4s.{MediaType, *}
 import org.http4s.Method.*
 import org.http4s.client.dsl.io.*
@@ -402,7 +402,7 @@ trait AuthMiddlewareContext:
 
 trait DocumentsStoreContext:
   import fs2.Stream
-  import org.fiume.sketch.storage.documents.{Document, DocumentId, DocumentWithId, WithStream}
+  import org.fiume.sketch.shared.domain.documents.{Document, DocumentId, DocumentWithId, WithStream}
   import org.fiume.sketch.shared.auth0.UserId
   import cats.effect.unsafe.IORuntime
 

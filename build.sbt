@@ -42,32 +42,18 @@ lazy val auth0 =
      .dependsOn(sharedTestComponents % Test)
      .disablePlugins(plugins.JUnitXmlReportPlugin)
      .settings(commonSettings: _*)
-     .configs(IntegrationTests)
-     .settings(
-       inConfig(IntegrationTests)(Defaults.testSettings ++ scalafixConfigSettings(IntegrationTests))
-     )
      .settings(
        name := "auth0",
        libraryDependencies ++= Seq(
          Dependency.bouncycastle,
-         Dependency.cats,
          Dependency.catsEffect,
-         Dependency.circeCore,
-         Dependency.circeGeneric,
-         Dependency.circeParser,
-         Dependency.ciris,
-         Dependency.fs2Core,
-         Dependency.http4sCirce,
-         Dependency.http4sDsl,
          Dependency.http4sEmberServer,
+         Dependency.http4sEmberClient % Test,
          Dependency.jwtCirce,
-         Dependency.log4catsCore,
-         Dependency.log4catsSlf4j,
-         Dependency.slf4jSimple,
-         Dependency.munit % "test,it",
-         Dependency.munitCatsEffect % "test,it",
-         Dependency.munitScalaCheck % "test,it",
-         Dependency.munitScalaCheckEffect % "test,it"
+         Dependency.munit % Test,
+         Dependency.munitCatsEffect % Test,
+         Dependency.munitScalaCheck % Test,
+         Dependency.munitScalaCheckEffect % Test
        )
      )
 
@@ -81,10 +67,12 @@ lazy val auth0Scripts =
 
 lazy val service =
    project.in(file("service"))
-     .dependsOn(sharedComponents)
      .dependsOn(auth0)
-     .dependsOn(storage)
+     .dependsOn(sharedAuth0 % "compile->compile;test->test")
+     .dependsOn(sharedComponents)
+     .dependsOn(sharedDomain % "compile->compile;test->test")
      .dependsOn(sharedTestComponents % Test)
+     .dependsOn(storage)
      .enablePlugins(JavaAppPackaging)
      .disablePlugins(plugins.JUnitXmlReportPlugin) // see https://www.scala-sbt.org/1.x/docs/Testing.html
      .settings(commonSettings: _*)
@@ -95,26 +83,18 @@ lazy val service =
      .settings(
        name := "sketch",
        libraryDependencies ++= Seq(
-         Dependency.cats,
          Dependency.catsEffect,
-         Dependency.circeCore,
-         Dependency.circeGeneric,
-         Dependency.circeParser,
          Dependency.ciris,
-         Dependency.doobieCore,
-         Dependency.http4sCirce,
          Dependency.http4sDsl,
-         Dependency.http4sEmberClient,
          Dependency.http4sEmberServer,
+         Dependency.http4sEmberClient % Test,
          Dependency.log4catsCore,
          Dependency.log4catsSlf4j,
          Dependency.slf4jSimple,
          Dependency.munit % "test,it",
          Dependency.munitCatsEffect % "test,it",
          Dependency.munitScalaCheck % "test,it",
-         Dependency.munitScalaCheckEffect % "test,it",
-         Dependency.munitTestcontainersScala % "it",
-         Dependency.munitTestcontainersScalaPG % "it"
+         Dependency.munitScalaCheckEffect % "test,it"
        ),
        Compile / resourceGenerators += Def.task {
          val versionFile = (Compile / resourceManaged).value / "sketch.version"
@@ -143,20 +123,12 @@ lazy val sharedAuth0 =
     .dependsOn(sharedTestComponents % Test)
     .disablePlugins(plugins.JUnitXmlReportPlugin)
     .settings(commonSettings: _*)
-    .configs(IntegrationTest)
-    .settings(Defaults.itSettings: _*)
     .settings(
       name := "shared-auth0",
       libraryDependencies ++= Seq(
         Dependency.jbcrypt,
-        Dependency.cats,
-        Dependency.circeCore,
-        Dependency.circeParser,
-        Dependency.fs2Core,
-        Dependency.munit % "test,it",
-        Dependency.munitCatsEffect % "test,it",
-        Dependency.munitScalaCheck % "test,it",
-        Dependency.munitScalaCheckEffect % "test,it"
+        Dependency.munitCatsEffect % Test,
+        Dependency.munitScalaCheckEffect % Test
       )
     )
 
@@ -165,22 +137,32 @@ lazy val sharedComponents =
     .dependsOn(sharedTestComponents % Test)
     .disablePlugins(plugins.JUnitXmlReportPlugin)
     .settings(commonSettings: _*)
-    .configs(IntegrationTest)
-    .settings(Defaults.itSettings: _*)
     .settings(
       name := "shared-components",
       libraryDependencies ++= Seq(
         Dependency.cats,
         Dependency.circeCore,
-        Dependency.circeParser,
-        Dependency.fs2Core,
         Dependency.http4sCirce,
         Dependency.http4sDsl,
-        Dependency.http4sEmberServer,
-        Dependency.munit % "test,it",
-        Dependency.munitCatsEffect % "test,it",
-        Dependency.munitScalaCheck % "test,it",
-        Dependency.munitScalaCheckEffect % "test,it"
+        Dependency.munit % Test,
+        Dependency.munitCatsEffect % Test,
+        Dependency.munitScalaCheck % Test,
+        Dependency.munitScalaCheckEffect % Test
+      )
+    )
+
+// depends on auth0, not the other way round
+lazy val sharedDomain =
+    project.in(file("shared-domain"))
+    .dependsOn(sharedAuth0 % "compile->compile;test->test")
+    .dependsOn(sharedComponents)
+    .dependsOn(sharedTestComponents % Test)
+    .disablePlugins(plugins.JUnitXmlReportPlugin)
+    .settings(commonSettings: _*)
+    .settings(
+      name := "shared-domain",
+      libraryDependencies ++= Seq(
+        Dependency.fs2Core
       )
     )
 
@@ -202,7 +184,6 @@ lazy val sharedTestComponents =
          Dependency.fs2Core,
          Dependency.fs2Io,
          Dependency.http4sCirce,
-         Dependency.http4sEmberClient,
          Dependency.munit,
          Dependency.munitScalaCheck
        )
@@ -216,6 +197,7 @@ lazy val sketch =
     .aggregate(service)
     .aggregate(sharedAuth0)
     .aggregate(sharedComponents)
+    .aggregate(sharedDomain)
     .aggregate(sharedTestComponents)
     .aggregate(storage)
 
@@ -223,6 +205,7 @@ lazy val storage =
    project.in(file("storage"))
      .dependsOn(sharedAuth0 % "compile->compile;test->test")
      .dependsOn(sharedComponents)
+     .dependsOn(sharedDomain % "compile->compile;test->test")
      .dependsOn(sharedTestComponents % Test)
      .disablePlugins(plugins.JUnitXmlReportPlugin)
      .settings(commonSettings: _*)
@@ -233,24 +216,13 @@ lazy val storage =
      .settings(
        name := "storage",
        libraryDependencies ++= Seq(
-         Dependency.cats,
          Dependency.catsEffect,
-         Dependency.circeCore,
-         Dependency.circeGeneric,
-         Dependency.circeParser,
          Dependency.ciris,
          Dependency.doobieCirce,
          Dependency.doobieCore,
          Dependency.doobiePostgres,
          Dependency.doobieHikari,
          Dependency.flyway,
-         Dependency.fs2Core,
-         Dependency.http4sCirce,
-         Dependency.http4sDsl,
-         Dependency.http4sEmberServer,
-         Dependency.log4catsCore,
-         Dependency.log4catsSlf4j,
-         Dependency.slf4jSimple,
          Dependency.munit % "test,it",
          Dependency.munitCatsEffect % "test,it",
          Dependency.munitScalaCheck % "test,it",
