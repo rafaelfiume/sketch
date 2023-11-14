@@ -4,7 +4,6 @@ import cats.effect.Async
 import cats.implicits.*
 import org.fiume.sketch.shared.app.ServiceStatus
 import org.fiume.sketch.shared.app.ServiceStatus.Dependency.*
-import org.fiume.sketch.shared.app.ServiceStatus.Status
 import org.fiume.sketch.shared.app.ServiceStatus.json.given
 import org.fiume.sketch.shared.app.algebras.{HealthCheck, Versions}
 import org.fiume.sketch.shared.app.algebras.HealthCheck.*
@@ -36,6 +35,6 @@ class HealthStatusRoutes[F[_]: Async](
         for
           version <- versions.currentVersion
           health <- dependencyChecker.check()
-          resp <- Ok(ServiceStatus(version, Status.Ok, List(health)))
+          resp <- Ok(ServiceStatus.make(version, List(health)))
         yield resp
     }

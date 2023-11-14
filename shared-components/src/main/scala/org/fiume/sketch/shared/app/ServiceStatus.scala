@@ -1,13 +1,21 @@
 package org.fiume.sketch.shared.app
 
+import cats.Eq
 import cats.implicits.*
-import org.fiume.sketch.shared.app.ServiceStatus.*
+import org.fiume.sketch.shared.app.ServiceStatus.{DependencyStatus, Status}
 import org.fiume.sketch.shared.app.algebras.Versions.Version
 import org.fiume.sketch.shared.typeclasses.{FromString, SemanticString}
 
-case class ServiceStatus(version: Version, status: Status, dependencies: List[DependencyStatus[?]])
+sealed abstract case class ServiceStatus(version: Version, status: Status, dependencies: List[DependencyStatus[?]])
 
 object ServiceStatus:
+  def make(version: Version, dependencies: List[DependencyStatus[?]]): ServiceStatus =
+    val overallStatus: Status =
+      dependencies.foldRight(Status.Ok) { (dependency, acc) =>
+        if (acc === Status.Ok) && (dependency.status === Status.Ok) then Status.Ok else Status.Degraded
+      }
+    new ServiceStatus(version, overallStatus, dependencies) {}
+
   enum Status:
     case Ok
     case Degraded
@@ -16,10 +24,16 @@ object ServiceStatus:
     given SemanticString[Status] = new SemanticString[Status]:
       override def asString(value: Status): String = value.toString() // yolo
 
+    given Eq[Status] = Eq.fromUniversalEquals
+
   case class DependencyStatus[T <: Dependency](dependency: T, status: Status)
 
-  trait Dependency:
+  object DependencyStatus:
+    given Eq[DependencyStatus[?]] = Eq.fromUniversalEquals
+
+  sealed trait Dependency:
     def name: String
+    override def toString(): String = name
 
   object Dependency:
     trait Database extends Dependency:
@@ -31,10 +45,10 @@ object ServiceStatus:
     val profile: Profile = new Profile {}
 
     given [T <: Dependency]: SemanticString[T] = new SemanticString[T]:
-      override def asString(value: T): String = value.name
+      override def asString(value: T): String = value.name // yolo
 
     given FromString[String, Dependency] = new FromString[String, Dependency]:
-      override def fromString(value: String) = value match
+      override def fromString(value: String) = value match // yolo
         case "database" => database.asRight[String]
         case "profile"  => profile.asRight[String]
         case _          => s"unknown Dependency $value".asLeft[Dependency]
@@ -97,4 +111,4 @@ object ServiceStatus:
           build <- c.downField("build").as[Build]
           commit <- c.downField("commit").as[Commit]
           dependencies <- c.downField("dependencies").as[List[DependencyStatus[?]]]
-        yield ServiceStatus(Version(env, build, commit), status, dependencies)
+        yield ServiceStatus.make(Version(env, build, commit), dependencies)

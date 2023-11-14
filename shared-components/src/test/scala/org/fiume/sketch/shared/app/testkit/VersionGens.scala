@@ -1,13 +1,12 @@
-package org.fiume.sketch.testkit
+package org.fiume.sketch.shared.app.testkit
 
 import org.fiume.sketch.shared.app.algebras.Versions.*
 import org.scalacheck.{Arbitrary, Gen}
 
-object SketchGens:
-
+object VersionGens:
   given Arbitrary[Version] = Arbitrary(versions)
   def versions: Gen[Version] =
-    def envs: Gen[Environment] = Gen.oneOf(Environment("Dev"), Environment("Prd"))
+    def envs: Gen[Environment] = Gen.oneOf(Environment("dev"), Environment("prd"))
     def builds = Gen
       .frequency(
         1 -> "snapshot",

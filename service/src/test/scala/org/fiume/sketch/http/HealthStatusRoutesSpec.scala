@@ -11,14 +11,14 @@ import org.fiume.sketch.shared.app.ServiceStatus.Dependency.*
 import org.fiume.sketch.shared.app.ServiceStatus.json.given
 import org.fiume.sketch.shared.app.algebras.{HealthCheck, Versions}
 import org.fiume.sketch.shared.app.algebras.Versions.Version
+import org.fiume.sketch.shared.app.testkit.VersionGens.given
 import org.fiume.sketch.shared.testkit.EitherSyntax.*
 import org.fiume.sketch.shared.testkit.Http4sTestingRoutesDsl
-import org.fiume.sketch.testkit.SketchGens.given
 import org.http4s.Method.*
 import org.http4s.Status
 import org.http4s.client.dsl.io.*
 import org.http4s.implicits.*
-import org.scalacheck.{Arbitrary, Gen, ShrinkLowPriority}
+import org.scalacheck.ShrinkLowPriority
 import org.scalacheck.effect.PropF.forAllF
 
 import scala.language.reflectiveCalls
@@ -49,8 +49,10 @@ class HealthStatusRoutesSpec
     }
   }
 
+  // TODO Much improve the tests below
+
   test("return healthy status when dependencies are available") {
-    forAllF { (version: Version, healthy: DependencyStatus[Dependency]) =>
+    forAllF { (version: Version) =>
       val healthyDatabase: DependencyStatus[Database] = DependencyStatus(database, ServiceStatus.Status.Ok)
       for
         healthStatusRoutes <- makeHealthStatusRoutes(makeVersions(returning = version), makeHealthCheck(healthyDatabase))
@@ -60,9 +62,7 @@ class HealthStatusRoutesSpec
           .expectJsonResponseWith(Status.Ok)
 
         _ <- IO {
-          assertEquals(result.as[ServiceStatus].rightValue,
-                       ServiceStatus(version, ServiceStatus.Status.Ok, List(healthyDatabase))
-          )
+          assertEquals(result.as[ServiceStatus].rightValue, ServiceStatus.make(version, List(healthyDatabase)))
         }
       yield ()
     }
@@ -79,21 +79,11 @@ class HealthStatusRoutesSpec
           .expectJsonResponseWith(Status.Ok, debugJsonResponse = true)
 
         _ <- IO {
-          assertEquals(result.as[ServiceStatus].rightValue, ServiceStatus(version, ServiceStatus.Status.Ok, List(faultyDatabase)))
+          assertEquals(result.as[ServiceStatus].rightValue, ServiceStatus.make(version, List(faultyDatabase)))
         }
       yield ()
     }
   }
-
-// TODO Move these
-def dependencies: Gen[Dependency] = Gen.oneOf(database, profile)
-def bunchOfStatus: Gen[ServiceStatus.Status] = Gen.oneOf(ServiceStatus.Status.Ok, ServiceStatus.Status.Degraded)
-given Arbitrary[DependencyStatus[Dependency]] = Arbitrary(dependenciesStatus)
-def dependenciesStatus: Gen[DependencyStatus[Dependency]] =
-  for
-    dependency <- dependencies
-    status <- bunchOfStatus
-  yield DependencyStatus(dependency, status)
 
 trait HealthStatusRoutesSpecContext:
   def makeHealthStatusRoutes(versions: Versions[IO], healthCheck: HealthCheck.DependencyHealth[IO, Database]) =
