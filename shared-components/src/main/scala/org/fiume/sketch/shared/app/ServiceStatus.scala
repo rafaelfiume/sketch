@@ -28,9 +28,6 @@ object ServiceStatus:
 
   case class DependencyStatus[T <: Dependency](dependency: T, status: Status)
 
-  object DependencyStatus:
-    given Eq[DependencyStatus[?]] = Eq.fromUniversalEquals
-
   sealed trait Dependency:
     def name: String
     override def toString(): String = name
@@ -99,9 +96,6 @@ object ServiceStatus:
           "commit" -> service.version.commit.asJson,
           "dependencies" -> service.dependencies.asJson
         )
-
-    extension [T <: Dependency](dependencies: List[DependencyStatus[T]])
-      def toMap: Map[String, String] = dependencies.map(d => d.dependency.asString -> d.status.asString).toMap
 
     given Decoder[ServiceStatus] = new Decoder[ServiceStatus]:
       override def apply(c: HCursor): Result[ServiceStatus] =

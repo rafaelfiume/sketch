@@ -19,7 +19,7 @@ class ServiceStatusSpec extends ScalaCheckSuite with ShrinkLowPriority:
     }
   }
 
-  property("establishes service good health".only) {
+  property("establishes service poor health") {
     given Arbitrary[List[DependencyStatus[?]]] = Arbitrary(unhealthyDependencies)
     forAll { (version: Version, unhealthyDependencies: List[DependencyStatus[?]]) =>
       ServiceStatus.make(version, unhealthyDependencies).status === Status.Degraded

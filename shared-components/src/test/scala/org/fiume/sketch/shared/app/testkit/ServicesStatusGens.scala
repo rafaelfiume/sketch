@@ -1,6 +1,5 @@
 package org.fiume.sketch.shared.app.testkit
 
-import cats.implicits.*
 import org.fiume.sketch.shared.app.ServiceStatus
 import org.fiume.sketch.shared.app.ServiceStatus.{Dependency, DependencyStatus, Status}
 import org.fiume.sketch.shared.app.ServiceStatus.Dependency.*
@@ -18,10 +17,10 @@ object ServicesStatusGens:
   def unhealthyDependencies: Gen[List[DependencyStatus[?]]] =
     for
       allDependencies <- healthyDependencies
-      oneAboutToBeDown <- Gen.oneOf(allDependencies)
-      degraded = oneAboutToBeDown.copy(status = Status.Degraded)
+      someAboutToGoDown <- Gen.atLeastOne(allDependencies).map(_.toList)
+      degraded = someAboutToGoDown.map(_.copy(status = Status.Degraded))
     yield
-      val depds = degraded +: allDependencies.filterNot(_ === oneAboutToBeDown)
+      val depds = degraded ++ allDependencies.diff(someAboutToGoDown)
       // Random is not ideal because it is non-deterministic:
       // Running a property-based test with the same seed might result in different inputs
       Random.shuffle(depds)
