@@ -1,37 +1,15 @@
 package org.fiume.sketch.shared.app.algebras
 
-import cats.data.NonEmptyList
-import cats.implicits.*
-import org.fiume.sketch.shared.app.algebras.HealthCheck.ServiceHealth
-import org.fiume.sketch.shared.app.algebras.HealthCheck.ServiceHealth.Infra
-import org.fiume.sketch.shared.typeclasses.SemanticString
+import org.fiume.sketch.shared.app.ServiceStatus
+import org.fiume.sketch.shared.app.ServiceStatus.{Dependency, DependencyStatus}
 
-/*
- * Responsible for checking the overall health of a resource a services relies on.
- */
 trait HealthCheck[F[_]]:
-  def check: F[ServiceHealth]
+  def check: F[ServiceStatus]
 
 object HealthCheck:
+
   /*
-   * We could have the algebra returning `IoR` instead of `Left`.
-   * It would give us a more detailed information in case of faulty infrastructure at a cost,
-   * noticibly the lack of circe codec implementation for `IoR`.
+   * Checks the overall health of a resource a services relies on.
    */
-  type ServiceHealth = Either[NonEmptyList[Infra], List[Infra]]
-
-  object ServiceHealth:
-    def healthy(infra: Infra): ServiceHealth = healthy(NonEmptyList.one(infra))
-    def healthy(infras: NonEmptyList[Infra]): ServiceHealth = infras.toList.asRight[NonEmptyList[Infra]]
-
-    def faulty(infra: Infra): ServiceHealth = faulty(NonEmptyList.one(infra))
-    def faulty(infras: NonEmptyList[Infra]): ServiceHealth = infras.asLeft[List[Infra]]
-
-    def noDependencies(): ServiceHealth = List().asRight[NonEmptyList[Infra]]
-
-    enum Infra:
-      case Database
-
-    object Infra:
-      given SemanticString[Infra] = new SemanticString[Infra]:
-        override def asString(value: Infra): String = value.toString()
+  trait DependencyHealth[F[_], T <: Dependency]:
+    def check(): F[DependencyStatus[T]]

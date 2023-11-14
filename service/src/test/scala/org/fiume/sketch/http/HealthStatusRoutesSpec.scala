@@ -1,17 +1,16 @@
 package org.fiume.sketch.http
 
 import cats.Applicative
-import cats.data.NonEmptyList
 import cats.effect.IO
 import cats.effect.unsafe.IORuntime
 import cats.implicits.*
 import munit.{CatsEffectSuite, ScalaCheckEffectSuite}
+import org.fiume.sketch.shared.app.ServiceStatus
+import org.fiume.sketch.shared.app.ServiceStatus.{Dependency, DependencyStatus, *}
+import org.fiume.sketch.shared.app.ServiceStatus.Dependency.*
+import org.fiume.sketch.shared.app.ServiceStatus.json.given
 import org.fiume.sketch.shared.app.algebras.{HealthCheck, Versions}
-import org.fiume.sketch.shared.app.algebras.HealthCheck.ServiceHealth
-import org.fiume.sketch.shared.app.algebras.HealthCheck.ServiceHealth.Infra
 import org.fiume.sketch.shared.app.algebras.Versions.Version
-import org.fiume.sketch.shared.app.troubleshooting.ServiceStatus
-import org.fiume.sketch.shared.app.troubleshooting.http.json.ServiceStatusCodecs.given
 import org.fiume.sketch.shared.testkit.EitherSyntax.*
 import org.fiume.sketch.shared.testkit.Http4sTestingRoutesDsl
 import org.fiume.sketch.testkit.SketchGens.given
@@ -38,53 +37,66 @@ class HealthStatusRoutesSpec
   test("ping returns pong") {
     forAllF { (version: Version) =>
       for
-        healthStatusRoutes <- makeHealthStatusRoutes(makeVersions(returning = version), makeHealthCheck())
+        healthStatusRoutes <- makeHealthStatusRoutes(makeVersions(returning = version), makeHealthCheck[IO]())
 
-        jsonResponse <- send(GET(uri"/ping"))
+        result <- send(GET(uri"/ping"))
           .to(healthStatusRoutes.router())
           .expectJsonResponseWith(Status.Ok)
         _ <- IO {
-          assertEquals(jsonResponse.as[String].rightValue, "pong")
+          assertEquals(result.as[String].rightValue, "pong")
         }
       yield ()
     }
   }
 
   test("return healthy status when dependencies are available") {
-    given Arbitrary[ServiceHealth] = Arbitrary(Gen.const(Infra.Database).map(ServiceHealth.healthy(_)))
-    forAllF { (version: Version, healthy: ServiceHealth) =>
+    forAllF { (version: Version, healthy: DependencyStatus[Dependency]) =>
+      val healthyDatabase: DependencyStatus[Database] = DependencyStatus(database, ServiceStatus.Status.Ok)
       for
-        healthStatusRoutes <- makeHealthStatusRoutes(makeVersions(returning = version), makeHealthCheck(healthy))
+        healthStatusRoutes <- makeHealthStatusRoutes(makeVersions(returning = version), makeHealthCheck(healthyDatabase))
 
-        jsonResponse <- send(GET(uri"/status"))
+        result <- send(GET(uri"/status"))
           .to(healthStatusRoutes.router())
           .expectJsonResponseWith(Status.Ok)
+
         _ <- IO {
-          assertEquals(jsonResponse.as[ServiceStatus].rightValue, ServiceStatus(version, healthy))
+          assertEquals(result.as[ServiceStatus].rightValue,
+                       ServiceStatus(version, ServiceStatus.Status.Ok, List(healthyDatabase))
+          )
         }
       yield ()
     }
   }
 
   test("return faulty status when dependencies are unavailable") {
-    given Arbitrary[ServiceHealth] =
-      Arbitrary(Gen.const(Infra.Database).map { infra => ServiceHealth.faulty(NonEmptyList.one(infra)) })
-    forAllF { (version: Version, faulty: ServiceHealth) =>
+    forAllF { (version: Version) =>
+      val faultyDatabase: DependencyStatus[Database] = DependencyStatus(database, ServiceStatus.Status.Degraded)
       for
-        healthStatusRoutes <- makeHealthStatusRoutes(makeVersions(returning = version), makeHealthCheck(faulty))
+        healthStatusRoutes <- makeHealthStatusRoutes(makeVersions(returning = version), makeHealthCheck(faultyDatabase))
 
-        jsonResponse <- send(GET(uri"/status"))
+        result <- send(GET(uri"/status"))
           .to(healthStatusRoutes.router())
-          .expectJsonResponseWith(Status.Ok)
+          .expectJsonResponseWith(Status.Ok, debugJsonResponse = true)
+
         _ <- IO {
-          assertEquals(jsonResponse.as[ServiceStatus].rightValue, ServiceStatus(version, faulty))
+          assertEquals(result.as[ServiceStatus].rightValue, ServiceStatus(version, ServiceStatus.Status.Ok, List(faultyDatabase)))
         }
       yield ()
     }
   }
 
+// TODO Move these
+def dependencies: Gen[Dependency] = Gen.oneOf(database, profile)
+def bunchOfStatus: Gen[ServiceStatus.Status] = Gen.oneOf(ServiceStatus.Status.Ok, ServiceStatus.Status.Degraded)
+given Arbitrary[DependencyStatus[Dependency]] = Arbitrary(dependenciesStatus)
+def dependenciesStatus: Gen[DependencyStatus[Dependency]] =
+  for
+    dependency <- dependencies
+    status <- bunchOfStatus
+  yield DependencyStatus(dependency, status)
+
 trait HealthStatusRoutesSpecContext:
-  def makeHealthStatusRoutes(versions: Versions[IO], healthCheck: HealthCheck[IO]) =
+  def makeHealthStatusRoutes(versions: Versions[IO], healthCheck: HealthCheck.DependencyHealth[IO, Database]) =
     IO.delay { new HealthStatusRoutes[IO](IORuntime.global.compute, versions, healthCheck) }
 
 trait VersionsContext:
@@ -92,7 +104,11 @@ trait VersionsContext:
     override def currentVersion: F[Version] = returning.pure[F]
 
 trait HealthCheckContext:
-  def makeHealthCheck[F[_]: Applicative](health: ServiceHealth): HealthCheck[F] = new HealthCheck[F]:
-    override def check: F[ServiceHealth] = health.pure[F]
+  def makeHealthCheck[F[_]: Applicative, T <: Dependency](dependency: DependencyStatus[T]): HealthCheck.DependencyHealth[F, T] =
+    new HealthCheck.DependencyHealth[F, T]:
+      override def check(): F[DependencyStatus[T]] = dependency.pure[F]
 
-  def makeHealthCheck[F[_]: Applicative](): HealthCheck[F] = makeHealthCheck(ServiceHealth.faulty(Infra.Database))
+  // TODO this is very unclear - improve it
+  def makeHealthCheck[F[_]: Applicative](): HealthCheck.DependencyHealth[F, Database] = makeHealthCheck[F, Database](
+    DependencyStatus(database, ServiceStatus.Status.Degraded)
+  )
