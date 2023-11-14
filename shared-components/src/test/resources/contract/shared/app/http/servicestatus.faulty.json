@@ -1,10 +1,10 @@
 {
-  "env" : "Dev",
+  "env" : "dev",
   "build" : "272",
   "commit" : "68e28f9ab5274d2be986304de27f9d63c2ec2187",
-  "health" : {
-    "Fail" : [
-      "Database"
-    ]
-  }
+  "status" : "Degraded",
+  "dependencies" : [
+    { "database" : "Degraded" },
+    { "profile" : "Ok" }
+  ]
 }

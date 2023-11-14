@@ -69,7 +69,7 @@ lazy val service =
    project.in(file("service"))
      .dependsOn(auth0)
      .dependsOn(sharedAuth0 % "compile->compile;test->test")
-     .dependsOn(sharedComponents)
+     .dependsOn(sharedComponents % "compile->compile;test->test")
      .dependsOn(sharedDomain % "compile->compile;test->test")
      .dependsOn(sharedTestComponents % Test)
      .dependsOn(storage)

@@ -4,7 +4,9 @@ import cats.effect.{Async, Resource, Sync}
 import doobie.ConnectionIO
 import org.fiume.sketch.app.SketchVersions.VersionFile
 import org.fiume.sketch.auth0.Authenticator
+import org.fiume.sketch.shared.app.ServiceStatus.Dependency.*
 import org.fiume.sketch.shared.app.algebras.{HealthCheck, Versions}
+import org.fiume.sketch.shared.app.algebras.HealthCheck.*
 import org.fiume.sketch.shared.domain.documents.algebras.DocumentsStore
 import org.fiume.sketch.storage.auth0.postgres.PostgresUsersStore
 import org.fiume.sketch.storage.documents.postgres.PostgresDocumentsStore
@@ -17,7 +19,7 @@ import scala.concurrent.duration.*
 
 trait Resources[F[_]]:
   val customWorkerThreadPool: ExecutionContext
-  val healthCheck: HealthCheck[F]
+  val healthCheck: HealthCheck.DependencyHealth[F, Database]
   val versions: Versions[F]
   val authenticator: Authenticator[F]
   val documentsStore: DocumentsStore[F, ConnectionIO]
@@ -40,7 +42,7 @@ object Resources:
       documentsStore0 <- PostgresDocumentsStore.make[F](transactor)
     yield new Resources[F]:
       override val customWorkerThreadPool: ExecutionContext = customWorkerThreadPool0
-      override val healthCheck: HealthCheck[F] = healthCheck0
+      override val healthCheck: HealthCheck.DependencyHealth[F, Database] = healthCheck0
       override val versions: Versions[F] = versions0
       override val authenticator: Authenticator[F] = authenticator0
       override val documentsStore: DocumentsStore[F, ConnectionIO] = documentsStore0

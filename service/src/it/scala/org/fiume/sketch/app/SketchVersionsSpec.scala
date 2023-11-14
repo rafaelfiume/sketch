@@ -3,7 +3,7 @@ package org.fiume.sketch.app
 import cats.effect.IO
 import munit.CatsEffectSuite
 import org.fiume.sketch.app.SketchVersions.VersionFile
-import org.fiume.sketch.shared.app.algebras.Versions.{Environment, Version}
+import org.fiume.sketch.shared.app.algebras.Versions.*
 
 class SketchVersionsSpec extends CatsEffectSuite:
 
@@ -13,7 +13,7 @@ class SketchVersionsSpec extends CatsEffectSuite:
       underTest.currentVersion.map { result =>
         assertEquals(
           result,
-          Version(env, build = "272", commit = "546fb2cfc03e4c4554c2e4de61c89080091123e8")
+          Version(env, build = Build("272"), commit = Commit("546fb2cfc03e4c4554c2e4de61c89080091123e8"))
         )
       }
     }

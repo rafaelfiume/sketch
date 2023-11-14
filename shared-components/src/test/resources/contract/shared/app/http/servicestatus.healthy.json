@@ -1,10 +1,10 @@
 {
-  "env" : "Prd",
+  "env" : "prd",
   "build" : "snapshot",
   "commit" : "68e28f9ab5274d2be986304de27f9d63c2ec2187",
-  "health" : {
-    "Ok" : [
-      "Database"
-    ]
-  }
+  "status" : "Ok",
+  "dependencies" : [
+    { "database" : "Ok" },
+    { "profile" : "Ok" }
+  ]
 }
