@@ -9,7 +9,7 @@ import org.scalacheck.ShrinkLowPriority
 
 class PostgresHealthCheckSpec extends CatsEffectSuite with DockerPostgresSuite with ShrinkLowPriority:
 
-  test("db is healthy") {
+  test("check if database is healthy") {
     PostgresHealthCheck.make[IO](transactor()).use { store =>
       for
         result <- store.check()
