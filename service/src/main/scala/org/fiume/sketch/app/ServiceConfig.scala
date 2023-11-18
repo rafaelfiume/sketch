@@ -3,8 +3,9 @@ package org.fiume.sketch.app
 import cats.effect.Async
 import cats.implicits.*
 import ciris.*
-import com.comcast.ip4s.Port
+import com.comcast.ip4s.{Host, Port}
 import org.fiume.sketch.auth0.KeyStringifier
+import org.fiume.sketch.profile.ProfileClientConfig
 import org.fiume.sketch.shared.app.algebras.Versions.Environment
 import org.fiume.sketch.storage.DatabaseConfig
 import org.http4s.headers.Origin
@@ -15,7 +16,8 @@ case class ServiceConfig(
   env: Environment,
   endpoints: EndpointsConfig,
   keyPair: EcKeyPairConfig,
-  db: DatabaseConfig
+  db: DatabaseConfig,
+  profileClient: ProfileClientConfig
 )
 
 case class EndpointsConfig(
@@ -43,6 +45,8 @@ object ServiceConfig:
       privateKey <- env("PRIVATE_KEY").as[ECPrivateKey].redacted
       publicKey <- env("PUBLIC_KEY").as[ECPublicKey].redacted
       databaseConfig <- DatabaseConfig.envs[F](dbPoolThreads = 10)
+      profileHost <- env("PROFILE_SERVICE_HOST").as[Host]
+      profilePort <- env("PROFILE_SERVICE_PORT").as[Port]
     yield ServiceConfig(
       env = environment,
       endpoints = EndpointsConfig(
@@ -52,11 +56,13 @@ object ServiceConfig:
         documents = DocumentsConfig(documentMbSizeLimit)
       ),
       keyPair = EcKeyPairConfig(privateKey, publicKey),
-      db = databaseConfig
+      db = databaseConfig,
+      profileClient = ProfileClientConfig(profileHost, profilePort)
     )).load[F]
 
   given ConfigDecoder[String, Environment] = ConfigDecoder[String].map(Environment.apply)
 
+  given ConfigDecoder[String, Host] = ConfigDecoder[String].mapOption("Host")(Host.fromString)
   given ConfigDecoder[String, Port] = ConfigDecoder[String].mapOption("Port")(Port.fromString)
 
   given ConfigDecoder[String, Set[Origin]] = ConfigDecoder[String]

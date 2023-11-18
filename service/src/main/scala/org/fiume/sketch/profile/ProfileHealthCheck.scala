@@ -2,9 +2,7 @@ package org.fiume.sketch.profile
 
 import cats.effect.{Async, Resource, Sync}
 import cats.implicits.*
-import com.comcast.ip4s.{Host, Port}
 import fs2.io.net.Network
-import org.fiume.sketch.profile.ProfileHealthCheck.ProfileServiceConfig
 import org.fiume.sketch.shared.app.ServiceStatus
 import org.fiume.sketch.shared.app.ServiceStatus.{DependencyStatus, Status}
 import org.fiume.sketch.shared.app.ServiceStatus.Dependency.*
@@ -17,14 +15,12 @@ import org.typelevel.log4cats.LoggerFactory
 import org.typelevel.log4cats.slf4j.Slf4jFactory
 
 object ProfileHealthCheck:
-  case class ProfileServiceConfig(httpHost: Host, port: Port)
-
   given [F[_]: Sync]: LoggerFactory[F] = Slf4jFactory.create[F]
 
-  def make[F[_]: Async: Network](config: ProfileServiceConfig): Resource[F, ProfileHealthCheck[F]] =
+  def make[F[_]: Async: Network](config: ProfileClientConfig): Resource[F, ProfileHealthCheck[F]] =
     EmberClientBuilder.default[F].build.map(new ProfileHealthCheck(config, _))
 
-private class ProfileHealthCheck[F[_]: Async] private (config: ProfileServiceConfig, client: Client[F])
+private class ProfileHealthCheck[F[_]: Async] private (config: ProfileClientConfig, client: Client[F])
     extends HealthCheck.DependencyHealth[F, Profile]:
 
   override def check(): F[DependencyStatus[Profile]] =

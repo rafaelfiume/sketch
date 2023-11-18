@@ -5,7 +5,6 @@ import cats.implicits.*
 import com.comcast.ip4s.{port, *}
 import munit.Assertions.*
 import munit.CatsEffectSuite
-import org.fiume.sketch.profile.ProfileHealthCheck.ProfileServiceConfig
 import org.fiume.sketch.shared.app.ServiceStatus.{DependencyStatus, Status}
 import org.fiume.sketch.shared.app.ServiceStatus.Dependency.*
 import org.fiume.sketch.shared.testkit.FileContentContext
@@ -22,9 +21,9 @@ class ProfileHealthCheckSpec extends CatsEffectSuite with ProfileHealthCheckSpec
     ("healthy", healthy, Status.Ok),
     ("faulty", faulty, Status.Degraded)
   ).foreach { (label, statusResponse, expectedStatus) =>
-    test(s"check if rustic (Profile) is $label") {
+    test(s"check if rustic (profile) is $label") {
       profileStatusIs(statusResponse)
-        .flatMap { port => ProfileHealthCheck.make[IO](config = ProfileServiceConfig(localhost, port)) }
+        .flatMap { port => ProfileHealthCheck.make[IO](config = ProfileClientConfig(localhost, port)) }
         .use { healthCheck =>
           for
             result <- healthCheck.check()
@@ -34,9 +33,9 @@ class ProfileHealthCheckSpec extends CatsEffectSuite with ProfileHealthCheckSpec
     }
   }
 
-  test("check if rustic (Profile) is behaving"):
+  test("check if rustic (profile) is behaving"):
     profileStatusInWeirdState()
-      .flatMap { port => ProfileHealthCheck.make[IO](config = ProfileServiceConfig(localhost, port)) }
+      .flatMap { port => ProfileHealthCheck.make[IO](config = ProfileClientConfig(localhost, port)) }
       .use { healthCheck =>
         for
           result <- healthCheck.check()
@@ -44,9 +43,9 @@ class ProfileHealthCheckSpec extends CatsEffectSuite with ProfileHealthCheckSpec
         yield ()
       }
 
-  test("check if rustic (Profile) is down"):
+  test("check if rustic (profile) is down"):
     ProfileHealthCheck
-      .make[IO](config = ProfileServiceConfig(localhost, port"3030"))
+      .make[IO](config = ProfileClientConfig(localhost, port"3030"))
       .use { healthCheck =>
         for
           result <- healthCheck.check()
@@ -55,10 +54,10 @@ class ProfileHealthCheckSpec extends CatsEffectSuite with ProfileHealthCheckSpec
       }
 
 trait ProfileHealthCheckSpecContext extends FileContentContext with HttpServiceContext:
-  val localhost = Host.fromString("localhost").getOrElse(throw new AssertionError("localhost is valid host"))
-
   val healthy = "contract/shared/app/http/servicestatus.healthy.json"
   val faulty = "contract/shared/app/http/servicestatus.faulty.json"
+
+  val localhost = Host.fromString("localhost").getOrElse(throw new AssertionError("localhost is valid host"))
 
   def profileStatusIs(pathToResponsePayload: String): Resource[IO, Port] =
     for
