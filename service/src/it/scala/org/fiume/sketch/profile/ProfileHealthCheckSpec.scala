@@ -18,25 +18,21 @@ import org.scalacheck.{Gen, ShrinkLowPriority}
 
 class ProfileHealthCheckSpec extends CatsEffectSuite with ProfileHealthCheckSpecContext with ShrinkLowPriority:
 
-  test("check if rustic (Profile) is healthy"):
-    profileStatusIs(healthy)
-      .flatMap { port => ProfileHealthCheck.make[IO](config = ProfileServiceConfig(localhost, port)) }
-      .use { healthCheck =>
-        for
-          result <- healthCheck.check()
-          _ <- IO { assertEquals(result, DependencyStatus(profile, Status.Ok)) }
-        yield ()
-      }
-
-  test("check if rustic (Profile) is faulty"):
-    profileStatusIs(faulty)
-      .flatMap { port => ProfileHealthCheck.make[IO](config = ProfileServiceConfig(localhost, port)) }
-      .use { healthCheck =>
-        for
-          result <- healthCheck.check()
-          _ <- IO { assertEquals(result, DependencyStatus(profile, Status.Degraded)) }
-        yield ()
-      }
+  List( // table test
+    ("healthy", healthy, Status.Ok),
+    ("faulty", faulty, Status.Degraded)
+  ).foreach { (label, statusResponse, expectedStatus) =>
+    test(s"check if rustic (Profile) is $label") {
+      profileStatusIs(statusResponse)
+        .flatMap { port => ProfileHealthCheck.make[IO](config = ProfileServiceConfig(localhost, port)) }
+        .use { healthCheck =>
+          for
+            result <- healthCheck.check()
+            _ <- IO { assertEquals(result, DependencyStatus(profile, expectedStatus)) }
+          yield ()
+        }
+    }
+  }
 
   test("check if rustic (Profile) is behaving"):
     profileStatusInWeirdState()
