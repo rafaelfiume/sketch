@@ -13,3 +13,6 @@ export DB_HOST=localhost
 export DB_PORT=5432
 export DB_NAME=sketch
 export DB_USER=sketch.dev #same db as 'dev'
+
+export PROFILE_SERVICE_HOST="localhost"
+export PROFILE_SERVICE_PORT=3030

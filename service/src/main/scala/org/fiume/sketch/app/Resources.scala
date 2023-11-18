@@ -2,8 +2,10 @@ package org.fiume.sketch.app
 
 import cats.effect.{Async, Resource, Sync}
 import doobie.ConnectionIO
+import fs2.io.net.Network
 import org.fiume.sketch.app.SketchVersions.VersionFile
 import org.fiume.sketch.auth0.Authenticator
+import org.fiume.sketch.profile.ProfileHealthCheck
 import org.fiume.sketch.shared.app.ServiceStatus.Dependency.*
 import org.fiume.sketch.shared.app.algebras.{HealthCheck, Versions}
 import org.fiume.sketch.shared.app.algebras.HealthCheck.*
@@ -19,17 +21,19 @@ import scala.concurrent.duration.*
 
 trait Resources[F[_]]:
   val customWorkerThreadPool: ExecutionContext
-  val healthCheck: HealthCheck.DependencyHealth[F, Database]
+  val dbHealthCheck: HealthCheck.DependencyHealth[F, Database]
+  val profileHealthCheck: HealthCheck.DependencyHealth[F, Profile]
   val versions: Versions[F]
   val authenticator: Authenticator[F]
   val documentsStore: DocumentsStore[F, ConnectionIO]
 
 object Resources:
-  def make[F[_]: Async](config: ServiceConfig): Resource[F, Resources[F]] =
+  def make[F[_]: Async: Network](config: ServiceConfig): Resource[F, Resources[F]] =
     for
       customWorkerThreadPool0 <- newCustomWorkerThreadPool()
       transactor <- DbTransactor.make(config.db)
-      healthCheck0 <- PostgresHealthCheck.make[F](transactor)
+      dbHealthCheck0 <- PostgresHealthCheck.make[F](transactor)
+      profileHealthCheck0 <- ProfileHealthCheck.make[F](config.profileClient)
       versions0 <- SketchVersions.make[F](config.env, VersionFile("sketch.version"))
       usersStore0 <- PostgresUsersStore.make[F](transactor)
       authenticator0 <- Resource.liftK {
@@ -42,7 +46,8 @@ object Resources:
       documentsStore0 <- PostgresDocumentsStore.make[F](transactor)
     yield new Resources[F]:
       override val customWorkerThreadPool: ExecutionContext = customWorkerThreadPool0
-      override val healthCheck: HealthCheck.DependencyHealth[F, Database] = healthCheck0
+      override val dbHealthCheck: HealthCheck.DependencyHealth[F, Database] = dbHealthCheck0
+      override val profileHealthCheck: HealthCheck.DependencyHealth[F, Profile] = profileHealthCheck0
       override val versions: Versions[F] = versions0
       override val authenticator: Authenticator[F] = authenticator0
       override val documentsStore: DocumentsStore[F, ConnectionIO] = documentsStore0

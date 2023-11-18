@@ -2,7 +2,7 @@ package org.fiume.sketch.shared.testkit
 
 import cats.effect.IO
 import io.circe.{Decoder, Encoder}
-import io.circe.parser.{decode, parse}
+import io.circe.parser.decode
 import io.circe.syntax.*
 import munit.Assertions.*
 import org.fiume.sketch.shared.testkit.EitherSyntax.*
@@ -25,8 +25,8 @@ trait ContractContext extends FileContentContext:
   def assertBijectiveRelationshipBetweenEncoderAndDecoder[A: Decoder: Encoder](
     sample: String
   ): IO[Unit] =
-    jsonFrom[IO](sample).map { raw =>
-      val original = parse(raw).rightValue
+    jsonFrom[IO](sample).map { original =>
       val instance = decode[A](original.noSpaces).rightValue
-      assertEquals(instance.asJson.spaces2SortKeys, original.spaces2SortKeys)
+      val roundtrip = instance.asJson
+      assertEquals(roundtrip.spaces2SortKeys, original.spaces2SortKeys)
     }.use_

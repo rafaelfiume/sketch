@@ -12,7 +12,7 @@ object ServiceStatus:
   def make(version: Version, dependencies: List[DependencyStatus[?]]): ServiceStatus =
     val overallStatus: Status =
       dependencies.foldRight(Status.Ok) { (dependency, acc) =>
-        if (acc === Status.Ok) && (dependency.status === Status.Ok) then Status.Ok else Status.Degraded
+        if acc === Status.Ok && dependency.status === Status.Ok then Status.Ok else Status.Degraded
       }
     new ServiceStatus(version, overallStatus, dependencies) {}
 
@@ -91,9 +91,9 @@ object ServiceStatus:
       override def apply(service: ServiceStatus): Json =
         Json.obj(
           "env" -> service.version.env.asJson,
-          "status" -> service.status.asJson,
           "build" -> service.version.build.asJson,
           "commit" -> service.version.commit.asJson,
+          "status" -> service.status.asJson,
           "dependencies" -> service.dependencies.asJson
         )
 
@@ -101,7 +101,6 @@ object ServiceStatus:
       override def apply(c: HCursor): Result[ServiceStatus] =
         for
           env <- c.downField("env").as[Environment]
-          status <- c.downField("status").as[Status]
           build <- c.downField("build").as[Build]
           commit <- c.downField("commit").as[Commit]
           dependencies <- c.downField("dependencies").as[List[DependencyStatus[?]]]

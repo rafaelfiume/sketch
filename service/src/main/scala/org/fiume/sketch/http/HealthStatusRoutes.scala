@@ -18,7 +18,8 @@ import scala.concurrent.ExecutionContext
 class HealthStatusRoutes[F[_]: Async](
   workerPool: ExecutionContext,
   versions: Versions[F],
-  dependencyChecker: HealthCheck.DependencyHealth[F, Database]
+  dbHealthCheck: HealthCheck.DependencyHealth[F, Database],
+  profileHealthCheck: HealthCheck.DependencyHealth[F, Profile]
 ) extends Http4sDsl[F]:
   private val prefix = "/"
 
@@ -34,7 +35,8 @@ class HealthStatusRoutes[F[_]: Async](
       case (GET | HEAD) -> Root / "status" =>
         for
           version <- versions.currentVersion
-          health <- dependencyChecker.check()
-          resp <- Ok(ServiceStatus.make(version, List(health)))
+          dbHealth <- dbHealthCheck.check()
+          profileHealth <- profileHealthCheck.check()
+          resp <- Ok(ServiceStatus.make(version, List(dbHealth, profileHealth)))
         yield resp
     }

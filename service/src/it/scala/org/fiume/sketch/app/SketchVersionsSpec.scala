@@ -7,7 +7,7 @@ import org.fiume.sketch.shared.app.algebras.Versions.*
 
 class SketchVersionsSpec extends CatsEffectSuite:
 
-  test("Current service version") {
+  test("Current service version"):
     val env = Environment("Test")
     SketchVersions.make[IO](env, VersionFile("service.version")).use { underTest =>
       underTest.currentVersion.map { result =>
@@ -17,4 +17,3 @@ class SketchVersionsSpec extends CatsEffectSuite:
         )
       }
     }
-  }

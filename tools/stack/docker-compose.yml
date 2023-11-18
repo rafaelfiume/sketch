@@ -25,6 +25,8 @@ services:
       - DB_NAME=${DB_NAME}
       - DB_USER=${DB_USER}
       - DB_PASS=${DB_PASS}
+      - PROFILE_SERVICE_HOST=${PROFILE_SERVICE_HOST}
+      - PROFILE_SERVICE_PORT=${PROFILE_SERVICE_PORT}
       - PRIVATE_KEY=${PRIVATE_KEY}
       - PUBLIC_KEY=${PUBLIC_KEY}
       - JAVA_OPTS=-Xmx2g -XX:+UseG1GC -Djava.rmi.server.hostname=localhost -Dcom.sun.management.jmxremote -Dcom.sun.management.jmxremote.port=9999 -Dcom.sun.management.jmxremote.rmi.port=9999 -Dcom.sun.management.jmxremote.ssl=false -Dcom.sun.management.jmxremote.authenticate=false
