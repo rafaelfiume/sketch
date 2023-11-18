@@ -25,7 +25,7 @@ private class ProfileHealthCheck[F[_]: Async] private (config: ProfileClientConf
 
   override def check(): F[DependencyStatus[Profile]] =
     client
-      .expect[ServiceStatus](s"http://${config.httpHost}:${config.port}/status")
+      .expect[ServiceStatus](config.httpProfileUri / "status")
       .attempt
       .map {
         case Right(s) => DependencyStatus[Profile](profile, s.status)

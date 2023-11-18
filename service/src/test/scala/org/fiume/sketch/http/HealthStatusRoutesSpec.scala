@@ -41,6 +41,7 @@ class HealthStatusRoutesSpec
       result <- send(GET(uri"/ping"))
         .to(routes.router())
         .expectJsonResponseWith(Status.Ok)
+
       _ <- IO {
         assertEquals(result.as[String].rightValue, "pong")
       }

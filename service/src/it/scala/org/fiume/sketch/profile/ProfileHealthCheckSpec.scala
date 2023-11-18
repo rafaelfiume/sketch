@@ -13,9 +13,9 @@ import org.http4s.*
 import org.http4s.circe.CirceEntityEncoder.*
 import org.http4s.dsl.io.*
 import org.http4s.server.Router
-import org.scalacheck.{Gen, ShrinkLowPriority}
+import org.scalacheck.Gen
 
-class ProfileHealthCheckSpec extends CatsEffectSuite with ProfileHealthCheckSpecContext with ShrinkLowPriority:
+class ProfileHealthCheckSpec extends CatsEffectSuite with ProfileHealthCheckSpecContext:
 
   List( // table test
     ("healthy", healthy, Status.Ok),

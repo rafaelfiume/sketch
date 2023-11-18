@@ -27,5 +27,6 @@ trait ContractContext extends FileContentContext:
   ): IO[Unit] =
     jsonFrom[IO](sample).map { original =>
       val instance = decode[A](original.noSpaces).rightValue
-      assertEquals(instance.asJson.spaces2SortKeys, original.spaces2SortKeys)
+      val roundtrip = instance.asJson
+      assertEquals(roundtrip.spaces2SortKeys, original.spaces2SortKeys)
     }.use_
