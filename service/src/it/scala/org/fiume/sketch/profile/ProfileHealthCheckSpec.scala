@@ -8,7 +8,7 @@ import org.fiume.sketch.profile.ProfileHealthCheck.ProfileServiceConfig
 import org.fiume.sketch.shared.app.ServiceStatus.{DependencyStatus, Status}
 import org.fiume.sketch.shared.app.ServiceStatus.Dependency.*
 import org.fiume.sketch.shared.testkit.FileContentContext
-import org.scalacheck.ShrinkLowPriority
+import org.scalacheck.{Gen, ShrinkLowPriority}
 
 class ProfileHealthCheckSpec extends CatsEffectSuite with ProfileHealthCheckSpecContext with ShrinkLowPriority:
 
@@ -24,6 +24,16 @@ class ProfileHealthCheckSpec extends CatsEffectSuite with ProfileHealthCheckSpec
 
   test("check if rustic (Profile) is faulty"):
     profileStatusIs(faulty)
+      .flatMap { port => ProfileHealthCheck.make[IO](config = ProfileServiceConfig(localhost, port)) }
+      .use { healthCheck =>
+        for
+          result <- healthCheck.check()
+          _ <- IO { assertEquals(result, DependencyStatus(profile, Status.Degraded)) }
+        yield ()
+      }
+
+  test("check if rustic (Profile) is behaving"):
+    profileStatusIsInWeirdState()
       .flatMap { port => ProfileHealthCheck.make[IO](config = ProfileServiceConfig(localhost, port)) }
       .use { healthCheck =>
         for
@@ -66,9 +76,23 @@ trait ProfileHealthCheckSpecContext extends FileContentContext:
       _ <- makeServer(port)(httpApp).void
     yield port
 
+  def profileStatusIsInWeirdState(): Resource[IO, Port] =
+    for
+      port <- Resource.eval(freePort())
+      httpApp <- weirdStatusRoute()
+      _ <- makeServer(port)(httpApp).void
+    yield port
+
   private def statusRoute(pathToResponsePayload: String): Resource[IO, HttpRoutes[IO]] =
     jsonFrom[IO](pathToResponsePayload, debug = false).map { serviceStatus =>
       val route = HttpRoutes.of[IO] { case GET -> Root / "status" => Ok(serviceStatus) }
+      Router("/" -> route)
+    }
+
+  private def weirdStatusRoute(): Resource[IO, HttpRoutes[IO]] =
+    def response: Gen[IO[Response[IO]]] = Gen.oneOf(InternalServerError(), BadRequest())
+    Resource.pure {
+      val route = HttpRoutes.of[IO] { case GET -> Root / "status" => response.sample.get }
       Router("/" -> route)
     }
 

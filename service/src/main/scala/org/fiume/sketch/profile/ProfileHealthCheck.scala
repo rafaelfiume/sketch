@@ -30,8 +30,8 @@ private class ProfileHealthCheck[F[_]: Async] private (config: ProfileServiceCon
   override def check(): F[DependencyStatus[Profile]] =
     client
       .expect[ServiceStatus](s"http://${config.httpHost}:${config.port}/status")
-      .map(s => DependencyStatus[Profile](profile, s.status))
-      .handleError { e =>
-        e match
-          case _: java.net.ConnectException => DependencyStatus[Profile](profile, Status.Degraded)
+      .attempt
+      .map {
+        case Right(s) => DependencyStatus[Profile](profile, s.status)
+        case Left(_)  => DependencyStatus[Profile](profile, Status.Degraded)
       }
