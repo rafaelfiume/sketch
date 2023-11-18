@@ -3,6 +3,7 @@ package org.fiume.sketch.profile
 import cats.effect.IO
 import munit.Assertions.*
 import munit.CatsEffectSuite
+import org.fiume.sketch.profile.ProfileHealthCheck.ProfileServiceConfig
 import org.fiume.sketch.shared.app.ServiceStatus.{DependencyStatus, Status}
 import org.fiume.sketch.shared.app.ServiceStatus.Dependency.*
 import org.fiume.sketch.shared.testkit.FileContentContext
@@ -12,20 +13,20 @@ class ProfileHealthCheckSpec extends CatsEffectSuite with ProfileHealthCheckSpec
 
   test("check if rustic (Profile) is healthy"):
     profileStatusIs(healthy)
-      .flatMap { _ => ProfileHealthCheck.make[IO]() }
-      .use { store =>
+      .flatMap { port => ProfileHealthCheck.make[IO](config = ProfileServiceConfig(localhost, port)) }
+      .use { healthCheck =>
         for
-          result <- store.check()
+          result <- healthCheck.check()
           _ <- IO { assertEquals(result, DependencyStatus(profile, Status.Ok)) }
         yield ()
       }
 
   test("check if rustic (Profile) is faulty"):
     profileStatusIs(faulty)
-      .flatMap { _ => ProfileHealthCheck.make[IO]() }
-      .use { store =>
+      .flatMap { port => ProfileHealthCheck.make[IO](config = ProfileServiceConfig(localhost, port)) }
+      .use { healthCheck =>
         for
-          result <- store.check()
+          result <- healthCheck.check()
           _ <- IO { assertEquals(result, DependencyStatus(profile, Status.Degraded)) }
         yield ()
       }
@@ -42,17 +43,20 @@ trait ProfileHealthCheckSpecContext extends FileContentContext:
   import org.http4s.server.Server
   import org.http4s.circe.CirceEntityEncoder.*
 
+  val localhost = Host.fromString("localhost").getOrElse(throw new AssertionError("localhost is valid host"))
+
   val healthy = "contract/shared/app/http/servicestatus.healthy.json"
   val faulty = "contract/shared/app/http/servicestatus.faulty.json"
 
-  def profileStatusIs(pathToResponsePayload: String): Resource[IO, Unit] =
+  def profileStatusIs(pathToResponsePayload: String): Resource[IO, Port] =
     for
+      port <- Resource.eval(freePort())
       httpApp <- statusRoute(pathToResponsePayload)
-      _ <- makeServer(port"3030")(httpApp).void
-    yield ()
+      _ <- makeServer(port)(httpApp).void
+    yield port
 
   private def statusRoute(pathToResponsePayload: String): Resource[IO, HttpRoutes[IO]] =
-    jsonFrom[IO](pathToResponsePayload, debug = true).map { serviceStatus =>
+    jsonFrom[IO](pathToResponsePayload, debug = false).map { serviceStatus =>
       val route = HttpRoutes.of[IO] { case GET -> Root / "status" => Ok(serviceStatus) }
       Router("/" -> route)
     }
@@ -65,3 +69,12 @@ trait ProfileHealthCheckSpecContext extends FileContentContext:
       .withPort(port)
       .withHttpApp(httpApp.orNotFound)
       .build
+
+  private def freePort(): IO[Port] =
+    Resource
+      .fromAutoCloseable(IO.delay { new java.net.ServerSocket(0) })
+      .use { socket =>
+        IO.delay {
+          Port.fromInt { socket.getLocalPort() }.getOrElse(throw new AssertionError("there must be a free port"))
+        }
+      }
