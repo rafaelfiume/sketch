@@ -29,6 +29,7 @@ class ProfileHealthCheckSpec extends CatsEffectSuite with ProfileHealthCheckSpec
           _ <- IO { assertEquals(result, DependencyStatus(profile, Status.Degraded)) }
         yield ()
       }
+
 trait ProfileHealthCheckSpecContext extends FileContentContext:
   import cats.effect.*, org.http4s.*, org.http4s.dsl.io.*
   import cats.implicits.*
@@ -51,9 +52,8 @@ trait ProfileHealthCheckSpecContext extends FileContentContext:
     yield ()
 
   private def statusRoute(pathToResponsePayload: String): Resource[IO, HttpRoutes[IO]] =
-    jsonFrom[IO](pathToResponsePayload).map { serviceStatus =>
+    jsonFrom[IO](pathToResponsePayload, debug = true).map { serviceStatus =>
       val route = HttpRoutes.of[IO] { case GET -> Root / "status" => Ok(serviceStatus) }
-      println(serviceStatus) // remove it
       Router("/" -> route)
     }
 
