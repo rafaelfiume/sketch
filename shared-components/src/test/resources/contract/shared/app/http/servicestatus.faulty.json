@@ -5,6 +5,6 @@
   "status" : "Degraded",
   "dependencies" : [
     { "database" : "Degraded" },
-    { "profile" : "Ok" }
+    { "profile" : "Degraded" }
   ]
 }
