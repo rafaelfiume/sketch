@@ -1,6 +1,7 @@
 package org.fiume.sketch.profile
 
 import cats.effect.IO
+import com.comcast.ip4s.port
 import munit.Assertions.*
 import munit.CatsEffectSuite
 import org.fiume.sketch.profile.ProfileHealthCheck.ProfileServiceConfig
@@ -24,6 +25,16 @@ class ProfileHealthCheckSpec extends CatsEffectSuite with ProfileHealthCheckSpec
   test("check if rustic (Profile) is faulty"):
     profileStatusIs(faulty)
       .flatMap { port => ProfileHealthCheck.make[IO](config = ProfileServiceConfig(localhost, port)) }
+      .use { healthCheck =>
+        for
+          result <- healthCheck.check()
+          _ <- IO { assertEquals(result, DependencyStatus(profile, Status.Degraded)) }
+        yield ()
+      }
+
+  test("check if rustic (Profile) is down"):
+    ProfileHealthCheck
+      .make[IO](config = ProfileServiceConfig(localhost, port"3030"))
       .use { healthCheck =>
         for
           result <- healthCheck.check()
