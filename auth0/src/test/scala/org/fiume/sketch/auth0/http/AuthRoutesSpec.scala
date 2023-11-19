@@ -9,8 +9,9 @@ import org.fiume.sketch.auth0.http.AuthRoutes.Model.json.given
 import org.fiume.sketch.auth0.testkit.AuthenticatorContext
 import org.fiume.sketch.auth0.testkit.JwtTokenGens.jwtTokens
 import org.fiume.sketch.shared.app.http4s.middlewares.{SemanticInputError, SemanticValidationMiddleware}
-import org.fiume.sketch.shared.app.troubleshooting.{ErrorDetails, ErrorInfo, ErrorMessage}
-import org.fiume.sketch.shared.app.troubleshooting.http.json.ErrorInfoCodecs.given
+import org.fiume.sketch.shared.app.troubleshooting.ErrorInfo
+import org.fiume.sketch.shared.app.troubleshooting.ErrorInfo.{ErrorDetails, ErrorMessage}
+import org.fiume.sketch.shared.app.troubleshooting.ErrorInfo.json.given
 import org.fiume.sketch.shared.auth0.Passwords.PlainPassword
 import org.fiume.sketch.shared.auth0.Passwords.PlainPassword.WeakPasswordError
 import org.fiume.sketch.shared.auth0.User

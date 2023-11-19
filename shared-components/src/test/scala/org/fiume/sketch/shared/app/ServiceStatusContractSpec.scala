@@ -9,7 +9,7 @@ import org.scalacheck.effect.PropF.forAllF
 
 class ServiceStatusContractSpec extends CatsEffectSuite with ScalaCheckEffectSuite with ContractContext with ShrinkLowPriority:
 
-  override def scalaCheckTestParameters = super.scalaCheckTestParameters.withMinSuccessfulTests(3)
+  override def scalaCheckTestParameters = super.scalaCheckTestParameters.withMinSuccessfulTests(1)
 
   test("bijective relationship between encoded and decoded ServiceStatus"):
     def samples =

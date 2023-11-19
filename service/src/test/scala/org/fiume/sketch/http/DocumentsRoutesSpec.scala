@@ -12,8 +12,8 @@ import org.fiume.sketch.http.DocumentsRoutes.Model.*
 import org.fiume.sketch.http.DocumentsRoutes.Model.json.given
 import org.fiume.sketch.shared.app.WithUuid
 import org.fiume.sketch.shared.app.http4s.middlewares.{SemanticInputError, SemanticValidationMiddleware}
-import org.fiume.sketch.shared.app.troubleshooting.{ErrorInfo, ErrorMessage}
-import org.fiume.sketch.shared.app.troubleshooting.http.json.ErrorInfoCodecs.given
+import org.fiume.sketch.shared.app.troubleshooting.ErrorInfo
+import org.fiume.sketch.shared.app.troubleshooting.ErrorInfo.json.given
 import org.fiume.sketch.shared.auth0.User
 import org.fiume.sketch.shared.auth0.testkit.UserGens.given
 import org.fiume.sketch.shared.auth0.testkit.UserGens.userIds
@@ -366,9 +366,10 @@ trait AuthMiddlewareContext:
   import org.http4s.server.AuthMiddleware
   import org.http4s.Request
   import org.fiume.sketch.shared.app.troubleshooting.ErrorInfo
-  import org.fiume.sketch.shared.app.troubleshooting.ErrorDetails
+  import org.fiume.sketch.shared.app.troubleshooting.ErrorInfo.ErrorMessage
+  import org.fiume.sketch.shared.app.troubleshooting.ErrorInfo.ErrorDetails
   import org.http4s.circe.CirceEntityEncoder.*
-  import org.fiume.sketch.shared.app.troubleshooting.http.json.ErrorInfoCodecs.given
+  import org.fiume.sketch.shared.app.troubleshooting.ErrorInfo.json.given
   import org.fiume.sketch.shared.auth0.testkit.UserGens.*
   import org.http4s.headers.`WWW-Authenticate`
   import org.http4s.Challenge

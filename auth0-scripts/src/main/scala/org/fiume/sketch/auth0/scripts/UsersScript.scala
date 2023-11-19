@@ -5,7 +5,8 @@ import cats.effect.std.Console
 import cats.implicits.*
 import doobie.ConnectionIO
 import org.fiume.sketch.auth0.UsersManager
-import org.fiume.sketch.shared.app.troubleshooting.{ErrorInfo, ErrorMessage}
+import org.fiume.sketch.shared.app.troubleshooting.ErrorInfo
+import org.fiume.sketch.shared.app.troubleshooting.ErrorInfo.ErrorMessage
 import org.fiume.sketch.shared.app.troubleshooting.ErrorInfo.given
 import org.fiume.sketch.shared.app.troubleshooting.InvariantErrorSyntax.asDetails
 import org.fiume.sketch.shared.auth0.Passwords.PlainPassword
