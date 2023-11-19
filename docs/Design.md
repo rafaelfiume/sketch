@@ -19,16 +19,53 @@ A couple options then are Foreign Data Wrappers (FDW) and Cross-Database Joins.
 
 Separation of concerns is a big deal in software development. Roughly speaking, a backend service consists of 3 layers:
 presentation (http endpoints), domain (core business logic) and integration (datastore, kafka, external http resources).
-
 Each one of these layers should have its own model.
-In practice, we are starting with a model representing the request/response payloads (e.g. `DocumentResponsePayload`)
-and a domain model (for instance, `Document`, `DocumentsStore`).
-As result, the integration layer (e.g. `PostgresDocumentsStore`) is implemented using the same core domain model (`Document`).
-in order to reduce the boiler plate and speed up development.
+
+In practice, we are starting with a model representing the request/response payloads - e.g. `DocumentResponsePayload` - and a domain model - for instance, `Document`.
+As result, the integration layer (e.g. `PostgresDocumentsStore`) is implemented using the same core domain model (`Document`) in order to reduce the boiler plate and speed up development.
 It is expected a `postgres.Document` will be extracted if necessary. When would it become necessary?
 Changing a database table forcing changes in business domain classes is an example of
 a sign a specific model for the integration layer is necessary.
-Consider using chimney to reduce the boilerplate between `presentation model <-> domain model <-> integration model`.
+
+Consider using [chimney](https://github.com/scalalandio/chimney) to reduce the boilerplate between `presentation model <-> domain model <-> integration model`.
+
+Note: there are places where a presentation is implemented for a model directly by deriving circe `Encoder`s and `Decoder`s. See `ServiceStatus`.
+
+### Presentation Model
+
+Canonical shared objects like `ServiceStatus` might have json encoders and decoders defined without the need of an intermidiate model.
+
+```
+sketch/
+├── shared/
+│   ├── app/
+│   │   ├── ServiceStatus.scala
+│   │   |   ├── object json
+│   │   |   |   └── given ...                # Canonical encoder/decoders for ServiceStatus
+│   │   └── ...
+│   ├── domain/
+│   │   ├── documents/
+|   |   |   ├── Document.scala               # No canonical encoder/decoders defined for Document.scala
+│   │   |   └── ...
+│   │   └── ...
+│   └── ...
+├── http/
+│   ├── DocumentRoutes.scala
+│   │   |   ├── object Model
+│   │   |   |   ├── object json
+│   │   |   |   |   └── given ...            # Document encoder/decoders definition
+│   │   |   |   ├── object xml               # Any other format a model should be serialised to or deserialised from
+│   │   |   |   |   └── ...
+│   |   |   └── ...
+└── ...
+```
+
+There should be contract tests ensuring no breaking changes in encoder/decoders.
+For instance, the following non-exhaustive contracts have been defined for `Document` and `ServiceStatus`:
+- `document/metadata.request.json`
+- `document/response.json`
+- `service-status/healthy.json`
+- `service-status/faulty.json`
 
 ## Endpoints (draft)
 

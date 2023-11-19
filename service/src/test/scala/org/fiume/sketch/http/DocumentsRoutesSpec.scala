@@ -9,11 +9,11 @@ import io.circe.syntax.*
 import munit.{CatsEffectSuite, ScalaCheckEffectSuite}
 import munit.Assertions.*
 import org.fiume.sketch.http.DocumentsRoutes.Model.*
-import org.fiume.sketch.http.DocumentsRoutes.Model.Json.given
+import org.fiume.sketch.http.DocumentsRoutes.Model.json.given
 import org.fiume.sketch.shared.app.WithUuid
 import org.fiume.sketch.shared.app.http4s.middlewares.{SemanticInputError, SemanticValidationMiddleware}
-import org.fiume.sketch.shared.app.troubleshooting.{ErrorInfo, ErrorMessage}
-import org.fiume.sketch.shared.app.troubleshooting.http.json.ErrorInfoCodecs.given
+import org.fiume.sketch.shared.app.troubleshooting.ErrorInfo
+import org.fiume.sketch.shared.app.troubleshooting.ErrorInfo.json.given
 import org.fiume.sketch.shared.auth0.User
 import org.fiume.sketch.shared.auth0.testkit.UserGens.given
 import org.fiume.sketch.shared.auth0.testkit.UserGens.userIds
@@ -23,7 +23,6 @@ import org.fiume.sketch.shared.domain.testkit.DocumentsGens.*
 import org.fiume.sketch.shared.domain.testkit.DocumentsGens.given
 import org.fiume.sketch.shared.testkit.{ContractContext, Http4sTestingRoutesDsl}
 import org.fiume.sketch.shared.testkit.EitherSyntax.*
-import org.fiume.sketch.shared.typeclasses.SemanticStringSyntax.*
 import org.http4s.{MediaType, *}
 import org.http4s.Method.*
 import org.http4s.client.dsl.io.*
@@ -112,7 +111,7 @@ class DocumentsRoutesSpec
 
   test("Get document by author"):
     forAllF { (fstDoc: DocumentWithIdAndStream[IO], sndDoc: DocumentWithIdAndStream[IO]) =>
-      val request = GET(Uri.unsafeFromString(s"/documents?author=${sndDoc.metadata.author.asString}"))
+      val request = GET(Uri.unsafeFromString(s"/documents?author=${sndDoc.metadata.author.asString()}"))
       for
         store <- makeDocumentsStore(state = fstDoc, sndDoc)
         authMiddleware = makeAuthMiddleware()
@@ -133,7 +132,7 @@ class DocumentsRoutesSpec
 
   test("Get document by owner"):
     forAllF { (fstDoc: DocumentWithIdAndStream[IO], sndDoc: DocumentWithIdAndStream[IO]) =>
-      val request = GET(Uri.unsafeFromString(s"/documents?owner=${sndDoc.metadata.owner.asString}"))
+      val request = GET(Uri.unsafeFromString(s"/documents?owner=${sndDoc.metadata.owner.asString()}"))
       for
         store <- makeDocumentsStore(state = fstDoc, sndDoc)
         authMiddleware = makeAuthMiddleware()
@@ -241,19 +240,13 @@ class DocumentsRoutesSpec
    */
 
   test("bijective relationship between encoded and decoded document MetadataRequestPayload"):
-    assertBijectiveRelationshipBetweenEncoderAndDecoder[MetadataRequestPayload](
-      "contract/documents/document.metadata.request.json"
-    )
+    assertBijectiveRelationshipBetweenEncoderAndDecoder[MetadataRequestPayload]("document/metadata.request.json")
 
   test("bijective relationship between encoded and decoded DocumentResponsePayload"):
-    assertBijectiveRelationshipBetweenEncoderAndDecoder[DocumentResponsePayload](
-      "contract/documents/document.response.json"
-    )
+    assertBijectiveRelationshipBetweenEncoderAndDecoder[DocumentResponsePayload]("document/response.json")
 
   test("bijective relationship between encoded and decoded DocumentIdResponsePayload"):
-    assertBijectiveRelationshipBetweenEncoderAndDecoder[DocumentIdResponsePayload](
-      "contract/documents/document.uuid.response.json"
-    )
+    assertBijectiveRelationshipBetweenEncoderAndDecoder[DocumentIdResponsePayload]("document/uuid.response.json")
 
   test("validation accumulates") {
     /* Also see `given accumulatingParallel: cats.Parallel[EitherT[IO, String, *]] = EitherT.accumulatingParallel` */
@@ -337,7 +330,7 @@ trait DocumentsRoutesSpecContext extends AuthMiddlewareContext:
 
   extension (m: Document.Metadata)
     def asRequestPayload: MetadataRequestPayload =
-      MetadataRequestPayload(m.name.value, m.description.value, m.owner.asString)
+      MetadataRequestPayload(m.name.value, m.description.value, m.owner.asString())
 
   given Encoder[MetadataRequestPayload] = new Encoder[MetadataRequestPayload]:
     override def apply(m: MetadataRequestPayload): Json = Json.obj(
@@ -373,9 +366,10 @@ trait AuthMiddlewareContext:
   import org.http4s.server.AuthMiddleware
   import org.http4s.Request
   import org.fiume.sketch.shared.app.troubleshooting.ErrorInfo
-  import org.fiume.sketch.shared.app.troubleshooting.ErrorDetails
+  import org.fiume.sketch.shared.app.troubleshooting.ErrorInfo.ErrorMessage
+  import org.fiume.sketch.shared.app.troubleshooting.ErrorInfo.ErrorDetails
   import org.http4s.circe.CirceEntityEncoder.*
-  import org.fiume.sketch.shared.app.troubleshooting.http.json.ErrorInfoCodecs.given
+  import org.fiume.sketch.shared.app.troubleshooting.ErrorInfo.json.given
   import org.fiume.sketch.shared.auth0.testkit.UserGens.*
   import org.http4s.headers.`WWW-Authenticate`
   import org.http4s.Challenge

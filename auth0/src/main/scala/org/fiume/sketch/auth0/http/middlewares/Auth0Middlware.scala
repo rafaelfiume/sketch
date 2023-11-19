@@ -4,8 +4,9 @@ import cats.data.{Kleisli, OptionT}
 import cats.effect.Sync
 import cats.implicits.*
 import org.fiume.sketch.auth0.{Authenticator, JwtToken}
-import org.fiume.sketch.shared.app.troubleshooting.{ErrorDetails, ErrorInfo, ErrorMessage}
-import org.fiume.sketch.shared.app.troubleshooting.http.json.ErrorInfoCodecs.given
+import org.fiume.sketch.shared.app.troubleshooting.ErrorInfo
+import org.fiume.sketch.shared.app.troubleshooting.ErrorInfo.{ErrorDetails, ErrorMessage}
+import org.fiume.sketch.shared.app.troubleshooting.ErrorInfo.json.given
 import org.fiume.sketch.shared.auth0.User
 import org.http4s.{AuthedRoutes, Challenge, Request, Response, Status}
 import org.http4s.circe.CirceEntityEncoder.*

@@ -3,7 +3,8 @@ package org.fiume.sketch.app
 import cats.effect.IO
 import munit.CatsEffectSuite
 import org.fiume.sketch.app.SketchVersions.VersionFile
-import org.fiume.sketch.shared.app.algebras.Versions.*
+import org.fiume.sketch.shared.app.Version
+import org.fiume.sketch.shared.app.Version.{Build, Commit, Environment}
 
 class SketchVersionsSpec extends CatsEffectSuite:
 

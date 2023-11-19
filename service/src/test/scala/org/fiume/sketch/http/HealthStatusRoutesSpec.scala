@@ -5,12 +5,11 @@ import cats.effect.IO
 import cats.effect.unsafe.IORuntime
 import cats.implicits.*
 import munit.CatsEffectSuite
-import org.fiume.sketch.shared.app.ServiceStatus
+import org.fiume.sketch.shared.app.{ServiceStatus, Version}
 import org.fiume.sketch.shared.app.ServiceStatus.{Dependency, DependencyStatus, *}
 import org.fiume.sketch.shared.app.ServiceStatus.Dependency.*
 import org.fiume.sketch.shared.app.ServiceStatus.json.given
 import org.fiume.sketch.shared.app.algebras.{HealthCheck, Versions}
-import org.fiume.sketch.shared.app.algebras.Versions.Version
 import org.fiume.sketch.shared.app.testkit.VersionGens.versions
 import org.fiume.sketch.shared.testkit.EitherSyntax.*
 import org.fiume.sketch.shared.testkit.Http4sTestingRoutesDsl
@@ -47,8 +46,6 @@ class HealthStatusRoutesSpec
       }
     yield ()
   }
-
-  // TODO Much improve the tests below
 
   test("return healthy status when dependencies are healthy") {
     for

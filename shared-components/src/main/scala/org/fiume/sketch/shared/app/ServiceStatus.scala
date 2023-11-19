@@ -3,8 +3,7 @@ package org.fiume.sketch.shared.app
 import cats.Eq
 import cats.implicits.*
 import org.fiume.sketch.shared.app.ServiceStatus.{DependencyStatus, Status}
-import org.fiume.sketch.shared.app.algebras.Versions.Version
-import org.fiume.sketch.shared.typeclasses.{FromString, SemanticString}
+import org.fiume.sketch.shared.typeclasses.{AsString, FromString}
 
 sealed abstract case class ServiceStatus(version: Version, status: Status, dependencies: List[DependencyStatus[?]])
 
@@ -21,8 +20,8 @@ object ServiceStatus:
     case Degraded
 
   object Status:
-    given SemanticString[Status] = new SemanticString[Status]:
-      override def asString(value: Status): String = value.toString() // yolo
+    given AsString[Status] = new AsString[Status]:
+      extension (value: Status) override def asString(): String = value.toString() // yolo
 
     given Eq[Status] = Eq.fromUniversalEquals
 
@@ -41,40 +40,34 @@ object ServiceStatus:
     val database: Database = new Database {}
     val profile: Profile = new Profile {}
 
-    given [T <: Dependency]: SemanticString[T] = new SemanticString[T]:
-      override def asString(value: T): String = value.name // yolo
+    given [T <: Dependency]: AsString[T] = new AsString[T]:
+      extension (value: T) override def asString(): String = value.name // yolo
 
     given FromString[String, Dependency] = new FromString[String, Dependency]:
-      override def fromString(value: String) = value match // yolo
-        case "database" => database.asRight[String]
-        case "profile"  => profile.asRight[String]
-        case _          => s"unknown Dependency $value".asLeft[Dependency]
+      extension (value: String)
+        override def parsed() = value match // yolo
+          case "database" => database.asRight[String]
+          case "profile"  => profile.asRight[String]
+          case _          => s"unknown Dependency $value".asLeft[Dependency]
 
-  // experimental
   object json:
     import cats.implicits.*
     import io.circe.{Decoder, DecodingFailure, Encoder, HCursor, Json}
     import io.circe.Decoder.Result
     import io.circe.syntax.*
+    import org.fiume.sketch.shared.app.Version.json.given
+    import org.fiume.sketch.shared.app.Version.Environment
+    import org.fiume.sketch.shared.app.Version.Commit
+    import org.fiume.sketch.shared.app.Version.Build
     import org.fiume.sketch.shared.app.ServiceStatus.Dependency.given
-    import org.fiume.sketch.shared.app.algebras.Versions.*
-    import org.fiume.sketch.shared.typeclasses.FromStringSyntax.*
-    import org.fiume.sketch.shared.typeclasses.SemanticStringSyntax.*
 
-    given Encoder[Environment] = Encoder.encodeString.contramap(_.name)
-    given Decoder[Environment] = Decoder.decodeString.map(Environment.apply)
-    given Encoder[Build] = Encoder.encodeString.contramap(_.name)
-    given Decoder[Build] = Decoder.decodeString.map(Build.apply)
-    given Encoder[Commit] = Encoder.encodeString.contramap(_.name)
-    given Decoder[Commit] = Decoder.decodeString.map(Commit.apply)
-
-    given Encoder[Status] = Encoder.encodeString.contramap(_.asString)
+    given Encoder[Status] = Encoder.encodeString.contramap(_.asString())
     given Decoder[Status] = Decoder.decodeString.map(Status.valueOf(_))
 
     given Encoder[DependencyStatus[?]] = new Encoder[DependencyStatus[?]]:
       override def apply(dependency: DependencyStatus[?]): Json =
         Json.obj(
-          dependency.dependency.asString -> dependency.status.asJson
+          dependency.dependency.asString() -> dependency.status.asJson
         )
 
     given Decoder[DependencyStatus[?]] = new Decoder[DependencyStatus[?]]:

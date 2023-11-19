@@ -6,7 +6,6 @@ val ScalaVersion = "3.3.1"
 
 enablePlugins(GitVersioning)
 
-ThisBuild / scalafixDependencies += "com.github.liancheng" %% "organize-imports" % "0.6.0"
 inThisBuild(
   List(
     scalaVersion := "3.3.1",
@@ -73,6 +72,7 @@ lazy val service =
      .dependsOn(sharedDomain % "compile->compile;test->test")
      .dependsOn(sharedTestComponents % Test)
      .dependsOn(storage)
+     .dependsOn(testContracts % "test->test")
      .enablePlugins(JavaAppPackaging)
      .disablePlugins(plugins.JUnitXmlReportPlugin) // see https://www.scala-sbt.org/1.x/docs/Testing.html
      .settings(commonSettings: _*)
@@ -135,6 +135,7 @@ lazy val sharedAuth0 =
 lazy val sharedComponents =
     project.in(file("shared-components"))
     .dependsOn(sharedTestComponents % Test)
+    .dependsOn(testContracts % "test->test")
     .disablePlugins(plugins.JUnitXmlReportPlugin)
     .settings(commonSettings: _*)
     .settings(
@@ -237,6 +238,7 @@ lazy val testAcceptance =
      .dependsOn(auth0Scripts % Test)
      .dependsOn(sharedAuth0 % "test->test")
      .dependsOn(sharedTestComponents % Test)
+     .dependsOn(testContracts % "test->test")
      .disablePlugins(plugins.JUnitXmlReportPlugin)
      .enablePlugins(GatlingPlugin)
      .settings(commonSettings: _*)
@@ -253,4 +255,12 @@ lazy val testAcceptance =
          Dependency.munit % Test,
          Dependency.munitCatsEffect % Test
        )
+     )
+
+lazy val testContracts =
+   project.in(file("test-contracts"))
+     .disablePlugins(plugins.JUnitXmlReportPlugin)
+     .settings(commonSettings: _*)
+     .settings(
+       name := "test-contracts",
      )

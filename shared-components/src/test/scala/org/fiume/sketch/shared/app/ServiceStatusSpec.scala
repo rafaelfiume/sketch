@@ -4,7 +4,6 @@ import cats.implicits.*
 import munit.ScalaCheckSuite
 import org.fiume.sketch.shared.app.ServiceStatus.{DependencyStatus, Status}
 import org.fiume.sketch.shared.app.ServiceStatus.Status.given
-import org.fiume.sketch.shared.app.algebras.Versions.Version
 import org.fiume.sketch.shared.app.testkit.ServicesStatusGens.*
 import org.fiume.sketch.shared.app.testkit.VersionGens.given
 import org.scalacheck.{Arbitrary, ShrinkLowPriority}

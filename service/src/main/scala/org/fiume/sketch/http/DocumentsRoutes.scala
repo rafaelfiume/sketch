@@ -19,19 +19,16 @@ import org.fiume.sketch.http.DocumentsRoutes.{
   OwnerQueryParamMatcher
 }
 import org.fiume.sketch.http.DocumentsRoutes.Model.*
-import org.fiume.sketch.http.DocumentsRoutes.Model.Json.given
+import org.fiume.sketch.http.DocumentsRoutes.Model.json.given
 import org.fiume.sketch.shared.app.EntityId.given
 import org.fiume.sketch.shared.app.http4s.middlewares.SemanticInputError
-import org.fiume.sketch.shared.app.troubleshooting.ErrorDetails
-import org.fiume.sketch.shared.app.troubleshooting.ErrorInfo.given
+import org.fiume.sketch.shared.app.troubleshooting.ErrorInfo.ErrorDetails
 import org.fiume.sketch.shared.app.troubleshooting.InvariantErrorSyntax.asDetails
 import org.fiume.sketch.shared.auth0.{User, UserId}
 import org.fiume.sketch.shared.domain.documents.{Document, DocumentId, DocumentWithId, DocumentWithStream}
 import org.fiume.sketch.shared.domain.documents.Document.Metadata
 import org.fiume.sketch.shared.domain.documents.Document.Metadata.*
 import org.fiume.sketch.shared.domain.documents.algebras.DocumentsStore
-import org.fiume.sketch.shared.typeclasses.FromStringSyntax.*
-import org.fiume.sketch.shared.typeclasses.SemanticStringSyntax.*
 import org.http4s.{Charset, EntityEncoder, HttpRoutes, MediaType, *}
 import org.http4s.MediaType.application
 import org.http4s.circe.CirceEntityDecoder.*
@@ -71,7 +68,6 @@ class DocumentsRoutes[F[_]: Concurrent, Txn[_]](
       case GET -> Root / "documents" / DocumentIdVar(uuid) / "metadata" as user =>
         for
           document <- store.commit { store.fetchDocument(uuid) }
-          // TODO Change response payload
           res <- document.map(_.asResponsePayload).fold(ifEmpty = NotFound())(Ok(_))
         yield res
 
@@ -142,11 +138,11 @@ private[http] object DocumentsRoutes:
 
     extension (m: Metadata)
       private def asResponsePayload: MetadataResponsePayload =
-        MetadataResponsePayload(m.name.value, m.description.value, m.author.asString, m.owner.asString)
+        MetadataResponsePayload(m.name.value, m.description.value, m.author.asString(), m.owner.asString())
 
     extension [F[_]](d: DocumentWithId)
       def asResponsePayload: DocumentResponsePayload =
-        DocumentResponsePayload(d.uuid, d.metadata.asResponsePayload, Uri.unsafeFromString(s"/documents/${d.uuid.asString}"))
+        DocumentResponsePayload(d.uuid, d.metadata.asResponsePayload, Uri.unsafeFromString(s"/documents/${d.uuid.asString()}"))
 
     extension [F[_]](id: DocumentId) def asResponsePayload: DocumentIdResponsePayload = DocumentIdResponsePayload(id)
 
@@ -208,14 +204,14 @@ private[http] object DocumentsRoutes:
             .map(_.body)
         }
 
-    object Json:
+    object json:
       given Encoder[Uri] = Encoder.encodeString.contramap(_.renderString)
       given Decoder[Uri] = Decoder.decodeString.emap { uri => Uri.fromString(uri).leftMap(_.getMessage) }
 
       // TODO Move it to a common package?
       import org.fiume.sketch.shared.app.EntityId
       import org.fiume.sketch.shared.app.Entity
-      given [T <: Entity]: Encoder[EntityId[T]] = Encoder[String].contramap[EntityId[T]](_.asString)
+      given [T <: Entity]: Encoder[EntityId[T]] = Encoder[String].contramap[EntityId[T]](_.asString())
       given [T <: Entity]: Decoder[EntityId[T]] = Decoder[String].emap(_.parsed().leftMap(_.message))
 
       given Decoder[MetadataRequestPayload] = new Decoder[MetadataRequestPayload]:

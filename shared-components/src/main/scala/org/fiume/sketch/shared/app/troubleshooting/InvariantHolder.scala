@@ -2,6 +2,7 @@ package org.fiume.sketch.shared.app.troubleshooting
 
 import cats.data.NonEmptyChain
 import cats.implicits.*
+import org.fiume.sketch.shared.app.troubleshooting.ErrorInfo.ErrorDetails
 
 /*
  * Invariants: set of properties a component must hold at all times to be valid.

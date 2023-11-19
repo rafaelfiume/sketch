@@ -54,8 +54,8 @@ class ProfileHealthCheckSpec extends CatsEffectSuite with ProfileHealthCheckSpec
       }
 
 trait ProfileHealthCheckSpecContext extends FileContentContext with HttpServiceContext:
-  val healthy = "contract/shared/app/http/servicestatus.healthy.json"
-  val faulty = "contract/shared/app/http/servicestatus.faulty.json"
+  val healthy = "service-status/healthy.json"
+  val faulty = "service-status/faulty.json"
 
   val localhost = Host.fromString("localhost").getOrElse(throw new AssertionError("localhost is valid host"))
 

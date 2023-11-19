@@ -1,6 +1,8 @@
 package org.fiume.sketch.shared.typeclasses
 
 /*
+ * Use when types should have a semanic valid String representation.
+ *
  * Examples of semantic strings:
  * - User-facing output
  * - Serialised instances (e.g. Json, Xml)
@@ -8,9 +10,9 @@ package org.fiume.sketch.shared.typeclasses
  *
  * Example of non-semantic strings:
  * - Debug and logging.
+ *
+ * Laws:
+ * - Isomorphism: `T.asString()` <-> `T.parsed().rightValue`
  */
-trait SemanticString[A]:
-  def asString(value: A): String
-
-object SemanticStringSyntax:
-  extension [A](msg: A)(using T: SemanticString[A]) def asString: String = T.asString(msg)
+trait AsString[A]:
+  extension (value: A) def asString(): String

@@ -7,16 +7,15 @@ import io.gatling.http.Predef.{http, *}
 import org.fiume.sketch.acceptance.testkit.AuthenticationContext
 import org.fiume.sketch.shared.auth0.testkit.UserGens
 import org.fiume.sketch.shared.testkit.FileContentContext
-import org.fiume.sketch.shared.typeclasses.SemanticStringSyntax.asString
 
 import scala.concurrent.duration.*
 
-class DocumentsSimulation extends Simulation with FileContentContext with AuthenticationContext with DocumentsSimulationContext:
+class DocumentsSimulation extends Simulation with AuthenticationContext with DocumentsSimulationContext:
 
   val docName = "Nicolas_e_Joana"
   val docDesc = "Meus amores <3"
   val pathToFile = "meus-fofinhos.jpg"
-  val owner = UserGens.userIds.sample.get.asString
+  val owner = UserGens.userIds.sample.get.asString()
   given IORuntime = IORuntime.global
   val bytes = bytesFrom[IO](pathToFile).compile.toVector.map(_.toArray).unsafeRunSync()
 
@@ -29,13 +28,14 @@ class DocumentsSimulation extends Simulation with FileContentContext with Authen
     .contentTypeHeader("multipart/form-data")
     .header("Authorization", authorizationHeader.credentials.toString)
 
+  val metadataPayload = payload(docName, docDesc, owner).unsafeRunSync()
   val scn = scenario("DocumentsRoutes")
     .exec(
       http("upload document")
         .post("/documents")
         .header("Content-Type", "multipart/form-data")
         .bodyParts(
-          StringBodyPart("metadata", payload(docName, docDesc, owner)),
+          StringBodyPart("metadata", metadataPayload),
           ByteArrayBodyPart("bytes", bytes)
             .fileName(docName)
             .contentType("application/octet-stream")
@@ -63,13 +63,14 @@ class DocumentsSimulation extends Simulation with FileContentContext with Authen
     )
   ).protocols(httpProtocol)
 
-// TODO: duplicated
-trait DocumentsSimulationContext:
-  def payload(name: String, description: String, owner: String): String =
-    s"""
-       |{
-       |  "name": "$name",
-       |  "description": "$description",
-       |  "owner": "$owner"
-       |}
-      """.stripMargin
+trait DocumentsSimulationContext extends FileContentContext:
+  // TODO Duplicated see acc test
+  def payload(name: String, description: String, owner: String): IO[String] =
+    stringFrom[IO]("document/metadata.request.json")
+      .map { json =>
+        json
+          .replace("SuCJzND", name)
+          .replace("19ZHxAyyBQ4olkFv7YUGuAGq7A5YWzPIfZAd703rMzCO8uvua2XliMf6dzw", description)
+          .replace("7a21d5bc-9e3a-4c1b-bf6c-33cc9926c3ac", owner)
+      }
+      .use(IO.pure)
