@@ -62,10 +62,10 @@ sketch/
 
 There should be contract tests ensuring no breaking changes in encoder/decoders.
 For instance, the following non-exhaustive contracts have been defined for `Document` and `ServiceStatus`:
-- `contract/document/metadata.request.json`
-- `contract/document/response.json`
-- `contract/service-status/healthy.json`
-- `contract/service-status/faulty.json`
+- `document/metadata.request.json`
+- `document/response.json`
+- `service-status/healthy.json`
+- `service-status/faulty.json`
 
 ## Endpoints (draft)
 

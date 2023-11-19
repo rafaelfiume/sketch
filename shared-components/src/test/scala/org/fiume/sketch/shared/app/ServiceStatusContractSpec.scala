@@ -1,8 +1,7 @@
-package org.fiume.sketch.shared.app.troubleshooting.http
+package org.fiume.sketch.shared.app
 
 import cats.effect.IO
 import munit.{CatsEffectSuite, ScalaCheckEffectSuite}
-import org.fiume.sketch.shared.app.ServiceStatus
 import org.fiume.sketch.shared.app.ServiceStatus.json.given
 import org.fiume.sketch.shared.testkit.ContractContext
 import org.scalacheck.{Gen, ShrinkLowPriority}
@@ -15,8 +14,8 @@ class ServiceStatusContractSpec extends CatsEffectSuite with ScalaCheckEffectSui
   test("bijective relationship between encoded and decoded ServiceStatus"):
     def samples =
       Gen.oneOf(
-        "contract/service-status/healthy.json",
-        "contract/service-status/faulty.json"
+        "service-status/healthy.json",
+        "service-status/faulty.json"
       )
     forAllF(samples) { sample =>
       assertBijectiveRelationshipBetweenEncoderAndDecoder[ServiceStatus](sample)

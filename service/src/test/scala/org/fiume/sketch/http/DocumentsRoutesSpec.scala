@@ -240,19 +240,13 @@ class DocumentsRoutesSpec
    */
 
   test("bijective relationship between encoded and decoded document MetadataRequestPayload"):
-    assertBijectiveRelationshipBetweenEncoderAndDecoder[MetadataRequestPayload](
-      "contract/document/metadata.request.json"
-    )
+    assertBijectiveRelationshipBetweenEncoderAndDecoder[MetadataRequestPayload]("document/metadata.request.json")
 
   test("bijective relationship between encoded and decoded DocumentResponsePayload"):
-    assertBijectiveRelationshipBetweenEncoderAndDecoder[DocumentResponsePayload](
-      "contract/document/response.json"
-    )
+    assertBijectiveRelationshipBetweenEncoderAndDecoder[DocumentResponsePayload]("document/response.json")
 
   test("bijective relationship between encoded and decoded DocumentIdResponsePayload"):
-    assertBijectiveRelationshipBetweenEncoderAndDecoder[DocumentIdResponsePayload](
-      "contract/document/uuid.response.json"
-    )
+    assertBijectiveRelationshipBetweenEncoderAndDecoder[DocumentIdResponsePayload]("document/uuid.response.json")
 
   test("validation accumulates") {
     /* Also see `given accumulatingParallel: cats.Parallel[EitherT[IO, String, *]] = EitherT.accumulatingParallel` */
