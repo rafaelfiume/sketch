@@ -1,6 +1,7 @@
 package org.fiume.sketch.shared.app.testkit
 
-import org.fiume.sketch.shared.app.algebras.Versions.*
+import org.fiume.sketch.shared.app.Version
+import org.fiume.sketch.shared.app.Version.{Build, Commit, Environment}
 import org.scalacheck.{Arbitrary, Gen}
 
 object VersionGens:

@@ -20,7 +20,9 @@ object ErrorInfo:
   case class ErrorDetails(tips: Map[String, String]) extends AnyVal
   object ErrorDetails:
     def single(detail: (String, String)) = ErrorDetails(Map(detail))
+
     extension (details: ErrorDetails) def asString: String = details.tips.mkString(" * ", "\n * ", "")
+
     given Semigroup[ErrorDetails] = new Semigroup[ErrorDetails]:
       def combine(x: ErrorDetails, y: ErrorDetails): ErrorDetails = ErrorDetails(x.tips.combine(y.tips))
 
@@ -50,6 +52,7 @@ object ErrorInfo:
           "message" -> errorInfo.message.asJson,
           "details" -> errorInfo.details.asJson
         )
+
     given Decoder[ErrorInfo] = new Decoder[ErrorInfo]:
       override def apply(c: HCursor): Result[ErrorInfo] =
         for

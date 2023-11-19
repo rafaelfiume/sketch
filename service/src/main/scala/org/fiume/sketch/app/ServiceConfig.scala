@@ -6,7 +6,7 @@ import ciris.*
 import com.comcast.ip4s.{Host, Port}
 import org.fiume.sketch.auth0.KeyStringifier
 import org.fiume.sketch.profile.ProfileClientConfig
-import org.fiume.sketch.shared.app.algebras.Versions.Environment
+import org.fiume.sketch.shared.app.Version.Environment
 import org.fiume.sketch.storage.DatabaseConfig
 import org.http4s.headers.Origin
 
