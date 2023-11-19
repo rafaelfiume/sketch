@@ -63,7 +63,7 @@ class DocumentsSimulation extends Simulation with FileContentContext with Authen
     )
   ).protocols(httpProtocol)
 
-// TODO: duplicated
+// TODO: duplicated from `contract/document/metadata.request.json`
 trait DocumentsSimulationContext:
   def payload(name: String, description: String, owner: String): String =
     s"""

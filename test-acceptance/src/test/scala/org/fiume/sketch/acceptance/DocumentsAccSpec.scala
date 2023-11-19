@@ -92,7 +92,7 @@ trait DocumentsSpecContext extends Http4sClientContext:
     )
     "http://localhost:8080/documents".post.withEntity(multipart).withHeaders(multipart.headers.put(authHeader))
 
-  // TODO Load from storage/src/test/resources/storage/contract/http/document.json
+  // TODO Duplicated from `contract/document/metadata.request.json`
   def payload(name: String, description: String, owner: String): String =
     s"""
        |{

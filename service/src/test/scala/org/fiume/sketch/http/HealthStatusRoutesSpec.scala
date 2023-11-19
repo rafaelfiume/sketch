@@ -48,8 +48,6 @@ class HealthStatusRoutesSpec
     yield ()
   }
 
-  // TODO Much improve the tests below
-
   test("return healthy status when dependencies are healthy") {
     for
       routes <- makeHealthStatusRoutes(

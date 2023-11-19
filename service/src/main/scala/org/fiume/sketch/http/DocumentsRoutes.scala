@@ -71,7 +71,6 @@ class DocumentsRoutes[F[_]: Concurrent, Txn[_]](
       case GET -> Root / "documents" / DocumentIdVar(uuid) / "metadata" as user =>
         for
           document <- store.commit { store.fetchDocument(uuid) }
-          // TODO Change response payload
           res <- document.map(_.asResponsePayload).fold(ifEmpty = NotFound())(Ok(_))
         yield res
 
