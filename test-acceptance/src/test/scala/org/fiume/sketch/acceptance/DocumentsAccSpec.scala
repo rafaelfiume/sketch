@@ -11,7 +11,7 @@ import org.http4s.Status.*
 import org.http4s.circe.*
 import org.http4s.headers.Authorization
 
-class DocumentsAccSpec extends CatsEffectSuite with FileContentContext with AuthenticationContext with DocumentsSpecContext:
+class DocumentsAccSpec extends CatsEffectSuite with AuthenticationContext with DocumentsSpecContext:
 
   val docName = "a-unique-name-for-altamural.jpg"
   val docDesc = "La bella Altamura in Puglia <3"
@@ -24,8 +24,9 @@ class DocumentsAccSpec extends CatsEffectSuite with FileContentContext with Auth
       authorizationHeader = authenticated.authorization
       _ <- withHttp { client =>
         for
+          metadataPayload <- payload(docName, docDesc, owner)
           uuid <- client
-            .expect[Json](fileUploadRequest(payload(docName, docDesc, owner), pathToFile, authorizationHeader))
+            .expect[Json](fileUploadRequest(metadataPayload, pathToFile, authorizationHeader))
             .map(_.uuid)
 
           _ <- client.expect[Json](s"http://localhost:8080/documents/$uuid/metadata".get.withHeaders(authorizationHeader)).map {
@@ -54,8 +55,9 @@ class DocumentsAccSpec extends CatsEffectSuite with FileContentContext with Auth
       authorizationHeader = authenticated.authorization
       _ <- withHttp { client =>
         for
+          metadataPayload <- payload(docName, docDesc, owner)
           uuid <- client
-            .expect[Json](fileUploadRequest(payload(docName, docDesc, owner), pathToFile, authorizationHeader))
+            .expect[Json](fileUploadRequest(metadataPayload, pathToFile, authorizationHeader))
             .map(_.uuid)
 
           _ <- client.status(s"http://localhost:8080/documents/$uuid".delete.withHeaders(authorizationHeader)).map { status =>
@@ -74,7 +76,7 @@ class DocumentsAccSpec extends CatsEffectSuite with FileContentContext with Auth
       }
     yield ()
 
-trait DocumentsSpecContext extends Http4sClientContext:
+trait DocumentsSpecContext extends Http4sClientContext with FileContentContext:
   import org.http4s.{MediaType, Request}
   import org.http4s.multipart.{Boundary, Multipart, Part}
   import org.http4s.client.dsl.io.*
@@ -91,15 +93,16 @@ trait DocumentsSpecContext extends Http4sClientContext:
     )
     "http://localhost:8080/documents".post.withEntity(multipart).withHeaders(multipart.headers.put(authHeader))
 
-  // TODO Duplicated from `contract/document/metadata.request.json`
-  def payload(name: String, description: String, owner: String): String =
-    s"""
-       |{
-       |  "name": "$name",
-       |  "description": "$description",
-       |  "owner": "$owner"
-       |}
-      """.stripMargin
+  // TODO Duplicated see load test
+  def payload(name: String, description: String, owner: String): IO[String] =
+    stringFrom[IO]("document/metadata.request.json")
+      .map { json =>
+        json
+          .replace("SuCJzND", name)
+          .replace("19ZHxAyyBQ4olkFv7YUGuAGq7A5YWzPIfZAd703rMzCO8uvua2XliMf6dzw", description)
+          .replace("7a21d5bc-9e3a-4c1b-bf6c-33cc9926c3ac", owner)
+      }
+      .use(IO.pure)
 
   extension (json: Json)
     def uuid: String = json.hcursor.get[String]("uuid").getOrElse(fail("'uuid' field not found"))

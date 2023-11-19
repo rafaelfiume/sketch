@@ -14,9 +14,9 @@ import scala.io.Source
  */
 trait FileContentContext:
   def jsonFrom[F[_]: Sync](path: String, debug: Boolean = false): Resource[F, Json] =
-    stringsFrom(path, debug).map(parse(_).rightValue)
+    stringFrom(path, debug).map(parse(_).rightValue)
 
-  def stringsFrom[F[_]: Sync](path: String, debug: Boolean = false): Resource[F, String] =
+  def stringFrom[F[_]: Sync](path: String, debug: Boolean = false): Resource[F, String] =
     Resource
       .fromAutoCloseable { Sync[F].blocking(Source.fromResource(path)) }
       .map(_.mkString(""))

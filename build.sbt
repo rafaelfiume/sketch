@@ -238,6 +238,7 @@ lazy val testAcceptance =
      .dependsOn(auth0Scripts % Test)
      .dependsOn(sharedAuth0 % "test->test")
      .dependsOn(sharedTestComponents % Test)
+     .dependsOn(testContracts % "test->test")
      .disablePlugins(plugins.JUnitXmlReportPlugin)
      .enablePlugins(GatlingPlugin)
      .settings(commonSettings: _*)
