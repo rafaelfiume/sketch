@@ -23,7 +23,6 @@ import org.fiume.sketch.shared.domain.testkit.DocumentsGens.*
 import org.fiume.sketch.shared.domain.testkit.DocumentsGens.given
 import org.fiume.sketch.shared.testkit.{ContractContext, Http4sTestingRoutesDsl}
 import org.fiume.sketch.shared.testkit.EitherSyntax.*
-import org.fiume.sketch.shared.typeclasses.SemanticStringSyntax.*
 import org.http4s.{MediaType, *}
 import org.http4s.Method.*
 import org.http4s.client.dsl.io.*
@@ -112,7 +111,7 @@ class DocumentsRoutesSpec
 
   test("Get document by author"):
     forAllF { (fstDoc: DocumentWithIdAndStream[IO], sndDoc: DocumentWithIdAndStream[IO]) =>
-      val request = GET(Uri.unsafeFromString(s"/documents?author=${sndDoc.metadata.author.asString}"))
+      val request = GET(Uri.unsafeFromString(s"/documents?author=${sndDoc.metadata.author.asString()}"))
       for
         store <- makeDocumentsStore(state = fstDoc, sndDoc)
         authMiddleware = makeAuthMiddleware()
@@ -133,7 +132,7 @@ class DocumentsRoutesSpec
 
   test("Get document by owner"):
     forAllF { (fstDoc: DocumentWithIdAndStream[IO], sndDoc: DocumentWithIdAndStream[IO]) =>
-      val request = GET(Uri.unsafeFromString(s"/documents?owner=${sndDoc.metadata.owner.asString}"))
+      val request = GET(Uri.unsafeFromString(s"/documents?owner=${sndDoc.metadata.owner.asString()}"))
       for
         store <- makeDocumentsStore(state = fstDoc, sndDoc)
         authMiddleware = makeAuthMiddleware()
@@ -337,7 +336,7 @@ trait DocumentsRoutesSpecContext extends AuthMiddlewareContext:
 
   extension (m: Document.Metadata)
     def asRequestPayload: MetadataRequestPayload =
-      MetadataRequestPayload(m.name.value, m.description.value, m.owner.asString)
+      MetadataRequestPayload(m.name.value, m.description.value, m.owner.asString())
 
   given Encoder[MetadataRequestPayload] = new Encoder[MetadataRequestPayload]:
     override def apply(m: MetadataRequestPayload): Json = Json.obj(

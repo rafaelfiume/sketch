@@ -4,11 +4,7 @@ package org.fiume.sketch.shared.typeclasses
 
 /*
  * Laws:
- * - Isomorphism: `AsString[T].asString(t: T)` <-> `FromString[T].fromString(t: T).rightValue`
+ * - Isomorphism: `T.asString()` <-> `T.parsed().rightValue`
  */
 trait FromString[E, T]:
-  def fromString(s: String): Either[E, T]
-
-object FromStringSyntax:
-  // TODO Rename it
-  extension [E, T](s: String)(using F: FromString[E, T]) def parsed(): Either[E, T] = F.fromString(s)
+  extension (s: String) def parsed(): Either[E, T]

@@ -16,11 +16,12 @@ case class EntityId[T <: Entity](value: UUID) extends AnyVal
 
 object EntityId:
   given [T <: Entity]: AsString[EntityId[T]] = new AsString[EntityId[T]]:
-    override def asString(id: EntityId[T]): String = id.value.toString
+    extension (id: EntityId[T]) override def asString(): String = id.value.toString
 
   given [T <: Entity]: FromString[InvalidId, EntityId[T]] = new FromString[InvalidId, EntityId[T]]:
-    override def fromString(id: String) =
-      Try(UUID.fromString(id)).toEither.map(EntityId[T](_)).leftMap(_ => UnparsableUuid(id))
+    extension (id: String)
+      override def parsed() =
+        Try(UUID.fromString(id)).toEither.map(EntityId[T](_)).leftMap(_ => UnparsableUuid(id))
 
   given equality[T <: Entity]: Eq[EntityId[T]] = Eq.fromUniversalEquals[EntityId[T]]
 

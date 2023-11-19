@@ -10,8 +10,6 @@ import org.fiume.sketch.auth0.JwtError.*
 import org.fiume.sketch.shared.app.EntityId.given
 import org.fiume.sketch.shared.auth0.{User, UserId}
 import org.fiume.sketch.shared.auth0.User.Username
-import org.fiume.sketch.shared.typeclasses.FromStringSyntax.*
-import org.fiume.sketch.shared.typeclasses.SemanticStringSyntax.*
 import pdi.jwt.{JwtAlgorithm, JwtCirce, JwtClaim}
 import pdi.jwt.exceptions.*
 
@@ -43,7 +41,7 @@ private[auth0] object JwtToken:
         preferredUsername = user.username
       )
       claim = JwtClaim(
-        subject = user.uuid.asString.some,
+        subject = user.uuid.asString().some,
         content = content.asJson.noSpaces,
         issuedAt = now.getEpochSecond.some,
         expiration = now.plusSeconds(expirationOffset.toSeconds).getEpochSecond.some

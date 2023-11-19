@@ -30,8 +30,6 @@ import org.fiume.sketch.shared.domain.documents.{Document, DocumentId, DocumentW
 import org.fiume.sketch.shared.domain.documents.Document.Metadata
 import org.fiume.sketch.shared.domain.documents.Document.Metadata.*
 import org.fiume.sketch.shared.domain.documents.algebras.DocumentsStore
-import org.fiume.sketch.shared.typeclasses.FromStringSyntax.*
-import org.fiume.sketch.shared.typeclasses.SemanticStringSyntax.*
 import org.http4s.{Charset, EntityEncoder, HttpRoutes, MediaType, *}
 import org.http4s.MediaType.application
 import org.http4s.circe.CirceEntityDecoder.*
@@ -141,11 +139,11 @@ private[http] object DocumentsRoutes:
 
     extension (m: Metadata)
       private def asResponsePayload: MetadataResponsePayload =
-        MetadataResponsePayload(m.name.value, m.description.value, m.author.asString, m.owner.asString)
+        MetadataResponsePayload(m.name.value, m.description.value, m.author.asString(), m.owner.asString())
 
     extension [F[_]](d: DocumentWithId)
       def asResponsePayload: DocumentResponsePayload =
-        DocumentResponsePayload(d.uuid, d.metadata.asResponsePayload, Uri.unsafeFromString(s"/documents/${d.uuid.asString}"))
+        DocumentResponsePayload(d.uuid, d.metadata.asResponsePayload, Uri.unsafeFromString(s"/documents/${d.uuid.asString()}"))
 
     extension [F[_]](id: DocumentId) def asResponsePayload: DocumentIdResponsePayload = DocumentIdResponsePayload(id)
 
@@ -214,7 +212,7 @@ private[http] object DocumentsRoutes:
       // TODO Move it to a common package?
       import org.fiume.sketch.shared.app.EntityId
       import org.fiume.sketch.shared.app.Entity
-      given [T <: Entity]: Encoder[EntityId[T]] = Encoder[String].contramap[EntityId[T]](_.asString)
+      given [T <: Entity]: Encoder[EntityId[T]] = Encoder[String].contramap[EntityId[T]](_.asString())
       given [T <: Entity]: Decoder[EntityId[T]] = Decoder[String].emap(_.parsed().leftMap(_.message))
 
       given Decoder[MetadataRequestPayload] = new Decoder[MetadataRequestPayload]:

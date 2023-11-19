@@ -22,7 +22,7 @@ object ServiceStatus:
 
   object Status:
     given AsString[Status] = new AsString[Status]:
-      override def asString(value: Status): String = value.toString() // yolo
+      extension (value: Status) override def asString(): String = value.toString() // yolo
 
     given Eq[Status] = Eq.fromUniversalEquals
 
@@ -42,13 +42,14 @@ object ServiceStatus:
     val profile: Profile = new Profile {}
 
     given [T <: Dependency]: AsString[T] = new AsString[T]:
-      override def asString(value: T): String = value.name // yolo
+      extension (value: T) override def asString(): String = value.name // yolo
 
     given FromString[String, Dependency] = new FromString[String, Dependency]:
-      override def fromString(value: String) = value match // yolo
-        case "database" => database.asRight[String]
-        case "profile"  => profile.asRight[String]
-        case _          => s"unknown Dependency $value".asLeft[Dependency]
+      extension (value: String)
+        override def parsed() = value match // yolo
+          case "database" => database.asRight[String]
+          case "profile"  => profile.asRight[String]
+          case _          => s"unknown Dependency $value".asLeft[Dependency]
 
   object json:
     import cats.implicits.*
@@ -57,8 +58,6 @@ object ServiceStatus:
     import io.circe.syntax.*
     import org.fiume.sketch.shared.app.ServiceStatus.Dependency.given
     import org.fiume.sketch.shared.app.algebras.Versions.*
-    import org.fiume.sketch.shared.typeclasses.FromStringSyntax.*
-    import org.fiume.sketch.shared.typeclasses.SemanticStringSyntax.*
 
     given Encoder[Environment] = Encoder.encodeString.contramap(_.name)
     given Decoder[Environment] = Decoder.decodeString.map(Environment.apply)
@@ -67,13 +66,13 @@ object ServiceStatus:
     given Encoder[Commit] = Encoder.encodeString.contramap(_.name)
     given Decoder[Commit] = Decoder.decodeString.map(Commit.apply)
 
-    given Encoder[Status] = Encoder.encodeString.contramap(_.asString)
+    given Encoder[Status] = Encoder.encodeString.contramap(_.asString())
     given Decoder[Status] = Decoder.decodeString.map(Status.valueOf(_))
 
     given Encoder[DependencyStatus[?]] = new Encoder[DependencyStatus[?]]:
       override def apply(dependency: DependencyStatus[?]): Json =
         Json.obj(
-          dependency.dependency.asString -> dependency.status.asJson
+          dependency.dependency.asString() -> dependency.status.asJson
         )
 
     given Decoder[DependencyStatus[?]] = new Decoder[DependencyStatus[?]]:

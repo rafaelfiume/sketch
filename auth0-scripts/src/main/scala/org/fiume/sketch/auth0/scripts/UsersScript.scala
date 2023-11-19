@@ -11,7 +11,6 @@ import org.fiume.sketch.shared.app.troubleshooting.InvariantErrorSyntax.asDetail
 import org.fiume.sketch.shared.auth0.Passwords.PlainPassword
 import org.fiume.sketch.shared.auth0.User
 import org.fiume.sketch.shared.auth0.User.Username
-import org.fiume.sketch.shared.typeclasses.SemanticStringSyntax.asString
 import org.fiume.sketch.storage.DatabaseConfig
 import org.fiume.sketch.storage.auth0.postgres.PostgresUsersStore
 import org.fiume.sketch.storage.postgres.DbTransactor
@@ -28,7 +27,7 @@ object UsersScript extends IOApp:
           _.registreUser(username, password).as(ExitCode.Success)
         }
       case Left(invalidInput) =>
-        Console[IO].error(invalidInput.asString) *>
+        Console[IO].error(invalidInput.asString()) *>
           IO.pure(scriptErrorCode)
 
   def makeScript(): IO[UsersScript] =

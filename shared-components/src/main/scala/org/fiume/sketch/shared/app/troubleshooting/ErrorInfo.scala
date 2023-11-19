@@ -19,14 +19,15 @@ object ErrorInfo:
     def combine(x: ErrorDetails, y: ErrorDetails): ErrorDetails = ErrorDetails(x.tips.combine(y.tips))
 
   given AsString[ErrorInfo] = new AsString[ErrorInfo]:
-    override def asString(error: ErrorInfo): String =
-      val semanticErrorMessage = error.message.asString
-      error.details.fold(
-        ifEmpty = semanticErrorMessage
-      ) { details =>
-        s"""|${semanticErrorMessage}:
+    extension (error: ErrorInfo)
+      override def asString(): String =
+        val semanticErrorMessage = error.message.asString
+        error.details.fold(
+          ifEmpty = semanticErrorMessage
+        ) { details =>
+          s"""|${semanticErrorMessage}:
             |${details.asString}""".stripMargin
-      }
+        }
 
 object ErrorMessage:
   extension (msg: ErrorMessage) def asString: String = s"${msg.value}"

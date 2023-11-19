@@ -7,7 +7,6 @@ import io.gatling.http.Predef.{http, *}
 import org.fiume.sketch.acceptance.testkit.AuthenticationContext
 import org.fiume.sketch.shared.auth0.testkit.UserGens
 import org.fiume.sketch.shared.testkit.FileContentContext
-import org.fiume.sketch.shared.typeclasses.SemanticStringSyntax.asString
 
 import scala.concurrent.duration.*
 
@@ -16,7 +15,7 @@ class DocumentsSimulation extends Simulation with FileContentContext with Authen
   val docName = "Nicolas_e_Joana"
   val docDesc = "Meus amores <3"
   val pathToFile = "meus-fofinhos.jpg"
-  val owner = UserGens.userIds.sample.get.asString
+  val owner = UserGens.userIds.sample.get.asString()
   given IORuntime = IORuntime.global
   val bytes = bytesFrom[IO](pathToFile).compile.toVector.map(_.toArray).unsafeRunSync()
 
