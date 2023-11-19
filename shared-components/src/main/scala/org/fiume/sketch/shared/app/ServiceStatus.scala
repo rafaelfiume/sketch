@@ -4,7 +4,7 @@ import cats.Eq
 import cats.implicits.*
 import org.fiume.sketch.shared.app.ServiceStatus.{DependencyStatus, Status}
 import org.fiume.sketch.shared.app.algebras.Versions.Version
-import org.fiume.sketch.shared.typeclasses.{FromString, SemanticString}
+import org.fiume.sketch.shared.typeclasses.{AsString, FromString}
 
 sealed abstract case class ServiceStatus(version: Version, status: Status, dependencies: List[DependencyStatus[?]])
 
@@ -21,7 +21,7 @@ object ServiceStatus:
     case Degraded
 
   object Status:
-    given SemanticString[Status] = new SemanticString[Status]:
+    given AsString[Status] = new AsString[Status]:
       override def asString(value: Status): String = value.toString() // yolo
 
     given Eq[Status] = Eq.fromUniversalEquals
@@ -41,7 +41,7 @@ object ServiceStatus:
     val database: Database = new Database {}
     val profile: Profile = new Profile {}
 
-    given [T <: Dependency]: SemanticString[T] = new SemanticString[T]:
+    given [T <: Dependency]: AsString[T] = new AsString[T]:
       override def asString(value: T): String = value.name // yolo
 
     given FromString[String, Dependency] = new FromString[String, Dependency]:

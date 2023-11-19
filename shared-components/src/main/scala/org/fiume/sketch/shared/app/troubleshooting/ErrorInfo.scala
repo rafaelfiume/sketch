@@ -2,7 +2,7 @@ package org.fiume.sketch.shared.app.troubleshooting
 
 import cats.Semigroup
 import cats.implicits.*
-import org.fiume.sketch.shared.typeclasses.SemanticString
+import org.fiume.sketch.shared.typeclasses.AsString
 
 // Let's adopt a flat structure and shere it leads us
 case class ErrorInfo(message: ErrorMessage, details: Option[ErrorDetails])
@@ -18,7 +18,7 @@ object ErrorInfo:
   given Semigroup[ErrorDetails] = new Semigroup[ErrorDetails]:
     def combine(x: ErrorDetails, y: ErrorDetails): ErrorDetails = ErrorDetails(x.tips.combine(y.tips))
 
-  given SemanticString[ErrorInfo] = new SemanticString[ErrorInfo]:
+  given AsString[ErrorInfo] = new AsString[ErrorInfo]:
     override def asString(error: ErrorInfo): String =
       val semanticErrorMessage = error.message.asString
       error.details.fold(

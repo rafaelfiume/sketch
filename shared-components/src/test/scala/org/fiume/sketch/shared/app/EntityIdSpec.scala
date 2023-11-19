@@ -13,7 +13,7 @@ import java.util.UUID
 
 class EntityIdSpec extends ScalaCheckSuite with EntityIdSpecContext with ShrinkLowPriority:
 
-  test("SemanticString <-> FromString (isomorphism)"):
+  test("AsString <-> FromString (isomorphism)"):
     forAll { (id: OrderId) =>
       id.asString.parsed().rightValue === id
     }
