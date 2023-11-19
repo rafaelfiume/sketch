@@ -15,9 +15,8 @@ class ServiceStatusContractSpec extends CatsEffectSuite with ScalaCheckEffectSui
   test("bijective relationship between encoded and decoded ServiceStatus"):
     def samples =
       Gen.oneOf(
-        // TODO Define standard for path to the contract files
-        "contract/shared/app/http/servicestatus.faulty.json",
-        "contract/shared/app/http/servicestatus.healthy.json"
+        "contract/service-status/healthy.json",
+        "contract/service-status/faulty.json"
       )
     forAllF(samples) { sample =>
       assertBijectiveRelationshipBetweenEncoderAndDecoder[ServiceStatus](sample)

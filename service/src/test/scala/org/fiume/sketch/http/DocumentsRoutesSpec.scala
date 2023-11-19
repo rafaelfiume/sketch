@@ -242,17 +242,17 @@ class DocumentsRoutesSpec
 
   test("bijective relationship between encoded and decoded document MetadataRequestPayload"):
     assertBijectiveRelationshipBetweenEncoderAndDecoder[MetadataRequestPayload](
-      "contract/documents/document.metadata.request.json"
+      "contract/document/metadata.request.json"
     )
 
   test("bijective relationship between encoded and decoded DocumentResponsePayload"):
     assertBijectiveRelationshipBetweenEncoderAndDecoder[DocumentResponsePayload](
-      "contract/documents/document.response.json"
+      "contract/document/response.json"
     )
 
   test("bijective relationship between encoded and decoded DocumentIdResponsePayload"):
     assertBijectiveRelationshipBetweenEncoderAndDecoder[DocumentIdResponsePayload](
-      "contract/documents/document.uuid.response.json"
+      "contract/document/uuid.response.json"
     )
 
   test("validation accumulates") {
