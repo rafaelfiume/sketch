@@ -19,7 +19,7 @@ import org.fiume.sketch.http.DocumentsRoutes.{
   OwnerQueryParamMatcher
 }
 import org.fiume.sketch.http.DocumentsRoutes.Model.*
-import org.fiume.sketch.http.DocumentsRoutes.Model.Json.given
+import org.fiume.sketch.http.DocumentsRoutes.Model.json.given
 import org.fiume.sketch.shared.app.EntityId.given
 import org.fiume.sketch.shared.app.http4s.middlewares.SemanticInputError
 import org.fiume.sketch.shared.app.troubleshooting.ErrorDetails
@@ -208,7 +208,7 @@ private[http] object DocumentsRoutes:
             .map(_.body)
         }
 
-    object Json:
+    object json:
       given Encoder[Uri] = Encoder.encodeString.contramap(_.renderString)
       given Decoder[Uri] = Decoder.decodeString.emap { uri => Uri.fromString(uri).leftMap(_.getMessage) }
 

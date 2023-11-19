@@ -1,7 +1,7 @@
 package org.fiume.sketch.acceptance.testkit
 
 import cats.effect.IO
-import org.fiume.sketch.auth0.http.AuthRoutes.Model.Json.given
+import org.fiume.sketch.auth0.http.AuthRoutes.Model.json.given
 import org.fiume.sketch.auth0.http.AuthRoutes.Model.LoginResponsePayload
 import org.fiume.sketch.auth0.scripts.UsersScript.*
 import org.fiume.sketch.shared.auth0.Passwords.PlainPassword

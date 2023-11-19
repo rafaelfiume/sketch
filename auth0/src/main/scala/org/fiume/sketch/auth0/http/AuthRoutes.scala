@@ -5,7 +5,7 @@ import cats.implicits.*
 import org.fiume.sketch.auth0.Authenticator
 import org.fiume.sketch.auth0.http.AuthRoutes.*
 import org.fiume.sketch.auth0.http.AuthRoutes.Model.{LoginRequestPayload, LoginResponsePayload}
-import org.fiume.sketch.auth0.http.AuthRoutes.Model.Json.given
+import org.fiume.sketch.auth0.http.AuthRoutes.Model.json.given
 import org.fiume.sketch.shared.app.http4s.middlewares.SemanticInputError
 import org.fiume.sketch.shared.app.troubleshooting.{ErrorInfo, ErrorMessage}
 import org.fiume.sketch.shared.app.troubleshooting.ErrorInfo.given
@@ -58,7 +58,7 @@ object AuthRoutes:
             _.pure[F]
           )
 
-    object Json:
+    object json:
       import io.circe.{Decoder, Encoder, HCursor, Json as JJson}
       import io.circe.syntax.*
 

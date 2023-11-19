@@ -50,7 +50,6 @@ object ServiceStatus:
         case "profile"  => profile.asRight[String]
         case _          => s"unknown Dependency $value".asLeft[Dependency]
 
-  // experimental
   object json:
     import cats.implicits.*
     import io.circe.{Decoder, DecodingFailure, Encoder, HCursor, Json}
