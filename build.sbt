@@ -72,7 +72,7 @@ lazy val service =
      .dependsOn(sharedDomain % "compile->compile;test->test")
      .dependsOn(sharedTestComponents % Test)
      .dependsOn(storage)
-     .dependsOn(testContracts % Test)
+     .dependsOn(testContracts % "test->test")
      .enablePlugins(JavaAppPackaging)
      .disablePlugins(plugins.JUnitXmlReportPlugin) // see https://www.scala-sbt.org/1.x/docs/Testing.html
      .settings(commonSettings: _*)
@@ -135,7 +135,7 @@ lazy val sharedAuth0 =
 lazy val sharedComponents =
     project.in(file("shared-components"))
     .dependsOn(sharedTestComponents % Test)
-    .dependsOn(testContracts % Test)
+    .dependsOn(testContracts % "test->test")
     .disablePlugins(plugins.JUnitXmlReportPlugin)
     .settings(commonSettings: _*)
     .settings(
