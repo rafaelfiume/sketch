@@ -1,7 +1,13 @@
 
-***Secrets***
+## `dev` vs. `local` Environments
 
-Secrets shouldn't be stored in a GitHub repository even if they are for `dev` or `local` environments (i.e. workstation and release pipeline).
+Use `dev` when running the stack.
+Use `local` when triggering commands via scripts. For examples, see `acc-tests.sh`, `load-tests.sh`.
+
+## Secrets
+
+Secrets shouldn't be stored in a GitHub repository even if they are for `dev` or `local` environments
+(i.e. workstation and release pipeline).
 This is to decrease the possibility that secrets will eventually leak and pose a breach of security.
 
 This is the list of files or evironment vars that are expected in a `secrets` directory in order to run the stack:

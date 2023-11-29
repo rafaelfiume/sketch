@@ -2,8 +2,8 @@
 set -Eeuo pipefail
 
 #
-# Requires: `source "$utils_dir/logs.sh"`
-# Requires: `source "$utils_dir/std_sketch.sh"`
+# Requires: `source ${PROJECT_DIR}/tools/utilities/logs.sh`
+# Requires: `source ${PROJECT_DIR}/tools/utilities/std_sketch.sh`
 #
 
 function exit_if_sbt_is_not_installed() {
