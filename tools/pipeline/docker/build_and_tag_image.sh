@@ -16,11 +16,8 @@ function main() {
 
   exit_if_sbt_is_not_installed
 
-  if [ -z "${DOCKER_LOGIN:-}" ] || [ -z "${DOCKER_PWD:-}"]; then
-    load_env_vars "local"
-  fi
-
   sbt "service/docker:publishLocal"
+
   if [ "${CIRCLE_BRANCH:-}" = "main" ]; then
     login_to_docker_hub
     docker tag rafaelfiume/sketch:$VERSION rafaelfiume/sketch:stable
