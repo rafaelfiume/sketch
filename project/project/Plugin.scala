@@ -18,5 +18,5 @@ object Plugin {
   val SbtNativePackager     = "com.github.sbt"               %% "sbt-native-packager"         % Version.SbtNativePackager
   val Scalafix              = "ch.epfl.scala"                 % "sbt-scalafix"                % Version.Scalafix
   val ScalaFmt              = "org.scalameta"                 % "sbt-scalafmt"                % Version.ScalaFmt
-  val Tpolecat              = "org.typelevel"     % "sbt-tpolecat"                % Version.Tpolecat
+  val Tpolecat              = "org.typelevel"                 % "sbt-tpolecat"                % Version.Tpolecat
 }
