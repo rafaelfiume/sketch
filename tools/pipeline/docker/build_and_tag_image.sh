@@ -16,7 +16,9 @@ function main() {
 
   exit_if_sbt_is_not_installed
 
-  load_env_vars "local"
+  if [ -z "${DOCKER_LOGIN:-}" ] || [ -z "${DOCKER_PWD:-}"]; then
+    load_env_vars "local"
+  fi
 
   sbt "service/docker:publishLocal"
   if [ "${CIRCLE_BRANCH:-}" = "main" ]; then
