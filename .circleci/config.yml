@@ -52,18 +52,15 @@ jobs:
             source $BASH_ENV
 
       - run:
-          name: Build and tag docker image
+          name: Build docker image
           command: |
-            ./tools/pipeline/docker/build_and_tag_image.sh
+            sbt "service/docker:publishLocal"
+            ##./tools/pipeline/docker/build_and_tag_image.sh
 
       - run:
           name: Publish docker image
           command: |
-            docker push rafaelfiume/sketch:$VERSION
-            docker push rafaelfiume/sketch:latest
-            if [ "$CIRCLE_BRANCH" = "main" ]; then
-              docker push rafaelfiume/sketch:stable
-            fi
+            ./tools/pipeline/docker/publish_image.sh
 
       - run:
           name: Run acceptance tests
