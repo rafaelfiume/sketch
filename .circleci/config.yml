@@ -54,8 +54,7 @@ jobs:
       - run:
           name: Build docker image
           command: |
-            sbt "service/docker:publishLocal"
-            ##./tools/pipeline/docker/build_and_tag_image.sh
+            ./tools/pipeline/docker/build_and_tag_image.sh
 
       - run:
           name: Publish docker image
