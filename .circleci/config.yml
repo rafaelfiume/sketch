@@ -54,12 +54,12 @@ jobs:
       - run:
           name: Build and tag docker image
           command: |
-            ./tools/pipeline/docker/build_and_tag_image.sh
+            ./tools/pipeline/docker/build-and-tag-image.sh
 
       - run:
           name: Publish docker image
           command: |
-            ./tools/pipeline/docker/publish_image.sh
+            ./tools/pipeline/docker/publish-image.sh
 
       - run:
           name: Run acceptance tests
