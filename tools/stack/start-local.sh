@@ -53,7 +53,7 @@ parse_params() {
   return 0
 }
 
-function exit_with_error_if_service_fails_to_start() {
+exit_with_error_if_service_fails_to_start() {
   local status_endpoint=$1
   wait_till_next_try_in_sec=0.3
   max_tries=20
@@ -71,13 +71,13 @@ function exit_with_error_if_service_fails_to_start() {
   debug "$curl_output"
 }
 
-function write_container_logs_to_file() {
+write_container_logs_to_file() {
   local container_name=$1
   local log_file=$2
   docker-compose -f "$docker_compose_yml" logs "$container_name" > "$log_file"
 }
 
-function main() {
+main() {
   local script_dir=$(cd "$(dirname "${BASH_SOURCE[0]}")" &>/dev/null && pwd -P)
   local tools_dir=$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd -P)
   local environments_dir="$tools_dir/environments"

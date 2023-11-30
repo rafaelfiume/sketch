@@ -6,18 +6,17 @@ set -Eeuo pipefail
 # See https://circleci.com/docs/set-environment-variable/#encoding-multi-line-environment-variables
 # --wrap=0 requires brew install coreutils
 
-function generate_one_liner_private_and_public_keys() {
+generate_one_liner_private_and_public_keys() {
   local env_name="$1"
   local script_dir=$(cd "$(dirname "${BASH_SOURCE[0]}")" &>/dev/null && pwd -P)
   local tools_dir=$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd -P)
   local environments_dir="$tools_dir/environments"
   local utils_dir="$tools_dir/utilities"
-
   source "$utils_dir/std.sh"
   source "$utils_dir/logs.sh"
   source "$utils_dir/env-vars-loader.sh" # requires logs.sh
 
-  enable_trace_level # enable load_env_vars trace logs
+  enable_trace_level
   load_env_vars "$environments_dir" "$env_name"
 
   if [ -n "${PRIVATE_KEY:-}" ]; then
@@ -33,7 +32,7 @@ function generate_one_liner_private_and_public_keys() {
   fi
 }
 
-function main() {
+main() {
   generate_one_liner_private_and_public_keys dev
 }
 

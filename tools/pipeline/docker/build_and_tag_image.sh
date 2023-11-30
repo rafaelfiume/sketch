@@ -3,7 +3,6 @@
 set -Eeuo pipefail
 
 build_docker_image() {
-  # allow building the docker image locally
   # docker:publishLocal will also tag the docker image with 'version'
   sbt_subproject_run "service" "docker:publishLocal"
 }
