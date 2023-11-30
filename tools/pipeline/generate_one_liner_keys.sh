@@ -13,7 +13,7 @@ function generate_one_liner_private_and_public_keys() {
   local environments_dir="$tools_dir/environments"
   local utils_dir="$tools_dir/utilities"
 
-  source "$utils_dir/std_sketch.sh"
+  source "$utils_dir/std.sh"
   source "$utils_dir/logs.sh"
   source "$utils_dir/env-vars-loader.sh" # requires logs.sh
 

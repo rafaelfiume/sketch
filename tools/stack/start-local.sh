@@ -89,7 +89,7 @@ function main() {
   local database_log_file="$logs_dir/database.log"
 
   source "$utils_dir/logs.sh"
-  source "$utils_dir/std_sketch.sh"
+  source "$utils_dir/std.sh"
   source "$utils_dir/env-vars-loader.sh"
 
   parse_params "$@"

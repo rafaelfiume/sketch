@@ -3,12 +3,12 @@ set -Eeuo pipefail
 
 #
 # Requires: `source ${PROJECT_DIR}/tools/utilities/logs.sh`
-# Requires: `source ${PROJECT_DIR}/tools/utilities/std_sketch.sh`
+# Requires: `source ${PROJECT_DIR}/tools/utilities/std.sh`
 #
 
 function exit_if_sbt_is_not_installed() {
   if ! command -v sbt &> /dev/null; then
-    exit_with_error "Please install sbt to run this application"
+    exit_with_error "Please, install sbt to run this script."
   fi
 }
 
