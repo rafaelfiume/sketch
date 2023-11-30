@@ -11,7 +11,7 @@ function main() {
   source "$utils_dir/std_sketch.sh"
   source "$utils_dir/logs.sh"
   source "$utils_dir/sbt.sh"
-  source "$environments_dir/env-vars-loader.sh"
+  source "$utils_dir/env-vars-loader.sh"
   source "$utils_dir/docker.sh"
 
   exit_if_sbt_is_not_installed

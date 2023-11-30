@@ -13,16 +13,16 @@ set -Eeuo pipefail
 # See for instance `${PROJECT_DIR/tools/environments/dev}`.
 #
 function load_env_vars() {
-  local env_name="$1"
-  local script_dir=$(cd "$(dirname "${BASH_SOURCE[0]}")" &>/dev/null && pwd -P)
+  local env_dir_param="$1"
+  local env_name_param="$2"
 
-  is_environment_supported "$script_dir" "$env_name"
+  is_environment_supported "$env_dir_param" "$env_name_param"
 
   trace "Loading env vars..."
 
-  source_files "$script_dir/$env_name"/*.sh
-  source_files "$script_dir/$env_name/secrets"/*.sh
-  load_key_pair_from_pem_files_if_not_set "$script_dir" "$env_name"
+  source_files "$env_dir_param/$env_name_param"/*.sh
+  source_files "$env_dir_param/$env_name_param/secrets"/*.sh
+  load_key_pair_from_pem_files_if_not_set "$env_dir_param" "$env_name_param"
 }
 
 #

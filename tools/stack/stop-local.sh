@@ -38,16 +38,16 @@ function main() {
 
   local docker_compose_yml="$script_dir/docker-compose.yml"
 
-  source "$environments_dir/env-vars-loader.sh"
   source "$utils_dir/logs.sh"
   source "$utils_dir/std_sketch.sh"
+  source "$utils_dir/env-vars-loader.sh"
 
   parse_params "$@"
 
   # Loading env vars silences docker-compose warns, eg:
   # 'WARN[0000] The "SKETCH_IMAGE_TAG" variable is not set. Defaulting to a blank string.'
   export SKETCH_IMAGE_TAG=""
-  load_env_vars dev
+  load_env_vars "$environments_dir" dev
 
   info "Stopping sketch stack containers..."
   local command="docker-compose -f "$docker_compose_yml" stop >&2"

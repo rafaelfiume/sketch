@@ -12,11 +12,11 @@ function main() {
   source "$utils_dir/std_sketch.sh"
   source "$utils_dir/logs.sh"
   source "$utils_dir/sbt.sh"
-  source "$environments_dir/env-vars-loader.sh"
+  source "$utils_dir/env-vars-loader.sh"
 
   exit_if_sbt_is_not_installed
 
-  load_env_vars "local"
+  load_env_vars "$environments_dir" "local"
 
   info "Running sketch acceptance tests..."
 

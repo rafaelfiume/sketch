@@ -11,13 +11,21 @@ function main() {
   source "$utils_dir/std_sketch.sh"
   source "$utils_dir/logs.sh"
   source "$utils_dir/sbt.sh"
-  source "$environments_dir/env-vars-loader.sh"
+  source "$utils_dir/env-vars-loader.sh"
   source "$utils_dir/docker.sh"
 
   exit_if_sbt_is_not_installed
 
+  if [ -z "${DOCKER_LOGIN:-}" ] || [ -z "${DOCKER_PWD:-}" ]; then
+    info "\$DOCKER_LOGIN or \$DOCKER_PWD are undefined or empty, so script must be running locally."
+    load_env_vars "$environments_dir" "local"
+  fi
+
   login_to_docker_hub
 
+  # Check if docker is running
+  # Check stderr and stdout
+  # Move load-env-vars to utilities?
   docker push rafaelfiume/sketch:latest
   if [ -n ${VERSION:-} ]; then
     docker push rafaelfiume/sketch:$VERSION

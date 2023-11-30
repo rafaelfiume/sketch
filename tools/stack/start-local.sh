@@ -88,15 +88,15 @@ function main() {
   local sketch_log_file="$logs_dir/sketch.log"
   local database_log_file="$logs_dir/database.log"
 
-  source "$environments_dir/env-vars-loader.sh"
   source "$utils_dir/logs.sh"
   source "$utils_dir/std_sketch.sh"
+  source "$utils_dir/env-vars-loader.sh"
 
   parse_params "$@"
   export SKETCH_IMAGE_TAG="$sketch_image_tag"
   export VISUAL_SKETCH_IMAGE_TAG="$visual_sketch_image_tag"
 
-  load_env_vars dev
+  load_env_vars "$environments_dir" dev
 
   if [ -n "$container_for_removal" ]; then
     info "Removing container $container_for_removal..."
