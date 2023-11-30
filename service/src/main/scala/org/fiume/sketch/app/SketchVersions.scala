@@ -21,10 +21,10 @@ object SketchVersions:
         val lines = source.getLines().toSeq
         val build = lines.headOption
           .map(Build(_))
-          .getOrElse(throw new RuntimeException("No build number specified in 'sketch.version'"))
+          .getOrElse(throw new RuntimeException(s"No build number specified in '${versionFile.name}'"))
         val commit = lines.tail.headOption
           .map(Commit(_))
-          .getOrElse(throw new RuntimeException("No commit hash specified in 'sketch.version'"))
+          .getOrElse(throw new RuntimeException(s"No commit hash specified in '${versionFile.name}'"))
         (build, commit)
       }
       .map { (build, commit) =>

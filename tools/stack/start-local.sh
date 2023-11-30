@@ -53,7 +53,7 @@ parse_params() {
   return 0
 }
 
-function exit_with_error_if_service_fails_to_start() {
+exit_with_error_if_service_fails_to_start() {
   local status_endpoint=$1
   wait_till_next_try_in_sec=0.3
   max_tries=20
@@ -71,13 +71,13 @@ function exit_with_error_if_service_fails_to_start() {
   debug "$curl_output"
 }
 
-function write_container_logs_to_file() {
+write_container_logs_to_file() {
   local container_name=$1
   local log_file=$2
   docker-compose -f "$docker_compose_yml" logs "$container_name" > "$log_file"
 }
 
-function main() {
+main() {
   local script_dir=$(cd "$(dirname "${BASH_SOURCE[0]}")" &>/dev/null && pwd -P)
   local tools_dir=$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd -P)
   local environments_dir="$tools_dir/environments"
@@ -88,29 +88,25 @@ function main() {
   local sketch_log_file="$logs_dir/sketch.log"
   local database_log_file="$logs_dir/database.log"
 
-  source "$environments_dir/env-vars-loader.sh"
   source "$utils_dir/logs.sh"
-  source "$utils_dir/std_sketch.sh"
+  source "$utils_dir/std.sh"
+  source "$utils_dir/env-vars-loader.sh"
 
   parse_params "$@"
   export SKETCH_IMAGE_TAG="$sketch_image_tag"
   export VISUAL_SKETCH_IMAGE_TAG="$visual_sketch_image_tag"
 
-  load_env_vars dev
+  load_env_vars "$environments_dir" dev
 
   if [ -n "$container_for_removal" ]; then
     info "Removing container $container_for_removal..."
-    local remove_command="docker-compose -f $docker_compose_yml rm -v -s -f  $container_for_removal >&2"
-    debug "$ $remove_command"
-    eval "$remove_command"
+    run_command "docker-compose -f $docker_compose_yml rm -v -s -f  $container_for_removal >&2"
   fi
 
   info "Starting containers with sketch tag '$SKETCH_IMAGE_TAG'..."
-  local command="docker-compose \
+  run_command "docker-compose \
     -f "$docker_compose_yml" \
     up --remove-orphans "$pull_latest_images" --detach >&2"
-  debug "$ $command"
-  eval "$command"
 
   info "Checking 'sketch:$SKETCH_IMAGE_TAG' is healthy..."
   exit_with_error_if_service_fails_to_start "http://localhost:8080/status"

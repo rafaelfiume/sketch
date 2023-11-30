@@ -30,30 +30,25 @@ parse_params() {
   return 0
 }
 
-function main() {
+main() {
   local script_dir=$(cd "$(dirname "${BASH_SOURCE[0]}")" &>/dev/null && pwd -P)
   local tools_dir=$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd -P)
   local utils_dir="$tools_dir/utilities"
   local environments_dir="$tools_dir/environments"
-
   local docker_compose_yml="$script_dir/docker-compose.yml"
-
-  source "$environments_dir/env-vars-loader.sh"
   source "$utils_dir/logs.sh"
-  source "$utils_dir/std_sketch.sh"
+  source "$utils_dir/std.sh"
+  source "$utils_dir/env-vars-loader.sh"
 
   parse_params "$@"
 
   # Loading env vars silences docker-compose warns, eg:
   # 'WARN[0000] The "SKETCH_IMAGE_TAG" variable is not set. Defaulting to a blank string.'
   export SKETCH_IMAGE_TAG=""
-  load_env_vars dev
+  load_env_vars "$environments_dir" dev
 
   info "Stopping sketch stack containers..."
-  local command="docker-compose -f "$docker_compose_yml" stop >&2"
-  debug "$ $command"
-  eval "$command"
-
+  run_command "docker-compose -f "$docker_compose_yml" stop >&2"
   info "Services have stopped successfully. Have a good day!"
 }
 

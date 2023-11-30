@@ -4,7 +4,7 @@ set -Eeuo pipefail
 
 #
 # Requires: `source ${PROJECT_DIR}/tools/utilities/logs.sh`
-# Requires: `source "$utils_dir/std_sketch.sh"`
+# Requires: `source ${PROJECT_DIR}/tools/utilities/std.sh`
 #
 
 #
@@ -12,23 +12,23 @@ set -Eeuo pipefail
 #
 # See for instance `${PROJECT_DIR/tools/environments/dev}`.
 #
-function load_env_vars() {
-  local env_name="$1"
-  local script_dir=$(cd "$(dirname "${BASH_SOURCE[0]}")" &>/dev/null && pwd -P)
+load_env_vars() {
+  local env_dir_param="$1"
+  local env_name_param="$2"
 
-  is_environment_supported "$script_dir" "$env_name"
+  is_environment_supported "$env_dir_param" "$env_name_param"
 
   trace "Loading env vars..."
 
-  source_files "$script_dir/$env_name"/*.sh
-  source_files "$script_dir/$env_name/secrets"/*.sh
-  load_key_pair_from_pem_files_if_not_set "$script_dir" "$env_name"
+  source_files "$env_dir_param/$env_name_param"/*.sh
+  source_files "$env_dir_param/$env_name_param/secrets"/*.sh
+  load_key_pair_from_pem_files_if_not_set "$env_dir_param" "$env_name_param"
 }
 
 #
 # Private function
 #
-function is_environment_supported() {
+is_environment_supported() {
   local environments_dir="$1"
   local target_environment="$2"
 
@@ -58,7 +58,7 @@ function is_environment_supported() {
 # Private function: load PRIVATE_KEY and PUBLIC_KEY environment variables from pem files if they are not already set,
 # which is convenient when running the stack in a developer workstation.
 #
-function load_key_pair_from_pem_files_if_not_set() {
+load_key_pair_from_pem_files_if_not_set() {
   local environments_dir="$1"
   local env_name="$2"
 
@@ -81,7 +81,7 @@ function load_key_pair_from_pem_files_if_not_set() {
 #
 # Private function: source files that matches a certain pattern.
 #
-function source_files() {
+source_files() {
   local path_to_files="$1"
   for file in "$path_to_files"; do
     if [ -f "$file" ]; then

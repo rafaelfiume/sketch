@@ -54,20 +54,12 @@ jobs:
       - run:
           name: Build and tag docker image
           command: |
-            echo $DOCKER_PWD | docker login -u $DOCKER_LOGIN --password-stdin
-            sbt "service/docker:publishLocal"
-            if [ "$CIRCLE_BRANCH" = "main" ]; then
-              docker tag rafaelfiume/sketch:$VERSION rafaelfiume/sketch:stable
-            fi
+            ./tools/pipeline/docker/build_and_tag_image.sh
 
       - run:
           name: Publish docker image
           command: |
-            docker push rafaelfiume/sketch:$VERSION
-            docker push rafaelfiume/sketch:latest
-            if [ "$CIRCLE_BRANCH" = "main" ]; then
-              docker push rafaelfiume/sketch:stable
-            fi
+            ./tools/pipeline/docker/publish_image.sh
 
       - run:
           name: Run acceptance tests

@@ -10,13 +10,13 @@ function main() {
   local output_file_dir="$script_dir/data"
 
   source "$utils_dir/logs.sh"
-  source "$environments_dir/env-vars-loader.sh"
+  source "$utils_dir/env-vars-loader.sh"
 
   local env_name="local"
   local table="auth.users"
   local output_file="$output_file_dir/users_data.sql"
 
-  load_env_vars "$env_name"
+  load_env_vars "$environments_dir" "$env_name"
 
   mkdir -p "$output_file_dir"
 

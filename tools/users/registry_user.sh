@@ -57,9 +57,9 @@ function main() {
   local utils_dir="$tools_dir/utilities"
 
   source "$utils_dir/logs.sh"
-  source "$utils_dir/std_sketch.sh"
+  source "$utils_dir/std.sh"
   source "$utils_dir/sbt.sh"
-  source "$environments_dir/env-vars-loader.sh"
+  source "$utils_dir/env-vars-loader.sh"
 
   exit_if_sbt_is_not_installed
 
@@ -67,7 +67,7 @@ function main() {
 
   info "Setting up user '$username' against '$env_name' environment..."
 
-  load_env_vars "$env_name"
+  load_env_vars "$environments_dir" "$env_name"
 
   local app_name="org.fiume.sketch.auth0.scripts.UsersScript"
   sbt_subproject_run_main "auth0Scripts" "$app_name" "$username" "$password"
