@@ -10,3 +10,10 @@ exit_with_error() {
   error "$msg"
   exit "$code"
 }
+
+run_command() {
+  local command=$1
+
+  debug "$ $command"
+  eval "$command >&2"
+}

@@ -1,5 +1,14 @@
 # Release Guidelines
 
+Solid engineering practices aim for:
+ * Determinism: same actions, same results
+ * Specification: straightforward to learn, and reduced or no ambiguities
+ * Speed: the quickest we do our job, the faster we can are free to focus on the other things that matter to us
+ * Correction: preventing repetitive, boring manual tasks which are error prone
+ * Criativity: save mental energy for non-repetitive interesting tasks.
+
+A solid release pipeline will point us towards the above essential properties above.
+
 ## App Semantic Versioning Rules
 
 App Version should conform to the following rules:

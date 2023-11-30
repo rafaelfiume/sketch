@@ -100,17 +100,13 @@ function main() {
 
   if [ -n "$container_for_removal" ]; then
     info "Removing container $container_for_removal..."
-    local remove_command="docker-compose -f $docker_compose_yml rm -v -s -f  $container_for_removal >&2"
-    debug "$ $remove_command"
-    eval "$remove_command"
+    run_command "docker-compose -f $docker_compose_yml rm -v -s -f  $container_for_removal >&2"
   fi
 
   info "Starting containers with sketch tag '$SKETCH_IMAGE_TAG'..."
-  local command="docker-compose \
+  run_command "docker-compose \
     -f "$docker_compose_yml" \
     up --remove-orphans "$pull_latest_images" --detach >&2"
-  debug "$ $command"
-  eval "$command"
 
   info "Checking 'sketch:$SKETCH_IMAGE_TAG' is healthy..."
   exit_with_error_if_service_fails_to_start "http://localhost:8080/status"

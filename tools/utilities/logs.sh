@@ -36,6 +36,10 @@ info() {
   echo >&2 -e "${GREEN}> ${1-}${NOFORMAT}"
 }
 
+warn() {
+  echo >&2 -e "${ORANGE}> ${1-}${NOFORMAT}"
+}
+
 error() {
   echo >&2 -e "${RED}> ${1-}${NOFORMAT}"
 }
