@@ -18,11 +18,8 @@ function main() {
 
   sbt "service/docker:publishLocal"
 
-  login_to_docker_hub
-
-  docker tag rafaelfiume/sketch:$VERSION
-  if [ "${CIRCLE_BRANCH:-}" = "main" ]; then
-    docker tag rafaelfiume/sketch:stable
+  if [ "${CIRCLE_BRANCH:-}" = "main" ] && [ -n "${VERSION:-}" ]; then
+    docker tag rafaelfiume/sketch:$VERSION rafaelfiume/sketch:stable
   fi
 }
 

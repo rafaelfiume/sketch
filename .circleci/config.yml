@@ -52,7 +52,7 @@ jobs:
             source $BASH_ENV
 
       - run:
-          name: Build docker image
+          name: Build and tag docker image
           command: |
             ./tools/pipeline/docker/build_and_tag_image.sh
 

@@ -18,8 +18,10 @@ function main() {
 
   login_to_docker_hub
 
-  docker push rafaelfiume/sketch:$VERSION
   docker push rafaelfiume/sketch:latest
+  if [ -n ${VERSION:-} ]; then
+    docker push rafaelfiume/sketch:$VERSION
+  fi
   if [ "$CIRCLE_BRANCH" = "main" ]; then
     docker push rafaelfiume/sketch:stable
   fi
