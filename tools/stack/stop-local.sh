@@ -43,8 +43,11 @@ main() {
   parse_params "$@"
 
   # Loading env vars silences docker-compose warns, eg:
-  # 'WARN[0000] The "SKETCH_IMAGE_TAG" variable is not set. Defaulting to a blank string.'
+  # 'WARN[0000] The "PRIVATE_KEY" variable is not set. Defaulting to a blank string.'
+  export PRIVATE_KEY=""
+  export PUBLIC_KEY=""
   export SKETCH_IMAGE_TAG=""
+  export VISUAL_SKETCH_IMAGE_TAG=""
   load_env_vars "$environments_dir" dev
 
   info "Stopping sketch stack containers..."

@@ -91,12 +91,14 @@ main() {
   source "$utils_dir/logs.sh"
   source "$utils_dir/std.sh"
   source "$utils_dir/env-vars-loader.sh"
+  source "$environments_dir/load_key_pair.sh"
 
   parse_params "$@"
   export SKETCH_IMAGE_TAG="$sketch_image_tag"
   export VISUAL_SKETCH_IMAGE_TAG="$visual_sketch_image_tag"
 
   load_env_vars "$environments_dir" dev
+  load_key_pair_from_pem_files_if_not_set "$environments_dir" dev
 
   if [ -n "$container_for_removal" ]; then
     info "Removing container $container_for_removal..."

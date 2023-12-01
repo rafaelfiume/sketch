@@ -14,10 +14,10 @@ generate_one_liner_private_and_public_keys() {
   local utils_dir="$tools_dir/utilities"
   source "$utils_dir/std.sh"
   source "$utils_dir/logs.sh"
-  source "$utils_dir/env-vars-loader.sh" # requires logs.sh
+  source "$environments_dir/load_key_pair.sh" # requires logs.sh
 
   enable_trace_level
-  load_env_vars "$environments_dir" "$env_name"
+  load_key_pair_from_pem_files_if_not_set "$environments_dir" "$env_name"
 
   if [ -n "${PRIVATE_KEY:-}" ]; then
     info "base64 PRIVATE_KEY:\n$(echo "$PRIVATE_KEY" | base64 --wrap=0)"
