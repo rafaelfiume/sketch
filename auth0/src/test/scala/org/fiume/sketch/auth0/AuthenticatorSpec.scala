@@ -37,7 +37,7 @@ class AuthenticatorSpec
 
   Security.addProvider(new BouncyCastleProvider())
 
-  test("authentication succeds with valid credentials"):
+  test("valid username and password authentication results in a jwt token representing the user"):
     forAllF(validCredentialsWithIdAndPlainPassword, ecKeyPairs, shortDurations) {
       case ((credentials, plainPassword), (privateKey, publicKey), expirationOffset) =>
         for
@@ -51,7 +51,7 @@ class AuthenticatorSpec
         yield ()
     }
 
-  test("authentication fails with wrong password"):
+  test("wrong password authentication fails"):
     forAllF(validCredentialsWithIdAndPlainPassword, ecKeyPairs, shortDurations) {
       case ((credentials, plainPassword), (privateKey, publicKey), expirationOffset) =>
         for
@@ -64,7 +64,7 @@ class AuthenticatorSpec
         yield ()
     }
 
-  test("authentication fails with unknown username"):
+  test("unknown username authentication fails"):
     forAllF(validCredentialsWithIdAndPlainPassword, ecKeyPairs, shortDurations) {
       case ((credentials, plainPassword), (privateKey, publicKey), expirationOffset) =>
         for
@@ -77,7 +77,7 @@ class AuthenticatorSpec
         yield ()
     }
 
-  test("verification fails with expired token"):
+  test("expired token verification fails"):
     forAllF(validCredentialsWithIdAndPlainPassword, ecKeyPairs, shortDurations) {
       case ((credentials, plainPassword), (privateKey, publicKey), expirationOffset) =>
         given Clock[IO] = makeFrozenTime(ZonedDateTime.now().minusSeconds(expirationOffset.toSeconds))
@@ -93,7 +93,7 @@ class AuthenticatorSpec
         yield ()
     }
 
-  test("verification fails with tampered token"):
+  test("tampered token verification fails"):
     forAllF(validCredentialsWithIdAndPlainPassword, ecKeyPairs, shortDurations) {
       case ((credentials, plainPassword), (privateKey, publicKey), expirationOffset) =>
         for
@@ -111,7 +111,7 @@ class AuthenticatorSpec
         yield ()
     }
 
-  test("verification fails with invalid token"):
+  test("invalid token verification fails"):
     forAllF(validCredentialsWithIdAndPlainPassword, ecKeyPairs, shortDurations) {
       case ((credentials, plainPassword), (privateKey, publicKey), expirationOffset) =>
         for
@@ -126,7 +126,7 @@ class AuthenticatorSpec
         yield ()
     }
 
-  test("verification fails with invalid public key"):
+  test("token verification with invalid public key fails"):
     forAllF(validCredentialsWithIdAndPlainPassword, ecKeyPairs, ecKeyPairs, shortDurations) {
       case ((credentials, plainPassword), (privateKey, _), (_, strangePublicKey), expirationOffset) =>
         for
