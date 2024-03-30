@@ -37,7 +37,7 @@ class AuthenticatorSpec
 
   Security.addProvider(new BouncyCastleProvider())
 
-  test("authentication succeds with valid password"):
+  test("authentication succeds with valid credentials"):
     forAllF(validCredentialsWithIdAndPlainPassword, ecKeyPairs, shortDurations) {
       case ((credentials, plainPassword), (privateKey, publicKey), expirationOffset) =>
         for
@@ -64,7 +64,7 @@ class AuthenticatorSpec
         yield ()
     }
 
-  test("authentication fails for unknown username"):
+  test("authentication fails with unknown username"):
     forAllF(validCredentialsWithIdAndPlainPassword, ecKeyPairs, shortDurations) {
       case ((credentials, plainPassword), (privateKey, publicKey), expirationOffset) =>
         for
@@ -77,7 +77,7 @@ class AuthenticatorSpec
         yield ()
     }
 
-  test("expired token is rejected"):
+  test("verification fails with expired token"):
     forAllF(validCredentialsWithIdAndPlainPassword, ecKeyPairs, shortDurations) {
       case ((credentials, plainPassword), (privateKey, publicKey), expirationOffset) =>
         given Clock[IO] = makeFrozenTime(ZonedDateTime.now().minusSeconds(expirationOffset.toSeconds))
@@ -93,7 +93,7 @@ class AuthenticatorSpec
         yield ()
     }
 
-  test("tampered token is rejected"):
+  test("verification fails with tampered token"):
     forAllF(validCredentialsWithIdAndPlainPassword, ecKeyPairs, shortDurations) {
       case ((credentials, plainPassword), (privateKey, publicKey), expirationOffset) =>
         for
@@ -111,7 +111,7 @@ class AuthenticatorSpec
         yield ()
     }
 
-  test("invalid token is rejected"):
+  test("verification fails with invalid token"):
     forAllF(validCredentialsWithIdAndPlainPassword, ecKeyPairs, shortDurations) {
       case ((credentials, plainPassword), (privateKey, publicKey), expirationOffset) =>
         for
@@ -126,7 +126,7 @@ class AuthenticatorSpec
         yield ()
     }
 
-  test("token verification fails with invalid public key"):
+  test("verification fails with invalid public key"):
     forAllF(validCredentialsWithIdAndPlainPassword, ecKeyPairs, ecKeyPairs, shortDurations) {
       case ((credentials, plainPassword), (privateKey, _), (_, strangePublicKey), expirationOffset) =>
         for
