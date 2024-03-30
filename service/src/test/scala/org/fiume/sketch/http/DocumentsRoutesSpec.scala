@@ -71,7 +71,7 @@ class DocumentsRoutesSpec
       yield ()
     }
 
-  test("retrieves document metadata"):
+  test("retrieves metadata of stored document"):
     forAllF { (document: DocumentWithIdAndStream[IO]) =>
       val request = GET(Uri.unsafeFromString(s"/documents/${document.uuid.value}/metadata"))
       for
@@ -89,7 +89,7 @@ class DocumentsRoutesSpec
       yield ()
     }
 
-  test("retrieves document content"):
+  test("retrieves content bytes of stored document"):
     forAllF { (document: DocumentWithIdAndStream[IO]) =>
       val request = GET(Uri.unsafeFromString(s"/documents/${document.uuid.value}"))
       for
@@ -109,7 +109,7 @@ class DocumentsRoutesSpec
       yield ()
     }
 
-  test("retrieves document by author"):
+  test("retrieves document metadata by author"):
     forAllF { (fstDoc: DocumentWithIdAndStream[IO], sndDoc: DocumentWithIdAndStream[IO]) =>
       val request = GET(Uri.unsafeFromString(s"/documents?author=${sndDoc.metadata.author.asString()}"))
       for
@@ -130,7 +130,7 @@ class DocumentsRoutesSpec
       yield ()
     }
 
-  test("retrieves document by owner"):
+  test("retrieves document metadata by owner"):
     forAllF { (fstDoc: DocumentWithIdAndStream[IO], sndDoc: DocumentWithIdAndStream[IO]) =>
       val request = GET(Uri.unsafeFromString(s"/documents?owner=${sndDoc.metadata.owner.asString()}"))
       for
@@ -150,7 +150,7 @@ class DocumentsRoutesSpec
         }
       yield ()
     }
-  test("deletes document"):
+  test("deletes stored document"):
     forAllF { (document: DocumentWithIdAndStream[IO]) =>
       val request = DELETE(Uri.unsafeFromString(s"/documents/${document.uuid.value}"))
       for

@@ -23,7 +23,7 @@ class ProfileHealthCheckSpec extends CatsEffectSuite with ProfileHealthCheckSpec
     ("faulty"   , faulty ,     Status.Degraded)
     // format: on
   ).foreach { (label, statusResponse, expectedStatus) =>
-    test(s"dependency status is $label when profile service is $label") {
+    test(s"dependency status is $expectedStatus when profile service is $label") {
       profileStatusIs(statusResponse)
         .flatMap { port => ProfileHealthCheck.make[IO](config = ProfileClientConfig(localhost, port)) }
         .use { healthCheck =>
@@ -33,7 +33,7 @@ class ProfileHealthCheckSpec extends CatsEffectSuite with ProfileHealthCheckSpec
     }
   }
 
-  test("dependency status is degraded when profile service is erroing"):
+  test("dependency status is Degraded when profile service is erroing"):
     profileStatusInWeirdState()
       .flatMap { port => ProfileHealthCheck.make[IO](config = ProfileClientConfig(localhost, port)) }
       .use { healthCheck =>
@@ -41,7 +41,7 @@ class ProfileHealthCheckSpec extends CatsEffectSuite with ProfileHealthCheckSpec
         yield assertEquals(result, DependencyStatus(profile, Status.Degraded))
       }
 
-  test("dependency status is degraded when profile service is down"):
+  test("dependency status is Degraded when profile service is down"):
     ProfileHealthCheck
       .make[IO](config = ProfileClientConfig(localhost, port"3030"))
       .use { healthCheck =>
