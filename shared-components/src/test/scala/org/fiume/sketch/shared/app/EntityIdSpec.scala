@@ -11,7 +11,7 @@ import java.util.UUID
 
 class EntityIdSpec extends ScalaCheckSuite with EntityIdSpecContext with ShrinkLowPriority:
 
-  test("AsString and FromString are isomorphic"):
+  test("AsString and FromString form an isomorphism"):
     forAll { (id: OrderId) =>
       id.asString().parsed().rightValue === id
     }

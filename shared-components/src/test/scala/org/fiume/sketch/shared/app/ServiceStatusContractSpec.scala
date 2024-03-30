@@ -11,7 +11,7 @@ class ServiceStatusContractSpec extends CatsEffectSuite with ScalaCheckEffectSui
 
   override def scalaCheckTestParameters = super.scalaCheckTestParameters.withMinSuccessfulTests(1)
 
-  test("ServiceStatus encode and decode have a bijective relationship"):
+  test("ServiceStatus encode and decode form a bijective relationship"):
     def samples =
       Gen.oneOf(
         "service-status/healthy.json",
