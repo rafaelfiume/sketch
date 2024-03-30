@@ -33,11 +33,8 @@ class PostgresUsersStoreSpec
             uuid <- store.store(credentials).ccommit
 
             result <- store.fetchUser(uuid).ccommit
-
-            _ <- IO {
-              assertEquals(result, User(uuid, credentials.username).some)
-            }
-          yield ()
+//
+          yield assertEquals(result, User(uuid, credentials.username).some)
         }
       }
     }
@@ -50,11 +47,8 @@ class PostgresUsersStoreSpec
             uuid <- store.store(credentials).ccommit
 
             result <- store.fetchCredentials(credentials.username).ccommit
-
-            _ <- IO {
-              assertEquals(result, UserCredentials.withUuid(uuid, credentials).some)
-            }
-          yield ()
+//
+          yield assertEquals(result, UserCredentials.withUuid(uuid, credentials).some)
         }
       }
     }
@@ -69,10 +63,7 @@ class PostgresUsersStoreSpec
             _ <- store.updatePassword(uuid, newPassword).ccommit
 
             result <- store.fetchPassword(uuid).ccommit
-            _ <- IO {
-              assertEquals(result, newPassword)
-            }
-          yield ()
+          yield assertEquals(result, newPassword)
         }
       }
     }
@@ -107,11 +98,8 @@ class PostgresUsersStoreSpec
 
             createdAt <- store.fetchCreatedAt(uuid).ccommit
             updatedAt <- store.fetchUpdatedAt(uuid).ccommit
-
-            _ <- IO {
-              assertEquals(createdAt, updatedAt)
-            }
-          yield ()
+//
+          yield assertEquals(createdAt, updatedAt)
         }
       }
     }
@@ -127,13 +115,10 @@ class PostgresUsersStoreSpec
 
             createdAt <- store.fetchCreatedAt(uuid).ccommit
             updatedAt <- store.fetchUpdatedAt(uuid).ccommit
-            _ <- IO {
-              assert(
-                updatedAt.isAfter(createdAt),
-                clue = s"updatedAt=${updatedAt} should be after createdAt=${createdAt}"
-              )
-            }
-          yield ()
+          yield assert(
+            updatedAt.isAfter(createdAt),
+            clue = s"updatedAt=${updatedAt} should be after createdAt=${createdAt}"
+          )
         }
       }
     }

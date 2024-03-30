@@ -27,9 +27,8 @@ class JwtTokenSpec extends CatsEffectSuite with ScalaCheckEffectSuite with Clock
         jwtToken <- JwtToken.makeJwtToken[IO](privateKey, user, expirationOffset)
 
         result = JwtToken.verifyJwtToken(jwtToken, publicKey)
-
-        _ <- IO { assertEquals(result.rightValue, user) }
-      yield ()
+//
+      yield assertEquals(result.rightValue, user)
     }
 
   test("invalid jwt verification fails"):

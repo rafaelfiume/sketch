@@ -34,11 +34,8 @@ class PostgresDocumentsStoreSpec
             uuid <- store.store(document).ccommit
 
             result <- store.fetchDocument(uuid).ccommit
-
-            _ <- IO {
-              assertEquals(result, document.some)
-            }
-          yield ()
+//
+          yield assertEquals(result, document.some)
         }
       }
     }
@@ -53,10 +50,7 @@ class PostgresDocumentsStoreSpec
             result <- OptionT(store.documentStream(uuid).ccommit).semiflatMap(_.compile.toList).value
 
             bytes <- document.stream.compile.toList
-            _ <- IO {
-              assertEquals(result, bytes.some)
-            }
-          yield ()
+          yield assertEquals(result, bytes.some)
         }
       }
     }
@@ -70,11 +64,8 @@ class PostgresDocumentsStoreSpec
             sndUuid <- store.store(sndDoc).ccommit
 
             result <- store.fetchByAuthor(fstDoc.metadata.author).compile.toList
-
-            _ <- IO {
-              assertEquals(result, List(fstDoc.withUuid(fstUuid)))
-            }
-          yield ()
+//
+          yield assertEquals(result, List(fstDoc.withUuid(fstUuid)))
         }
       }
     }
@@ -88,11 +79,8 @@ class PostgresDocumentsStoreSpec
             sndUuid <- store.store(sndDoc).ccommit
 
             result <- store.fetchByOwner(sndDoc.metadata.owner).compile.toList
-
-            _ <- IO {
-              assertEquals(result, List(sndDoc.withUuid(sndUuid)))
-            }
-          yield ()
+//
+          yield assertEquals(result, List(sndDoc.withUuid(sndUuid)))
         }
       }
     }
@@ -135,11 +123,8 @@ class PostgresDocumentsStoreSpec
 
             createdAt <- store.fetchCreatedAt(uuid).ccommit
             updatedAt <- store.fetchUpdatedAt(uuid).ccommit
-
-            _ <- IO {
-              assertEquals(createdAt, updatedAt)
-            }
-          yield ()
+//
+          yield assertEquals(createdAt, updatedAt)
         }
       }
     }

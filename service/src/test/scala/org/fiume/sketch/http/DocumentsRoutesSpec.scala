@@ -65,10 +65,7 @@ class DocumentsRoutesSpec
 
         createdDocId = result.as[DocumentIdResponsePayload].rightValue
         stored <- store.fetchDocument(createdDocId.value)
-        _ <- IO {
-          assert(stored.isDefined, clue = stored)
-        }
-      yield ()
+      yield assert(stored.isDefined, clue = stored)
     }
 
   test("retrieves metadata of stored document"):
@@ -82,11 +79,8 @@ class DocumentsRoutesSpec
         result <- send(request)
           .to(documentsRoutes.router())
           .expectJsonResponseWith(Status.Ok)
-
-        _ <- IO {
-          assertEquals(result.as[DocumentResponsePayload].rightValue, document.asResponsePayload)
-        }
-      yield ()
+//
+      yield assertEquals(result.as[DocumentResponsePayload].rightValue, document.asResponsePayload)
     }
 
   test("retrieves content bytes of stored document"):
@@ -103,10 +97,7 @@ class DocumentsRoutesSpec
 
         obtainedStream <- result.compile.toList
         expectedStream <- document.stream.compile.toList
-        _ <- IO {
-          assertEquals(obtainedStream, expectedStream)
-        }
-      yield ()
+      yield assertEquals(obtainedStream, expectedStream)
     }
 
   test("retrieves document metadata by author"):
@@ -120,14 +111,11 @@ class DocumentsRoutesSpec
         result <- send(request)
           .to(documentsRoutes.router())
           .expectJsonResponseWith(Status.Ok)
-
-        _ <- IO {
-          assertEquals(
-            result.as[DocumentResponsePayload].rightValue,
-            sndDoc.asResponsePayload
-          )
-        }
-      yield ()
+//
+      yield assertEquals(
+        result.as[DocumentResponsePayload].rightValue,
+        sndDoc.asResponsePayload
+      )
     }
 
   test("retrieves document metadata by owner"):
@@ -141,14 +129,11 @@ class DocumentsRoutesSpec
         result <- send(request)
           .to(documentsRoutes.router())
           .expectJsonResponseWith(Status.Ok)
-
-        _ <- IO {
-          assertEquals(
-            result.as[DocumentResponsePayload].rightValue,
-            sndDoc.asResponsePayload
-          )
-        }
-      yield ()
+//
+      yield assertEquals(
+        result.as[DocumentResponsePayload].rightValue,
+        sndDoc.asResponsePayload
+      )
     }
   test("deletes stored document"):
     forAllF { (document: DocumentWithIdAndStream[IO]) =>
@@ -253,16 +238,11 @@ class DocumentsRoutesSpec
     // no metadata part / no bytes part
     val noMultiparts = Multipart[IO](parts = Vector.empty, boundary = Boundary("boundary"))
     val author = userIds.sample.get
-    for
-      inputErrors <- noMultiparts.validated(author).attempt.map(_.leftValue)
-
-      _ <- IO {
-        assert(
-          inputErrors.asInstanceOf[SemanticInputError].details.tips.size === 2,
-          clue = inputErrors
-        )
-      }
-    yield ()
+    for inputErrors <- noMultiparts.validated(author).attempt.map(_.leftValue)
+    yield assert(
+      inputErrors.asInstanceOf[SemanticInputError].details.tips.size === 2,
+      clue = inputErrors
+    )
 
   }
 

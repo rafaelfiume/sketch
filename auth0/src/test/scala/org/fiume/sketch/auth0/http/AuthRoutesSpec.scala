@@ -52,14 +52,11 @@ class AuthRoutesSpec
         jsonResponse <- send(request)
           .to(new AuthRoutes[IO](authenticator).router())
           .expectJsonResponseWith(Status.Ok)
-
-        _ <- IO {
-          assertEquals(
-            jsonResponse.as[LoginResponsePayload].map(_.token).rightValue,
-            jwtToken.value
-          )
-        }
-      yield ()
+//
+      yield assertEquals(
+        jsonResponse.as[LoginResponsePayload].map(_.token).rightValue,
+        jwtToken.value
+      )
     }
 
   test("login with wrong password fails with 401 Unauthorized status"):
@@ -77,16 +74,13 @@ class AuthRoutesSpec
         jsonResponse <- send(request)
           .to(new AuthRoutes[IO](authenticator).router())
           .expectJsonResponseWith(Status.Unauthorized)
-
-        _ <- IO {
-          assertEquals(
-            jsonResponse.as[ErrorInfo].rightValue,
-            ErrorInfo.short(
-              message = ErrorMessage("The username or password provided is incorrect.")
-            )
-          )
-        }
-      yield ()
+//
+      yield assertEquals(
+        jsonResponse.as[ErrorInfo].rightValue,
+        ErrorInfo.short(
+          message = ErrorMessage("The username or password provided is incorrect.")
+        )
+      )
     }
 
   test("login with unknown username fails with 401 Unauthorized status"):
@@ -104,16 +98,13 @@ class AuthRoutesSpec
         jsonResponse <- send(request)
           .to(new AuthRoutes[IO](authenticator).router())
           .expectJsonResponseWith(Status.Unauthorized)
-
-        _ <- IO {
-          assertEquals(
-            jsonResponse.as[ErrorInfo].rightValue,
-            ErrorInfo.short(
-              message = ErrorMessage("The username or password provided is incorrect.")
-            )
-          )
-        }
-      yield ()
+//
+      yield assertEquals(
+        jsonResponse.as[ErrorInfo].rightValue,
+        ErrorInfo.short(
+          message = ErrorMessage("The username or password provided is incorrect.")
+        )
+      )
     }
 
   test("login with semantically invalid username or password fails with 422 Unprocessable Entity"):

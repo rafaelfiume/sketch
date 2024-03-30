@@ -47,8 +47,7 @@ class AuthenticatorSpec
           result <- authenticator.authenticate(credentials.username, plainPassword).map(_.rightValue)
 
           user = authenticator.verify(result)
-          _ <- IO { assertEquals(user.rightValue, User(credentials.uuid, credentials.username)) }
-        yield ()
+        yield assertEquals(user.rightValue, User(credentials.uuid, credentials.username))
     }
 
   test("wrong password authentication fails"):
@@ -60,8 +59,7 @@ class AuthenticatorSpec
           authenticator <- Authenticator.make[IO, IO](store, privateKey, publicKey, expirationOffset)
 
           result <- authenticator.authenticate(credentials.username, plainPassword.shuffled)
-          _ <- IO { assertEquals(result.leftValue, InvalidPasswordError) }
-        yield ()
+        yield assertEquals(result.leftValue, InvalidPasswordError)
     }
 
   test("unknown username authentication fails"):
@@ -72,9 +70,8 @@ class AuthenticatorSpec
 
           authenticator <- Authenticator.make[IO, IO](store, privateKey, publicKey, expirationOffset)
           result <- authenticator.authenticate(credentials.username.shuffled, plainPassword)
-
-          _ <- IO { assertEquals(result.leftValue, UserNotFoundError) }
-        yield ()
+//
+        yield assertEquals(result.leftValue, UserNotFoundError)
     }
 
   test("expired token verification fails"):
@@ -102,13 +99,11 @@ class AuthenticatorSpec
           token <- authenticator.authenticate(credentials.username, plainPassword).map(_.rightValue)
 
           result = authenticator.verify(token.tampered)
-
-          _ <- IO {
-            assertEquals(result.leftValue,
-                         JwtEmptySignatureError("No signature found inside the token while trying to verify it with a key.")
-            )
-          }
-        yield ()
+//
+        yield assertEquals(
+          result.leftValue,
+          JwtEmptySignatureError("No signature found inside the token while trying to verify it with a key.")
+        )
     }
 
   test("invalid token verification fails"):
@@ -135,9 +130,11 @@ class AuthenticatorSpec
           jwtToken <- authenticator.authenticate(credentials.username, plainPassword).map(_.rightValue)
 
           result = authenticator.verify(jwtToken)
-
-          _ <- IO { assertEquals(result.leftValue, JwtValidationError("Invalid signature for this token or wrong algorithm.")) }
-        yield ()
+//
+        yield assertEquals(
+          result.leftValue,
+          JwtValidationError("Invalid signature for this token or wrong algorithm.")
+        )
     }
 
 trait AuthenticatorSpecContext:
