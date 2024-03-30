@@ -17,6 +17,7 @@ import org.scalacheck.Gen
 
 class ProfileHealthCheckSpec extends CatsEffectSuite with ProfileHealthCheckSpecContext:
 
+  // table test
   List(
     // format: off
     ("healthy"  , healthy,     Status.Ok),
