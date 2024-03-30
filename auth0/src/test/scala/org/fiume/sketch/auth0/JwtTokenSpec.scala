@@ -21,7 +21,7 @@ class JwtTokenSpec extends CatsEffectSuite with ScalaCheckEffectSuite with Clock
 
   Security.addProvider(new BouncyCastleProvider())
 
-  test("verification results in the user represented by valid jwt token"):
+  test("valid jwt verification results in the user details"):
     forAllF(ecKeyPairs, users, shortDurations) { case ((privateKey, publicKey), user, expirationOffset) =>
       for
         jwtToken <- JwtToken.makeJwtToken[IO](privateKey, user, expirationOffset)
@@ -32,7 +32,7 @@ class JwtTokenSpec extends CatsEffectSuite with ScalaCheckEffectSuite with Clock
       yield ()
     }
 
-  test("verification fails with wrong jwt token"):
+  test("invalid jwt verification fails"):
     forAllF(ecKeyPairs, users, shortDurations) { case ((privateKey, publicKey), user, expirationOffset) =>
       for
         jwtToken <- JwtToken.makeJwtToken[IO](privateKey, user, expirationOffset)
@@ -49,7 +49,7 @@ class JwtTokenSpec extends CatsEffectSuite with ScalaCheckEffectSuite with Clock
       yield ()
     }
 
-  test("verification fails with expired jwt token"):
+  test("expired jwt verification fails"):
     forAllF(ecKeyPairs, users, shortDurations) { case ((privateKey, publicKey), user, expirationOffset) =>
       given Clock[IO] = makeFrozenTime(ZonedDateTime.now().minusSeconds(expirationOffset.toSeconds))
       for
@@ -64,7 +64,7 @@ class JwtTokenSpec extends CatsEffectSuite with ScalaCheckEffectSuite with Clock
       yield ()
     }
 
-  test("verification fails with invalid public key"):
+  test("token verification with invalid public key fails"):
     forAllF(ecKeyPairs, ecKeyPairs, users, shortDurations) {
       case ((privateKey, _), (_, strangePublicKey), user, expirationOffset) =>
         for
