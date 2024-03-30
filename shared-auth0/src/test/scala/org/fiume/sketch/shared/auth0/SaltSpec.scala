@@ -8,7 +8,7 @@ import org.scalacheck.effect.PropF.forAllF
 
 class SaltSpec extends CatsEffectSuite with ScalaCheckEffectSuite with ShrinkLowPriority:
 
-  test("generate a different salt each time"):
+  test("generates a different salt each time"):
     forAllF(Gen.choose(1, 100)) { (_: Int) =>
       for
         salt1 <- Salt.generate[IO]()
@@ -16,13 +16,13 @@ class SaltSpec extends CatsEffectSuite with ScalaCheckEffectSuite with ShrinkLow
       yield assertNotEquals(salt1, salt2)
     }
 
-  test("generate a salt from a string"):
+  test("generates a salt from a string"):
     forAllF(Gen.choose(1, 100)) { (_: Int) =>
       for salt <- Salt.generate[IO]()
       yield assertEquals(Salt.notValidatedFromString(salt.base64Value), salt)
     }
 
-  test("salt is 29 characters long"):
+  test("salt length is 29 characters"):
     forAllF(Gen.choose(1, 100)) { (_: Int) =>
       for salt <- Salt.generate[IO]()
       yield assertEquals(salt.base64Value.length, 29)

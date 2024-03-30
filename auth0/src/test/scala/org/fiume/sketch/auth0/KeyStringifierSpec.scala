@@ -7,7 +7,7 @@ import org.scalacheck.Prop.forAll
 
 class KeyStringifierSpec extends ScalaCheckSuite with EcKeysGens:
 
-  property("isomorphism between toPemString and fromPemString for ECPrivateKey"):
+  property("ECPrivateKey toPemString and fromPemString are isomorphic"):
     forAll(ecKeyPairs) { case (privateKey, _) =>
       val pemString = KeyStringifier.toPemString(privateKey)
       val result = KeyStringifier.ecPrivateKeyFromPem(pemString).rightValue
@@ -21,13 +21,13 @@ class KeyStringifierSpec extends ScalaCheckSuite with EcKeysGens:
       assertEquals(result, publicKey)
     }
 
-  property("fromPemString should fail for invalid private key pem string"):
+  property("fromPemString fails for invalid private key pem string"):
     forAll { (invalidPemString: String) =>
       val result = KeyStringifier.ecPrivateKeyFromPem(invalidPemString)
       assert(result.isLeft)
     }
 
-  property("fromPemString should fail for invalid public key pem string"):
+  property("fromPemString fails for invalid public key pem string"):
     forAll { (invalidPemString: String) =>
       val result = KeyStringifier.ecPublicKeyFromPem(invalidPemString)
       assert(result.isLeft)

@@ -44,7 +44,7 @@ class DocumentsRoutesSpec
 
   override def scalaCheckTestParameters = super.scalaCheckTestParameters.withMinSuccessfulTests(10)
 
-  test("Post document"):
+  test("uploads document"):
     forAllF { (metadataPayload: MetadataRequestPayload, user: User) =>
       val multipart = Multipart[IO](
         parts = Vector(
@@ -71,7 +71,7 @@ class DocumentsRoutesSpec
       yield ()
     }
 
-  test("Get document"):
+  test("retrieves document"):
     forAllF { (document: DocumentWithIdAndStream[IO]) =>
       val request = GET(Uri.unsafeFromString(s"/documents/${document.uuid.value}/metadata"))
       for
@@ -89,7 +89,7 @@ class DocumentsRoutesSpec
       yield ()
     }
 
-  test("Get document content"):
+  test("retrieves document content"):
     forAllF { (document: DocumentWithIdAndStream[IO]) =>
       val request = GET(Uri.unsafeFromString(s"/documents/${document.uuid.value}"))
       for
@@ -109,7 +109,7 @@ class DocumentsRoutesSpec
       yield ()
     }
 
-  test("Get document by author"):
+  test("retrieves document by author"):
     forAllF { (fstDoc: DocumentWithIdAndStream[IO], sndDoc: DocumentWithIdAndStream[IO]) =>
       val request = GET(Uri.unsafeFromString(s"/documents?author=${sndDoc.metadata.author.asString()}"))
       for
@@ -130,7 +130,7 @@ class DocumentsRoutesSpec
       yield ()
     }
 
-  test("Get document by owner"):
+  test("retrieves document by owner"):
     forAllF { (fstDoc: DocumentWithIdAndStream[IO], sndDoc: DocumentWithIdAndStream[IO]) =>
       val request = GET(Uri.unsafeFromString(s"/documents?owner=${sndDoc.metadata.owner.asString()}"))
       for
@@ -150,7 +150,7 @@ class DocumentsRoutesSpec
         }
       yield ()
     }
-  test("Delete document"):
+  test("deletes document"):
     forAllF { (document: DocumentWithIdAndStream[IO]) =>
       val request = DELETE(Uri.unsafeFromString(s"/documents/${document.uuid.value}"))
       for
@@ -173,7 +173,7 @@ class DocumentsRoutesSpec
       yield ()
     }
 
-  test("Delete unexistent document == not found"):
+  test("deletes unexistent document == not found"):
     forAllF { (document: DocumentWithIdAndStream[IO]) =>
       val request = DELETE(Uri.unsafeFromString(s"/documents/${document.uuid.value}"))
       for
@@ -188,7 +188,7 @@ class DocumentsRoutesSpec
 
   /* Sad Path */
 
-  test("return 422 when document upload request is semantically invalid"):
+  test("returns 422 when document upload request is semantically invalid"):
     forAllF(semanticallyInvalidDocumentRequests) { (multipart: Multipart[IO]) =>
       for
         store <- makeDocumentsStore()
@@ -213,7 +213,7 @@ class DocumentsRoutesSpec
       yield ()
     }
 
-  test("return 422 when document upload request is malformed"):
+  test("returns 422 when document upload request is malformed"):
     forAllF(malformedDocumentRequests) { (multipart: Multipart[IO]) =>
       for
         store <- makeDocumentsStore()

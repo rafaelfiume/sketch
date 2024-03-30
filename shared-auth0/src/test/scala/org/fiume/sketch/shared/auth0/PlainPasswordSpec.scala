@@ -11,57 +11,57 @@ import org.scalacheck.Prop.forAll
 
 class PlainPasswordSpec extends ScalaCheckSuite:
 
-  test("valid passwords"):
+  test("accepts valid passwords"):
     forAll { (password: String) =>
       PlainPassword.validated(password).rightValue == PlainPassword.notValidatedFromString(password)
     }
 
-  test("short passwords"):
+  test("rejects short passwords"):
     forAll(shortPasswords) { shortPassword =>
       PlainPassword.validated(shortPassword).leftValue.contains(WeakPasswordError.TooShort)
     }
 
-  test("long passwords"):
+  test("rejects long passwords"):
     forAll(longPasswords) { longPassword =>
       PlainPassword.validated(longPassword).leftValue.contains(WeakPasswordError.TooLong)
     }
 
-  test("passwords without uppercase"):
+  test("rejects passwords without uppercase"):
     forAll(invalidPasswordsWithoutUppercase) { noUpperCase =>
       PlainPassword.validated(noUpperCase).leftValue.contains(WeakPasswordError.NoUpperCase)
     }
 
-  test("passwords without lowercase"):
+  test("rejects passwords without lowercase"):
     forAll(invalidPasswordsWithoutLowercase) { noLowerCase =>
       PlainPassword.validated(noLowerCase).leftValue.contains(WeakPasswordError.NoLowerCase)
     }
 
-  test("passwords without digit"):
+  test("rejects passwords without digit"):
     forAll(invalidPasswordsWithoutDigit) { noDigit =>
       PlainPassword.validated(noDigit).leftValue.contains(WeakPasswordError.NoDigit)
     }
 
-  test("weak passwords without special character"):
+  test("rejects weak passwords without special character"):
     forAll(invalidPasswordsWithoutSpecialChar) { noSpecialChar =>
       PlainPassword.validated(noSpecialChar).leftValue.contains(WeakPasswordError.NoSpecialChar)
     }
 
-  test("invalid passwords with whitespace"):
+  test("rejects passwords with whitespace"):
     forAll(invalidPasswordsWithWhitespace) { withWhitespace =>
       PlainPassword.validated(withWhitespace).leftValue.contains(WeakPasswordError.Whitespace)
     }
 
-  test("invalid passwords with invalid special chars"):
+  test("rejects passwords with invalid special chars"):
     forAll(invalidPasswordsWithInvalidSpecialChars) { withInvalidChar =>
       PlainPassword.validated(withInvalidChar).leftValue.contains(WeakPasswordError.InvalidSpecialChar)
     }
 
-  test("invalid passwords with control chars or emojis"):
+  test("rejects passwords with control chars or emojis"):
     forAll(passwordsWithControlCharsOrEmojis) { withControlCharsOrEmojis =>
       PlainPassword.validated(withControlCharsOrEmojis).leftValue.contains(WeakPasswordError.InvalidChar)
     }
 
-  test("accumulate validation errors"):
+  test("accumulates validation errors"):
     forAll(passwordWithMultipleInputErrors) { inputErrors =>
       val result = PlainPassword.validated(inputErrors)
       Set[PlainPassword.WeakPasswordError](

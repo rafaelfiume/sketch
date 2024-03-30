@@ -21,7 +21,7 @@ class JwtTokenSpec extends CatsEffectSuite with ScalaCheckEffectSuite with Clock
 
   Security.addProvider(new BouncyCastleProvider())
 
-  test("verify jwt token"):
+  test("verifies jwt token"):
     forAllF(ecKeyPairs, users, shortDurations) { case ((privateKey, publicKey), user, expirationOffset) =>
       for
         jwtToken <- JwtToken.makeJwtToken[IO](privateKey, user, expirationOffset)

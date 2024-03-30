@@ -47,7 +47,7 @@ class HealthStatusRoutesSpec
     yield ()
   }
 
-  test("return healthy status when dependencies are healthy") {
+  test("returns healthy status when dependencies are healthy") {
     for
       routes <- makeHealthStatusRoutes(
         makeVersions(returning = version),
@@ -68,7 +68,7 @@ class HealthStatusRoutesSpec
     yield ()
   }
 
-  test("return faulty status when at least one dependency is degraded") {
+  test("returns faulty status when at least one dependency is degraded") {
     for
       routes <- makeHealthStatusRoutes(
         makeVersions(returning = version),

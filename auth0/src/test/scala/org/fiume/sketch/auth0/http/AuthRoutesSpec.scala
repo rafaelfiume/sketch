@@ -39,7 +39,7 @@ class AuthRoutesSpec
     with ContractContext
     with ShrinkLowPriority:
 
-  test("return a Jwt token for a valid loging request"):
+  test("returns a Jwt token for a valid loging request"):
     forAllF(loginRequests, jwtTokens) { case (user -> loginRequest -> jwtToken) =>
       val plainPassword = PlainPassword.notValidatedFromString(loginRequest.password)
       for
@@ -62,7 +62,7 @@ class AuthRoutesSpec
       yield ()
     }
 
-  test("return Ok for a login request with wrong password"):
+  test("returns Ok for a login request with wrong password"):
     forAllF(loginRequests, jwtTokens) { case (user -> loginRequest -> jwtToken) =>
       val plainPassword = PlainPassword.notValidatedFromString(loginRequest.password)
       for
@@ -89,7 +89,7 @@ class AuthRoutesSpec
       yield ()
     }
 
-  test("return Ok for a login request with unknown username"):
+  test("returns Ok for a login request with unknown username"):
     forAllF(loginRequests, jwtTokens) { case (user -> loginRequest -> jwtToken) =>
       val plainPassword = PlainPassword.notValidatedFromString(loginRequest.password)
       for
@@ -116,7 +116,7 @@ class AuthRoutesSpec
       yield ()
     }
 
-  test("return 422 for a login request when username or password are semantically invalid"):
+  test("returns 422 for a login request when username or password are semantically invalid"):
     forAllF(invalidInputs, jwtTokens) { case (user -> loginRequest -> jwtToken) =>
       val plainPassword = PlainPassword.notValidatedFromString(loginRequest.password)
       for
@@ -142,7 +142,7 @@ class AuthRoutesSpec
       yield ()
     }
 
-  test("return 422 when login request body is malformed"):
+  test("returns 422 when login request body is malformed"):
     forAllF(malformedInputs) { badClientInput =>
       for
         authenticator <- makeFailingAuthenticator()

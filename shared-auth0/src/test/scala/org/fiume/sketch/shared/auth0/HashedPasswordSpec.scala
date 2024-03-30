@@ -19,7 +19,7 @@ class HashedPasswordSpec extends ScalaCheckSuite with ShrinkLowPriority:
       hashedPassword1.base64Value == hashedPassword2.base64Value
     }
 
-  test("hashing the same password with different salts produces different hashes"):
+  test("same password with different salts produces different hashes"):
     forAll { (password: PlainPassword, salt: Salt, differentSalt: Salt) =>
       (salt != differentSalt) ==> {
         val hashedPassword1 = HashedPassword.hashPassword(password, salt)
@@ -28,7 +28,7 @@ class HashedPasswordSpec extends ScalaCheckSuite with ShrinkLowPriority:
       }
     }
 
-  test("hashing different passwords with the same salt produces different hashes"):
+  test("different passwords with same salt produces different hashes"):
     forAll { (password: PlainPassword, differentPassword: PlainPassword, salt: Salt) =>
       (password != differentPassword) ==> {
         val hashedPassword1 = HashedPassword.hashPassword(password, salt)
@@ -37,19 +37,19 @@ class HashedPasswordSpec extends ScalaCheckSuite with ShrinkLowPriority:
       }
     }
 
-  test("hashed password is 60 characters long"):
+  test("hashed password length is 60 characters"):
     forAll { (password: PlainPassword, salt: Salt) =>
       val hashedPassword = HashedPassword.hashPassword(password, salt)
       hashedPassword.base64Value.length == 60
     }
 
-  test("verifying a plain password against its hashed counterpart returns true"):
+  test("plain password matches hashed version"):
     forAll { (password: PlainPassword, salt: Salt) =>
       val hashedPassword = HashedPassword.hashPassword(password, salt)
       HashedPassword.verifyPassword(password, hashedPassword)
     }
 
-  test("verifying a plain password against a different hashed password returns false"):
+  test("plain password does not match hashed version"):
     forAll { (password: PlainPassword, differentPassword: PlainPassword, salt: Salt) =>
       (password != differentPassword) ==> {
         val hashedPassword = HashedPassword.hashPassword(password, salt)
