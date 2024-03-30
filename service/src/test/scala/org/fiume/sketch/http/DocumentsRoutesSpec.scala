@@ -71,7 +71,7 @@ class DocumentsRoutesSpec
       yield ()
     }
 
-  test("retrieves document"):
+  test("retrieves document metadata"):
     forAllF { (document: DocumentWithIdAndStream[IO]) =>
       val request = GET(Uri.unsafeFromString(s"/documents/${document.uuid.value}/metadata"))
       for
@@ -173,7 +173,7 @@ class DocumentsRoutesSpec
       yield ()
     }
 
-  test("deletes unexistent document == not found"):
+  test("attempt to delete a nonexistent document results in 404 Not Found"):
     forAllF { (document: DocumentWithIdAndStream[IO]) =>
       val request = DELETE(Uri.unsafeFromString(s"/documents/${document.uuid.value}"))
       for
@@ -188,7 +188,7 @@ class DocumentsRoutesSpec
 
   /* Sad Path */
 
-  test("returns 422 when document upload request is semantically invalid"):
+  test("semantically invalid upload request results in 422 Unprocessable Entity"):
     forAllF(semanticallyInvalidDocumentRequests) { (multipart: Multipart[IO]) =>
       for
         store <- makeDocumentsStore()
@@ -213,7 +213,7 @@ class DocumentsRoutesSpec
       yield ()
     }
 
-  test("returns 422 when document upload request is malformed"):
+  test("malformed upload request results in 422 Unprocessable Entity"):
     forAllF(malformedDocumentRequests) { (multipart: Multipart[IO]) =>
       for
         store <- makeDocumentsStore()
@@ -239,13 +239,13 @@ class DocumentsRoutesSpec
    * Contracts
    */
 
-  test("bijective relationship between encoded and decoded document MetadataRequestPayload"):
+  test("MetadataRequestPayload encode and decode form a bijective relationship"):
     assertBijectiveRelationshipBetweenEncoderAndDecoder[MetadataRequestPayload]("document/metadata.request.json")
 
-  test("bijective relationship between encoded and decoded DocumentResponsePayload"):
+  test("DocumentResponsePayload encode and decode form a bijective relationship"):
     assertBijectiveRelationshipBetweenEncoderAndDecoder[DocumentResponsePayload]("document/response.json")
 
-  test("bijective relationship between encoded and decoded DocumentIdResponsePayload"):
+  test("DocumentIdResponsePayload encode and decode form a bijective relationship"):
     assertBijectiveRelationshipBetweenEncoderAndDecoder[DocumentIdResponsePayload]("document/uuid.response.json")
 
   test("validation accumulates") {

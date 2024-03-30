@@ -17,40 +17,36 @@ import org.scalacheck.Gen
 
 class ProfileHealthCheckSpec extends CatsEffectSuite with ProfileHealthCheckSpecContext:
 
-  List( // table test
-    ("healthy", healthy, Status.Ok),
-    ("faulty", faulty, Status.Degraded)
+  List(
+    // format: off
+    ("healthy"  , healthy,     Status.Ok),
+    ("faulty"   , faulty ,     Status.Degraded)
+    // format: on
   ).foreach { (label, statusResponse, expectedStatus) =>
-    test(s"check if rustic (profile) is $label") {
+    test(s"dependency status is $label when profile service is $label") {
       profileStatusIs(statusResponse)
         .flatMap { port => ProfileHealthCheck.make[IO](config = ProfileClientConfig(localhost, port)) }
         .use { healthCheck =>
-          for
-            result <- healthCheck.check()
-            _ <- IO { assertEquals(result, DependencyStatus(profile, expectedStatus)) }
-          yield ()
+          for result <- healthCheck.check()
+          yield assertEquals(result, DependencyStatus(profile, expectedStatus))
         }
     }
   }
 
-  test("check if rustic (profile) is behaving"):
+  test("dependency status is degraded when profile service is erroing"):
     profileStatusInWeirdState()
       .flatMap { port => ProfileHealthCheck.make[IO](config = ProfileClientConfig(localhost, port)) }
       .use { healthCheck =>
-        for
-          result <- healthCheck.check()
-          _ <- IO { assertEquals(result, DependencyStatus(profile, Status.Degraded)) }
-        yield ()
+        for result <- healthCheck.check()
+        yield assertEquals(result, DependencyStatus(profile, Status.Degraded))
       }
 
-  test("check if rustic (profile) is down"):
+  test("dependency status is degraded when profile service is down"):
     ProfileHealthCheck
       .make[IO](config = ProfileClientConfig(localhost, port"3030"))
       .use { healthCheck =>
-        for
-          result <- healthCheck.check()
-          _ <- IO { assertEquals(result, DependencyStatus(profile, Status.Degraded)) }
-        yield ()
+        for result <- healthCheck.check()
+        yield assertEquals(result, DependencyStatus(profile, Status.Degraded))
       }
 
 trait ProfileHealthCheckSpecContext extends FileContentContext with HttpServiceContext:

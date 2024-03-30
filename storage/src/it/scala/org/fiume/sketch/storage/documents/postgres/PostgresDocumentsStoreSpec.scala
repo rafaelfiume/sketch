@@ -26,7 +26,7 @@ class PostgresDocumentsStoreSpec
     with PostgresStoreSpecContext
     with ShrinkLowPriority:
 
-  test("store document and fetch metadata"):
+  test("fetches metadata of stored document"):
     forAllF { (document: DocumentWithIdAndStream[IO]) =>
       will(cleanDocuments) {
         PostgresDocumentsStore.make[IO](transactor()).use { store =>
@@ -43,7 +43,7 @@ class PostgresDocumentsStoreSpec
       }
     }
 
-  test("store document and fetch content"):
+  test("fetches content bytes of stored document"):
     forAllF { (document: DocumentWithStream[IO]) =>
       will(cleanDocuments) {
         PostgresDocumentsStore.make[IO](transactor()).use { store =>
@@ -61,7 +61,7 @@ class PostgresDocumentsStoreSpec
       }
     }
 
-  test("fetch documents by author"):
+  test("fetches documents by author"):
     forAllF { (fstDoc: DocumentWithStream[IO], sndDoc: DocumentWithStream[IO]) =>
       will(cleanDocuments) {
         PostgresDocumentsStore.make[IO](transactor()).use { store =>
@@ -79,7 +79,7 @@ class PostgresDocumentsStoreSpec
       }
     }
 
-  test("fetch documents by owner"):
+  test("fetches documents by owner"):
     forAllF { (fstDoc: DocumentWithStream[IO], sndDoc: DocumentWithStream[IO]) =>
       will(cleanDocuments) {
         PostgresDocumentsStore.make[IO](transactor()).use { store =>
@@ -97,7 +97,7 @@ class PostgresDocumentsStoreSpec
       }
     }
 
-  test("delete document"):
+  test("deletes stored document"):
     forAllF { (fstDoc: DocumentWithStream[IO], sndDoc: DocumentWithStream[IO]) =>
       will(cleanDocuments) {
         PostgresDocumentsStore.make[IO](transactor()).use { store =>
@@ -126,7 +126,7 @@ class PostgresDocumentsStoreSpec
       }
     }
 
-  test("set document's `createdAt` and `updatedAt` field to the current timestamp during storage"):
+  test("timestamps createdAt and updatedAt upon storage"):
     forAllF { (document: DocumentWithStream[IO]) =>
       will(cleanDocuments) {
         PostgresDocumentsStore.make[IO](transactor()).use { store =>
@@ -143,6 +143,8 @@ class PostgresDocumentsStoreSpec
         }
       }
     }
+
+  // no support for updates yet.
 
   test("play it".ignore): // good to see it in action
     val filename = "mountain-bike-liguria-ponent.jpg"

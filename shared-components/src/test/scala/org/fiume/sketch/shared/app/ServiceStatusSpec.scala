@@ -11,14 +11,14 @@ import org.scalacheck.Prop.forAll
 
 class ServiceStatusSpec extends ScalaCheckSuite with ShrinkLowPriority:
 
-  property("establishes service good health") {
+  property("service status is ok when all dependencies are healthy") {
     given Arbitrary[List[DependencyStatus[?]]] = Arbitrary(healthyDependencies)
     forAll { (version: Version, onlyHealthyDependencies: List[DependencyStatus[?]]) =>
       ServiceStatus.make(version, onlyHealthyDependencies).status === Status.Ok
     }
   }
 
-  property("establishes service poor health") {
+  property("service status is degraded when at least one dependency in unhealthy") {
     given Arbitrary[List[DependencyStatus[?]]] = Arbitrary(unhealthyDependencies)
     forAll { (version: Version, unhealthyDependencies: List[DependencyStatus[?]]) =>
       ServiceStatus.make(version, unhealthyDependencies).status === Status.Degraded

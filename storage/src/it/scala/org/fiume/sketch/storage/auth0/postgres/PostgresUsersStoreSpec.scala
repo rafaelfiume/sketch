@@ -25,7 +25,7 @@ class PostgresUsersStoreSpec
     with PostgresUsersStoreSpecContext
     with ShrinkLowPriority:
 
-  test("store and fetch user"):
+  test("fetches user from stored credentials"):
     forAllF { (credentials: UserCredentials) =>
       will(cleanUsers) {
         PostgresUsersStore.make[IO](transactor()).use { store =>
@@ -42,7 +42,7 @@ class PostgresUsersStoreSpec
       }
     }
 
-  test("store and fetch credentials"):
+  test("fetches stored credentials"):
     forAllF { (credentials: UserCredentials) =>
       will(cleanUsers) {
         PostgresUsersStore.make[IO](transactor()).use { store =>
@@ -59,7 +59,7 @@ class PostgresUsersStoreSpec
       }
     }
 
-  test("update user password"):
+  test("updates user password"):
     forAllF { (credentials: UserCredentials, newPassword: HashedPassword) =>
       will(cleanUsers) {
         PostgresUsersStore.make[IO](transactor()).use { store =>
@@ -77,7 +77,7 @@ class PostgresUsersStoreSpec
       }
     }
 
-  test("delete user"):
+  test("deletes credentials"):
     forAllF { (fstCreds: UserCredentials, sndCreds: UserCredentials) =>
       will(cleanUsers) {
         PostgresUsersStore.make[IO](transactor()).use { store =>
@@ -98,7 +98,7 @@ class PostgresUsersStoreSpec
       }
     }
 
-  test("set user's `createdAt` and `updatedAt` field to the current timestamp during storage"):
+  test("timestamps createdAt and updatedAt upon storage"):
     forAllF { (credentials: UserCredentials) =>
       will(cleanUsers) {
         PostgresUsersStore.make[IO](transactor()).use { store =>
@@ -116,7 +116,7 @@ class PostgresUsersStoreSpec
       }
     }
 
-  test("set user's `updatedAt` field to the current timestamp during update"):
+  test("timestamps updatedAt upon update"):
     forAllF { (credentials: UserCredentials, newPassword: HashedPassword) =>
       will(cleanUsers) {
         PostgresUsersStore.make[IO](transactor()).use { store =>
