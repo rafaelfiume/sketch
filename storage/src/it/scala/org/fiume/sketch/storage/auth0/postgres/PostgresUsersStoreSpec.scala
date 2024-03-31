@@ -25,7 +25,7 @@ class PostgresUsersStoreSpec
     with PostgresUsersStoreSpecContext
     with ShrinkLowPriority:
 
-  test("store and fetch user"):
+  test("fetches user from stored credentials"):
     forAllF { (credentials: UserCredentials) =>
       will(cleanUsers) {
         PostgresUsersStore.make[IO](transactor()).use { store =>
@@ -33,16 +33,13 @@ class PostgresUsersStoreSpec
             uuid <- store.store(credentials).ccommit
 
             result <- store.fetchUser(uuid).ccommit
-
-            _ <- IO {
-              assertEquals(result, User(uuid, credentials.username).some)
-            }
-          yield ()
+//
+          yield assertEquals(result, User(uuid, credentials.username).some)
         }
       }
     }
 
-  test("store and fetch credentials"):
+  test("fetches stored credentials"):
     forAllF { (credentials: UserCredentials) =>
       will(cleanUsers) {
         PostgresUsersStore.make[IO](transactor()).use { store =>
@@ -50,16 +47,13 @@ class PostgresUsersStoreSpec
             uuid <- store.store(credentials).ccommit
 
             result <- store.fetchCredentials(credentials.username).ccommit
-
-            _ <- IO {
-              assertEquals(result, UserCredentials.withUuid(uuid, credentials).some)
-            }
-          yield ()
+//
+          yield assertEquals(result, UserCredentials.withUuid(uuid, credentials).some)
         }
       }
     }
 
-  test("update user password"):
+  test("updates user password"):
     forAllF { (credentials: UserCredentials, newPassword: HashedPassword) =>
       will(cleanUsers) {
         PostgresUsersStore.make[IO](transactor()).use { store =>
@@ -69,15 +63,12 @@ class PostgresUsersStoreSpec
             _ <- store.updatePassword(uuid, newPassword).ccommit
 
             result <- store.fetchPassword(uuid).ccommit
-            _ <- IO {
-              assertEquals(result, newPassword)
-            }
-          yield ()
+          yield assertEquals(result, newPassword)
         }
       }
     }
 
-  test("delete user"):
+  test("deletes credentials"):
     forAllF { (fstCreds: UserCredentials, sndCreds: UserCredentials) =>
       will(cleanUsers) {
         PostgresUsersStore.make[IO](transactor()).use { store =>
@@ -98,7 +89,7 @@ class PostgresUsersStoreSpec
       }
     }
 
-  test("set user's `createdAt` and `updatedAt` field to the current timestamp during storage"):
+  test("timestamps createdAt and updatedAt upon storage"):
     forAllF { (credentials: UserCredentials) =>
       will(cleanUsers) {
         PostgresUsersStore.make[IO](transactor()).use { store =>
@@ -107,16 +98,13 @@ class PostgresUsersStoreSpec
 
             createdAt <- store.fetchCreatedAt(uuid).ccommit
             updatedAt <- store.fetchUpdatedAt(uuid).ccommit
-
-            _ <- IO {
-              assertEquals(createdAt, updatedAt)
-            }
-          yield ()
+//
+          yield assertEquals(createdAt, updatedAt)
         }
       }
     }
 
-  test("set user's `updatedAt` field to the current timestamp during update"):
+  test("timestamps updatedAt upon update"):
     forAllF { (credentials: UserCredentials, newPassword: HashedPassword) =>
       will(cleanUsers) {
         PostgresUsersStore.make[IO](transactor()).use { store =>
@@ -127,13 +115,10 @@ class PostgresUsersStoreSpec
 
             createdAt <- store.fetchCreatedAt(uuid).ccommit
             updatedAt <- store.fetchUpdatedAt(uuid).ccommit
-            _ <- IO {
-              assert(
-                updatedAt.isAfter(createdAt),
-                clue = s"updatedAt=${updatedAt} should be after createdAt=${createdAt}"
-              )
-            }
-          yield ()
+          yield assert(
+            updatedAt.isAfter(createdAt),
+            clue = s"updatedAt=${updatedAt} should be after createdAt=${createdAt}"
+          )
         }
       }
     }

@@ -15,7 +15,7 @@ import org.scalacheck.effect.PropF.forAllF
 class UsersManagerSpec extends CatsEffectSuite with ScalaCheckEffectSuite with UsersStoreContext with ShrinkLowPriority:
 
   // Is this a flickering test?
-  test("registre a user with a unique username"):
+  test("user registration succeeds with a unique username"):
     forAllF { (username: Username, password: PlainPassword) =>
       for
         usersStore <- makeUsersStore()
@@ -32,4 +32,4 @@ class UsersManagerSpec extends CatsEffectSuite with ScalaCheckEffectSuite with U
     }
 
   // TODO
-  // test("registre a user with a duplicate username fails"):
+  // test("user registration fails with a duplicate username"):

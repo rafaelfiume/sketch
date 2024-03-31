@@ -39,7 +39,7 @@ class AuthRoutesSpec
     with ContractContext
     with ShrinkLowPriority:
 
-  test("return a Jwt token for a valid loging request"):
+  test("valid login request results in a jwt token"):
     forAllF(loginRequests, jwtTokens) { case (user -> loginRequest -> jwtToken) =>
       val plainPassword = PlainPassword.notValidatedFromString(loginRequest.password)
       for
@@ -52,17 +52,14 @@ class AuthRoutesSpec
         jsonResponse <- send(request)
           .to(new AuthRoutes[IO](authenticator).router())
           .expectJsonResponseWith(Status.Ok)
-
-        _ <- IO {
-          assertEquals(
-            jsonResponse.as[LoginResponsePayload].map(_.token).rightValue,
-            jwtToken.value
-          )
-        }
-      yield ()
+//
+      yield assertEquals(
+        jsonResponse.as[LoginResponsePayload].map(_.token).rightValue,
+        jwtToken.value
+      )
     }
 
-  test("return Ok for a login request with wrong password"):
+  test("login with wrong password fails with 401 Unauthorized status"):
     forAllF(loginRequests, jwtTokens) { case (user -> loginRequest -> jwtToken) =>
       val plainPassword = PlainPassword.notValidatedFromString(loginRequest.password)
       for
@@ -76,20 +73,17 @@ class AuthRoutesSpec
         )
         jsonResponse <- send(request)
           .to(new AuthRoutes[IO](authenticator).router())
-          .expectJsonResponseWith(Status.Ok)
-
-        _ <- IO {
-          assertEquals(
-            jsonResponse.as[ErrorInfo].rightValue,
-            ErrorInfo.short(
-              message = ErrorMessage("The username or password provided is incorrect.")
-            )
-          )
-        }
-      yield ()
+          .expectJsonResponseWith(Status.Unauthorized)
+//
+      yield assertEquals(
+        jsonResponse.as[ErrorInfo].rightValue,
+        ErrorInfo.short(
+          message = ErrorMessage("The username or password provided is incorrect.")
+        )
+      )
     }
 
-  test("return Ok for a login request with unknown username"):
+  test("login with unknown username fails with 401 Unauthorized status"):
     forAllF(loginRequests, jwtTokens) { case (user -> loginRequest -> jwtToken) =>
       val plainPassword = PlainPassword.notValidatedFromString(loginRequest.password)
       for
@@ -103,20 +97,17 @@ class AuthRoutesSpec
         )
         jsonResponse <- send(request)
           .to(new AuthRoutes[IO](authenticator).router())
-          .expectJsonResponseWith(Status.Ok)
-
-        _ <- IO {
-          assertEquals(
-            jsonResponse.as[ErrorInfo].rightValue,
-            ErrorInfo.short(
-              message = ErrorMessage("The username or password provided is incorrect.")
-            )
-          )
-        }
-      yield ()
+          .expectJsonResponseWith(Status.Unauthorized)
+//
+      yield assertEquals(
+        jsonResponse.as[ErrorInfo].rightValue,
+        ErrorInfo.short(
+          message = ErrorMessage("The username or password provided is incorrect.")
+        )
+      )
     }
 
-  test("return 422 for a login request when username or password are semantically invalid"):
+  test("login with semantically invalid username or password fails with 422 Unprocessable Entity"):
     forAllF(invalidInputs, jwtTokens) { case (user -> loginRequest -> jwtToken) =>
       val plainPassword = PlainPassword.notValidatedFromString(loginRequest.password)
       for
@@ -142,7 +133,7 @@ class AuthRoutesSpec
       yield ()
     }
 
-  test("return 422 when login request body is malformed"):
+  test("login request with malformed body fails with 422 Unprocessable Entity"):
     forAllF(malformedInputs) { badClientInput =>
       for
         authenticator <- makeFailingAuthenticator()
@@ -164,7 +155,7 @@ class AuthRoutesSpec
    * ContractSpec
    */
 
-  test("bijective relationship between decoded and encoded LoginResponse"):
+  test("LoginResponsePayload encode and decode form a bijective relationship"):
     assertBijectiveRelationshipBetweenEncoderAndDecoder[LoginResponsePayload](
       "contract/auth0/http/login.success.json"
     )

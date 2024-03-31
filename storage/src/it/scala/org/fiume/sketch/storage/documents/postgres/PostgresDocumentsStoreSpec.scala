@@ -26,7 +26,7 @@ class PostgresDocumentsStoreSpec
     with PostgresStoreSpecContext
     with ShrinkLowPriority:
 
-  test("store document and fetch metadata"):
+  test("fetches metadata of stored document"):
     forAllF { (document: DocumentWithIdAndStream[IO]) =>
       will(cleanDocuments) {
         PostgresDocumentsStore.make[IO](transactor()).use { store =>
@@ -34,16 +34,13 @@ class PostgresDocumentsStoreSpec
             uuid <- store.store(document).ccommit
 
             result <- store.fetchDocument(uuid).ccommit
-
-            _ <- IO {
-              assertEquals(result, document.some)
-            }
-          yield ()
+//
+          yield assertEquals(result, document.some)
         }
       }
     }
 
-  test("store document and fetch content"):
+  test("fetches content bytes of stored document"):
     forAllF { (document: DocumentWithStream[IO]) =>
       will(cleanDocuments) {
         PostgresDocumentsStore.make[IO](transactor()).use { store =>
@@ -53,15 +50,12 @@ class PostgresDocumentsStoreSpec
             result <- OptionT(store.documentStream(uuid).ccommit).semiflatMap(_.compile.toList).value
 
             bytes <- document.stream.compile.toList
-            _ <- IO {
-              assertEquals(result, bytes.some)
-            }
-          yield ()
+          yield assertEquals(result, bytes.some)
         }
       }
     }
 
-  test("fetch documents by author"):
+  test("fetches documents by author"):
     forAllF { (fstDoc: DocumentWithStream[IO], sndDoc: DocumentWithStream[IO]) =>
       will(cleanDocuments) {
         PostgresDocumentsStore.make[IO](transactor()).use { store =>
@@ -70,16 +64,13 @@ class PostgresDocumentsStoreSpec
             sndUuid <- store.store(sndDoc).ccommit
 
             result <- store.fetchByAuthor(fstDoc.metadata.author).compile.toList
-
-            _ <- IO {
-              assertEquals(result, List(fstDoc.withUuid(fstUuid)))
-            }
-          yield ()
+//
+          yield assertEquals(result, List(fstDoc.withUuid(fstUuid)))
         }
       }
     }
 
-  test("fetch documents by owner"):
+  test("fetches documents by owner"):
     forAllF { (fstDoc: DocumentWithStream[IO], sndDoc: DocumentWithStream[IO]) =>
       will(cleanDocuments) {
         PostgresDocumentsStore.make[IO](transactor()).use { store =>
@@ -88,16 +79,13 @@ class PostgresDocumentsStoreSpec
             sndUuid <- store.store(sndDoc).ccommit
 
             result <- store.fetchByOwner(sndDoc.metadata.owner).compile.toList
-
-            _ <- IO {
-              assertEquals(result, List(sndDoc.withUuid(sndUuid)))
-            }
-          yield ()
+//
+          yield assertEquals(result, List(sndDoc.withUuid(sndUuid)))
         }
       }
     }
 
-  test("delete document"):
+  test("deletes stored document"):
     forAllF { (fstDoc: DocumentWithStream[IO], sndDoc: DocumentWithStream[IO]) =>
       will(cleanDocuments) {
         PostgresDocumentsStore.make[IO](transactor()).use { store =>
@@ -126,7 +114,7 @@ class PostgresDocumentsStoreSpec
       }
     }
 
-  test("set document's `createdAt` and `updatedAt` field to the current timestamp during storage"):
+  test("timestamps createdAt and updatedAt upon storage"):
     forAllF { (document: DocumentWithStream[IO]) =>
       will(cleanDocuments) {
         PostgresDocumentsStore.make[IO](transactor()).use { store =>
@@ -135,14 +123,13 @@ class PostgresDocumentsStoreSpec
 
             createdAt <- store.fetchCreatedAt(uuid).ccommit
             updatedAt <- store.fetchUpdatedAt(uuid).ccommit
-
-            _ <- IO {
-              assertEquals(createdAt, updatedAt)
-            }
-          yield ()
+//
+          yield assertEquals(createdAt, updatedAt)
         }
       }
     }
+
+  // no support for updates yet.
 
   test("play it".ignore): // good to see it in action
     val filename = "mountain-bike-liguria-ponent.jpg"

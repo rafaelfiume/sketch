@@ -40,14 +40,11 @@ class HealthStatusRoutesSpec
       result <- send(GET(uri"/ping"))
         .to(routes.router())
         .expectJsonResponseWith(Status.Ok)
-
-      _ <- IO {
-        assertEquals(result.as[String].rightValue, "pong")
-      }
-    yield ()
+//
+    yield assertEquals(result.as[String].rightValue, "pong")
   }
 
-  test("return healthy status when dependencies are healthy") {
+  test("healthy status succeeds when dependencies are healthy") {
     for
       routes <- makeHealthStatusRoutes(
         makeVersions(returning = version),
@@ -58,17 +55,14 @@ class HealthStatusRoutesSpec
       result <- send(GET(uri"/status"))
         .to(routes.router())
         .expectJsonResponseWith(Status.Ok)
-
-      _ <- IO {
-        assertEquals(
-          result.as[ServiceStatus].rightValue,
-          ServiceStatus.make(version, List(healthyDatabase, healthyProfile))
-        )
-      }
-    yield ()
+//
+    yield assertEquals(
+      result.as[ServiceStatus].rightValue,
+      ServiceStatus.make(version, List(healthyDatabase, healthyProfile))
+    )
   }
 
-  test("return faulty status when at least one dependency is degraded") {
+  test("health status fails when at least one dependency is degraded") {
     for
       routes <- makeHealthStatusRoutes(
         makeVersions(returning = version),
@@ -79,14 +73,11 @@ class HealthStatusRoutesSpec
       result <- send(GET(uri"/status"))
         .to(routes.router())
         .expectJsonResponseWith(Status.Ok, debugJsonResponse = true)
-
-      _ <- IO {
-        assertEquals(
-          result.as[ServiceStatus].rightValue,
-          ServiceStatus.make(version, List(faultyDatabase, healthyProfile))
-        )
-      }
-    yield ()
+//
+    yield assertEquals(
+      result.as[ServiceStatus].rightValue,
+      ServiceStatus.make(version, List(faultyDatabase, healthyProfile))
+    )
   }
 
 trait HealthStatusRoutesSpecContext:

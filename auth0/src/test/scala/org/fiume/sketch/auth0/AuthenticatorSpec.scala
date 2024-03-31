@@ -37,7 +37,7 @@ class AuthenticatorSpec
 
   Security.addProvider(new BouncyCastleProvider())
 
-  test("authenticate and verify user with valid credentials"):
+  test("valid username and password authentication results in a jwt token representing the user"):
     forAllF(validCredentialsWithIdAndPlainPassword, ecKeyPairs, shortDurations) {
       case ((credentials, plainPassword), (privateKey, publicKey), expirationOffset) =>
         for
@@ -47,11 +47,10 @@ class AuthenticatorSpec
           result <- authenticator.authenticate(credentials.username, plainPassword).map(_.rightValue)
 
           user = authenticator.verify(result)
-          _ <- IO { assertEquals(user.rightValue, User(credentials.uuid, credentials.username)) }
-        yield ()
+        yield assertEquals(user.rightValue, User(credentials.uuid, credentials.username))
     }
 
-  test("do not authenticate a user with wrong password"):
+  test("wrong password authentication fails"):
     forAllF(validCredentialsWithIdAndPlainPassword, ecKeyPairs, shortDurations) {
       case ((credentials, plainPassword), (privateKey, publicKey), expirationOffset) =>
         for
@@ -60,11 +59,10 @@ class AuthenticatorSpec
           authenticator <- Authenticator.make[IO, IO](store, privateKey, publicKey, expirationOffset)
 
           result <- authenticator.authenticate(credentials.username, plainPassword.shuffled)
-          _ <- IO { assertEquals(result.leftValue, InvalidPasswordError) }
-        yield ()
+        yield assertEquals(result.leftValue, InvalidPasswordError)
     }
 
-  test("do not not authenticate a user with unknown username"):
+  test("unknown username authentication fails"):
     forAllF(validCredentialsWithIdAndPlainPassword, ecKeyPairs, shortDurations) {
       case ((credentials, plainPassword), (privateKey, publicKey), expirationOffset) =>
         for
@@ -72,12 +70,11 @@ class AuthenticatorSpec
 
           authenticator <- Authenticator.make[IO, IO](store, privateKey, publicKey, expirationOffset)
           result <- authenticator.authenticate(credentials.username.shuffled, plainPassword)
-
-          _ <- IO { assertEquals(result.leftValue, UserNotFoundError) }
-        yield ()
+//
+        yield assertEquals(result.leftValue, UserNotFoundError)
     }
 
-  test("verify expired token"):
+  test("expired token verification fails"):
     forAllF(validCredentialsWithIdAndPlainPassword, ecKeyPairs, shortDurations) {
       case ((credentials, plainPassword), (privateKey, publicKey), expirationOffset) =>
         given Clock[IO] = makeFrozenTime(ZonedDateTime.now().minusSeconds(expirationOffset.toSeconds))
@@ -93,7 +90,7 @@ class AuthenticatorSpec
         yield ()
     }
 
-  test("verify tampered token"):
+  test("tampered token verification fails"):
     forAllF(validCredentialsWithIdAndPlainPassword, ecKeyPairs, shortDurations) {
       case ((credentials, plainPassword), (privateKey, publicKey), expirationOffset) =>
         for
@@ -102,16 +99,14 @@ class AuthenticatorSpec
           token <- authenticator.authenticate(credentials.username, plainPassword).map(_.rightValue)
 
           result = authenticator.verify(token.tampered)
-
-          _ <- IO {
-            assertEquals(result.leftValue,
-                         JwtEmptySignatureError("No signature found inside the token while trying to verify it with a key.")
-            )
-          }
-        yield ()
+//
+        yield assertEquals(
+          result.leftValue,
+          JwtEmptySignatureError("No signature found inside the token while trying to verify it with a key.")
+        )
     }
 
-  test("verify invalid token"):
+  test("invalid token verification fails"):
     forAllF(validCredentialsWithIdAndPlainPassword, ecKeyPairs, shortDurations) {
       case ((credentials, plainPassword), (privateKey, publicKey), expirationOffset) =>
         for
@@ -126,7 +121,7 @@ class AuthenticatorSpec
         yield ()
     }
 
-  test("verify fails with invalid public key"):
+  test("token verification with invalid public key fails"):
     forAllF(validCredentialsWithIdAndPlainPassword, ecKeyPairs, ecKeyPairs, shortDurations) {
       case ((credentials, plainPassword), (privateKey, _), (_, strangePublicKey), expirationOffset) =>
         for
@@ -135,9 +130,11 @@ class AuthenticatorSpec
           jwtToken <- authenticator.authenticate(credentials.username, plainPassword).map(_.rightValue)
 
           result = authenticator.verify(jwtToken)
-
-          _ <- IO { assertEquals(result.leftValue, JwtValidationError("Invalid signature for this token or wrong algorithm.")) }
-        yield ()
+//
+        yield assertEquals(
+          result.leftValue,
+          JwtValidationError("Invalid signature for this token or wrong algorithm.")
+        )
     }
 
 trait AuthenticatorSpecContext:

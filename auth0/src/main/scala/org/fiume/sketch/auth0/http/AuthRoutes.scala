@@ -13,16 +13,19 @@ import org.fiume.sketch.shared.app.troubleshooting.ErrorInfo.json.given
 import org.fiume.sketch.shared.app.troubleshooting.InvariantErrorSyntax.asDetails
 import org.fiume.sketch.shared.auth0.Passwords.PlainPassword
 import org.fiume.sketch.shared.auth0.User.Username
-import org.http4s.{HttpRoutes, Response}
+import org.http4s.{Challenge, HttpRoutes, Response, Status}
 import org.http4s.circe.CirceEntityDecoder.*
 import org.http4s.circe.CirceEntityEncoder.*
 import org.http4s.dsl.Http4sDsl
+import org.http4s.headers.`WWW-Authenticate`
 import org.http4s.server.Router
 
 class AuthRoutes[F[_]: Async](authenticator: Authenticator[F]) extends Http4sDsl[F]:
   private val prefix = "/"
 
-  def router(): HttpRoutes[F] = Router(prefix -> httpRoutes)
+  def router(): HttpRoutes[F] = Router(
+    prefix -> httpRoutes
+  )
 
   private val httpRoutes: HttpRoutes[F] = HttpRoutes.of[F] { case req @ POST -> Root / "login" =>
     req.decode { (login: LoginRequestPayload) =>
@@ -31,13 +34,18 @@ class AuthRoutes[F[_]: Async](authenticator: Authenticator[F]) extends Http4sDsl
           authenticator.authenticate(username, password)
         }
         resp <- auth match
-          case Right(token) => Ok(LoginResponsePayload(token.value))
+          case Right(token) =>
+            Ok(LoginResponsePayload(token.value))
+
           case Left(failure) =>
-            Ok(
-              ErrorInfo.short(
-                ErrorMessage("The username or password provided is incorrect.")
+            Response[F](status = Status.Unauthorized)
+              .putHeaders(`WWW-Authenticate`(Challenge("Bearer", "Authentication Service")))
+              .withEntity(
+                ErrorInfo.short(
+                  ErrorMessage("The username or password provided is incorrect.")
+                )
               )
-            )
+              .pure[F]
       yield resp
     }
   }

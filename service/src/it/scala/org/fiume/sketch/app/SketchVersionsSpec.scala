@@ -8,7 +8,7 @@ import org.fiume.sketch.shared.app.Version.{Build, Commit, Environment}
 
 class SketchVersionsSpec extends CatsEffectSuite:
 
-  test("Current service version"):
+  test("retrieves service version"):
     val env = Environment("Test")
     SketchVersions.make[IO](env, VersionFile("service.version")).use { underTest =>
       underTest.currentVersion.map { result =>

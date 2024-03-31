@@ -11,32 +11,32 @@ import org.scalacheck.ShrinkLowPriority
 
 class UsernameSpec extends ScalaCheckSuite with ShrinkLowPriority:
 
-  test("valid username"):
+  test("accepts valid username"):
     forAll { (username: Username) =>
       Username.validated(username.value).rightValue == username
     }
 
-  test("short username"):
+  test("rejects short username"):
     forAll(shortUsernames) { shortUsername =>
       Username.validated(shortUsername).leftValue.contains(WeakUsernameError.TooShort)
     }
 
-  test("long username"):
+  test("rejects long username"):
     forAll(longUsernames) { longUsername =>
       Username.validated(longUsername).leftValue.contains(WeakUsernameError.TooLong)
     }
 
-  test("username with invalid characters"):
+  test("rejects username with invalid characters"):
     forAll(usernamesWithInvalidChars) { usernameWithInvalidChars =>
       Username.validated(usernameWithInvalidChars).leftValue.contains(WeakUsernameError.InvalidChar)
     }
 
-  test("username with reserved words"):
+  test("rejects username with reserved words"):
     forAll(usernamesWithReservedWords) { usernameWithReservedWords =>
       Username.validated(usernameWithReservedWords).leftValue.contains(WeakUsernameError.ReservedWords)
     }
 
-  test("username with excessive repeated characters"):
+  test("rejects username with excessive repeated characters"):
     forAll(usernamesWithRepeatedChars) { usernameWithExcessiveRepeatedChars =>
       Username.validated(usernameWithExcessiveRepeatedChars).leftValue.contains(WeakUsernameError.ExcessiveRepeatedChars)
     }

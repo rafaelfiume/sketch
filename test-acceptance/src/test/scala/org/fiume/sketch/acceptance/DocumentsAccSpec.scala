@@ -44,8 +44,7 @@ class DocumentsAccSpec extends CatsEffectSuite with AuthenticationContext with D
             .compile
             .toList
           originalContent <- bytesFrom[IO](pathToFile).compile.toList
-          _ <- IO { assertEquals(content, originalContent) }
-        yield ()
+        yield assertEquals(content, originalContent)
       }
     yield ()
 

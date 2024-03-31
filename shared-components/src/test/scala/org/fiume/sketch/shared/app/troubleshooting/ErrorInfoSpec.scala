@@ -11,7 +11,7 @@ class ErrorInfoSpec extends CatsEffectSuite with ScalaCheckEffectSuite with Cont
 
   override def scalaCheckTestParameters = super.scalaCheckTestParameters.withMinSuccessfulTests(1)
 
-  test("bijective relationship between encoded and decoded ErrorInfo"):
+  test("ErrorInfo encode and decode form a bijective relationship"):
     def samples = Gen.oneOf(
       "error-info/error.info.json",
       "error-info/error.info.with.details.json"

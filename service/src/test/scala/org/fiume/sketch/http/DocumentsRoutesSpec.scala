@@ -44,7 +44,7 @@ class DocumentsRoutesSpec
 
   override def scalaCheckTestParameters = super.scalaCheckTestParameters.withMinSuccessfulTests(10)
 
-  test("Post document"):
+  test("uploads document"):
     forAllF { (metadataPayload: MetadataRequestPayload, user: User) =>
       val multipart = Multipart[IO](
         parts = Vector(
@@ -65,13 +65,10 @@ class DocumentsRoutesSpec
 
         createdDocId = result.as[DocumentIdResponsePayload].rightValue
         stored <- store.fetchDocument(createdDocId.value)
-        _ <- IO {
-          assert(stored.isDefined, clue = stored)
-        }
-      yield ()
+      yield assert(stored.isDefined, clue = stored)
     }
 
-  test("Get document"):
+  test("retrieves metadata of stored document"):
     forAllF { (document: DocumentWithIdAndStream[IO]) =>
       val request = GET(Uri.unsafeFromString(s"/documents/${document.uuid.value}/metadata"))
       for
@@ -82,14 +79,11 @@ class DocumentsRoutesSpec
         result <- send(request)
           .to(documentsRoutes.router())
           .expectJsonResponseWith(Status.Ok)
-
-        _ <- IO {
-          assertEquals(result.as[DocumentResponsePayload].rightValue, document.asResponsePayload)
-        }
-      yield ()
+//
+      yield assertEquals(result.as[DocumentResponsePayload].rightValue, document.asResponsePayload)
     }
 
-  test("Get document content"):
+  test("retrieves content bytes of stored document"):
     forAllF { (document: DocumentWithIdAndStream[IO]) =>
       val request = GET(Uri.unsafeFromString(s"/documents/${document.uuid.value}"))
       for
@@ -103,13 +97,10 @@ class DocumentsRoutesSpec
 
         obtainedStream <- result.compile.toList
         expectedStream <- document.stream.compile.toList
-        _ <- IO {
-          assertEquals(obtainedStream, expectedStream)
-        }
-      yield ()
+      yield assertEquals(obtainedStream, expectedStream)
     }
 
-  test("Get document by author"):
+  test("retrieves document metadata by author"):
     forAllF { (fstDoc: DocumentWithIdAndStream[IO], sndDoc: DocumentWithIdAndStream[IO]) =>
       val request = GET(Uri.unsafeFromString(s"/documents?author=${sndDoc.metadata.author.asString()}"))
       for
@@ -120,17 +111,14 @@ class DocumentsRoutesSpec
         result <- send(request)
           .to(documentsRoutes.router())
           .expectJsonResponseWith(Status.Ok)
-
-        _ <- IO {
-          assertEquals(
-            result.as[DocumentResponsePayload].rightValue,
-            sndDoc.asResponsePayload
-          )
-        }
-      yield ()
+//
+      yield assertEquals(
+        result.as[DocumentResponsePayload].rightValue,
+        sndDoc.asResponsePayload
+      )
     }
 
-  test("Get document by owner"):
+  test("retrieves document metadata by owner"):
     forAllF { (fstDoc: DocumentWithIdAndStream[IO], sndDoc: DocumentWithIdAndStream[IO]) =>
       val request = GET(Uri.unsafeFromString(s"/documents?owner=${sndDoc.metadata.owner.asString()}"))
       for
@@ -141,16 +129,13 @@ class DocumentsRoutesSpec
         result <- send(request)
           .to(documentsRoutes.router())
           .expectJsonResponseWith(Status.Ok)
-
-        _ <- IO {
-          assertEquals(
-            result.as[DocumentResponsePayload].rightValue,
-            sndDoc.asResponsePayload
-          )
-        }
-      yield ()
+//
+      yield assertEquals(
+        result.as[DocumentResponsePayload].rightValue,
+        sndDoc.asResponsePayload
+      )
     }
-  test("Delete document"):
+  test("deletes stored document"):
     forAllF { (document: DocumentWithIdAndStream[IO]) =>
       val request = DELETE(Uri.unsafeFromString(s"/documents/${document.uuid.value}"))
       for
@@ -173,7 +158,7 @@ class DocumentsRoutesSpec
       yield ()
     }
 
-  test("Delete unexistent document == not found"):
+  test("attempt to delete a nonexistent document results in 404 Not Found"):
     forAllF { (document: DocumentWithIdAndStream[IO]) =>
       val request = DELETE(Uri.unsafeFromString(s"/documents/${document.uuid.value}"))
       for
@@ -188,7 +173,7 @@ class DocumentsRoutesSpec
 
   /* Sad Path */
 
-  test("return 422 when document upload request is semantically invalid"):
+  test("semantically invalid upload request results in 422 Unprocessable Entity"):
     forAllF(semanticallyInvalidDocumentRequests) { (multipart: Multipart[IO]) =>
       for
         store <- makeDocumentsStore()
@@ -213,7 +198,7 @@ class DocumentsRoutesSpec
       yield ()
     }
 
-  test("return 422 when document upload request is malformed"):
+  test("malformed upload request results in 422 Unprocessable Entity"):
     forAllF(malformedDocumentRequests) { (multipart: Multipart[IO]) =>
       for
         store <- makeDocumentsStore()
@@ -239,13 +224,13 @@ class DocumentsRoutesSpec
    * Contracts
    */
 
-  test("bijective relationship between encoded and decoded document MetadataRequestPayload"):
+  test("MetadataRequestPayload encode and decode form a bijective relationship"):
     assertBijectiveRelationshipBetweenEncoderAndDecoder[MetadataRequestPayload]("document/metadata.request.json")
 
-  test("bijective relationship between encoded and decoded DocumentResponsePayload"):
+  test("DocumentResponsePayload encode and decode form a bijective relationship"):
     assertBijectiveRelationshipBetweenEncoderAndDecoder[DocumentResponsePayload]("document/response.json")
 
-  test("bijective relationship between encoded and decoded DocumentIdResponsePayload"):
+  test("DocumentIdResponsePayload encode and decode form a bijective relationship"):
     assertBijectiveRelationshipBetweenEncoderAndDecoder[DocumentIdResponsePayload]("document/uuid.response.json")
 
   test("validation accumulates") {
@@ -253,16 +238,11 @@ class DocumentsRoutesSpec
     // no metadata part / no bytes part
     val noMultiparts = Multipart[IO](parts = Vector.empty, boundary = Boundary("boundary"))
     val author = userIds.sample.get
-    for
-      inputErrors <- noMultiparts.validated(author).attempt.map(_.leftValue)
-
-      _ <- IO {
-        assert(
-          inputErrors.asInstanceOf[SemanticInputError].details.tips.size === 2,
-          clue = inputErrors
-        )
-      }
-    yield ()
+    for inputErrors <- noMultiparts.validated(author).attempt.map(_.leftValue)
+    yield assert(
+      inputErrors.asInstanceOf[SemanticInputError].details.tips.size === 2,
+      clue = inputErrors
+    )
 
   }
 

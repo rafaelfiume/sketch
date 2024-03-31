@@ -33,7 +33,7 @@ class Auth0MiddlewareSpec
     with Http4sDsl[IO]
     with ShrinkLowPriority:
 
-  test("middleware should allow access with a valid token"):
+  test("access with a valid token is allowed"):
     forAllF { (user: User, plainPassword: PlainPassword, jwtToken: JwtToken) =>
       for
         authenticator <- makeAuthenticator(signee = (user, plainPassword), signeeAuthToken = jwtToken)
@@ -53,7 +53,7 @@ class Auth0MiddlewareSpec
       yield ()
     }
 
-  test("middleware should reject access with an invalid token"):
+  test("attempt to access with an invalid token is rejected"):
     forAllF { (user: User, jwtToken: JwtToken, jwtError: JwtError) =>
       for
         authenticator <- makeFailingAuthenticator(jwtError)
