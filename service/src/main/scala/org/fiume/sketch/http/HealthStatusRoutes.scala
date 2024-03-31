@@ -5,9 +5,8 @@ import cats.implicits.*
 import org.fiume.sketch.shared.app.ServiceStatus
 import org.fiume.sketch.shared.app.ServiceStatus.Dependency.*
 import org.fiume.sketch.shared.app.ServiceStatus.json.given
-import org.fiume.sketch.shared.app.algebras.{HealthCheck, Versions}
-import org.fiume.sketch.shared.app.algebras.HealthCheck.*
-import org.fiume.sketch.shared.app.http4s.middlewares.WorkerMiddleware
+import org.fiume.sketch.shared.app.algebras.{HealthChecker, Versions}
+import org.fiume.sketch.shared.app.algebras.HealthChecker.*
 import org.http4s.HttpRoutes
 import org.http4s.circe.CirceEntityEncoder.*
 import org.http4s.dsl.Http4sDsl
@@ -18,8 +17,8 @@ import scala.concurrent.ExecutionContext
 class HealthStatusRoutes[F[_]: Async](
   workerPool: ExecutionContext,
   versions: Versions[F],
-  dbHealthCheck: HealthCheck.DependencyHealth[F, Database],
-  profileHealthCheck: HealthCheck.DependencyHealth[F, Profile]
+  dbHealthCheck: HealthChecker.DependencyHealthChecker[F, Database],
+  profileHealthCheck: HealthChecker.DependencyHealthChecker[F, Profile]
 ) extends Http4sDsl[F]:
   private val prefix = "/"
 

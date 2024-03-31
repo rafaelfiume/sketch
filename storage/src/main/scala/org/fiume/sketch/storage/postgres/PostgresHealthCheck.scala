@@ -6,13 +6,14 @@ import doobie.*
 import doobie.implicits.*
 import org.fiume.sketch.shared.app.ServiceStatus.{DependencyStatus, Status}
 import org.fiume.sketch.shared.app.ServiceStatus.Dependency.*
-import org.fiume.sketch.shared.app.algebras.HealthCheck
+import org.fiume.sketch.shared.app.algebras.HealthChecker
 
 object PostgresHealthCheck:
   def make[F[_]: Async](tx: Transactor[F]): Resource[F, PostgresHealthCheck[F]] =
     Resource.pure { new PostgresHealthCheck[F](tx) }
 
-private class PostgresHealthCheck[F[_]: Async] private (tx: Transactor[F]) extends HealthCheck.DependencyHealth[F, Database]:
+private class PostgresHealthCheck[F[_]: Async] private (tx: Transactor[F])
+    extends HealthChecker.DependencyHealthChecker[F, Database]:
 
   override def check(): F[DependencyStatus[Database]] =
     Statements.healthCheck

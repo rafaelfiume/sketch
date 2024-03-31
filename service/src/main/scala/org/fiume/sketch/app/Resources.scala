@@ -7,8 +7,8 @@ import org.fiume.sketch.app.SketchVersions.VersionFile
 import org.fiume.sketch.auth0.Authenticator
 import org.fiume.sketch.profile.ProfileHealthCheck
 import org.fiume.sketch.shared.app.ServiceStatus.Dependency.*
-import org.fiume.sketch.shared.app.algebras.{HealthCheck, Versions}
-import org.fiume.sketch.shared.app.algebras.HealthCheck.*
+import org.fiume.sketch.shared.app.algebras.{HealthChecker, Versions}
+import org.fiume.sketch.shared.app.algebras.HealthChecker.*
 import org.fiume.sketch.shared.domain.documents.algebras.DocumentsStore
 import org.fiume.sketch.storage.auth0.postgres.PostgresUsersStore
 import org.fiume.sketch.storage.documents.postgres.PostgresDocumentsStore
@@ -21,8 +21,8 @@ import scala.concurrent.duration.*
 
 trait Resources[F[_]]:
   val customWorkerThreadPool: ExecutionContext
-  val dbHealthCheck: HealthCheck.DependencyHealth[F, Database]
-  val profileHealthCheck: HealthCheck.DependencyHealth[F, Profile]
+  val dbHealthCheck: HealthChecker.DependencyHealthChecker[F, Database]
+  val profileHealthCheck: HealthChecker.DependencyHealthChecker[F, Profile]
   val versions: Versions[F]
   val authenticator: Authenticator[F]
   val documentsStore: DocumentsStore[F, ConnectionIO]
@@ -46,8 +46,8 @@ object Resources:
       documentsStore0 <- PostgresDocumentsStore.make[F](transactor)
     yield new Resources[F]:
       override val customWorkerThreadPool: ExecutionContext = customWorkerThreadPool0
-      override val dbHealthCheck: HealthCheck.DependencyHealth[F, Database] = dbHealthCheck0
-      override val profileHealthCheck: HealthCheck.DependencyHealth[F, Profile] = profileHealthCheck0
+      override val dbHealthCheck: HealthChecker.DependencyHealthChecker[F, Database] = dbHealthCheck0
+      override val profileHealthCheck: HealthChecker.DependencyHealthChecker[F, Profile] = profileHealthCheck0
       override val versions: Versions[F] = versions0
       override val authenticator: Authenticator[F] = authenticator0
       override val documentsStore: DocumentsStore[F, ConnectionIO] = documentsStore0

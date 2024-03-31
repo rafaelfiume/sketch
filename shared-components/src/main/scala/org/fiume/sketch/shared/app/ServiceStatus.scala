@@ -34,6 +34,7 @@ object ServiceStatus:
   object Dependency:
     trait Database extends Dependency:
       override def name: String = "database"
+
     trait Profile extends Dependency:
       override def name: String = "profile"
 

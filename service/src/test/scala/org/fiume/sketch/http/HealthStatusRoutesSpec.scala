@@ -9,7 +9,7 @@ import org.fiume.sketch.shared.app.{ServiceStatus, Version}
 import org.fiume.sketch.shared.app.ServiceStatus.{Dependency, DependencyStatus, *}
 import org.fiume.sketch.shared.app.ServiceStatus.Dependency.*
 import org.fiume.sketch.shared.app.ServiceStatus.json.given
-import org.fiume.sketch.shared.app.algebras.{HealthCheck, Versions}
+import org.fiume.sketch.shared.app.algebras.{HealthChecker, Versions}
 import org.fiume.sketch.shared.app.testkit.VersionGens.versions
 import org.fiume.sketch.shared.testkit.EitherSyntax.*
 import org.fiume.sketch.shared.testkit.Http4sTestingRoutesDsl
@@ -83,8 +83,8 @@ class HealthStatusRoutesSpec
 trait HealthStatusRoutesSpecContext:
   def makeHealthStatusRoutes(
     versions: Versions[IO],
-    dbHealthCheck: HealthCheck.DependencyHealth[IO, Database],
-    profileHealthCheck: HealthCheck.DependencyHealth[IO, Profile]
+    dbHealthCheck: HealthChecker.DependencyHealthChecker[IO, Database],
+    profileHealthCheck: HealthChecker.DependencyHealthChecker[IO, Profile]
   ) = IO.delay {
     new HealthStatusRoutes[IO](IORuntime.global.compute, versions, dbHealthCheck, profileHealthCheck)
   }
@@ -100,6 +100,8 @@ trait HealthCheckContext:
   val healthyProfile = DependencyStatus(profile, ServiceStatus.Status.Ok)
   val faultyDatabase = DependencyStatus(database, ServiceStatus.Status.Degraded)
 
-  def makeHealthCheck[F[_]: Applicative, T <: Dependency](dependency: DependencyStatus[T]): HealthCheck.DependencyHealth[F, T] =
-    new HealthCheck.DependencyHealth[F, T]:
+  def makeHealthCheck[F[_]: Applicative, T <: Dependency](
+    dependency: DependencyStatus[T]
+  ): HealthChecker.DependencyHealthChecker[F, T] =
+    new HealthChecker.DependencyHealthChecker[F, T]:
       override def check(): F[DependencyStatus[T]] = dependency.pure[F]

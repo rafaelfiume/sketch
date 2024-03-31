@@ -7,7 +7,7 @@ import org.fiume.sketch.shared.app.ServiceStatus
 import org.fiume.sketch.shared.app.ServiceStatus.{DependencyStatus, Status}
 import org.fiume.sketch.shared.app.ServiceStatus.Dependency.*
 import org.fiume.sketch.shared.app.ServiceStatus.json.given
-import org.fiume.sketch.shared.app.algebras.HealthCheck
+import org.fiume.sketch.shared.app.algebras.HealthChecker
 import org.http4s.circe.CirceEntityDecoder.*
 import org.http4s.client.*
 import org.http4s.ember.client.*
@@ -21,7 +21,7 @@ object ProfileHealthCheck:
     EmberClientBuilder.default[F].build.map(new ProfileHealthCheck(config, _))
 
 private class ProfileHealthCheck[F[_]: Async] private (config: ProfileClientConfig, client: Client[F])
-    extends HealthCheck.DependencyHealth[F, Profile]:
+    extends HealthChecker.DependencyHealthChecker[F, Profile]:
 
   override def check(): F[DependencyStatus[Profile]] =
     client
