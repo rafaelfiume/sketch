@@ -12,10 +12,7 @@ import org.http4s.circe.CirceEntityEncoder.*
 import org.http4s.dsl.Http4sDsl
 import org.http4s.server.Router
 
-import scala.concurrent.ExecutionContext
-
 class HealthStatusRoutes[F[_]: Async](
-  workerPool: ExecutionContext,
   versions: Versions[F],
   dbHealthCheck: HealthChecker.DependencyHealthChecker[F, Database],
   profileHealthCheck: HealthChecker.DependencyHealthChecker[F, Profile]
@@ -23,7 +20,7 @@ class HealthStatusRoutes[F[_]: Async](
   private val prefix = "/"
 
   def router(): HttpRoutes[F] = Router(
-    prefix -> WorkerMiddleware(workerPool)(httpRoutes)
+    prefix -> httpRoutes
   )
 
   private val httpRoutes: HttpRoutes[F] =

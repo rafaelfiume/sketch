@@ -2,7 +2,6 @@ package org.fiume.sketch.http
 
 import cats.Applicative
 import cats.effect.IO
-import cats.effect.unsafe.IORuntime
 import cats.implicits.*
 import munit.CatsEffectSuite
 import org.fiume.sketch.shared.app.{ServiceStatus, Version}
@@ -86,7 +85,7 @@ trait HealthStatusRoutesSpecContext:
     dbHealthCheck: HealthChecker.DependencyHealthChecker[IO, Database],
     profileHealthCheck: HealthChecker.DependencyHealthChecker[IO, Profile]
   ) = IO.delay {
-    new HealthStatusRoutes[IO](IORuntime.global.compute, versions, dbHealthCheck, profileHealthCheck)
+    new HealthStatusRoutes[IO](versions, dbHealthCheck, profileHealthCheck)
   }
 
 trait VersionsContext:
