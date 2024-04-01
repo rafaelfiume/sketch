@@ -4,7 +4,7 @@ import sbt._
 object Dependency {
   private object Version {
     val jbcrypt               = "0.4"
-    val jwtCirce              = "9.4.4"
+    val jwtCirce              = "9.4.6"
     val bouncycastle          = "1.76"
 
     val cats                  = "2.10.0"
