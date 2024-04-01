@@ -48,7 +48,6 @@ object Dependency {
   val http4sDsl                   = "org.http4s"                 %% "http4s-dsl"                          % Version.http4s
   val http4sEmberClient           = "org.http4s"                 %% "http4s-ember-client"                 % Version.http4s
   val http4sEmberServer           = "org.http4s"                 %% "http4s-ember-server"                 % Version.http4s
-  val log4catsCore                = "org.typelevel"              %% "log4cats-core"                       % Version.log4cats
   val log4catsSlf4j               = "org.typelevel"              %% "log4cats-slf4j"                      % Version.log4cats
   val slf4jSimple                 = "org.slf4j"                  %  "slf4j-simple"                        % Version.slf4j
 
