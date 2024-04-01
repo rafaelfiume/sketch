@@ -2,13 +2,13 @@ import com.typesafe.sbt.packager.docker._
 import sbt.{enablePlugins, IO}
 import scala.util.Properties
 
-val ScalaVersion = "3.3.1"
+val ScalaVersion = "3.4.1"
 
 enablePlugins(GitVersioning)
 
 inThisBuild(
   List(
-    scalaVersion := "3.3.1",
+    scalaVersion := "3.4.1",
     semanticdbEnabled := true,
     semanticdbVersion := scalafixSemanticdb.revision
   )
@@ -88,7 +88,6 @@ lazy val service =
          Dependency.http4sDsl,
          Dependency.http4sEmberClient,
          Dependency.http4sEmberServer,
-         Dependency.log4catsCore,
          Dependency.log4catsSlf4j,
          Dependency.slf4jSimple,
          Dependency.munit % "test,it",
@@ -224,6 +223,8 @@ lazy val storage =
          Dependency.doobiePostgres,
          Dependency.doobieHikari,
          Dependency.flyway,
+         Dependency.flywayPostgres,
+         Dependency.log4catsSlf4j,
          Dependency.munit % "test,it",
          Dependency.munitCatsEffect % "test,it",
          Dependency.munitScalaCheck % "test,it",

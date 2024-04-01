@@ -32,6 +32,6 @@ class SaltSpec extends CatsEffectSuite with ScalaCheckEffectSuite with ShrinkLow
     forAllF(Gen.choose(1, 100)) { (_: Int) =>
       for
         salt <- Salt.generate[IO]()
-        _ <- IO.delay { new java.net.URL(s"https://artigiani.it/${salt.base64Value}") }
+        _ <- IO.delay { new java.net.URI(s"https://artigiani.it/${salt.base64Value}").toURL() }
       yield ()
     }

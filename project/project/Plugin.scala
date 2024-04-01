@@ -4,10 +4,10 @@ import sbt.*
 object Plugin {
   private object Version {
     val DependencyGraph     = "0.9.2"
-    val Gatling             = "4.6.0"
+    val Gatling             = "4.8.2"
     val Git                 = "2.0.1"
     val SbtNativePackager   = "1.9.16"
-    val Scalafix            = "0.11.1"
+    val Scalafix            = "0.12.0"
     val ScalaFmt            = "2.5.2"
     val Tpolecat            = "0.5.0"
   }

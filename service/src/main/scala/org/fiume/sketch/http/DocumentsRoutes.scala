@@ -6,8 +6,8 @@ import cats.effect.Concurrent
 import cats.implicits.*
 import fs2.Stream
 import io.circe.{Decoder, Encoder, HCursor, *}
-import io.circe.{Json as JJson}
 import io.circe.Decoder.Result
+import io.circe.Json as JJson
 import io.circe.syntax.*
 import org.fiume.sketch.http.DocumentsRoutes.{
   AuthorQueryParamMatcher,
