@@ -59,7 +59,7 @@ object AuthRoutes:
       def validated[F[_]: Async](): F[(Username, PlainPassword)] =
         (
           Username.validated(payload.username).leftMap(_.asDetails),
-          PlainPassword.validated(payload.password).leftMap(_.asDetails),
+          PlainPassword.validated(payload.password).leftMap(_.asDetails)
         ).parMapN((_, _))
           .fold(
             errorDetails => SemanticInputError.makeFrom(errorDetails).raiseError,

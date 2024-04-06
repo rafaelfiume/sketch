@@ -17,17 +17,23 @@ import scala.concurrent.ExecutionContext
 
 trait DockerPostgresSuite extends CatsEffectSuite:
 
-  override def munitFixtures = List(transactor)
+  case class DbContainerAndTransactor(container: PostgreSQLContainer, transactor: Transactor[IO])
 
-  extension [A](ops: ConnectionIO[A]) def ccommit: IO[A] = ops.transact(transactor())
+  override def munitFixtures = List(dbContainerAndTransactor)
+
+  extension [A](ops: ConnectionIO[A]) def ccommit: IO[A] = ops.transact(dbContainerAndTransactor().transactor)
 
   /*
    * Mostly used to clean tables after running test.
    */
   def will[A](dbOps: ConnectionIO[Unit])(program: IO[A]): IO[A] =
-    program.guarantee(dbOps.transact(transactor()))
+    program.guarantee(dbOps.transact(dbContainerAndTransactor().transactor))
 
-  val transactor: Fixture[Transactor[IO]] = ResourceSuiteLocalFixture(
+  def container(): PostgreSQLContainer = dbContainerAndTransactor().container
+
+  def transactor(): Transactor[IO] = dbContainerAndTransactor().transactor
+
+  private val dbContainerAndTransactor: Fixture[DbContainerAndTransactor] = ResourceSuiteLocalFixture(
     "db-session",
     for
       container <- Resource
@@ -61,5 +67,5 @@ trait DockerPostgresSuite extends CatsEffectSuite:
         connectionPool
       )
       _ <- Resource.eval(SchemaMigration[IO](dbConfig))
-    yield tx
+    yield DbContainerAndTransactor(container, tx)
   )
