@@ -31,14 +31,14 @@ services:
       - PUBLIC_KEY=${PUBLIC_KEY}
       - JAVA_OPTS=-Xmx2g -XX:+UseG1GC -Djava.rmi.server.hostname=localhost -Dcom.sun.management.jmxremote -Dcom.sun.management.jmxremote.port=9999 -Dcom.sun.management.jmxremote.rmi.port=9999 -Dcom.sun.management.jmxremote.ssl=false -Dcom.sun.management.jmxremote.authenticate=false
     depends_on:
-      - database
+      - sketch-database
     logging:
       driver: "json-file"
       options:
         max-size: "10m"
         max-file: "5"
 
-  database:
+  sketch-database:
     # Don't forget to update DockerDatabaseConfig
     image: postgres:16.2-bullseye
     container_name: postgres
@@ -48,3 +48,29 @@ services:
       - POSTGRES_DB=${DB_NAME}
       - POSTGRES_USER=${DB_USER}
       - POSTGRES_PASSWORD=${DB_PASS}
+    volumes:
+      - sketch_postgres_data:/var/lib/postgresql/rustic/data # Persist the database data
+
+  rustic-sketch:
+    image: rafaelfiume/rustic-sketch:latest
+    container_name: rustic-sketch
+    ports:
+      - "3030:3030"
+    depends_on:
+      - rustic-database
+
+  rustic-database:
+    image: postgres:16.2-bullseye
+    container_name: rustic-postgres
+    ports:
+      - "5433:5432" # Map host port 5433 to container port 5432
+    environment:
+      - POSTGRES_DB=rustic-sketch
+      - POSTGRES_USER=rustic-sketch.dev
+      - POSTGRES_PASSWORD=rustic-sketch.pw
+    volumes:
+      - rustic_postgres_data:/var/lib/postgresql/rustic/data
+
+volumes:
+  sketch_postgres_data:
+  rustic_postgres_data:

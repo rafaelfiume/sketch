@@ -9,10 +9,10 @@ export HTTP_CORS_ALLOWS_ORIGIN="http://localhost:5173|http://localhost:8181"
 
 export DOCUMENT_MB_SIZE_LIMIT=35
 
-export DB_HOST=database
+export DB_HOST=sketch-database
 export DB_PORT=5432
 export DB_NAME=sketch
 export DB_USER=sketch.dev
 
-export PROFILE_SERVICE_HOST="localhost"
+export PROFILE_SERVICE_HOST="rustic-sketch"
 export PROFILE_SERVICE_PORT=3030
