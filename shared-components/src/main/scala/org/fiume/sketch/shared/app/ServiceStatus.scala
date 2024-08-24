@@ -35,11 +35,11 @@ object ServiceStatus:
     trait Database extends Dependency:
       override def name: String = "database"
 
-    trait Profile extends Dependency:
-      override def name: String = "profile"
+    trait Rustic extends Dependency:
+      override def name: String = "rustic"
 
     val database: Database = new Database {}
-    val profile: Profile = new Profile {}
+    val rustic: Rustic = new Rustic {}
 
     given [T <: Dependency]: AsString[T] = new AsString[T]:
       extension (value: T) override def asString(): String = value.name // yolo
@@ -48,7 +48,7 @@ object ServiceStatus:
       extension (value: String)
         override def parsed() = value match // yolo
           case "database" => database.asRight[String]
-          case "profile"  => profile.asRight[String]
+          case "rustic"   => rustic.asRight[String]
           case _          => s"unknown Dependency $value".asLeft[Dependency]
 
   object json:

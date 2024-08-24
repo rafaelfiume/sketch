@@ -33,7 +33,7 @@ class HealthStatusRoutesSpec
       routes <- makeHealthStatusRoutes(
         makeVersions(returning = version),
         makeHealthCheck(healthyDatabase),
-        makeHealthCheck(healthyProfile)
+        makeHealthCheck(healthyRustic)
       )
 
       result <- send(GET(uri"/ping"))
@@ -48,7 +48,7 @@ class HealthStatusRoutesSpec
       routes <- makeHealthStatusRoutes(
         makeVersions(returning = version),
         makeHealthCheck(healthyDatabase),
-        makeHealthCheck(healthyProfile)
+        makeHealthCheck(healthyRustic)
       )
 
       result <- send(GET(uri"/status"))
@@ -57,7 +57,7 @@ class HealthStatusRoutesSpec
 //
     yield assertEquals(
       result.as[ServiceStatus].rightValue,
-      ServiceStatus.make(version, List(healthyDatabase, healthyProfile))
+      ServiceStatus.make(version, List(healthyDatabase, healthyRustic))
     )
   }
 
@@ -66,7 +66,7 @@ class HealthStatusRoutesSpec
       routes <- makeHealthStatusRoutes(
         makeVersions(returning = version),
         makeHealthCheck(faultyDatabase),
-        makeHealthCheck(healthyProfile)
+        makeHealthCheck(healthyRustic)
       )
 
       result <- send(GET(uri"/status"))
@@ -75,7 +75,7 @@ class HealthStatusRoutesSpec
 //
     yield assertEquals(
       result.as[ServiceStatus].rightValue,
-      ServiceStatus.make(version, List(faultyDatabase, healthyProfile))
+      ServiceStatus.make(version, List(faultyDatabase, healthyRustic))
     )
   }
 
@@ -83,9 +83,9 @@ trait HealthStatusRoutesSpecContext:
   def makeHealthStatusRoutes(
     versions: Versions[IO],
     dbHealthCheck: HealthChecker.DependencyHealthChecker[IO, Database],
-    profileHealthCheck: HealthChecker.DependencyHealthChecker[IO, Profile]
+    rusticHealthCheck: HealthChecker.DependencyHealthChecker[IO, Rustic]
   ) = IO.delay {
-    new HealthStatusRoutes[IO](versions, dbHealthCheck, profileHealthCheck)
+    new HealthStatusRoutes[IO](versions, dbHealthCheck, rusticHealthCheck)
   }
 
 trait VersionsContext:
@@ -96,7 +96,7 @@ trait VersionsContext:
 
 trait HealthCheckContext:
   val healthyDatabase = DependencyStatus(database, ServiceStatus.Status.Ok)
-  val healthyProfile = DependencyStatus(profile, ServiceStatus.Status.Ok)
+  val healthyRustic = DependencyStatus(rustic, ServiceStatus.Status.Ok)
   val faultyDatabase = DependencyStatus(database, ServiceStatus.Status.Degraded)
 
   def makeHealthCheck[F[_]: Applicative, T <: Dependency](
