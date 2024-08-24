@@ -34,8 +34,8 @@ class RusticHealthCheckSpec extends CatsEffectSuite with RusticHealthCheckSpecCo
     }
   }
 
-  test("dependency status is Degraded when rustic service is erroing"):
-    rusticStatusInWeirdState()
+  test("dependency status is Degraded when rustic service is Degraded"):
+    rusticInDegradedState()
       .flatMap { port => RusticHealthCheck.make[IO](config = RusticClientConfig(localhost, port)) }
       .use { healthCheck =>
         for result <- healthCheck.check()
@@ -59,24 +59,24 @@ trait RusticHealthCheckSpecContext extends FileContentContext with HttpServiceCo
   def rusticStatusIs(pathToResponsePayload: String): Resource[IO, Port] =
     for
       port <- Resource.eval(freePort())
-      httpApp <- runningStatusRoute(pathToResponsePayload)
+      httpApp <- rusticIsOk(pathToResponsePayload)
       _ <- makeServer(port)(httpApp).void
     yield port
 
-  def rusticStatusInWeirdState(): Resource[IO, Port] =
+  def rusticInDegradedState(): Resource[IO, Port] =
     for
       port <- Resource.eval(freePort())
-      httpApp <- weirdStatusRoute()
+      httpApp <- rusticIsDegraded()
       _ <- makeServer(port)(httpApp).void
     yield port
 
-  private def runningStatusRoute(pathToResponsePayload: String): Resource[IO, HttpRoutes[IO]] =
+  private def rusticIsOk(pathToResponsePayload: String): Resource[IO, HttpRoutes[IO]] =
     jsonFrom[IO](pathToResponsePayload, debug = false)
       .map { serviceStatus =>
         makeStatusRoute(willRespond = Ok(serviceStatus))
       }
 
-  private def weirdStatusRoute(): Resource[IO, HttpRoutes[IO]] =
+  private def rusticIsDegraded(): Resource[IO, HttpRoutes[IO]] =
     def response: Gen[IO[Response[IO]]] = Gen.oneOf(InternalServerError(), BadRequest())
     Resource.pure { makeStatusRoute(willRespond = response.sample.get) }
 
