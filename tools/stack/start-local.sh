@@ -85,8 +85,11 @@ main() {
   local logs_dir="$script_dir/logs"
 
   local docker_compose_yml="$script_dir/docker-compose.yml"
+  local visual_log_file="$logs_dir/visual.log"
   local sketch_log_file="$logs_dir/sketch.log"
-  local database_log_file="$logs_dir/database.log"
+  local sketch_database_log_file="$logs_dir/sketch-database.log"
+  local rustic_log_file="$logs_dir/rustic.log"
+  local rustic_database_log_file="$logs_dir/rustic-database.log"
 
   source "$utils_dir/logs.sh"
   source "$utils_dir/std.sh"
@@ -115,8 +118,11 @@ main() {
 
   info "All services have started up like a charm!"
 
+  write_container_logs_to_file visual-sketch "$visual_log_file"
   write_container_logs_to_file sketch "$sketch_log_file"
-  write_container_logs_to_file database "$database_log_file"
+  write_container_logs_to_file sketch-database "$sketch_database_log_file"
+  write_container_logs_to_file rustic-sketch "$rustic_log_file"
+  write_container_logs_to_file rustic-database "$rustic_database_log_file"
 }
 
 main "$@"

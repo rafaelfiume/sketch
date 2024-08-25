@@ -41,7 +41,7 @@ services:
   sketch-database:
     # Don't forget to update DockerDatabaseConfig
     image: postgres:16.2-bullseye
-    container_name: postgres
+    container_name: sketch-postgres
     ports:
       - "${DB_PORT}:${DB_PORT}"
     environment:
