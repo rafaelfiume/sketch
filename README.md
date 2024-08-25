@@ -8,7 +8,7 @@
 ## Start Here
 
 - [Authentication](docs/Auth.md)
-- Authorisation & Profile (coming soon)
+- [Authorisation & Profile](docs/Authorisation_Profile.md)
 - [Design](docs/Design.md)
 - [Domain](docs/Domain.md)
 - [Pipeline & Stack (& Infra)](docs/Pipeline.md)

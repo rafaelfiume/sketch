@@ -34,7 +34,6 @@ class DocumentsAccSpec extends CatsEffectSuite with AuthenticationContext with D
               assertEquals(res.uuid, uuid)
               assertEquals(res.docName, docName)
               assertEquals(res.description, docDesc)
-              assertEquals(res.author, authenticated.user.uuid.asString())
               assertEquals(res.owner, owner)
           }
 
@@ -108,6 +107,4 @@ trait DocumentsSpecContext extends Http4sClientContext with FileContentContext:
     def docName: String = json.hcursor.downField("metadata").get[String]("name").getOrElse(fail("'name' field not found"))
     def description: String =
       json.hcursor.downField("metadata").get[String]("description").getOrElse(fail("'description' field not found"))
-    def author: String =
-      json.hcursor.downField("metadata").get[String]("author").getOrElse(fail("'author' field not found"))
     def owner: String = json.hcursor.downField("metadata").get[String]("owner").getOrElse(fail("'owner' field not found"))

@@ -16,7 +16,6 @@ import org.fiume.sketch.shared.app.troubleshooting.ErrorInfo
 import org.fiume.sketch.shared.app.troubleshooting.ErrorInfo.json.given
 import org.fiume.sketch.shared.auth0.User
 import org.fiume.sketch.shared.auth0.testkit.UserGens.given
-import org.fiume.sketch.shared.auth0.testkit.UserGens.userIds
 import org.fiume.sketch.shared.domain.documents.{Document, DocumentId, DocumentWithIdAndStream, DocumentWithStream}
 import org.fiume.sketch.shared.domain.documents.algebras.DocumentsStore
 import org.fiume.sketch.shared.domain.testkit.DocumentsGens.*
@@ -98,24 +97,6 @@ class DocumentsRoutesSpec
         obtainedStream <- result.compile.toList
         expectedStream <- document.stream.compile.toList
       yield assertEquals(obtainedStream, expectedStream)
-    }
-
-  test("retrieves document metadata by author"):
-    forAllF { (fstDoc: DocumentWithIdAndStream[IO], sndDoc: DocumentWithIdAndStream[IO]) =>
-      val request = GET(Uri.unsafeFromString(s"/documents?author=${sndDoc.metadata.author.asString()}"))
-      for
-        store <- makeDocumentsStore(state = fstDoc, sndDoc)
-        authMiddleware = makeAuthMiddleware()
-        documentsRoutes <- makeDocumentsRoutes(authMiddleware, store)
-
-        result <- send(request)
-          .to(documentsRoutes.router())
-          .expectJsonResponseWith(Status.Ok)
-//
-      yield assertEquals(
-        result.as[DocumentResponsePayload].rightValue,
-        sndDoc.asResponsePayload
-      )
     }
 
   test("retrieves document metadata by owner"):
@@ -237,8 +218,7 @@ class DocumentsRoutesSpec
     /* Also see `given accumulatingParallel: cats.Parallel[EitherT[IO, String, *]] = EitherT.accumulatingParallel` */
     // no metadata part / no bytes part
     val noMultiparts = Multipart[IO](parts = Vector.empty, boundary = Boundary("boundary"))
-    val author = userIds.sample.get
-    for inputErrors <- noMultiparts.validated(author).attempt.map(_.leftValue)
+    for inputErrors <- noMultiparts.validated().attempt.map(_.leftValue)
     yield assert(
       inputErrors.asInstanceOf[SemanticInputError].details.tips.size === 2,
       clue = inputErrors
@@ -324,9 +304,8 @@ trait DocumentsRoutesSpecContext extends AuthMiddlewareContext:
       for
         name <- c.downField("name").as[String]
         description <- c.downField("description").as[String]
-        author <- c.downField("author").as[String]
         owner <- c.downField("owner").as[String]
-      yield MetadataResponsePayload(name, description, author, owner)
+      yield MetadataResponsePayload(name, description, owner)
 
   given Decoder[DocumentResponsePayload] = new Decoder[DocumentResponsePayload]:
     override def apply(c: HCursor): Result[DocumentResponsePayload] =
@@ -410,9 +389,6 @@ trait DocumentsStoreContext:
           storage.get.map(_.collectFirst {
             case (storedUuid, document) if storedUuid === uuid => document.stream
           })
-
-        def fetchByAuthor(by: UserId): fs2.Stream[IO, DocumentWithId] =
-          fetchAll().filter(_.metadata.author === by)
 
         def fetchByOwner(by: UserId): fs2.Stream[IO, DocumentWithId] =
           fetchAll().filter(_.metadata.owner === by)

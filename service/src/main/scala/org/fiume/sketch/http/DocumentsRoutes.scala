@@ -10,7 +10,6 @@ import io.circe.Decoder.Result
 import io.circe.Json as JJson
 import io.circe.syntax.*
 import org.fiume.sketch.http.DocumentsRoutes.{
-  AuthorQueryParamMatcher,
   DocumentIdVar,
   Line,
   Linebreak,
@@ -59,7 +58,7 @@ class DocumentsRoutes[F[_]: Concurrent, Txn[_]](
       case cx @ POST -> Root / "documents" as user =>
         cx.req.decode { (uploadRequest: Multipart[F]) =>
           for
-            document <- uploadRequest.validated(authorId = user.uuid)
+            document <- uploadRequest.validated()
             uuid <- store.commit { store.store(document) }
             created <- Created(uuid.asResponsePayload)
           yield created
@@ -78,14 +77,6 @@ class DocumentsRoutes[F[_]: Concurrent, Txn[_]](
         yield res
 
       // experimental newline delimited json
-      case GET -> Root / "documents" :? AuthorQueryParamMatcher(userId) as user =>
-        val responseStream = store
-          .fetchByAuthor(by = userId)
-          .map(_.asResponsePayload.asJson)
-          .map(Line(_))
-          .intersperse(Linebreak)
-        Ok(responseStream)
-
       case GET -> Root / "documents" :? OwnerQueryParamMatcher(userId) as user =>
         val responseStream = store
           .fetchByOwner(by = userId)
@@ -126,19 +117,17 @@ private[http] object DocumentsRoutes:
     _.parsed().leftMap(e => ParseFailure("invalid or missing userId", s"${e.message}"))
   )
 
-  object AuthorQueryParamMatcher extends QueryParamDecoderMatcher[UserId]("author")
-
   object OwnerQueryParamMatcher extends QueryParamDecoderMatcher[UserId]("owner")
 
   object Model:
     case class MetadataRequestPayload(name: String, description: String, owner: String)
-    case class MetadataResponsePayload(name: String, description: String, author: String, owner: String)
+    case class MetadataResponsePayload(name: String, description: String, owner: String)
     case class DocumentResponsePayload(uuid: DocumentId, metadata: MetadataResponsePayload, byteStreamUri: Uri)
     case class DocumentIdResponsePayload(value: DocumentId)
 
     extension (m: Metadata)
       private def asResponsePayload: MetadataResponsePayload =
-        MetadataResponsePayload(m.name.value, m.description.value, m.author.asString(), m.owner.asString())
+        MetadataResponsePayload(m.name.value, m.description.value, m.owner.asString())
 
     extension [F[_]](d: DocumentWithId)
       def asResponsePayload: DocumentResponsePayload =
@@ -147,7 +136,7 @@ private[http] object DocumentsRoutes:
     extension [F[_]](id: DocumentId) def asResponsePayload: DocumentIdResponsePayload = DocumentIdResponsePayload(id)
 
     extension [F[_]: MonadThrow: Concurrent](m: Multipart[F])
-      def validated(authorId: UserId): F[DocumentWithStream[F]] =
+      def validated(): F[DocumentWithStream[F]] =
         (m.metadata(), m.bytes()).parTupled
           .foldF(
             details => SemanticInputError.makeFrom(details).raiseError,
@@ -172,7 +161,7 @@ private[http] object DocumentsRoutes:
               EitherT.pure(stream),
               EitherT.fromEither(payload.owner.parsed().leftMap(_.asDetails))
             ).parMapN((name, description, bytes, ownerId: UserId) =>
-              Document.withStream[F](bytes, Metadata(name, description, authorId, ownerId))
+              Document.withStream[F](bytes, Metadata(name, description, ownerId))
             ).foldF(
               details => SemanticInputError.makeFrom(details).raiseError,
               _.pure[F]
@@ -226,7 +215,6 @@ private[http] object DocumentsRoutes:
         override def apply(m: MetadataResponsePayload): JJson = JJson.obj(
           "name" -> m.name.asJson,
           "description" -> m.description.asJson,
-          "author" -> m.author.asJson,
           "owner" -> m.owner.asJson
         )
 
