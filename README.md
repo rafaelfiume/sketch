@@ -12,7 +12,7 @@
 - [Design](docs/Design.md)
 - [Domain](docs/Domain.md)
 - [Pipeline & Stack (& Infra)](docs/Pipeline.md)
-- [Workstation](docs/Workstation.md)
+- [Workspace](docs/Workspace.md)
 
 
 ## Artigiani Softwares

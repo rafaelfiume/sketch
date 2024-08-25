@@ -1,4 +1,4 @@
-# Workstation
+# Workspace
 
 ## Required Tools
 
@@ -45,6 +45,8 @@
  - `docker logs <container-id>`
  - `docker exec -it <container-id> /bin/bash`
  - `docker network prune`
+
+Check postgres connection with: `lsof -nP -iTCP:5433 | grep LISTEN`
 
 
 Feito com ❤️ por Artigiani.

@@ -31,4 +31,4 @@ object ServicesStatusGens:
       status <- bunchOfStatus
     yield DependencyStatus(dependency, status)
 
-  def dependencies: Gen[Dependency] = Gen.oneOf(database, profile)
+  def dependencies: Gen[Dependency] = Gen.oneOf(database, rustic)

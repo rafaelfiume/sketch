@@ -58,7 +58,7 @@ object HttpApi:
     val documentsRoutes: HttpRoutes[F] =
       new DocumentsRoutes[F, ConnectionIO](authMiddleware, config.documents.documentBytesSizeLimit, res.documentsStore).router()
     val healthStatusRoutes: HttpRoutes[F] =
-      new HealthStatusRoutes[F](res.versions, res.dbHealthCheck, res.profileHealthCheck).router()
+      new HealthStatusRoutes[F](res.versions, res.dbHealthCheck, res.rusticHealthCheck).router()
 
     val corsMiddleware: CORSPolicy = CORS.policy.withAllowOriginHeader(config.cors.allowedOrigins)
     val middlewares = WorkerMiddleware[F](res.customWorkerThreadPool)

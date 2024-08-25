@@ -5,7 +5,7 @@ import doobie.ConnectionIO
 import fs2.io.net.Network
 import org.fiume.sketch.app.SketchVersions.VersionFile
 import org.fiume.sketch.auth0.Authenticator
-import org.fiume.sketch.profile.ProfileHealthCheck
+import org.fiume.sketch.rustic.RusticHealthCheck
 import org.fiume.sketch.shared.app.ServiceStatus.Dependency.*
 import org.fiume.sketch.shared.app.algebras.{HealthChecker, Versions}
 import org.fiume.sketch.shared.app.algebras.HealthChecker.*
@@ -22,7 +22,7 @@ import scala.concurrent.duration.*
 trait Resources[F[_]]:
   val customWorkerThreadPool: ExecutionContext
   val dbHealthCheck: HealthChecker.DependencyHealthChecker[F, Database]
-  val profileHealthCheck: HealthChecker.DependencyHealthChecker[F, Profile]
+  val rusticHealthCheck: HealthChecker.DependencyHealthChecker[F, Rustic]
   val versions: Versions[F]
   val authenticator: Authenticator[F]
   val documentsStore: DocumentsStore[F, ConnectionIO]
@@ -33,7 +33,7 @@ object Resources:
       customWorkerThreadPool0 <- newCustomWorkerThreadPool()
       transactor <- DbTransactor.make(config.db)
       dbHealthCheck0 <- PostgresHealthCheck.make[F](transactor)
-      profileHealthCheck0 <- ProfileHealthCheck.make[F](config.profileClient)
+      rusticHealthCheck0 <- RusticHealthCheck.make[F](config.rusticClient)
       versions0 <- SketchVersions.make[F](config.env, VersionFile("sketch.version"))
       usersStore0 <- PostgresUsersStore.make[F](transactor)
       authenticator0 <- Resource.liftK {
@@ -47,7 +47,7 @@ object Resources:
     yield new Resources[F]:
       override val customWorkerThreadPool: ExecutionContext = customWorkerThreadPool0
       override val dbHealthCheck: HealthChecker.DependencyHealthChecker[F, Database] = dbHealthCheck0
-      override val profileHealthCheck: HealthChecker.DependencyHealthChecker[F, Profile] = profileHealthCheck0
+      override val rusticHealthCheck: HealthChecker.DependencyHealthChecker[F, Rustic] = rusticHealthCheck0
       override val versions: Versions[F] = versions0
       override val authenticator: Authenticator[F] = authenticator0
       override val documentsStore: DocumentsStore[F, ConnectionIO] = documentsStore0

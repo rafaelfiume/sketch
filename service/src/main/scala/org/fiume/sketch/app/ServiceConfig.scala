@@ -5,7 +5,7 @@ import cats.implicits.*
 import ciris.*
 import com.comcast.ip4s.{Host, Port}
 import org.fiume.sketch.auth0.KeyStringifier
-import org.fiume.sketch.profile.ProfileClientConfig
+import org.fiume.sketch.rustic.RusticClientConfig
 import org.fiume.sketch.shared.app.Version.Environment
 import org.fiume.sketch.storage.DatabaseConfig
 import org.http4s.headers.Origin
@@ -17,7 +17,7 @@ case class ServiceConfig(
   endpoints: EndpointsConfig,
   keyPair: EcKeyPairConfig,
   db: DatabaseConfig,
-  profileClient: ProfileClientConfig
+  rusticClient: RusticClientConfig
 )
 
 case class EndpointsConfig(
@@ -45,8 +45,8 @@ object ServiceConfig:
       privateKey <- env("PRIVATE_KEY").as[ECPrivateKey].redacted
       publicKey <- env("PUBLIC_KEY").as[ECPublicKey].redacted
       databaseConfig <- DatabaseConfig.envs[F](dbPoolThreads = 10)
-      profileHost <- env("PROFILE_SERVICE_HOST").as[Host]
-      profilePort <- env("PROFILE_SERVICE_PORT").as[Port]
+      rusticHost <- env("RUSTIC_SKETCH_HOST").as[Host]
+      rusticPort <- env("RUSTIC_SKETCH_PORT").as[Port]
     yield ServiceConfig(
       env = environment,
       endpoints = EndpointsConfig(
@@ -57,7 +57,7 @@ object ServiceConfig:
       ),
       keyPair = EcKeyPairConfig(privateKey, publicKey),
       db = databaseConfig,
-      profileClient = ProfileClientConfig(profileHost, profilePort)
+      rusticClient = RusticClientConfig(rusticHost, rusticPort)
     )).load[F]
 
   given ConfigDecoder[String, Environment] = ConfigDecoder[String].map(Environment.apply)

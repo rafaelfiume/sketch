@@ -15,7 +15,7 @@ import org.http4s.server.Router
 class HealthStatusRoutes[F[_]: Async](
   versions: Versions[F],
   dbHealthCheck: HealthChecker.DependencyHealthChecker[F, Database],
-  profileHealthCheck: HealthChecker.DependencyHealthChecker[F, Profile]
+  rusticHealthCheck: HealthChecker.DependencyHealthChecker[F, Rustic]
 ) extends Http4sDsl[F]:
   private val prefix = "/"
 
@@ -32,7 +32,7 @@ class HealthStatusRoutes[F[_]: Async](
         for
           version <- versions.currentVersion
           dbHealth <- dbHealthCheck.check()
-          profileHealth <- profileHealthCheck.check()
-          resp <- Ok(ServiceStatus.make(version, List(dbHealth, profileHealth)))
+          rusticHealth <- rusticHealthCheck.check()
+          resp <- Ok(ServiceStatus.make(version, List(dbHealth, rusticHealth)))
         yield resp
     }

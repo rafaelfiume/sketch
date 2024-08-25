@@ -1,4 +1,4 @@
-package org.fiume.sketch.profile
+package org.fiume.sketch.rustic
 
 import cats.effect.{Async, Resource, Sync}
 import cats.implicits.*
@@ -14,20 +14,20 @@ import org.http4s.ember.client.*
 import org.typelevel.log4cats.LoggerFactory
 import org.typelevel.log4cats.slf4j.Slf4jFactory
 
-object ProfileHealthCheck:
+object RusticHealthCheck:
   given [F[_]: Sync]: LoggerFactory[F] = Slf4jFactory.create[F]
 
-  def make[F[_]: Async: Network](config: ProfileClientConfig): Resource[F, ProfileHealthCheck[F]] =
-    EmberClientBuilder.default[F].build.map(new ProfileHealthCheck(config, _))
+  def make[F[_]: Async: Network](config: RusticClientConfig): Resource[F, RusticHealthCheck[F]] =
+    EmberClientBuilder.default[F].build.map(new RusticHealthCheck(config, _))
 
-private class ProfileHealthCheck[F[_]: Async] private (config: ProfileClientConfig, client: Client[F])
-    extends HealthChecker.DependencyHealthChecker[F, Profile]:
+private class RusticHealthCheck[F[_]: Async] private (config: RusticClientConfig, client: Client[F])
+    extends HealthChecker.DependencyHealthChecker[F, Rustic]:
 
-  override def check(): F[DependencyStatus[Profile]] =
+  override def check(): F[DependencyStatus[Rustic]] =
     client
-      .expect[ServiceStatus](config.httpProfileUri / "status")
+      .expect[ServiceStatus](config.httpRusticUri / "status")
       .attempt
       .map {
-        case Right(s) => DependencyStatus[Profile](profile, s.status)
-        case Left(_)  => DependencyStatus[Profile](profile, Status.Degraded)
+        case Right(s) => DependencyStatus[Rustic](rustic, s.status)
+        case Left(_)  => DependencyStatus[Rustic](rustic, Status.Degraded)
       }

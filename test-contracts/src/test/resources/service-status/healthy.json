@@ -5,6 +5,6 @@
   "status" : "Ok",
   "dependencies" : [
     { "database" : "Ok" },
-    { "profile" : "Ok" }
+    { "rustic" : "Ok" }
   ]
 }
