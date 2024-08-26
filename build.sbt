@@ -2,13 +2,13 @@ import com.typesafe.sbt.packager.docker._
 import sbt.{enablePlugins, IO}
 import scala.util.Properties
 
-val ScalaVersion = "3.4.3"
+val ScalaVersion = "3.5.0"
 
 enablePlugins(GitVersioning)
 
 inThisBuild(
   List(
-    scalaVersion := "3.4.3",
+    scalaVersion := "3.5.0",
     semanticdbEnabled := true,
     semanticdbVersion := scalafixSemanticdb.revision
   )
