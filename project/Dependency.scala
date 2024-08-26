@@ -21,7 +21,7 @@ object Dependency {
     val gatling               = "3.9.5"
     val munit                 = "0.7.29"
     val munitCatsEffect       = "2.0.0"
-    val munitScalaCheck       = "0.7.29" 
+    val munitScalaCheck       = "1.0.0" 
     val munitScalaCheckEffect = "1.0.4"
     val munitTestcontainers   = "0.41.3"
   }
