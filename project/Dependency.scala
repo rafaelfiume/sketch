@@ -15,7 +15,7 @@ object Dependency {
     val flyway                = "10.10.0"
     val fs2                   = "3.11.0"
     val http4s                = "1.0.0-M41"
-    val log4cats              = "2.6.0"
+    val log4cats              = "2.7.0"
     val slf4j                 = "2.0.12"
 
     val gatling               = "3.9.5"
