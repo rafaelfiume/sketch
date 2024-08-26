@@ -20,7 +20,7 @@ object Dependency {
 
     val gatling               = "3.9.5"
     val munit                 = "0.7.29"
-    val munitCatsEffect       = "1.0.7"
+    val munitCatsEffect       = "2.0.0"
     val munitScalaCheck       = "0.7.29" 
     val munitScalaCheckEffect = "1.0.4"
     val munitTestcontainers   = "0.41.3"
@@ -56,7 +56,7 @@ object Dependency {
   val gatlingHighcharts           = "io.gatling.highcharts"      %  "gatling-charts-highcharts"           % Version.gatling
   val gatlingTestFramework        = "io.gatling"                 %  "gatling-test-framework"              % Version.gatling
   val munit                       = "org.scalameta"              %% "munit"                               % Version.munit
-  val munitCatsEffect             = "org.typelevel"              %% "munit-cats-effect-3"                 % Version.munitCatsEffect
+  val munitCatsEffect             = "org.typelevel"              %% "munit-cats-effect"                 % Version.munitCatsEffect
   val munitScalaCheck             = "org.scalameta"              %% "munit-scalacheck"                    % Version.munitScalaCheck
   val munitScalaCheckEffect       = "org.typelevel"              %% "scalacheck-effect-munit"             % Version.munitScalaCheckEffect
   val munitTestcontainersScala    = "com.dimafeng"               %% "testcontainers-scala-munit"          % Version.munitTestcontainers
