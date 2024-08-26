@@ -23,7 +23,7 @@ object Dependency {
     val munitCatsEffect       = "2.0.0"
     val munitScalaCheck       = "1.0.0" 
     val munitScalaCheckEffect = "1.0.4"
-    val munitTestcontainers   = "0.41.3"
+    val munitTestcontainers   = "0.41.4"
   }
 
   // auth
