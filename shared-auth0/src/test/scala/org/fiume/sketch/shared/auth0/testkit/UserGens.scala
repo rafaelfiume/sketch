@@ -98,7 +98,7 @@ object UserGens:
       plainPassword <- validPlainPasswords
       salt <- salts
       hashedPassword = HashedPassword.hashPassword(plainPassword, salt)
-    yield UserCredentials.withUuid(uuid, username, hashedPassword, salt) -> plainPassword
+    yield UserCredentials.make(uuid, username, hashedPassword, salt) -> plainPassword
 
   // frequency is important here avoiding user names like "___", as we want to generate more valid passwords than invalid ones.
   private def usernameChars: Gen[Char] = Gen.frequency(

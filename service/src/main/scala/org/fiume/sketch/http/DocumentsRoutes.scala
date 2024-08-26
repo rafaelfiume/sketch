@@ -9,15 +9,7 @@ import io.circe.{Decoder, Encoder, HCursor, *}
 import io.circe.Decoder.Result
 import io.circe.Json as JJson
 import io.circe.syntax.*
-import org.fiume.sketch.http.DocumentsRoutes.{
-  AuthorQueryParamMatcher,
-  DocumentIdVar,
-  Line,
-  Linebreak,
-  NewlineDelimitedJson,
-  NewlineDelimitedJsonEncoder,
-  OwnerQueryParamMatcher
-}
+import org.fiume.sketch.http.DocumentsRoutes.{DocumentIdVar, Line, Linebreak, NewlineDelimitedJson, NewlineDelimitedJsonEncoder}
 import org.fiume.sketch.http.DocumentsRoutes.Model.*
 import org.fiume.sketch.http.DocumentsRoutes.Model.json.given
 import org.fiume.sketch.shared.app.EntityId.given
@@ -34,7 +26,6 @@ import org.http4s.MediaType.application
 import org.http4s.circe.CirceEntityDecoder.*
 import org.http4s.circe.CirceEntityEncoder.*
 import org.http4s.dsl.Http4sDsl
-import org.http4s.dsl.impl.*
 import org.http4s.headers.{`Content-Disposition`, `Content-Type`}
 import org.http4s.multipart.{Multipart, Part, *}
 import org.http4s.server.{AuthMiddleware, Router}
@@ -59,7 +50,7 @@ class DocumentsRoutes[F[_]: Concurrent, Txn[_]](
       case cx @ POST -> Root / "documents" as user =>
         cx.req.decode { (uploadRequest: Multipart[F]) =>
           for
-            document <- uploadRequest.validated(authorId = user.uuid)
+            document <- uploadRequest.validated()
             uuid <- store.commit { store.store(document) }
             created <- Created(uuid.asResponsePayload)
           yield created
@@ -78,17 +69,9 @@ class DocumentsRoutes[F[_]: Concurrent, Txn[_]](
         yield res
 
       // experimental newline delimited json
-      case GET -> Root / "documents" :? AuthorQueryParamMatcher(userId) as user =>
+      case GET -> Root / "documents" as user =>
         val responseStream = store
-          .fetchByAuthor(by = userId)
-          .map(_.asResponsePayload.asJson)
-          .map(Line(_))
-          .intersperse(Linebreak)
-        Ok(responseStream)
-
-      case GET -> Root / "documents" :? OwnerQueryParamMatcher(userId) as user =>
-        val responseStream = store
-          .fetchByOwner(by = userId)
+          .fetchByOwner(by = user.uuid)
           .map(_.asResponsePayload.asJson)
           .map(Line(_))
           .intersperse(Linebreak)
@@ -122,23 +105,15 @@ private[http] object DocumentsRoutes:
   object DocumentIdVar:
     def unapply(uuid: String): Option[DocumentId] = uuid.parsed().toOption
 
-  given QueryParamDecoder[UserId] = QueryParamDecoder[String].emap(
-    _.parsed().leftMap(e => ParseFailure("invalid or missing userId", s"${e.message}"))
-  )
-
-  object AuthorQueryParamMatcher extends QueryParamDecoderMatcher[UserId]("author")
-
-  object OwnerQueryParamMatcher extends QueryParamDecoderMatcher[UserId]("owner")
-
   object Model:
     case class MetadataRequestPayload(name: String, description: String, owner: String)
-    case class MetadataResponsePayload(name: String, description: String, author: String, owner: String)
+    case class MetadataResponsePayload(name: String, description: String, owner: String)
     case class DocumentResponsePayload(uuid: DocumentId, metadata: MetadataResponsePayload, byteStreamUri: Uri)
     case class DocumentIdResponsePayload(value: DocumentId)
 
     extension (m: Metadata)
       private def asResponsePayload: MetadataResponsePayload =
-        MetadataResponsePayload(m.name.value, m.description.value, m.author.asString(), m.owner.asString())
+        MetadataResponsePayload(m.name.value, m.description.value, m.owner.asString())
 
     extension [F[_]](d: DocumentWithId)
       def asResponsePayload: DocumentResponsePayload =
@@ -147,10 +122,10 @@ private[http] object DocumentsRoutes:
     extension [F[_]](id: DocumentId) def asResponsePayload: DocumentIdResponsePayload = DocumentIdResponsePayload(id)
 
     extension [F[_]: MonadThrow: Concurrent](m: Multipart[F])
-      def validated(authorId: UserId): F[DocumentWithStream[F]] =
+      def validated(): F[DocumentWithStream[F]] =
         (m.metadata(), m.bytes()).parTupled
           .foldF(
-            details => SemanticInputError.makeFrom(details).raiseError,
+            details => SemanticInputError.make(details).raiseError,
             _.pure[F]
           )
           .flatMap { case (metadataPayload, bytes) =>
@@ -158,10 +133,10 @@ private[http] object DocumentsRoutes:
               .as[MetadataRequestPayload]
               .attemptT
               .leftMap(_ =>
-                ErrorDetails(Map("malformed.document.metadata.payload" -> "the metadata payload does not meet the contract"))
+                ErrorDetails("malformed.document.metadata.payload" -> "the metadata payload does not meet the contract")
               )
               .foldF(
-                details => SemanticInputError.makeFrom(details).raiseError,
+                details => SemanticInputError.make(details).raiseError,
                 (_, bytes).pure[F]
               )
           }
@@ -172,9 +147,9 @@ private[http] object DocumentsRoutes:
               EitherT.pure(stream),
               EitherT.fromEither(payload.owner.parsed().leftMap(_.asDetails))
             ).parMapN((name, description, bytes, ownerId: UserId) =>
-              Document.withStream[F](bytes, Metadata(name, description, authorId, ownerId))
+              Document.make[F](bytes, Metadata(name, description, ownerId))
             ).foldF(
-              details => SemanticInputError.makeFrom(details).raiseError,
+              details => SemanticInputError.make(details).raiseError,
               _.pure[F]
             )
           }
@@ -185,7 +160,7 @@ private[http] object DocumentsRoutes:
             .find { _.name == Some("metadata") }
             .toRight(
               ErrorDetails(
-                Map("missing.document.metadata.part" -> "missing `metadata` json payload in the multipart request")
+                "missing.document.metadata.part" -> "missing `metadata` json payload in the multipart request"
               )
             )
         }
@@ -196,9 +171,7 @@ private[http] object DocumentsRoutes:
             .find { _.name == Some("bytes") }
             .toRight(
               ErrorDetails(
-                Map(
-                  "missing.document.bytes.part" -> "missing `bytes` stream in the multipart request (please, select a file to be uploaded)"
-                )
+                "missing.document.bytes.part" -> "missing `bytes` stream in the multipart request (please, select a file to be uploaded)"
               )
             )
             .map(_.body)
@@ -226,7 +199,6 @@ private[http] object DocumentsRoutes:
         override def apply(m: MetadataResponsePayload): JJson = JJson.obj(
           "name" -> m.name.asJson,
           "description" -> m.description.asJson,
-          "author" -> m.author.asJson,
           "owner" -> m.owner.asJson
         )
 

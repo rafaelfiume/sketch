@@ -9,7 +9,7 @@ import org.fiume.sketch.shared.auth0.User
 import org.fiume.sketch.shared.auth0.User.Username
 import org.fiume.sketch.shared.auth0.testkit.PasswordsGens.*
 import org.fiume.sketch.shared.auth0.testkit.UserGens.*
-import org.fiume.sketch.shared.testkit.EitherSyntax.*
+import org.fiume.sketch.shared.testkit.Syntax.EitherSyntax.*
 import org.http4s.circe.CirceEntityDecoder.*
 import org.http4s.headers.Authorization
 import org.scalacheck.Gen

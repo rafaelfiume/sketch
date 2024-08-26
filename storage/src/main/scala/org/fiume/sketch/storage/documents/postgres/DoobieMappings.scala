@@ -17,6 +17,6 @@ private[storage] object DoobieMappings:
   given Meta[Description] = Meta[String].timap(Description.apply)(_.value)
 
   given readDocumentWithId: Read[DocumentWithId] =
-    Read[(DocumentId, Name, Description, UserId, UserId)].map { case (uuid, name, description, author, owner) =>
-      Document.withUuid(uuid, Metadata(name, description, author, owner))
+    Read[(DocumentId, Name, Description, UserId)].map { case (uuid, name, description, owner) =>
+      Document.make(uuid, Metadata(name, description, owner))
     }

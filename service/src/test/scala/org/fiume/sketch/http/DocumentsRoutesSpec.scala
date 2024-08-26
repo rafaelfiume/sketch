@@ -16,13 +16,13 @@ import org.fiume.sketch.shared.app.troubleshooting.ErrorInfo
 import org.fiume.sketch.shared.app.troubleshooting.ErrorInfo.json.given
 import org.fiume.sketch.shared.auth0.User
 import org.fiume.sketch.shared.auth0.testkit.UserGens.given
-import org.fiume.sketch.shared.auth0.testkit.UserGens.userIds
 import org.fiume.sketch.shared.domain.documents.{Document, DocumentId, DocumentWithIdAndStream, DocumentWithStream}
 import org.fiume.sketch.shared.domain.documents.algebras.DocumentsStore
 import org.fiume.sketch.shared.domain.testkit.DocumentsGens.*
 import org.fiume.sketch.shared.domain.testkit.DocumentsGens.given
+import org.fiume.sketch.shared.domain.testkit.Syntax.DocumentSyntax.*
 import org.fiume.sketch.shared.testkit.{ContractContext, Http4sTestingRoutesDsl}
-import org.fiume.sketch.shared.testkit.EitherSyntax.*
+import org.fiume.sketch.shared.testkit.Syntax.EitherSyntax.*
 import org.http4s.{MediaType, *}
 import org.http4s.Method.*
 import org.http4s.client.dsl.io.*
@@ -68,6 +68,7 @@ class DocumentsRoutesSpec
       yield assert(stored.isDefined, clue = stored)
     }
 
+  // TODO User cannot retrieve documents which is not an owner
   test("retrieves metadata of stored document"):
     forAllF { (document: DocumentWithIdAndStream[IO]) =>
       val request = GET(Uri.unsafeFromString(s"/documents/${document.uuid.value}/metadata"))
@@ -83,6 +84,7 @@ class DocumentsRoutesSpec
       yield assertEquals(result.as[DocumentResponsePayload].rightValue, document.asResponsePayload)
     }
 
+  // TODO User cannot retrieve documents which is not an owner
   test("retrieves content bytes of stored document"):
     forAllF { (document: DocumentWithIdAndStream[IO]) =>
       val request = GET(Uri.unsafeFromString(s"/documents/${document.uuid.value}"))
@@ -100,12 +102,12 @@ class DocumentsRoutesSpec
       yield assertEquals(obtainedStream, expectedStream)
     }
 
-  test("retrieves document metadata by author"):
-    forAllF { (fstDoc: DocumentWithIdAndStream[IO], sndDoc: DocumentWithIdAndStream[IO]) =>
-      val request = GET(Uri.unsafeFromString(s"/documents?author=${sndDoc.metadata.author.asString()}"))
+  test("retrieves documents of which the user is the owner"):
+    forAllF { (fstDoc: DocumentWithIdAndStream[IO], sndDoc: DocumentWithIdAndStream[IO], user: User) =>
+      val request = GET(Uri.unsafeFromString("/documents"))
       for
-        store <- makeDocumentsStore(state = fstDoc, sndDoc)
-        authMiddleware = makeAuthMiddleware()
+        store <- makeDocumentsStore(state = fstDoc, sndDoc.withOwner(user.uuid))
+        authMiddleware = makeAuthMiddleware(authenticated = user)
         documentsRoutes <- makeDocumentsRoutes(authMiddleware, store)
 
         result <- send(request)
@@ -114,27 +116,11 @@ class DocumentsRoutesSpec
 //
       yield assertEquals(
         result.as[DocumentResponsePayload].rightValue,
-        sndDoc.asResponsePayload
+        sndDoc.withOwner(user.uuid).asResponsePayload
       )
     }
 
-  test("retrieves document metadata by owner"):
-    forAllF { (fstDoc: DocumentWithIdAndStream[IO], sndDoc: DocumentWithIdAndStream[IO]) =>
-      val request = GET(Uri.unsafeFromString(s"/documents?owner=${sndDoc.metadata.owner.asString()}"))
-      for
-        store <- makeDocumentsStore(state = fstDoc, sndDoc)
-        authMiddleware = makeAuthMiddleware()
-        documentsRoutes <- makeDocumentsRoutes(authMiddleware, store)
-
-        result <- send(request)
-          .to(documentsRoutes.router())
-          .expectJsonResponseWith(Status.Ok)
-//
-      yield assertEquals(
-        result.as[DocumentResponsePayload].rightValue,
-        sndDoc.asResponsePayload
-      )
-    }
+  // TODO User cannot delete document which is not an owner
   test("deletes stored document"):
     forAllF { (document: DocumentWithIdAndStream[IO]) =>
       val request = DELETE(Uri.unsafeFromString(s"/documents/${document.uuid.value}"))
@@ -158,6 +144,11 @@ class DocumentsRoutesSpec
       yield ()
     }
 
+  /* Authorisation */
+  // coming soon
+
+  /* Sad Path */
+
   test("attempt to delete a nonexistent document results in 404 Not Found"):
     forAllF { (document: DocumentWithIdAndStream[IO]) =>
       val request = DELETE(Uri.unsafeFromString(s"/documents/${document.uuid.value}"))
@@ -170,8 +161,6 @@ class DocumentsRoutesSpec
           .expectEmptyResponseWith(Status.NotFound)
       yield ()
     }
-
-  /* Sad Path */
 
   test("semantically invalid upload request results in 422 Unprocessable Entity"):
     forAllF(semanticallyInvalidDocumentRequests) { (multipart: Multipart[IO]) =>
@@ -237,8 +226,7 @@ class DocumentsRoutesSpec
     /* Also see `given accumulatingParallel: cats.Parallel[EitherT[IO, String, *]] = EitherT.accumulatingParallel` */
     // no metadata part / no bytes part
     val noMultiparts = Multipart[IO](parts = Vector.empty, boundary = Boundary("boundary"))
-    val author = userIds.sample.get
-    for inputErrors <- noMultiparts.validated(author).attempt.map(_.leftValue)
+    for inputErrors <- noMultiparts.validated().attempt.map(_.leftValue)
     yield assert(
       inputErrors.asInstanceOf[SemanticInputError].details.tips.size === 2,
       clue = inputErrors
@@ -324,9 +312,8 @@ trait DocumentsRoutesSpecContext extends AuthMiddlewareContext:
       for
         name <- c.downField("name").as[String]
         description <- c.downField("description").as[String]
-        author <- c.downField("author").as[String]
         owner <- c.downField("owner").as[String]
-      yield MetadataResponsePayload(name, description, author, owner)
+      yield MetadataResponsePayload(name, description, owner)
 
   given Decoder[DocumentResponsePayload] = new Decoder[DocumentResponsePayload]:
     override def apply(c: HCursor): Result[DocumentResponsePayload] =
@@ -368,7 +355,7 @@ trait AuthMiddlewareContext:
         Response[IO](Status.Unauthorized)
           .withHeaders(`WWW-Authenticate`(Challenge("Bearer", s"${cx.req.uri.path}")))
           .withEntity(
-            ErrorInfo.withDetails(ErrorMessage("Invalid credentials"), ErrorDetails.single("invalid.jwt" -> cx.context))
+            ErrorInfo.make(ErrorMessage("Invalid credentials"), ErrorDetails("invalid.jwt" -> cx.context))
           )
       )
     }
@@ -410,9 +397,6 @@ trait DocumentsStoreContext:
           storage.get.map(_.collectFirst {
             case (storedUuid, document) if storedUuid === uuid => document.stream
           })
-
-        def fetchByAuthor(by: UserId): fs2.Stream[IO, DocumentWithId] =
-          fetchAll().filter(_.metadata.author === by)
 
         def fetchByOwner(by: UserId): fs2.Stream[IO, DocumentWithId] =
           fetchAll().filter(_.metadata.owner === by)

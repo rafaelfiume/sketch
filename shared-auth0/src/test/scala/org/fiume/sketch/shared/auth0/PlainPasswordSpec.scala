@@ -6,7 +6,7 @@ import org.fiume.sketch.shared.auth0.Passwords.PlainPassword
 import org.fiume.sketch.shared.auth0.Passwords.PlainPassword.WeakPasswordError
 import org.fiume.sketch.shared.auth0.testkit.PasswordsGens.*
 import org.fiume.sketch.shared.auth0.testkit.PasswordsGens.given
-import org.fiume.sketch.shared.testkit.EitherSyntax.*
+import org.fiume.sketch.shared.testkit.Syntax.EitherSyntax.*
 import org.scalacheck.Prop.forAll
 
 class PlainPasswordSpec extends ScalaCheckSuite:

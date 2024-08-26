@@ -2,7 +2,7 @@ package org.fiume.sketch.auth0
 
 import munit.ScalaCheckSuite
 import org.fiume.sketch.auth0.testkit.EcKeysGens
-import org.fiume.sketch.shared.testkit.EitherSyntax.*
+import org.fiume.sketch.shared.testkit.Syntax.EitherSyntax.*
 import org.scalacheck.Prop.forAll
 
 class KeyStringifierSpec extends ScalaCheckSuite with EcKeysGens:

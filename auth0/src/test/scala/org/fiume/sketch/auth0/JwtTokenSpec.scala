@@ -9,8 +9,8 @@ import org.fiume.sketch.auth0.testkit.EcKeysGens
 import org.fiume.sketch.shared.auth0.User
 import org.fiume.sketch.shared.auth0.testkit.UserGens.*
 import org.fiume.sketch.shared.testkit.ClockContext
-import org.fiume.sketch.shared.testkit.EitherSyntax.*
 import org.fiume.sketch.shared.testkit.Gens.DateAndTime.*
+import org.fiume.sketch.shared.testkit.Syntax.EitherSyntax.*
 import org.scalacheck.ShrinkLowPriority
 import org.scalacheck.effect.PropF.forAllF
 

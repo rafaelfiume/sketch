@@ -11,6 +11,7 @@ import munit.ScalaCheckEffectSuite
 import org.fiume.sketch.shared.domain.documents.{Document, DocumentId, DocumentWithIdAndStream, DocumentWithStream}
 import org.fiume.sketch.shared.domain.testkit.DocumentsGens.*
 import org.fiume.sketch.shared.domain.testkit.DocumentsGens.given
+import org.fiume.sketch.shared.domain.testkit.Syntax.DocumentSyntax.*
 import org.fiume.sketch.shared.testkit.FileContentContext
 import org.fiume.sketch.storage.documents.postgres.DoobieMappings.given
 import org.fiume.sketch.storage.testkit.DockerPostgresSuite
@@ -51,21 +52,6 @@ class PostgresDocumentsStoreSpec
 
             bytes <- document.stream.compile.toList
           yield assertEquals(result, bytes.some)
-        }
-      }
-    }
-
-  test("fetches documents by author"):
-    forAllF { (fstDoc: DocumentWithStream[IO], sndDoc: DocumentWithStream[IO]) =>
-      will(cleanDocuments) {
-        PostgresDocumentsStore.make[IO](transactor()).use { store =>
-          for
-            fstUuid <- store.store(fstDoc).ccommit
-            sndUuid <- store.store(sndDoc).ccommit
-
-            result <- store.fetchByAuthor(fstDoc.metadata.author).compile.toList
-//
-          yield assertEquals(result, List(fstDoc.withUuid(fstUuid)))
         }
       }
     }

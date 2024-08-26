@@ -6,7 +6,7 @@ import org.fiume.sketch.shared.domain.documents.Document.Metadata.Name.InvalidDo
 import org.fiume.sketch.shared.domain.documents.Document.Metadata.Name.InvalidDocumentNameError.*
 import org.fiume.sketch.shared.domain.testkit.DocumentsGens.*
 import org.fiume.sketch.shared.domain.testkit.DocumentsGens.given
-import org.fiume.sketch.shared.testkit.EitherSyntax.*
+import org.fiume.sketch.shared.testkit.Syntax.EitherSyntax.*
 import org.scalacheck.Prop.forAll
 import org.scalacheck.ShrinkLowPriority
 

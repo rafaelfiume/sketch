@@ -20,8 +20,8 @@ import org.fiume.sketch.shared.auth0.User.Username.WeakUsernameError
 import org.fiume.sketch.shared.auth0.testkit.PasswordsGens.*
 import org.fiume.sketch.shared.auth0.testkit.UserGens.*
 import org.fiume.sketch.shared.testkit.{ContractContext, Http4sTestingRoutesDsl}
-import org.fiume.sketch.shared.testkit.EitherSyntax.*
-import org.fiume.sketch.shared.testkit.StringSyntax.*
+import org.fiume.sketch.shared.testkit.Syntax.EitherSyntax.*
+import org.fiume.sketch.shared.testkit.Syntax.StringSyntax.*
 import org.http4s.Method.*
 import org.http4s.Status
 import org.http4s.circe.CirceEntityEncoder.*
@@ -77,7 +77,7 @@ class AuthRoutesSpec
 //
       yield assertEquals(
         jsonResponse.as[ErrorInfo].rightValue,
-        ErrorInfo.short(
+        ErrorInfo.make(
           message = ErrorMessage("The username or password provided is incorrect.")
         )
       )
@@ -101,7 +101,7 @@ class AuthRoutesSpec
 //
       yield assertEquals(
         jsonResponse.as[ErrorInfo].rightValue,
-        ErrorInfo.short(
+        ErrorInfo.make(
           message = ErrorMessage("The username or password provided is incorrect.")
         )
       )
@@ -146,7 +146,7 @@ class AuthRoutesSpec
 
         _ <- IO {
           assertEquals(result.message, SemanticInputError.message)
-          assertEquals(result.details, ErrorDetails.single("input.semantic.error" -> "The request body was invalid.").some)
+          assertEquals(result.details, ErrorDetails("input.semantic.error" -> "The request body was invalid.").some)
         }
       yield ()
     }

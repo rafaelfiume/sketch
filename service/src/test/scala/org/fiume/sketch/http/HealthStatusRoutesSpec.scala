@@ -10,8 +10,8 @@ import org.fiume.sketch.shared.app.ServiceStatus.Dependency.*
 import org.fiume.sketch.shared.app.ServiceStatus.json.given
 import org.fiume.sketch.shared.app.algebras.{HealthChecker, Versions}
 import org.fiume.sketch.shared.app.testkit.VersionGens.versions
-import org.fiume.sketch.shared.testkit.EitherSyntax.*
 import org.fiume.sketch.shared.testkit.Http4sTestingRoutesDsl
+import org.fiume.sketch.shared.testkit.Syntax.EitherSyntax.*
 import org.http4s.Method.*
 import org.http4s.Status
 import org.http4s.client.dsl.io.*

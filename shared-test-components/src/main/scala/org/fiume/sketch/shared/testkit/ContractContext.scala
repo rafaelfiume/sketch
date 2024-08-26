@@ -5,7 +5,7 @@ import io.circe.{Decoder, Encoder}
 import io.circe.parser.decode
 import io.circe.syntax.*
 import munit.Assertions.*
-import org.fiume.sketch.shared.testkit.EitherSyntax.*
+import org.fiume.sketch.shared.testkit.Syntax.EitherSyntax.*
 
 /*
  * A note regarding bijective relationship an isomorphism.

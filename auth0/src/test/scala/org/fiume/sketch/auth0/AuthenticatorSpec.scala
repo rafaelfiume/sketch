@@ -13,9 +13,9 @@ import org.fiume.sketch.shared.auth0.User.Username
 import org.fiume.sketch.shared.auth0.testkit.{UserGens, UsersStoreContext}
 import org.fiume.sketch.shared.auth0.testkit.UserGens.*
 import org.fiume.sketch.shared.testkit.ClockContext
-import org.fiume.sketch.shared.testkit.EitherSyntax.*
 import org.fiume.sketch.shared.testkit.Gens.DateAndTime.shortDurations
-import org.fiume.sketch.shared.testkit.StringSyntax.*
+import org.fiume.sketch.shared.testkit.Syntax.EitherSyntax.*
+import org.fiume.sketch.shared.testkit.Syntax.StringSyntax.*
 import org.scalacheck.ShrinkLowPriority
 import org.scalacheck.effect.PropF.forAllF
 

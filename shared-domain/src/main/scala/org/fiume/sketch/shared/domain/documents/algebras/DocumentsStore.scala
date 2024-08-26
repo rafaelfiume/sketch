@@ -9,6 +9,5 @@ trait DocumentsStore[F[_], Txn[_]] extends Store[F, Txn]:
   def store(document: DocumentWithStream[F]): Txn[DocumentId]
   def fetchDocument(uuid: DocumentId): Txn[Option[DocumentWithId]]
   def documentStream(uuid: DocumentId): Txn[Option[fs2.Stream[F, Byte]]]
-  def fetchByAuthor(by: UserId): fs2.Stream[F, DocumentWithId]
   def fetchByOwner(by: UserId): fs2.Stream[F, DocumentWithId]
   def delete(uuid: DocumentId): Txn[Unit]

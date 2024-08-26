@@ -41,7 +41,7 @@ class AuthRoutes[F[_]: Async](authenticator: Authenticator[F]) extends Http4sDsl
             Response[F](status = Status.Unauthorized)
               .putHeaders(`WWW-Authenticate`(Challenge("Bearer", "Authentication Service")))
               .withEntity(
-                ErrorInfo.short(
+                ErrorInfo.make(
                   ErrorMessage("The username or password provided is incorrect.")
                 )
               )
@@ -62,7 +62,7 @@ object AuthRoutes:
           PlainPassword.validated(payload.password).leftMap(_.asDetails)
         ).parMapN((_, _))
           .fold(
-            errorDetails => SemanticInputError.makeFrom(errorDetails).raiseError,
+            errorDetails => SemanticInputError.make(errorDetails).raiseError,
             _.pure[F]
           )
 

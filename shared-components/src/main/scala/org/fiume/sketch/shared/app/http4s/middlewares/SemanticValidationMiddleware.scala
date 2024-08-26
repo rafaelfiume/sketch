@@ -22,9 +22,9 @@ object SemanticInputError:
       | * Does the entity exceed a certain size, for example a request to upload a document that is too large?
     """.stripMargin)
 
-  def makeFrom(details: ErrorDetails) = new SemanticInputError(message, details) {}
+  def make(details: ErrorDetails) = new SemanticInputError(message, details) {}
 
-  extension (error: SemanticInputError) def toErrorInfo = ErrorInfo.withDetails(error.message, error.details)
+  extension (error: SemanticInputError) def toErrorInfo = ErrorInfo.make(error.message, error.details)
 
 object SemanticValidationMiddleware:
   def apply[F[_]: Async](routes: HttpRoutes[F]): HttpRoutes[F] =
@@ -42,7 +42,7 @@ object SemanticValidationMiddleware:
                 .as[String]
                 .flatMap { body =>
                   Status.UnprocessableEntity(
-                    SemanticInputError.makeFrom(ErrorDetails(Map("input.semantic.error" -> body))).toErrorInfo
+                    SemanticInputError.make(ErrorDetails("input.semantic.error" -> body)).toErrorInfo
                   )
                 }
             case _ => response.pure[F]
@@ -50,6 +50,6 @@ object SemanticValidationMiddleware:
         .handleError {
           // this is raised by validation functions in the app's routes
           case SemanticInputError(message, details) =>
-            Response[F](Status.UnprocessableEntity).withEntity(SemanticInputError.makeFrom(details).toErrorInfo)
+            Response[F](Status.UnprocessableEntity).withEntity(SemanticInputError.make(details).toErrorInfo)
         }
     }

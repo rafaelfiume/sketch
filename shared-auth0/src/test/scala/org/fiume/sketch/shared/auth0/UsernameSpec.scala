@@ -5,7 +5,7 @@ import org.fiume.sketch.shared.auth0.User.Username
 import org.fiume.sketch.shared.auth0.User.Username.WeakUsernameError
 import org.fiume.sketch.shared.auth0.testkit.UserGens.*
 import org.fiume.sketch.shared.auth0.testkit.UserGens.given
-import org.fiume.sketch.shared.testkit.EitherSyntax.*
+import org.fiume.sketch.shared.testkit.Syntax.EitherSyntax.*
 import org.scalacheck.Prop.forAll
 import org.scalacheck.ShrinkLowPriority
 

@@ -3,6 +3,7 @@ version: "3.8"
 services:
   visual-sketch:
     image: rafaelfiume/visual-sketch:${VISUAL_SKETCH_IMAGE_TAG}
+    container_name: visual-sketch
     ports:
       - "8181:80"
     depends_on:

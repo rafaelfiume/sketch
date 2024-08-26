@@ -49,9 +49,6 @@ private class PostgresDocumentsStore[F[_]: Async] private (l: F ~> ConnectionIO,
       .map(Stream.emits)
       .value
 
-  def fetchByAuthor(by: UserId): fs2.Stream[F, DocumentWithId] =
-    Statements.selectByAuthor(by).transact(tx)
-
   def fetchByOwner(by: UserId): fs2.Stream[F, DocumentWithId] =
     Statements.selectByOwner(by).transact(tx)
 
@@ -64,14 +61,12 @@ private object Statements:
          |INSERT INTO domain.documents(
          |  name,
          |  description,
-         |  author,
          |  owner,
          |  bytes
          |)
          |VALUES (
          |  ${metadata.name},
          |  ${metadata.description},
-         |  ${metadata.author},
          |  ${metadata.owner},
          |  $bytes
          |)
@@ -83,7 +78,6 @@ private object Statements:
          |  d.uuid,
          |  d.name,
          |  d.description,
-         |  d.author,
          |  d.owner
          |FROM domain.documents d
          |WHERE d.uuid = $uuid
@@ -97,25 +91,12 @@ private object Statements:
          |WHERE d.uuid = $uuid
     """.stripMargin.query[Array[Byte]]
 
-  def selectByAuthor(author: UserId): fs2.Stream[ConnectionIO, DocumentWithId] =
-    sql"""
-         |SELECT
-         |  d.uuid,
-         |  d.name,
-         |  d.description,
-         |  d.author,
-         |  d.owner
-         |FROM domain.documents d
-         |WHERE d.author = $author
-    """.stripMargin.query[DocumentWithId].stream
-
   def selectByOwner(ownerId: UserId): fs2.Stream[ConnectionIO, DocumentWithId] =
     sql"""
          |SELECT
          |  d.uuid,
          |  d.name,
          |  d.description,
-         |  d.author,
          |  d.owner
          |FROM domain.documents d
          |WHERE d.owner = $ownerId

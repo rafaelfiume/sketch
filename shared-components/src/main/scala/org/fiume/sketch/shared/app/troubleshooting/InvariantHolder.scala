@@ -21,7 +21,7 @@ trait InvariantError:
 
 object InvariantErrorSyntax:
   extension [T <: InvariantError](inputError: T)
-    def asDetails: ErrorDetails = ErrorDetails.single(inputError.uniqueCode -> inputError.message) // Yolo
+    def asDetails: ErrorDetails = ErrorDetails(inputError.uniqueCode -> inputError.message) // Yolo
 
   extension (inputErrors: NonEmptyChain[InvariantError])
-    def asDetails: ErrorDetails = ErrorDetails(inputErrors.map(e => e.uniqueCode -> e.message).toList.toMap)
+    def asDetails: ErrorDetails = ErrorDetails(inputErrors.map(e => e.uniqueCode -> e.message).toList*)

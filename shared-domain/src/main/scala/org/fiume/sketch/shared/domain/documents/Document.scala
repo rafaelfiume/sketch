@@ -30,15 +30,15 @@ type DocumentWithStream[F[_]] = Document & WithStream[F]
 type DocumentWithIdAndStream[F[_]] = Document & WithUuid[DocumentId] & WithStream[F]
 
 object Document:
-  def withUuid(uuid0: DocumentId, metadata: Metadata): Document & WithUuid[DocumentId] =
+  def make(uuid0: DocumentId, metadata: Metadata): Document & WithUuid[DocumentId] =
     new Document(metadata) with WithUuid[DocumentId]:
       override val uuid: DocumentId = uuid0
 
-  def withStream[F[_]](stream0: fs2.Stream[F, Byte], metadata: Metadata): Document & WithStream[F] =
+  def make[F[_]](stream0: fs2.Stream[F, Byte], metadata: Metadata): Document & WithStream[F] =
     new Document(metadata) with WithStream[F]:
       override val stream: fs2.Stream[F, Byte] = stream0
 
-  case class Metadata(name: Name, description: Description, author: UserId, owner: UserId)
+  case class Metadata(name: Name, description: Description, owner: UserId)
 
   object Metadata:
     sealed abstract case class Name(value: String)
@@ -77,6 +77,3 @@ object Document:
       given Eq[InvalidDocumentNameError] = Eq.fromUniversalEquals[InvalidDocumentNameError]
 
     case class Description(value: String) extends AnyVal
-
-  extension (document: Document)
-    def withUuid(uuid: DocumentId): Document & WithUuid[DocumentId] = Document.withUuid(uuid, document.metadata)

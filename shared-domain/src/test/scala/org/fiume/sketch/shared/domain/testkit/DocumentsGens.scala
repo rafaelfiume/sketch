@@ -72,9 +72,8 @@ object DocumentsGens:
     for
       name <- validNames
       description <- descriptions
-      author <- userIds
-      owner <- Gen.frequency(5 -> Gen.const(author), 5 -> userIds)
-    yield Metadata(name, description, author, owner)
+      owner <- userIds
+    yield Metadata(name, description, owner)
 
   given Arbitrary[Stream[IO, Byte]] = Arbitrary(bytesG)
   def bytesG: Gen[Stream[IO, Byte]] = Gen.nonEmptyListOf(bytes).map(Stream.emits)
@@ -89,14 +88,14 @@ object DocumentsGens:
     for
       id <- documentsIds
       document <- documents
-    yield Document.withUuid(id, document.metadata)
+    yield Document.make(id, document.metadata)
 
   given Arbitrary[DocumentWithStream[IO]] = Arbitrary(documentsWithStream)
   def documentsWithStream: Gen[DocumentWithStream[IO]] =
     for
       metadata <- metadataG
       content <- bytesG
-    yield Document.withStream[IO](content, metadata)
+    yield Document.make[IO](content, metadata)
 
   import scala.language.adhocExtensions
   given Arbitrary[DocumentWithIdAndStream[IO]] = Arbitrary(documentWithIdAndStreams)
