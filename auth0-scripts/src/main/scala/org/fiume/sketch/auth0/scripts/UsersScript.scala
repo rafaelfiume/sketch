@@ -45,9 +45,9 @@ object UsersScript extends IOApp:
           PlainPassword.validated(pass).leftMap(_.asDetails)
         )
           .parMapN((user, pass) => Args(user, pass))
-          .leftMap(details => ErrorInfo.withDetails(ErrorMessage("Invalid parameters"), details))
+          .leftMap(details => ErrorInfo.make(ErrorMessage("Invalid parameters"), details))
       case unknown =>
-        ErrorInfo.short(ErrorMessage(s"Invalid parameters: expected `username` and `password`; got $unknown")).asLeft[Args]
+        ErrorInfo.make(ErrorMessage(s"Invalid parameters: expected `username` and `password`; got $unknown")).asLeft[Args]
 
 class UsersScript private (private val config: DatabaseConfig):
   def registreUser(username: Username, password: PlainPassword): IO[User] =

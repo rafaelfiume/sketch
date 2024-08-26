@@ -22,5 +22,5 @@ private[storage] object DoobieMappings:
 
   given Read[UserCredentialsWithId] =
     Read[(UserId, Username, HashedPassword, Salt)].map { case (uuid, username, password, salt) =>
-      UserCredentials.withUuid(uuid, username, password, salt)
+      UserCredentials.make(uuid, username, password, salt)
     }

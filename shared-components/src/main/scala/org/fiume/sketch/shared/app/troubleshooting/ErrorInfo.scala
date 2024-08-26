@@ -8,20 +8,20 @@ import org.fiume.sketch.shared.typeclasses.AsString
 case class ErrorInfo(message: ErrorMessage, details: Option[ErrorDetails])
 
 object ErrorInfo:
-  def short(message: ErrorMessage): ErrorInfo = ErrorInfo(message, None)
+  def make(message: ErrorMessage): ErrorInfo = ErrorInfo(message, None)
 
-  def withDetails(message: ErrorMessage, details: ErrorDetails): ErrorInfo =
+  def make(message: ErrorMessage, details: ErrorDetails): ErrorInfo =
     ErrorInfo(message, Some(details))
 
   case class ErrorMessage(value: String) extends AnyVal
   object ErrorMessage:
     extension (msg: ErrorMessage) def asString: String = s"${msg.value}"
 
-  case class ErrorDetails(tips: Map[String, String]) extends AnyVal
+  case class ErrorDetails private (tips: Map[String, String]) extends AnyVal
   object ErrorDetails:
-    def single(detail: (String, String)) = ErrorDetails(Map(detail))
+    def apply(details: (String, String)*): ErrorDetails = ErrorDetails(details.toMap)
 
-    extension (details: ErrorDetails) def asString: String = details.tips.mkString(" * ", "\n * ", "")
+    extension (d: ErrorDetails) def asString: String = d.tips.mkString(" * ", "\n * ", "")
 
     given Semigroup[ErrorDetails] = new Semigroup[ErrorDetails]:
       def combine(x: ErrorDetails, y: ErrorDetails): ErrorDetails = ErrorDetails(x.tips.combine(y.tips))
@@ -45,7 +45,7 @@ object ErrorInfo:
     given Encoder[ErrorMessage] = Encoder.encodeString.contramap(_.value)
     given Decoder[ErrorMessage] = Decoder.decodeString.map(ErrorMessage.apply)
     given Encoder[ErrorDetails] = Encoder.encodeMap[String, String].contramap(_.tips)
-    given Decoder[ErrorDetails] = Decoder.decodeMap[String, String].map(ErrorDetails.apply)
+    given Decoder[ErrorDetails] = Decoder.decodeMap[String, String].map(_.toList).map(ErrorDetails.apply)
     given Encoder[ErrorInfo] = new Encoder[ErrorInfo]:
       override def apply(errorInfo: ErrorInfo): Json =
         Json.obj(

@@ -77,7 +77,7 @@ class AuthRoutesSpec
 //
       yield assertEquals(
         jsonResponse.as[ErrorInfo].rightValue,
-        ErrorInfo.short(
+        ErrorInfo.make(
           message = ErrorMessage("The username or password provided is incorrect.")
         )
       )
@@ -101,7 +101,7 @@ class AuthRoutesSpec
 //
       yield assertEquals(
         jsonResponse.as[ErrorInfo].rightValue,
-        ErrorInfo.short(
+        ErrorInfo.make(
           message = ErrorMessage("The username or password provided is incorrect.")
         )
       )
@@ -146,7 +146,7 @@ class AuthRoutesSpec
 
         _ <- IO {
           assertEquals(result.message, SemanticInputError.message)
-          assertEquals(result.details, ErrorDetails.single("input.semantic.error" -> "The request body was invalid.").some)
+          assertEquals(result.details, ErrorDetails("input.semantic.error" -> "The request body was invalid.").some)
         }
       yield ()
     }

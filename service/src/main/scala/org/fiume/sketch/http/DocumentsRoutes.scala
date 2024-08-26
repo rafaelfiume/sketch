@@ -125,7 +125,7 @@ private[http] object DocumentsRoutes:
       def validated(): F[DocumentWithStream[F]] =
         (m.metadata(), m.bytes()).parTupled
           .foldF(
-            details => SemanticInputError.makeFrom(details).raiseError,
+            details => SemanticInputError.make(details).raiseError,
             _.pure[F]
           )
           .flatMap { case (metadataPayload, bytes) =>
@@ -133,10 +133,10 @@ private[http] object DocumentsRoutes:
               .as[MetadataRequestPayload]
               .attemptT
               .leftMap(_ =>
-                ErrorDetails(Map("malformed.document.metadata.payload" -> "the metadata payload does not meet the contract"))
+                ErrorDetails("malformed.document.metadata.payload" -> "the metadata payload does not meet the contract")
               )
               .foldF(
-                details => SemanticInputError.makeFrom(details).raiseError,
+                details => SemanticInputError.make(details).raiseError,
                 (_, bytes).pure[F]
               )
           }
@@ -147,9 +147,9 @@ private[http] object DocumentsRoutes:
               EitherT.pure(stream),
               EitherT.fromEither(payload.owner.parsed().leftMap(_.asDetails))
             ).parMapN((name, description, bytes, ownerId: UserId) =>
-              Document.withStream[F](bytes, Metadata(name, description, ownerId))
+              Document.make[F](bytes, Metadata(name, description, ownerId))
             ).foldF(
-              details => SemanticInputError.makeFrom(details).raiseError,
+              details => SemanticInputError.make(details).raiseError,
               _.pure[F]
             )
           }
@@ -160,7 +160,7 @@ private[http] object DocumentsRoutes:
             .find { _.name == Some("metadata") }
             .toRight(
               ErrorDetails(
-                Map("missing.document.metadata.part" -> "missing `metadata` json payload in the multipart request")
+                "missing.document.metadata.part" -> "missing `metadata` json payload in the multipart request"
               )
             )
         }
@@ -171,9 +171,7 @@ private[http] object DocumentsRoutes:
             .find { _.name == Some("bytes") }
             .toRight(
               ErrorDetails(
-                Map(
-                  "missing.document.bytes.part" -> "missing `bytes` stream in the multipart request (please, select a file to be uploaded)"
-                )
+                "missing.document.bytes.part" -> "missing `bytes` stream in the multipart request (please, select a file to be uploaded)"
               )
             )
             .map(_.body)

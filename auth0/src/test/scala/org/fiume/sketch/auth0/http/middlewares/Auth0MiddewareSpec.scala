@@ -68,9 +68,9 @@ class Auth0MiddlewareSpec
             assertEquals(response.status, Status.Unauthorized)
             assertEquals(
               result,
-              ErrorInfo.withDetails(
+              ErrorInfo.make(
                 ErrorMessage("Invalid credentials"),
-                ErrorDetails.single("invalid.jwt" -> jwtError.toString)
+                ErrorDetails("invalid.jwt" -> jwtError.toString)
               )
             )
           }

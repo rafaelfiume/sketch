@@ -355,7 +355,7 @@ trait AuthMiddlewareContext:
         Response[IO](Status.Unauthorized)
           .withHeaders(`WWW-Authenticate`(Challenge("Bearer", s"${cx.req.uri.path}")))
           .withEntity(
-            ErrorInfo.withDetails(ErrorMessage("Invalid credentials"), ErrorDetails.single("invalid.jwt" -> cx.context))
+            ErrorInfo.make(ErrorMessage("Invalid credentials"), ErrorDetails("invalid.jwt" -> cx.context))
           )
       )
     }

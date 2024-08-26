@@ -30,10 +30,10 @@ object User:
   )
 
   object UserCredentials:
-    def withUuid(uuid: UserId, credentials: UserCredentials): UserCredentialsWithId =
-      withUuid(uuid, credentials.username, credentials.hashedPassword, credentials.salt)
+    def make(uuid: UserId, credentials: UserCredentials): UserCredentialsWithId =
+      make(uuid, credentials.username, credentials.hashedPassword, credentials.salt)
 
-    def withUuid(uuid0: UserId, username: Username, hashedPassword: HashedPassword, salt: Salt): UserCredentialsWithId =
+    def make(uuid0: UserId, username: Username, hashedPassword: HashedPassword, salt: Salt): UserCredentialsWithId =
       new UserCredentials(username, hashedPassword, salt) with WithUuid[UserId]:
         override val uuid: UserId = uuid0
 

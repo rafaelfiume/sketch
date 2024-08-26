@@ -30,11 +30,11 @@ type DocumentWithStream[F[_]] = Document & WithStream[F]
 type DocumentWithIdAndStream[F[_]] = Document & WithUuid[DocumentId] & WithStream[F]
 
 object Document:
-  def withUuid(uuid0: DocumentId, metadata: Metadata): Document & WithUuid[DocumentId] =
+  def make(uuid0: DocumentId, metadata: Metadata): Document & WithUuid[DocumentId] =
     new Document(metadata) with WithUuid[DocumentId]:
       override val uuid: DocumentId = uuid0
 
-  def withStream[F[_]](stream0: fs2.Stream[F, Byte], metadata: Metadata): Document & WithStream[F] =
+  def make[F[_]](stream0: fs2.Stream[F, Byte], metadata: Metadata): Document & WithStream[F] =
     new Document(metadata) with WithStream[F]:
       override val stream: fs2.Stream[F, Byte] = stream0
 

@@ -18,5 +18,5 @@ private[storage] object DoobieMappings:
 
   given readDocumentWithId: Read[DocumentWithId] =
     Read[(DocumentId, Name, Description, UserId)].map { case (uuid, name, description, owner) =>
-      Document.withUuid(uuid, Metadata(name, description, owner))
+      Document.make(uuid, Metadata(name, description, owner))
     }

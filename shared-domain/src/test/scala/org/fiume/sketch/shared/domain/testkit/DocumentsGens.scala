@@ -88,14 +88,14 @@ object DocumentsGens:
     for
       id <- documentsIds
       document <- documents
-    yield Document.withUuid(id, document.metadata)
+    yield Document.make(id, document.metadata)
 
   given Arbitrary[DocumentWithStream[IO]] = Arbitrary(documentsWithStream)
   def documentsWithStream: Gen[DocumentWithStream[IO]] =
     for
       metadata <- metadataG
       content <- bytesG
-    yield Document.withStream[IO](content, metadata)
+    yield Document.make[IO](content, metadata)
 
   import scala.language.adhocExtensions
   given Arbitrary[DocumentWithIdAndStream[IO]] = Arbitrary(documentWithIdAndStreams)

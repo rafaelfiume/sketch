@@ -39,7 +39,7 @@ trait UsersStoreContext:
         override def fetchCredentials(username: Username): IO[Option[UserCredentialsWithId]] =
           storage.get.map(_.collectFirst {
             case (uuid, storedCreds) if storedCreds.username == username =>
-              UserCredentials.withUuid(uuid, storedCreds)
+              UserCredentials.make(uuid, storedCreds)
           })
 
         override def updatePassword(uuid: UserId, newPassword: HashedPassword): IO[Unit] =
