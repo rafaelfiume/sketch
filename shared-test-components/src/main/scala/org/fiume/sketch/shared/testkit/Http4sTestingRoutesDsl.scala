@@ -28,8 +28,8 @@ trait Http4sTestingRoutesDsl extends Assertions:
           .flatMap { _.as[Json] }
           .flatTap { jsonBody => IO { if debugJsonResponse then debugJson(jsonBody) else () } }
           .handleErrorWith {
-            case empty: MalformedMessageBodyFailure if empty.message.contains("JSON") && empty.message.contains("empty") =>
-              IO.delay { fail("expected a response with a json payload, but obtained an empty one") }
+            case error: MalformedMessageBodyFailure if error.message.contains("JSON") && error.message.contains("empty") =>
+              IO.delay { fail("expected a JSON body in the response, but received an empty one") }
             case other => IO.raiseError(other)
           }
 
