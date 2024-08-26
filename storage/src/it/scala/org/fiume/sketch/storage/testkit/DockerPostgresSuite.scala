@@ -33,7 +33,7 @@ trait DockerPostgresSuite extends CatsEffectSuite:
 
   def transactor(): Transactor[IO] = dbContainerAndTransactor().transactor
 
-  private val dbContainerAndTransactor: Fixture[DbContainerAndTransactor] = ResourceSuiteLocalFixture(
+  private val dbContainerAndTransactor = ResourceSuiteLocalFixture(
     "db-session",
     for
       container <- Resource

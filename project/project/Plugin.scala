@@ -3,7 +3,6 @@ import sbt.*
 // format: off
 object Plugin {
   private object Version {
-    val DependencyGraph     = "0.9.2"
     val Gatling             = "4.8.2"
     val Git                 = "2.0.1"
     val SbtNativePackager   = "1.9.16"
@@ -12,7 +11,6 @@ object Plugin {
     val Tpolecat            = "0.5.0"
   }
 
-  val DependencyGraph       = "net.virtual-void"              % "sbt-dependency-graph"        % Version.DependencyGraph
   val Gatling               = "io.gatling"                    % "gatling-sbt"                 % Version.Gatling
   val Git                   = "com.github.sbt"                % "sbt-git"                     % Version.Git
   val SbtNativePackager     = "com.github.sbt"               %% "sbt-native-packager"         % Version.SbtNativePackager
