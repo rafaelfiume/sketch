@@ -7,7 +7,7 @@ object Dependency {
     val jwtCirce              = "9.4.6"
     val bouncycastle          = "1.77"
 
-    val cats                  = "2.10.0"
+    val cats                  = "2.12.0"
     val catsEffect            = "3.5.4"
     val circe                 = "0.14.6"
     val ciris                 = "3.5.0"
