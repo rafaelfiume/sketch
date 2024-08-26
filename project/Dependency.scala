@@ -19,7 +19,7 @@ object Dependency {
     val slf4j                 = "2.0.12"
 
     val gatling               = "3.9.5"
-    val munit                 = "0.7.29"
+    val munit                 = "1.0.1"
     val munitCatsEffect       = "2.0.0"
     val munitScalaCheck       = "0.7.29" 
     val munitScalaCheckEffect = "1.0.4"
