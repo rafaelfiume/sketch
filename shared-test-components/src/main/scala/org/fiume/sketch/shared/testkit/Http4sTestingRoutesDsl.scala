@@ -3,7 +3,7 @@ package org.fiume.sketch.shared.testkit
 import cats.effect.IO
 import io.circe.Json
 import munit.Assertions
-import org.http4s.{HttpRoutes, Request, Status}
+import org.http4s.{HttpRoutes, MalformedMessageBodyFailure, Request, Status}
 import org.http4s.circe.CirceEntityDecoder.*
 import org.http4s.implicits.*
 
@@ -27,6 +27,11 @@ trait Http4sTestingRoutesDsl extends Assertions:
           .flatTap { res => IO(assertEquals(res.status, expected)) }
           .flatMap { _.as[Json] }
           .flatTap { jsonBody => IO { if debugJsonResponse then debugJson(jsonBody) else () } }
+          .handleErrorWith {
+            case empty: MalformedMessageBodyFailure if empty.message.contains("JSON") && empty.message.contains("empty") =>
+              IO.delay { fail("expected a response with a json payload, but obtained an empty one") }
+            case other => IO.raiseError(other)
+          }
 
       def expectByteStreamResponseWith(expected: Status): IO[fs2.Stream[IO, Byte]] =
         routes.orNotFound
