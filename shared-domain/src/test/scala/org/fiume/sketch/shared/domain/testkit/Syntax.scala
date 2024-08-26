@@ -8,7 +8,10 @@ import scala.language.adhocExtensions // For testing purposes only, allow Docume
 
 object Syntax:
 
-  object Documents:
+  object DocumentSyntax:
+    extension (document: Document)
+      def withUuid(uuid: DocumentId): Document & WithUuid[DocumentId] = Document.make(uuid, document.metadata)
+
     extension [F[_]](d: DocumentWithIdAndStream[F])
       def withOwner(userId: UserId): DocumentWithIdAndStream[F] = new Document(d.metadata.copy(owner = userId))
         with WithUuid[DocumentId]

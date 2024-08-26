@@ -77,6 +77,3 @@ object Document:
       given Eq[InvalidDocumentNameError] = Eq.fromUniversalEquals[InvalidDocumentNameError]
 
     case class Description(value: String) extends AnyVal
-
-  extension (document: Document)
-    def withUuid(uuid: DocumentId): Document & WithUuid[DocumentId] = Document.withUuid(uuid, document.metadata)

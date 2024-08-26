@@ -20,8 +20,8 @@ import org.fiume.sketch.shared.auth0.User.Username.WeakUsernameError
 import org.fiume.sketch.shared.auth0.testkit.PasswordsGens.*
 import org.fiume.sketch.shared.auth0.testkit.UserGens.*
 import org.fiume.sketch.shared.testkit.{ContractContext, Http4sTestingRoutesDsl}
-import org.fiume.sketch.shared.testkit.EitherSyntax.*
-import org.fiume.sketch.shared.testkit.StringSyntax.*
+import org.fiume.sketch.shared.testkit.Syntax.EitherSyntax.*
+import org.fiume.sketch.shared.testkit.Syntax.StringSyntax.*
 import org.http4s.Method.*
 import org.http4s.Status
 import org.http4s.circe.CirceEntityEncoder.*
