@@ -3,6 +3,7 @@ package org.fiume.sketch.auth0
 import cats.effect.{Clock, Sync}
 import cats.implicits.*
 import org.fiume.sketch.auth0.AuthenticationError.*
+import org.fiume.sketch.shared.app.algebras.Store.Syntax.commit
 import org.fiume.sketch.shared.auth0.Passwords.{HashedPassword, PlainPassword}
 import org.fiume.sketch.shared.auth0.User
 import org.fiume.sketch.shared.auth0.User.Username
@@ -33,10 +34,12 @@ object Authenticator:
     publicKey: PublicKey,
     expirationOffset: Duration
   )(using F: Sync[F], clock: Clock[F]): F[Authenticator[F]] = F.delay {
+    given UsersStore[F, Txn] = store
+
     new Authenticator[F]:
       override def authenticate(username: Username, password: PlainPassword): F[Either[AuthenticationError, JwtToken]] =
         for
-          credentials <- store.commit { store.fetchCredentials(username) }
+          credentials <- store.fetchCredentials(username).commit()
           jwtToken <- credentials match
             case None =>
               UserNotFoundError.asLeft.pure[F]

@@ -13,6 +13,7 @@ import org.fiume.sketch.http.DocumentsRoutes.{DocumentIdVar, Line, Linebreak, Ne
 import org.fiume.sketch.http.DocumentsRoutes.Model.*
 import org.fiume.sketch.http.DocumentsRoutes.Model.json.given
 import org.fiume.sketch.shared.app.EntityId.given
+import org.fiume.sketch.shared.app.algebras.Store.Syntax.commit
 import org.fiume.sketch.shared.app.http4s.middlewares.SemanticInputError
 import org.fiume.sketch.shared.app.troubleshooting.ErrorInfo.ErrorDetails
 import org.fiume.sketch.shared.app.troubleshooting.InvariantErrorSyntax.asDetails
@@ -39,32 +40,35 @@ class DocumentsRoutes[F[_]: Concurrent, Txn[_]](
 
   private val prefix = "/"
 
+  given DocumentsStore[F, Txn] = store
+
   def router(): HttpRoutes[F] = Router(
     prefix -> EntityLimiter(authMiddleware(authedRoutes), documentBytesSizeLimit)
   )
 
   given EntityEncoder[F, NewlineDelimitedJson] = NewlineDelimitedJsonEncoder.make[F]
 
+  // TODO Check if user can create resouces (`Editor`) or if she can only view (`Viewer`) it
   private val authedRoutes: AuthedRoutes[User, F] =
     AuthedRoutes.of {
       case cx @ POST -> Root / "documents" as user =>
         cx.req.decode { (uploadRequest: Multipart[F]) =>
           for
             document <- uploadRequest.validated()
-            uuid <- store.commit { store.store(document) }
+            uuid <- store.store(document).commit()
             created <- Created(uuid.asResponsePayload)
           yield created
         }
 
       case GET -> Root / "documents" / DocumentIdVar(uuid) / "metadata" as user =>
         for
-          document <- store.commit { store.fetchDocument(uuid) }
+          document <- store.fetchDocument(uuid).commit()
           res <- document.map(_.asResponsePayload).fold(ifEmpty = NotFound())(Ok(_))
         yield res
 
       case GET -> Root / "documents" / DocumentIdVar(uuid) as user =>
         for
-          stream <- store.commit { store.documentStream(uuid) }
+          stream <- store.documentStream(uuid).commit()
           res <- stream.fold(ifEmpty = NotFound())(Ok(_, `Content-Disposition`("attachment", Map.empty)))
         yield res
 
@@ -79,10 +83,10 @@ class DocumentsRoutes[F[_]: Concurrent, Txn[_]](
 
       case DELETE -> Root / "documents" / DocumentIdVar(uuid) as user =>
         for
-          metadata <- store.commit { store.fetchDocument(uuid) }
+          metadata <- store.fetchDocument(uuid).commit()
           res <- metadata match
             case None    => NotFound()
-            case Some(_) => store.commit { store.delete(uuid) } >> NoContent()
+            case Some(_) => store.delete(uuid).commit() >> NoContent()
         yield res
     }
 
