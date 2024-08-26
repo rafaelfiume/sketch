@@ -9,14 +9,7 @@ import io.circe.{Decoder, Encoder, HCursor, *}
 import io.circe.Decoder.Result
 import io.circe.Json as JJson
 import io.circe.syntax.*
-import org.fiume.sketch.http.DocumentsRoutes.{
-  DocumentIdVar,
-  Line,
-  Linebreak,
-  NewlineDelimitedJson,
-  NewlineDelimitedJsonEncoder,
-  OwnerQueryParamMatcher
-}
+import org.fiume.sketch.http.DocumentsRoutes.{DocumentIdVar, Line, Linebreak, NewlineDelimitedJson, NewlineDelimitedJsonEncoder}
 import org.fiume.sketch.http.DocumentsRoutes.Model.*
 import org.fiume.sketch.http.DocumentsRoutes.Model.json.given
 import org.fiume.sketch.shared.app.EntityId.given
@@ -33,7 +26,6 @@ import org.http4s.MediaType.application
 import org.http4s.circe.CirceEntityDecoder.*
 import org.http4s.circe.CirceEntityEncoder.*
 import org.http4s.dsl.Http4sDsl
-import org.http4s.dsl.impl.*
 import org.http4s.headers.{`Content-Disposition`, `Content-Type`}
 import org.http4s.multipart.{Multipart, Part, *}
 import org.http4s.server.{AuthMiddleware, Router}
@@ -77,9 +69,9 @@ class DocumentsRoutes[F[_]: Concurrent, Txn[_]](
         yield res
 
       // experimental newline delimited json
-      case GET -> Root / "documents" :? OwnerQueryParamMatcher(userId) as user =>
+      case GET -> Root / "documents" as user =>
         val responseStream = store
-          .fetchByOwner(by = userId)
+          .fetchByOwner(by = user.uuid)
           .map(_.asResponsePayload.asJson)
           .map(Line(_))
           .intersperse(Linebreak)
@@ -112,12 +104,6 @@ private[http] object DocumentsRoutes:
 
   object DocumentIdVar:
     def unapply(uuid: String): Option[DocumentId] = uuid.parsed().toOption
-
-  given QueryParamDecoder[UserId] = QueryParamDecoder[String].emap(
-    _.parsed().leftMap(e => ParseFailure("invalid or missing userId", s"${e.message}"))
-  )
-
-  object OwnerQueryParamMatcher extends QueryParamDecoderMatcher[UserId]("owner")
 
   object Model:
     case class MetadataRequestPayload(name: String, description: String, owner: String)

@@ -20,6 +20,7 @@ import org.fiume.sketch.shared.domain.documents.{Document, DocumentId, DocumentW
 import org.fiume.sketch.shared.domain.documents.algebras.DocumentsStore
 import org.fiume.sketch.shared.domain.testkit.DocumentsGens.*
 import org.fiume.sketch.shared.domain.testkit.DocumentsGens.given
+import org.fiume.sketch.shared.domain.testkit.Syntax.Documents.*
 import org.fiume.sketch.shared.testkit.{ContractContext, Http4sTestingRoutesDsl}
 import org.fiume.sketch.shared.testkit.EitherSyntax.*
 import org.http4s.{MediaType, *}
@@ -67,6 +68,7 @@ class DocumentsRoutesSpec
       yield assert(stored.isDefined, clue = stored)
     }
 
+  // TODO User cannot retrieve documents which is not an owner
   test("retrieves metadata of stored document"):
     forAllF { (document: DocumentWithIdAndStream[IO]) =>
       val request = GET(Uri.unsafeFromString(s"/documents/${document.uuid.value}/metadata"))
@@ -82,6 +84,7 @@ class DocumentsRoutesSpec
       yield assertEquals(result.as[DocumentResponsePayload].rightValue, document.asResponsePayload)
     }
 
+  // TODO User cannot retrieve documents which is not an owner
   test("retrieves content bytes of stored document"):
     forAllF { (document: DocumentWithIdAndStream[IO]) =>
       val request = GET(Uri.unsafeFromString(s"/documents/${document.uuid.value}"))
@@ -99,12 +102,12 @@ class DocumentsRoutesSpec
       yield assertEquals(obtainedStream, expectedStream)
     }
 
-  test("retrieves document metadata by owner"):
-    forAllF { (fstDoc: DocumentWithIdAndStream[IO], sndDoc: DocumentWithIdAndStream[IO]) =>
-      val request = GET(Uri.unsafeFromString(s"/documents?owner=${sndDoc.metadata.owner.asString()}"))
+  test("retrieves documents of which the user is the owner"):
+    forAllF { (fstDoc: DocumentWithIdAndStream[IO], sndDoc: DocumentWithIdAndStream[IO], user: User) =>
+      val request = GET(Uri.unsafeFromString("/documents"))
       for
-        store <- makeDocumentsStore(state = fstDoc, sndDoc)
-        authMiddleware = makeAuthMiddleware()
+        store <- makeDocumentsStore(state = fstDoc, sndDoc.withOwner(user.uuid))
+        authMiddleware = makeAuthMiddleware(authenticated = user)
         documentsRoutes <- makeDocumentsRoutes(authMiddleware, store)
 
         result <- send(request)
@@ -113,9 +116,11 @@ class DocumentsRoutesSpec
 //
       yield assertEquals(
         result.as[DocumentResponsePayload].rightValue,
-        sndDoc.asResponsePayload
+        sndDoc.withOwner(user.uuid).asResponsePayload
       )
     }
+
+  // TODO User cannot delete document which is not an owner
   test("deletes stored document"):
     forAllF { (document: DocumentWithIdAndStream[IO]) =>
       val request = DELETE(Uri.unsafeFromString(s"/documents/${document.uuid.value}"))
@@ -139,6 +144,11 @@ class DocumentsRoutesSpec
       yield ()
     }
 
+  /* Authorisation */
+  // coming soon
+
+  /* Sad Path */
+
   test("attempt to delete a nonexistent document results in 404 Not Found"):
     forAllF { (document: DocumentWithIdAndStream[IO]) =>
       val request = DELETE(Uri.unsafeFromString(s"/documents/${document.uuid.value}"))
@@ -151,8 +161,6 @@ class DocumentsRoutesSpec
           .expectEmptyResponseWith(Status.NotFound)
       yield ()
     }
-
-  /* Sad Path */
 
   test("semantically invalid upload request results in 422 Unprocessable Entity"):
     forAllF(semanticallyInvalidDocumentRequests) { (multipart: Multipart[IO]) =>
