@@ -8,8 +8,10 @@ import org.fiume.sketch.acceptance.testkit.AuthenticationContext
 import org.fiume.sketch.shared.auth0.testkit.UserGens
 import org.fiume.sketch.shared.testkit.FileContentContext
 
+import scala.annotation.nowarn
 import scala.concurrent.duration.*
 
+@nowarn // setUp is necessary
 class DocumentsSimulation extends Simulation with AuthenticationContext with DocumentsSimulationContext:
 
   val docName = "Nicolas_e_Joana"
