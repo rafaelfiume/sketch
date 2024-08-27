@@ -2,18 +2,20 @@
 
 ## Required Tools
 
-- [Git](https://git-scm.com/)
-- [Docker](https://www.docker.com/)
-- [Docker Compose](https://docs.docker.com/compose/)
-- [Postman](https://www.postman.com/) as a convenient way of documenting and sending requests to Sketch endpoints. Just import its [collection](Sketch.postman_collection.json).
 - [coreutils](https://www.gnu.org/software/coreutils/) - see [tools/pipeline/generate_one_liner_keys.sh](../tools/pipeline/generate_one_liner_keys.sh)
 - JDK (version: see `dockerBaseImage` in [build.sbt](../build.sbt))
+- [Docker](https://www.docker.com/)
+- [Docker Compose](https://docs.docker.com/compose/)
+- [Gatling](https://docs.gatling.io/tutorials/scripting-intro/)
+- [Git](https://git-scm.com/)
+- [Postman](https://www.postman.com/) as a convenient way of documenting and sending requests to Sketch endpoints. Just import its [collection](Sketch.postman_collection.json).
+
 
 ## Recomended Tools
 
-- [Visual Studio Code](https://code.visualstudio.com/)
-- [Scala (Metals)](https://marketplace.visualstudio.com/items?itemName=scalameta.metals)
 - [Scala Syntax (official)](https://marketplace.visualstudio.com/items?itemName=scala-lang.scala)
+- [Scala (Metals)](https://marketplace.visualstudio.com/items?itemName=scalameta.metals)
+- [Visual Studio Code](https://code.visualstudio.com/)
 
 ## Useful Commands
 
