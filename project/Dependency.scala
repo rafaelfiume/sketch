@@ -18,7 +18,7 @@ object Dependency {
     val log4cats              = "2.7.0"
     val slf4j                 = "2.0.12"
 
-    val gatling               = "3.9.5"
+    val gatling               = "3.11.5"
     val munit                 = "1.0.1"
     val munitCatsEffect       = "2.0.0"
     val munitScalaCheck       = "1.0.0" 

@@ -11,28 +11,19 @@ import org.fiume.sketch.shared.testkit.FileContentContext
 import scala.annotation.nowarn
 import scala.concurrent.duration.*
 
-@nowarn // setUp is necessary
+@nowarn
 class DocumentsSimulation extends Simulation with AuthenticationContext with DocumentsSimulationContext:
 
-  val docName = "Nicolas_e_Joana"
-  val docDesc = "Meus amores <3"
-  val pathToFile = "meus-fofinhos.jpg"
-  val owner = UserGens.userIds.sample.get.asString()
-  given IORuntime = IORuntime.global
-  val bytes = bytesFrom[IO](pathToFile).compile.toVector.map(_.toArray).unsafeRunSync()
+  private given IORuntime = IORuntime.global
 
-  val authenticated = loginAndGetAuthenticatedUser().unsafeRunSync()
-  val authorizationHeader = authenticated.authorization
-
-  val httpProtocol = http
-    .baseUrl("http://localhost:8080")
-    .acceptHeader("application/json")
-    .contentTypeHeader("multipart/form-data")
-    .header("Authorization", authorizationHeader.credentials.toString)
-
-  val metadataPayload = payload(docName, docDesc, owner).unsafeRunSync()
-  val scn = scenario("DocumentsRoutes")
-    .exec(
+  private val upload =
+    val docName = "Nicolas_e_Joana"
+    val docDesc = "Meus amores <3"
+    val pathToFile = "meus-fofinhos.jpg"
+    val owner = UserGens.userIds.sample.get.asString()
+    val bytes = bytesFrom[IO](pathToFile).compile.toVector.map(_.toArray).unsafeRunSync()
+    val metadataPayload = payload(docName, docDesc, owner).unsafeRunSync()
+    exec(
       http("upload document")
         .post("/documents")
         .header("Content-Type", "multipart/form-data")
@@ -46,20 +37,36 @@ class DocumentsSimulation extends Simulation with AuthenticationContext with Doc
         .check(status.is(201))
         .check(jsonPath("$.uuid").saveAs("documentId"))
     )
-    .exec(
-      http("download document")
-        .get("/documents/${documentId}")
-        .check(status.is(200))
-    )
+
+  private val download = exec(
+    http("download document")
+      .get("/documents/#{documentId}")
+      .check(status.is(200))
+  )
+
+  private val delete = exec(
+    http("delete document")
+      .delete("/documents/#{documentId}")
+      .check(status.is(204))
+  )
+
+  private val documentsCrudScenario = scenario("DocumentsRoutes")
+    .exec(upload)
+    .exec(download)
     .exitHereIfFailed
-    .exec(
-      http("delete document")
-        .delete("/documents/${documentId}")
-        .check(status.is(204))
-    )
+    .exec(delete)
+
+  private val httpProtocol =
+    val authenticated = loginAndGetAuthenticatedUser().unsafeRunSync()
+    val authorizationHeader = authenticated.authorization
+    http
+      .baseUrl("http://localhost:8080")
+      .acceptHeader("application/json")
+      .contentTypeHeader("multipart/form-data")
+      .header("Authorization", authorizationHeader.credentials.toString)
 
   setUp(
-    scn.inject(
+    documentsCrudScenario.inject(
       constantUsersPerSec(5).during(10.seconds), // Stay at 5 users for 10 secs
       rampUsersPerSec(1).to(10).during(30.seconds) // Ramp up to 10 users in 30 secs
     )
