@@ -12,7 +12,7 @@ import io.circe.syntax.*
 import org.fiume.sketch.http.DocumentsRoutes.{DocumentIdVar, Line, Linebreak, NewlineDelimitedJson, NewlineDelimitedJsonEncoder}
 import org.fiume.sketch.http.DocumentsRoutes.Model.*
 import org.fiume.sketch.http.DocumentsRoutes.Model.json.given
-import org.fiume.sketch.shared.app.EntityId.given
+import org.fiume.sketch.shared.app.ResourceId.given
 import org.fiume.sketch.shared.app.algebras.Store.Syntax.commit
 import org.fiume.sketch.shared.app.http4s.middlewares.SemanticInputError
 import org.fiume.sketch.shared.app.troubleshooting.ErrorInfo.ErrorDetails
@@ -185,10 +185,10 @@ private[http] object DocumentsRoutes:
       given Decoder[Uri] = Decoder.decodeString.emap { uri => Uri.fromString(uri).leftMap(_.getMessage) }
 
       // TODO Move it to a common package?
-      import org.fiume.sketch.shared.app.EntityId
-      import org.fiume.sketch.shared.app.Entity
-      given [T <: Entity]: Encoder[EntityId[T]] = Encoder[String].contramap[EntityId[T]](_.asString())
-      given [T <: Entity]: Decoder[EntityId[T]] = Decoder[String].emap(_.parsed().leftMap(_.message))
+      import org.fiume.sketch.shared.app.ResourceId
+      import org.fiume.sketch.shared.app.Resource
+      given [T <: Resource]: Encoder[ResourceId[T]] = Encoder[String].contramap[ResourceId[T]](_.asString())
+      given [T <: Resource]: Decoder[ResourceId[T]] = Decoder[String].emap(_.parsed().leftMap(_.message))
 
       given Decoder[MetadataRequestPayload] = new Decoder[MetadataRequestPayload]:
         override def apply(c: HCursor): Result[MetadataRequestPayload] =

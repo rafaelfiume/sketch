@@ -3,7 +3,7 @@ package org.fiume.sketch.shared.domain.documents
 import cats.Eq
 import cats.data.{EitherNec, Validated}
 import cats.implicits.*
-import org.fiume.sketch.shared.app.{Entity, EntityId, WithUuid}
+import org.fiume.sketch.shared.app.{Resource, ResourceId, WithUuid}
 import org.fiume.sketch.shared.app.troubleshooting.InvariantError
 import org.fiume.sketch.shared.auth0.UserId
 import org.fiume.sketch.shared.domain.documents.Document.Metadata
@@ -12,10 +12,10 @@ import org.fiume.sketch.shared.domain.documents.Document.Metadata.Name.InvalidDo
 
 import java.util.UUID
 
-type DocumentId = EntityId[DocumentEntity]
+type DocumentId = ResourceId[DocumentEntity]
 object DocumentId:
-  def apply(uuid: UUID): DocumentId = EntityId[DocumentEntity](uuid)
-sealed trait DocumentEntity extends Entity
+  def apply(uuid: UUID): DocumentId = ResourceId[DocumentEntity](uuid)
+sealed trait DocumentEntity extends Resource
 
 case class Document(metadata: Metadata)
 
