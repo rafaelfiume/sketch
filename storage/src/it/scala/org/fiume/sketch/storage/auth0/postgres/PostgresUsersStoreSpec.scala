@@ -12,7 +12,6 @@ import org.fiume.sketch.shared.auth0.User.*
 import org.fiume.sketch.shared.auth0.testkit.PasswordsGens.given
 import org.fiume.sketch.shared.auth0.testkit.UserGens.given
 import org.fiume.sketch.storage.auth0.postgres.DoobieMappings.given
-import org.fiume.sketch.storage.auth0.postgres.PostgresUsersStore.*
 import org.fiume.sketch.storage.testkit.DockerPostgresSuite
 import org.scalacheck.ShrinkLowPriority
 import org.scalacheck.effect.PropF.forAllF

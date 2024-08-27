@@ -3,7 +3,6 @@ package org.fiume.sketch.shared.domain.documents
 import munit.ScalaCheckSuite
 import org.fiume.sketch.shared.domain.documents.Document.Metadata.*
 import org.fiume.sketch.shared.domain.documents.Document.Metadata.Name.InvalidDocumentNameError
-import org.fiume.sketch.shared.domain.documents.Document.Metadata.Name.InvalidDocumentNameError.*
 import org.fiume.sketch.shared.domain.testkit.DocumentsGens.*
 import org.fiume.sketch.shared.domain.testkit.DocumentsGens.given
 import org.fiume.sketch.shared.testkit.Syntax.EitherSyntax.*

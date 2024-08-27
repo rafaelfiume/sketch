@@ -2,7 +2,6 @@ package org.fiume.sketch.shared.testkit
 
 import cats.effect.{Async, Resource, Sync}
 import fs2.io.file.{Files, Path}
-import fs2.io.file.Files.*
 import io.circe.Json
 import io.circe.parser.parse
 import org.fiume.sketch.shared.testkit.Syntax.EitherSyntax.*

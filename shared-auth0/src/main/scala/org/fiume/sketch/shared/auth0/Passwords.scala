@@ -5,7 +5,6 @@ import cats.data.{EitherNec, Validated}
 import cats.effect.Sync
 import cats.implicits.*
 import org.fiume.sketch.shared.app.troubleshooting.InvariantError
-import org.fiume.sketch.shared.auth0.Passwords.PlainPassword.WeakPasswordError
 import org.fiume.sketch.shared.auth0.Passwords.PlainPassword.WeakPasswordError.*
 import org.mindrot.jbcrypt.BCrypt
 

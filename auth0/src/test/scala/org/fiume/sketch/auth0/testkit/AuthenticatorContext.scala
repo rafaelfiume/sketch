@@ -4,7 +4,6 @@ import cats.effect.IO
 import cats.implicits.*
 import org.fiume.sketch.auth0.{AuthenticationError, Authenticator, JwtError, JwtToken}
 import org.fiume.sketch.auth0.AuthenticationError.*
-import org.fiume.sketch.auth0.JwtError.*
 import org.fiume.sketch.auth0.testkit.JwtTokenGens.*
 import org.fiume.sketch.shared.auth0.Passwords.PlainPassword
 import org.fiume.sketch.shared.auth0.User

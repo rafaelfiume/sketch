@@ -8,7 +8,6 @@ import org.fiume.sketch.shared.app.troubleshooting.InvariantError
 import org.fiume.sketch.shared.auth0.UserId
 import org.fiume.sketch.shared.domain.documents.Document.Metadata
 import org.fiume.sketch.shared.domain.documents.Document.Metadata.*
-import org.fiume.sketch.shared.domain.documents.Document.Metadata.Name.InvalidDocumentNameError
 import org.fiume.sketch.shared.domain.documents.Document.Metadata.Name.InvalidDocumentNameError.*
 
 import java.util.UUID

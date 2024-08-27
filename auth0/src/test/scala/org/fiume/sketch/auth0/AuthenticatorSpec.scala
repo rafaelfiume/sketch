@@ -4,7 +4,6 @@ import cats.effect.{Clock, IO}
 import munit.{CatsEffectSuite, ScalaCheckEffectSuite}
 import org.bouncycastle.jce.provider.BouncyCastleProvider
 import org.fiume.sketch.auth0.AuthenticationError.*
-import org.fiume.sketch.auth0.Authenticator.*
 import org.fiume.sketch.auth0.JwtError.*
 import org.fiume.sketch.auth0.testkit.EcKeysGens
 import org.fiume.sketch.shared.auth0.Passwords.PlainPassword

@@ -23,7 +23,6 @@ import org.fiume.sketch.shared.domain.documents.Document.Metadata
 import org.fiume.sketch.shared.domain.documents.Document.Metadata.*
 import org.fiume.sketch.shared.domain.documents.algebras.DocumentsStore
 import org.http4s.{Charset, EntityEncoder, HttpRoutes, MediaType, *}
-import org.http4s.MediaType.application
 import org.http4s.circe.CirceEntityDecoder.*
 import org.http4s.circe.CirceEntityEncoder.*
 import org.http4s.dsl.Http4sDsl
