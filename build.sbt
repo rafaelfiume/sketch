@@ -126,6 +126,7 @@ lazy val sharedAuth0 =
       name := "shared-auth0",
       libraryDependencies ++= Seq(
         Dependency.jbcrypt,
+        Dependency.http4sEmberServer % Test,
         Dependency.munitCatsEffect % Test,
         Dependency.munitScalaCheckEffect % Test
       )

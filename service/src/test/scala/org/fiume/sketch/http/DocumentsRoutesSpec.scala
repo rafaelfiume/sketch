@@ -15,6 +15,7 @@ import org.fiume.sketch.shared.app.http4s.middlewares.{SemanticInputError, Seman
 import org.fiume.sketch.shared.app.troubleshooting.ErrorInfo
 import org.fiume.sketch.shared.app.troubleshooting.ErrorInfo.json.given
 import org.fiume.sketch.shared.auth0.User
+import org.fiume.sketch.shared.auth0.testkit.AuthMiddlewareContext
 import org.fiume.sketch.shared.auth0.testkit.UserGens.given
 import org.fiume.sketch.shared.domain.documents.{Document, DocumentId, DocumentWithIdAndStream, DocumentWithStream}
 import org.fiume.sketch.shared.domain.documents.algebras.DocumentsStore
@@ -326,40 +327,6 @@ trait DocumentsRoutesSpecContext extends AuthMiddlewareContext:
   given Decoder[DocumentIdResponsePayload] = new Decoder[DocumentIdResponsePayload]:
     override def apply(c: HCursor): Result[DocumentIdResponsePayload] =
       c.downField("uuid").as[DocumentId].map(DocumentIdResponsePayload.apply)
-
-trait AuthMiddlewareContext:
-  import cats.data.Kleisli
-  import org.fiume.sketch.shared.auth0.User
-  import org.http4s.server.AuthMiddleware
-  import org.http4s.Request
-  import org.fiume.sketch.shared.app.troubleshooting.ErrorInfo
-  import org.fiume.sketch.shared.app.troubleshooting.ErrorInfo.ErrorMessage
-  import org.fiume.sketch.shared.app.troubleshooting.ErrorInfo.ErrorDetails
-  import org.http4s.circe.CirceEntityEncoder.*
-  import org.fiume.sketch.shared.app.troubleshooting.ErrorInfo.json.given
-  import org.fiume.sketch.shared.auth0.testkit.UserGens.*
-  import org.http4s.headers.`WWW-Authenticate`
-  import org.http4s.Challenge
-  import org.http4s.Status
-  import org.http4s.Response
-
-  def makeAuthMiddleware(): AuthMiddleware[IO, User] =
-    def aUser(): User = users.sample.get
-    makeAuthMiddleware(aUser())
-
-  def makeAuthMiddleware(authenticated: User): AuthMiddleware[IO, User] =
-    def verify: Kleisli[IO, Request[IO], Either[String, User]] = Kleisli.liftF(authenticated.asRight[String].pure[IO])
-
-    val onFailure: AuthedRoutes[String, IO] = Kleisli { cx =>
-      OptionT.pure(
-        Response[IO](Status.Unauthorized)
-          .withHeaders(`WWW-Authenticate`(Challenge("Bearer", s"${cx.req.uri.path}")))
-          .withEntity(
-            ErrorInfo.make(ErrorMessage("Invalid credentials"), ErrorDetails("invalid.jwt" -> cx.context))
-          )
-      )
-    }
-    AuthMiddleware(verify, onFailure)
 
 trait DocumentsStoreContext:
   import fs2.Stream
