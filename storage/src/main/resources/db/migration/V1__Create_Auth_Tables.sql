@@ -2,7 +2,7 @@ CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 
 SET timezone = 'UTC';
 
--- Trigger to update `updated_at` timestamp on row update
+-- Function to update `updated_at` timestamp during an row update
 CREATE OR REPLACE FUNCTION update_updated_at()
   RETURNS TRIGGER AS $$
 BEGIN
@@ -15,8 +15,6 @@ CREATE SCHEMA auth;
 
 CREATE TABLE auth.users (
   uuid UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
-  -- same size as email
-  -- username and email should probably be unique across a buniness account not the entire system
   username VARCHAR(60) NOT NULL UNIQUE,
   -- supports 32 bytes Base64 encoded (padding '=' plus each char representing 6 bits) password = 1 + (32 * 8) / 6 = 44
   -- note that the actual password size depends on the algorithm used to generate it
@@ -33,29 +31,17 @@ CREATE TABLE auth.users (
 
 CREATE INDEX idx_users_username ON auth.users (username);
 
--- Trigger to update `updated_at` timestamp on row update
+-- Trigger to update `updated_at` timestamp during row update
 CREATE TRIGGER set_users_updated_at
   BEFORE UPDATE ON auth.users
   FOR EACH ROW
   EXECUTE FUNCTION update_updated_at();
 
-CREATE schema domain;
-
-CREATE TABLE domain.documents (
-  uuid UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
-  name VARCHAR NOT NULL,
-  description VARCHAR,
-  bytes BYTEA,
-  -- Worth the trouble? Are FKs necessary here?
-  owner UUID NOT NULL,--REFERENCES auth.users(uuid),
-  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+CREATE TABLE auth.access_control (
+    user_id UUID NOT NULL,
+    resource_id UUID NOT NULL, -- UUID to identify the resource (document, project, etc.)
+    --resource_type VARCHAR(30) NOT NULL, -- e.g., 'document', 'project' ??
+    role VARCHAR(20) NOT NULL CHECK (role IN ('Owner')),
+    PRIMARY KEY (user_id, resource_id)
+    --FOREIGN KEY (user_id) REFERENCES users(user_id)
 );
-
-CREATE INDEX idx_documents_name ON domain.documents (name);
-
--- Trigger to update `updated_at` timestamp on row update
-CREATE TRIGGER set_documents_updated_at
-  BEFORE UPDATE ON domain.documents
-  FOR EACH ROW
-  EXECUTE FUNCTION update_updated_at();

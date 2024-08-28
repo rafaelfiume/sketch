@@ -35,6 +35,24 @@ lazy val commonSettings = Seq(
 // See https://eed3si9n.com/sbt-1.9.0
 val IntegrationTests = config("it").extend(Test)
 
+lazy val accessControl =
+   project.in(file("access-control"))
+     .dependsOn(sharedAuth0 % "compile->compile;test->test")
+     .dependsOn(sharedComponents)
+     .dependsOn(sharedTestComponents % Test)
+     .disablePlugins(plugins.JUnitXmlReportPlugin)
+     .settings(commonSettings: _*)
+     .settings(
+       name := "auth0",
+       libraryDependencies ++= Seq(
+         Dependency.catsEffect,
+         Dependency.munit % Test,
+         Dependency.munitCatsEffect % Test,
+         Dependency.munitScalaCheck % Test,
+         Dependency.munitScalaCheckEffect % Test
+       )
+     )
+
 lazy val auth0 =
    project.in(file("auth0"))
      .dependsOn(sharedAuth0 % "compile->compile;test->test")
@@ -47,8 +65,8 @@ lazy val auth0 =
          Dependency.bouncycastle,
          Dependency.catsEffect,
          Dependency.http4sEmberServer,
-         Dependency.http4sEmberClient % Test,
          Dependency.jwtCirce,
+         Dependency.http4sEmberClient % Test,
          Dependency.munit % Test,
          Dependency.munitCatsEffect % Test,
          Dependency.munitScalaCheck % Test,
@@ -193,6 +211,7 @@ lazy val sharedTestComponents =
 lazy val sketch =
    project.in(file("."))
     .settings(commonSettings: _*)
+    .aggregate(accessControl)
     .aggregate(auth0)
     .aggregate(auth0Scripts)
     .aggregate(service)
@@ -204,6 +223,7 @@ lazy val sketch =
 
 lazy val storage =
    project.in(file("storage"))
+     .dependsOn(accessControl)
      .dependsOn(sharedAuth0 % "compile->compile;test->test")
      .dependsOn(sharedComponents)
      .dependsOn(sharedDomain % "compile->compile;test->test")

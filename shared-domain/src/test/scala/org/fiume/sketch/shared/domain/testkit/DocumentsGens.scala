@@ -24,7 +24,7 @@ import scala.util.Random
 object DocumentsGens:
 
   given Arbitrary[DocumentId] = Arbitrary(documentsIds)
-  def documentsIds: Gen[DocumentId] = Gen.delay(UUID.randomUUID()).map(DocumentId(_))
+  def documentsIds: Gen[DocumentId] = Gen.delay(UUID.randomUUID()).map(DocumentId(_)) :| "DocumentId"
 
   given Arbitrary[Name] = Arbitrary(validNames)
   def validNames: Gen[Name] =
