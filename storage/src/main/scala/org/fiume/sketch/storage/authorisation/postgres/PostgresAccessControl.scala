@@ -10,9 +10,9 @@ import doobie.util.transactor.Transactor
 import org.fiume.sketch.authorisation.{AccessControl, Role}
 import org.fiume.sketch.shared.app.{Resource, ResourceId}
 import org.fiume.sketch.shared.auth0.UserId
-import org.fiume.sketch.storage.postgres.AbstractPostgresStore
 import org.fiume.sketch.storage.auth0.postgres.DoobieMappings.given
 import org.fiume.sketch.storage.authorisation.postgres.DoobieMappings.given
+import org.fiume.sketch.storage.postgres.AbstractPostgresStore
 
 object PostgresAccessControl:
   def make[F[_]: Async](tx: Transactor[F]): effect.Resource[F, PostgresAccessControl[F]] =
@@ -22,13 +22,13 @@ private class PostgresAccessControl[F[_]: Async] private (l: F ~> ConnectionIO, 
     extends AbstractPostgresStore[F](l, tx)
     with AccessControl[F, ConnectionIO]:
 
-  def store[T <: Resource](userId: UserId, resourceId: ResourceId[T], role: Role): ConnectionIO[Unit] =
+  def storeGrant[T <: Resource](userId: UserId, resourceId: ResourceId[T], role: Role): ConnectionIO[Unit] =
     Statements.insertGrant(userId, resourceId, role).run.void
 
   def fetchRole[T <: Resource](userId: UserId, resourceId: ResourceId[T]): ConnectionIO[Option[Role]] =
     Statements.selectRole(userId, resourceId).option
 
-  def delete[T <: Resource](userId: UserId, resourceId: ResourceId[T]): ConnectionIO[Unit] =
+  def deleteGrant[T <: Resource](userId: UserId, resourceId: ResourceId[T]): ConnectionIO[Unit] =
     Statements.deleteGrant[T](userId, resourceId).run.void
 
 private object Statements:
@@ -53,4 +53,8 @@ private object Statements:
          |WHERE user_id = $userId AND resource_id = $resourceId
     """.stripMargin.query
 
-  def deleteGrant[T <: Resource](userId: UserId, resourceId: ResourceId[T]): Update0 = ???
+  def deleteGrant[T <: Resource](userId: UserId, resourceId: ResourceId[T]): Update0 =
+    sql"""
+         |DELETE FROM auth.access_control
+         |WHERE user_id = $userId AND resource_id = $resourceId
+    """.stripMargin.update

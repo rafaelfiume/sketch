@@ -8,6 +8,11 @@ import munit.ScalaCheckEffectSuite
 import org.fiume.sketch.authorisation.Role
 import org.fiume.sketch.shared.auth0.UserId
 import org.fiume.sketch.shared.auth0.testkit.UserGens.given
+import org.fiume.sketch.shared.auth0.testkit.UsersStoreContext
+import org.fiume.sketch.shared.domain.documents.DocumentWithIdAndStream
+import org.fiume.sketch.shared.domain.testkit.DocumentsGens.given
+import org.fiume.sketch.shared.testkit.Syntax.EitherSyntax.*
+import org.fiume.sketch.storage.documents.postgres.PostgresDocumentsStore
 import org.fiume.sketch.storage.testkit.DockerPostgresSuite
 import org.scalacheck.ShrinkLowPriority
 import org.scalacheck.effect.PropF.forAllF
@@ -15,6 +20,7 @@ import org.scalacheck.effect.PropF.forAllF
 class PostgresAccessControlSpec
     extends ScalaCheckEffectSuite
     with DockerPostgresSuite
+    with UsersStoreContext
     with PostgresAccessControlSpecContext
     with ShrinkLowPriority:
 
@@ -23,11 +29,67 @@ class PostgresAccessControlSpec
       will(cleanGrants) {
         PostgresAccessControl.make[IO](transactor()).use { accessControl =>
           for
-            uuid <- accessControl.allowAccess(userId, resourceId, role).ccommit
+            _ <- accessControl.allowAccess(userId, resourceId, role).ccommit
 
             result <- accessControl.canAccess(userId, resourceId).ccommit
 //
           yield assert(result)
+        }
+      }
+    }
+
+  test("grants a user permission to access a resource and then perform the action"):
+    forAllF { (userId: UserId, document: DocumentWithIdAndStream[IO], role: Role) =>
+      will(cleanGrants) {
+        (
+          PostgresAccessControl.make[IO](transactor()),
+          PostgresDocumentsStore.make[IO](transactor())
+        ).tupled.use { case (accessControl, documentStore) =>
+          for
+            documentId <- documentStore.commit {
+              documentStore.store(document).flatTap { documentId =>
+                accessControl.allowAccess(userId, documentId, role)
+              }
+            }
+
+            result <- accessControl
+              .canAccess(userId, documentId)(documentStore.fetchDocument)
+              .ccommit
+//
+          yield assertEquals(result.rightValue, document.some)
+        }
+      }
+    }
+
+  test("does not grant a user permission to access a resource"):
+    forAllF { (userId: UserId, document: DocumentWithIdAndStream[IO], role: Role) =>
+      will(cleanGrants) {
+        (
+          PostgresAccessControl.make[IO](transactor()),
+          PostgresDocumentsStore.make[IO](transactor())
+        ).tupled.use { case (accessControl, documentStore) =>
+          for
+            documentId <- documentStore.store(document).ccommit
+
+            result <- accessControl
+              .canAccess(userId, documentId)(documentStore.fetchDocument)
+              .ccommit
+          yield assertEquals(result.leftValue, "Unauthorised")
+        }
+      }
+    }
+
+  test("revokes a user's permission to access a resource"):
+    forAllF { (userId: UserId, resourceId: TestResourceId, role: Role) =>
+      will(cleanGrants) {
+        PostgresAccessControl.make[IO](transactor()).use { accessControl =>
+          for
+            _ <- accessControl.allowAccess(userId, resourceId, role).ccommit
+
+            _ <- accessControl.revokeAccess(userId, resourceId).ccommit
+
+            result <- accessControl.canAccess(userId, resourceId).ccommit
+          yield assert(!result)
         }
       }
     }

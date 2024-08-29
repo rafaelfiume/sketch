@@ -1,8 +1,8 @@
 package org.fiume.sketch.storage.authorisation.postgres
 
-import doobie.{Meta}
-import org.fiume.sketch.authorisation.{Role}
+import doobie.Meta
 import doobie.postgres.implicits.*
+import org.fiume.sketch.authorisation.Role
 import org.fiume.sketch.shared.app.{Resource, ResourceId}
 
 import java.util.UUID
