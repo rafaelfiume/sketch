@@ -12,9 +12,12 @@ import scala.util.control.NoStackTrace
 
 // A phantom type is a parameterised type whose parameters do not all appear on the right-hand side of its definition.
 // See https://wiki.haskell.org/Phantom_type
-case class ResourceId[T <: Resource](value: UUID) extends AnyVal
+abstract case class ResourceId[T <: Resource](val value: UUID):
+  def resourceType: String
 
 object ResourceId:
+  inline def apply[T <: Resource](value: UUID): ResourceId[T] = ${ Meta.resouceIdApplyMacro[T]('value) }
+
   given [T <: Resource]: AsString[ResourceId[T]] = new AsString[ResourceId[T]]:
     extension (id: ResourceId[T]) override def asString(): String = id.value.toString
 
