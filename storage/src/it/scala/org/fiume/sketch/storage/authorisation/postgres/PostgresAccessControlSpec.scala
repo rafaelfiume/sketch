@@ -46,14 +46,12 @@ class PostgresAccessControlSpec
           PostgresDocumentsStore.make[IO](transactor())
         ).tupled.use { case (accessControl, documentStore) =>
           for
-            documentId <- documentStore.commit {
-              documentStore.store(document).flatTap { documentId =>
-                accessControl.allowAccess(userId, documentId, role)
-              }
-            }
+            documentId <- accessControl
+              .createResourceThenAllowAccess(userId, role)(documentStore.store(document))
+              .ccommit
 
             result <- accessControl
-              .canAccess(userId, documentId)(documentStore.fetchDocument)
+              .fetchResourceIfAuthorised(userId, documentId)(documentStore.fetchDocument)
               .ccommit
 //
           yield assertEquals(result.rightValue, document.some)
@@ -72,8 +70,9 @@ class PostgresAccessControlSpec
             documentId <- documentStore.store(document).ccommit
 
             result <- accessControl
-              .canAccess(userId, documentId)(documentStore.fetchDocument)
+              .fetchResourceIfAuthorised(userId, documentId)(documentStore.fetchDocument)
               .ccommit
+//
           yield assertEquals(result.leftValue, "Unauthorised")
         }
       }

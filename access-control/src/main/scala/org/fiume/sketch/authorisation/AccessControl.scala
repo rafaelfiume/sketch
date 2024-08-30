@@ -16,19 +16,26 @@ trait AccessControl[F[_], Txn[_]: Monad] extends Store[F, Txn]:
     // It should be OK giving allowAccess will be used upon resource creation, and similarly to revokeAccess
     storeGrant(userId, resourceId, role)
 
-  def revokeAccess[T <: Resource](userId: UserId, resourceId: ResourceId[T]): Txn[Unit] =
-    deleteGrant(userId, resourceId)
+  def createResourceThenAllowAccess[T <: Resource](userId: UserId, role: Role)(
+    resourceIdTxn: => Txn[ResourceId[T]]
+  ): Txn[ResourceId[T]] =
+    resourceIdTxn.flatMap { resourceId =>
+      storeGrant(userId, resourceId, role).as(resourceId)
+    }
 
   def canAccess[T <: Resource](userId: UserId, resourceId: ResourceId[T]): Txn[Boolean] =
     fetchRole(userId, resourceId).map(_.map(_ == Role.Owner).getOrElse(false))
 
-  def canAccess[T <: Resource, A](userId: UserId, resourceId: ResourceId[T])(
+  def fetchResourceIfAuthorised[T <: Resource, A](userId: UserId, resourceId: ResourceId[T])(
     ops: ResourceId[T] => Txn[A]
   ): Txn[Either[Unauthorised, A]] =
     canAccess(userId, resourceId).ifM(
       ifTrue = ops(resourceId).map(Right(_)),
       ifFalse = Left("Unauthorised").pure[Txn]
     )
+
+  def revokeAccess[T <: Resource](userId: UserId, resourceId: ResourceId[T]): Txn[Unit] =
+    deleteGrant(userId, resourceId)
 
   def storeGrant[T <: Resource](userId: UserId, resourceId: ResourceId[T], role: Role): Txn[Unit]
 
