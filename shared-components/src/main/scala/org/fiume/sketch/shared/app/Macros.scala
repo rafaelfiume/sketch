@@ -11,8 +11,8 @@ object Macros:
 
   inline def typeName[A] = ${ typeNameMacro[A] }
 
-  def resouceIdApplyMacro[T <: Resource: Type](value: Expr[UUID])(using Quotes): Expr[ResourceId[T]] =
+  def entityIdApplyMacro[T <: Entity: Type](value: Expr[UUID])(using Quotes): Expr[EntityId[T]] =
     '{
-      new ResourceId[T]($value):
-        def resourceType: String = Macros.typeName[T]
+      new EntityId[T]($value):
+        def entityType: String = Macros.typeName[T]
     }

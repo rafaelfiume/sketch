@@ -9,13 +9,14 @@ import org.fiume.sketch.authorisation.Role
 import org.fiume.sketch.shared.auth0.UserId
 import org.fiume.sketch.shared.auth0.testkit.UserGens.given
 import org.fiume.sketch.shared.auth0.testkit.UsersStoreContext
-import org.fiume.sketch.shared.domain.documents.{DocumentResourceType, DocumentWithIdAndStream}
+import org.fiume.sketch.shared.domain.documents.{DocumentEntity, DocumentWithIdAndStream}
 import org.fiume.sketch.shared.domain.testkit.DocumentsGens.given
 import org.fiume.sketch.shared.testkit.Syntax.EitherSyntax.*
 import org.fiume.sketch.storage.documents.postgres.PostgresDocumentsStore
 import org.fiume.sketch.storage.testkit.DockerPostgresSuite
 import org.scalacheck.ShrinkLowPriority
 import org.scalacheck.effect.PropF.forAllF
+import org.fiume.sketch.shared.domain.documents.DocumentId
 
 class PostgresAccessControlSpec
     extends ScalaCheckEffectSuite
@@ -24,21 +25,21 @@ class PostgresAccessControlSpec
     with PostgresAccessControlSpecContext
     with ShrinkLowPriority:
 
-  test("grants a user permission to access a resource"):
-    forAllF { (userId: UserId, resourceId: TestResourceId, role: Role) =>
+  test("grants a user permission to access an entity"):
+    forAllF { (userId: UserId, entityId: DocumentId, role: Role) =>
       will(cleanGrants) {
         PostgresAccessControl.make[IO](transactor()).use { accessControl =>
           for
-            _ <- accessControl.allowAccess(userId, resourceId, role).ccommit
+            _ <- accessControl.allowAccess(userId, entityId, role).ccommit
 
-            result <- accessControl.canAccess(userId, resourceId).ccommit
+            result <- accessControl.canAccess(userId, entityId).ccommit
 //
           yield assert(result)
         }
       }
     }
 
-  test("grants a user permission to access a resource and then perform the action"):
+  test("grants a user permission to access an entity and then perform the action"):
     forAllF { (userId: UserId, document: DocumentWithIdAndStream[IO], role: Role) =>
       will(cleanGrants) {
         (
@@ -47,11 +48,11 @@ class PostgresAccessControlSpec
         ).tupled.use { case (accessControl, documentStore) =>
           for
             documentId <- accessControl
-              .createResourceThenAllowAccess(userId, role)(documentStore.store(document))
+              .createEntityThenAllowAccess(userId, role)(documentStore.store(document))
               .ccommit
 
             result <- accessControl
-              .fetchResourceIfAuthorised(userId, documentId)(documentStore.fetchDocument)
+              .fetchEntityIfAuthorised(userId, documentId)(documentStore.fetchDocument)
               .ccommit
 //
           yield assertEquals(result.rightValue, document.some)
@@ -59,7 +60,7 @@ class PostgresAccessControlSpec
       }
     }
 
-  test("does not grant a user permission to access a resource"):
+  test("does not grant a user permission to access an entity"):
     forAllF { (userId: UserId, document: DocumentWithIdAndStream[IO], role: Role) =>
       will(cleanGrants) {
         (
@@ -70,7 +71,7 @@ class PostgresAccessControlSpec
             documentId <- documentStore.store(document).ccommit
 
             result <- accessControl
-              .fetchResourceIfAuthorised(userId, documentId)(documentStore.fetchDocument)
+              .fetchEntityIfAuthorised(userId, documentId)(documentStore.fetchDocument)
               .ccommit
 //
           yield assertEquals(result.leftValue, "Unauthorised")
@@ -78,7 +79,7 @@ class PostgresAccessControlSpec
       }
     }
 
-  test("fetches all authorised resource ids"):
+  test("fetches all authorised entity ids"):
     forAllF {
       (fstUserId: UserId,
        fstDocument: DocumentWithIdAndStream[IO],
@@ -94,17 +95,17 @@ class PostgresAccessControlSpec
           ).tupled.use { case (accessControl, documentStore) =>
             for
               fstDocumentId <- accessControl
-                .createResourceThenAllowAccess(fstUserId, role)(documentStore.store(fstDocument))
+                .createEntityThenAllowAccess(fstUserId, role)(documentStore.store(fstDocument))
                 .ccommit
               sndDocumentId <- accessControl
-                .createResourceThenAllowAccess(fstUserId, role)(documentStore.store(sndDocument))
+                .createEntityThenAllowAccess(fstUserId, role)(documentStore.store(sndDocument))
                 .ccommit
               trdDocumentId <- accessControl
-                .createResourceThenAllowAccess(sndserId, role)(documentStore.store(trdDocument))
+                .createEntityThenAllowAccess(sndserId, role)(documentStore.store(trdDocument))
                 .ccommit
 
               result <- accessControl
-                .fetchAllAuthorisedResourceIds[DocumentResourceType](fstUserId)
+                .fetchAllAuthorisedEntityIds[DocumentEntity](fstUserId)
                 .ccommitStream
                 .compile
                 .toList
@@ -114,16 +115,16 @@ class PostgresAccessControlSpec
         }
     }
 
-  test("revokes a user's permission to access a resource"):
-    forAllF { (userId: UserId, resourceId: TestResourceId, role: Role) =>
+  test("revokes a user's permission to access an entity"):
+    forAllF { (userId: UserId, entityId: DocumentId, role: Role) =>
       will(cleanGrants) {
         PostgresAccessControl.make[IO](transactor()).use { accessControl =>
           for
-            _ <- accessControl.allowAccess(userId, resourceId, role).ccommit
+            _ <- accessControl.allowAccess(userId, entityId, role).ccommit
 
-            _ <- accessControl.revokeAccess(userId, resourceId).ccommit
+            _ <- accessControl.revokeAccess(userId, entityId).ccommit
 
-            result <- accessControl.canAccess(userId, resourceId).ccommit
+            result <- accessControl.canAccess(userId, entityId).ccommit
           yield assert(!result)
         }
       }
@@ -131,20 +132,9 @@ class PostgresAccessControlSpec
 
 trait PostgresAccessControlSpecContext:
   import org.scalacheck.Gen
-  import org.fiume.sketch.shared.app.{Resource, ResourceId}
   import org.scalacheck.Arbitrary
 
-  import java.util.UUID
-
   def cleanGrants: ConnectionIO[Unit] = sql"TRUNCATE TABLE auth.access_control".update.run.void
-
-  type TestResourceId = ResourceId[TestResourceEntity]
-  object TestResourceId:
-    def apply(uuid: UUID): TestResourceId = ResourceId[TestResourceEntity](uuid)
-  sealed trait TestResourceEntity extends Resource
-
-  given Arbitrary[TestResourceId] = Arbitrary(testResourceIds)
-  def testResourceIds: Gen[TestResourceId] = Gen.uuid.map(TestResourceId(_)) :| "TestResourceId"
 
   given Arbitrary[Role] = Arbitrary(roles)
   def roles: Gen[Role] = Gen.const(Role.Owner)

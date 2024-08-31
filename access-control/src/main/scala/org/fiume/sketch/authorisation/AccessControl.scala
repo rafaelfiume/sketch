@@ -2,7 +2,7 @@ package org.fiume.sketch.authorisation
 
 import cats.Monad
 import cats.implicits.*
-import org.fiume.sketch.shared.app.{Resource, ResourceId}
+import org.fiume.sketch.shared.app.{Entity, EntityId}
 import org.fiume.sketch.shared.app.algebras.Store
 import org.fiume.sketch.shared.auth0.UserId
 
@@ -10,37 +10,37 @@ import org.fiume.sketch.shared.auth0.UserId
 trait AccessControl[F[_], Txn[_]: Monad] extends Store[F, Txn]:
   type Unauthorised = String
 
-  def allowAccess[T <: Resource](userId: UserId, resourceId: ResourceId[T], role: Role): Txn[Unit] =
+  def allowAccess[T <: Entity](userId: UserId, entityId: EntityId[T], role: Role): Txn[Unit] =
     // Both allowAccess and revokeAccess need to check if user can grant or revoke access before performing the action
     // For now, any user will be able to do it.
-    // It should be OK giving allowAccess will be used upon resource creation, and similarly to revokeAccess
-    storeGrant(userId, resourceId, role)
+    // It should be OK giving allowAccess will be used upon entity creation, and similarly to revokeAccess
+    storeGrant(userId, entityId, role)
 
-  def createResourceThenAllowAccess[T <: Resource](userId: UserId, role: Role)(
-    resourceIdTxn: => Txn[ResourceId[T]]
-  ): Txn[ResourceId[T]] =
-    resourceIdTxn.flatMap { resourceId =>
-      storeGrant(userId, resourceId, role).as(resourceId)
+  def createEntityThenAllowAccess[T <: Entity](userId: UserId, role: Role)(
+    entityIdTxn: => Txn[EntityId[T]]
+  ): Txn[EntityId[T]] =
+    entityIdTxn.flatMap { entityId =>
+      storeGrant(userId, entityId, role).as(entityId)
     }
 
-  def canAccess[T <: Resource](userId: UserId, resourceId: ResourceId[T]): Txn[Boolean] =
-    fetchRole(userId, resourceId).map(_.map(_ == Role.Owner).getOrElse(false))
+  def canAccess[T <: Entity](userId: UserId, entityId: EntityId[T]): Txn[Boolean] =
+    fetchRole(userId, entityId).map(_.map(_ == Role.Owner).getOrElse(false))
 
-  def fetchResourceIfAuthorised[T <: Resource, A](userId: UserId, resourceId: ResourceId[T])(
-    ops: ResourceId[T] => Txn[A]
+  def fetchEntityIfAuthorised[T <: Entity, A](userId: UserId, entityId: EntityId[T])(
+    ops: EntityId[T] => Txn[A]
   ): Txn[Either[Unauthorised, A]] =
-    canAccess(userId, resourceId).ifM(
-      ifTrue = ops(resourceId).map(Right(_)),
+    canAccess(userId, entityId).ifM(
+      ifTrue = ops(entityId).map(Right(_)),
       ifFalse = Left("Unauthorised").pure[Txn]
     )
 
-  def fetchAllAuthorisedResourceIds[T <: Resource](userId: UserId): fs2.Stream[Txn, ResourceId[T]]
+  def fetchAllAuthorisedEntityIds[T <: Entity](userId: UserId): fs2.Stream[Txn, EntityId[T]]
 
-  def revokeAccess[T <: Resource](userId: UserId, resourceId: ResourceId[T]): Txn[Unit] =
-    deleteGrant(userId, resourceId)
+  def revokeAccess[T <: Entity](userId: UserId, entityId: EntityId[T]): Txn[Unit] =
+    deleteGrant(userId, entityId)
 
-  def storeGrant[T <: Resource](userId: UserId, resourceId: ResourceId[T], role: Role): Txn[Unit]
+  def storeGrant[T <: Entity](userId: UserId, entityId: EntityId[T], role: Role): Txn[Unit]
 
-  def fetchRole[T <: Resource](userId: UserId, resourceId: ResourceId[T]): Txn[Option[Role]]
+  def fetchRole[T <: Entity](userId: UserId, entityId: EntityId[T]): Txn[Option[Role]]
 
-  def deleteGrant[T <: Resource](userId: UserId, resourceId: ResourceId[T]): Txn[Unit]
+  def deleteGrant[T <: Entity](userId: UserId, entityId: EntityId[T]): Txn[Unit]

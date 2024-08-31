@@ -8,7 +8,7 @@ import doobie.free.connection.ConnectionIO
 import doobie.implicits.*
 import doobie.util.transactor.Transactor
 import org.fiume.sketch.authorisation.{AccessControl, Role}
-import org.fiume.sketch.shared.app.{Resource, ResourceId}
+import org.fiume.sketch.shared.app.{Entity, EntityId}
 import org.fiume.sketch.shared.auth0.UserId
 import org.fiume.sketch.storage.auth0.postgres.DoobieMappings.given
 import org.fiume.sketch.storage.authorisation.postgres.DoobieMappings.given
@@ -22,55 +22,52 @@ private class PostgresAccessControl[F[_]: Async] private (l: F ~> ConnectionIO, 
     extends AbstractPostgresStore[F](l, tx)
     with AccessControl[F, ConnectionIO]:
 
-  override def storeGrant[T <: Resource](userId: UserId, resourceId: ResourceId[T], role: Role): ConnectionIO[Unit] =
-    Statements.insertGrant(userId, resourceId, resourceId.resourceType, role).run.void
+  override def storeGrant[T <: Entity](userId: UserId, entityId: EntityId[T], role: Role): ConnectionIO[Unit] =
+    Statements.insertGrant(userId, entityId, entityId.entityType, role).run.void
 
-  override inline def fetchAllAuthorisedResourceIds[T <: Resource](userId: UserId): fs2.Stream[ConnectionIO, ResourceId[T]] =
-    ${ Macros.fetchAllAuthorisedResourceIdsMacro[T]('userId) }
+  override inline def fetchAllAuthorisedEntityIds[T <: Entity](userId: UserId): fs2.Stream[ConnectionIO, EntityId[T]] =
+    ${ Macros.fetchAllAuthorisedEntityIdsMacro[T]('userId) }
 
-  override def fetchRole[T <: Resource](userId: UserId, resourceId: ResourceId[T]): ConnectionIO[Option[Role]] =
-    Statements.selectRole(userId, resourceId).option
+  override def fetchRole[T <: Entity](userId: UserId, entityId: EntityId[T]): ConnectionIO[Option[Role]] =
+    Statements.selectRole(userId, entityId).option
 
-  override def deleteGrant[T <: Resource](userId: UserId, resourceId: ResourceId[T]): ConnectionIO[Unit] =
-    Statements.deleteGrant[T](userId, resourceId).run.void
+  override def deleteGrant[T <: Entity](userId: UserId, entityId: EntityId[T]): ConnectionIO[Unit] =
+    Statements.deleteGrant[T](userId, entityId).run.void
 
 private object Statements:
-  def insertGrant[T <: Resource](userId: UserId, resourceId: ResourceId[T], resourceType: String, role: Role): Update0 =
+  def insertGrant[T <: Entity](userId: UserId, entityId: EntityId[T], entityType: String, role: Role): Update0 =
     sql"""
          |INSERT INTO auth.access_control (
          |  user_id,
-         |  resource_id,
-         |  resource_type,
+         |  entity_id,
+         |  entity_type,
          |  role
          |) VALUES (
          |  $userId,
-         |  $resourceId,
-         |  $resourceType,
+         |  $entityId,
+         |  $entityType,
          |  $role
          |)
     """.stripMargin.update
 
-  // Experiment with macros to generate the resource type name from the type parameter
-
-  def selectAlldResourceIds[T <: Resource](userId: UserId, resourceType: String): Query0[ResourceId[T]] =
-    // println(s"resourceType: ${resourceType.getClass().getSimpleName().filterNot(_ == '$')}")
+  def selectAlldEntityIds[T <: Entity](userId: UserId, entityType: String): Query0[EntityId[T]] =
     sql"""
          |SELECT
-         |  resource_id
+         |  entity_id
          |FROM auth.access_control
-         |WHERE user_id = $userId AND resource_type = ${resourceType}
+         |WHERE user_id = $userId AND entity_type = ${entityType}
     """.stripMargin.query
 
-  def selectRole[T <: Resource](userId: UserId, resourceId: ResourceId[T]): Query0[Role] =
+  def selectRole[T <: Entity](userId: UserId, entityId: EntityId[T]): Query0[Role] =
     sql"""
          |SELECT
          |  role
          |FROM auth.access_control
-         |WHERE user_id = $userId AND resource_id = $resourceId
+         |WHERE user_id = $userId AND entity_id = $entityId
     """.stripMargin.query
 
-  def deleteGrant[T <: Resource](userId: UserId, resourceId: ResourceId[T]): Update0 =
+  def deleteGrant[T <: Entity](userId: UserId, entityId: EntityId[T]): Update0 =
     sql"""
          |DELETE FROM auth.access_control
-         |WHERE user_id = $userId AND resource_id = $resourceId
+         |WHERE user_id = $userId AND entity_id = $entityId
     """.stripMargin.update
