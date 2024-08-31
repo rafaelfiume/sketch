@@ -2,7 +2,7 @@ package org.fiume.sketch.storage.authorisation.postgres
 
 import doobie.*
 import doobie.implicits.*
-import org.fiume.sketch.shared.app.{Meta as TypeMeta, Resource, ResourceId}
+import org.fiume.sketch.shared.app.{Macros as TypeMeta, Resource, ResourceId}
 import org.fiume.sketch.shared.auth0.UserId
 import org.fiume.sketch.storage.auth0.postgres.DoobieMappings.given
 import org.fiume.sketch.storage.authorisation.postgres.DoobieMappings.given

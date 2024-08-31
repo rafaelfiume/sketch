@@ -16,7 +16,7 @@ abstract case class ResourceId[T <: Resource](val value: UUID):
   def resourceType: String
 
 object ResourceId:
-  inline def apply[T <: Resource](value: UUID): ResourceId[T] = ${ Meta.resouceIdApplyMacro[T]('value) }
+  inline def apply[T <: Resource](value: UUID): ResourceId[T] = ${ Macros.resouceIdApplyMacro[T]('value) }
 
   given [T <: Resource]: AsString[ResourceId[T]] = new AsString[ResourceId[T]]:
     extension (id: ResourceId[T]) override def asString(): String = id.value.toString

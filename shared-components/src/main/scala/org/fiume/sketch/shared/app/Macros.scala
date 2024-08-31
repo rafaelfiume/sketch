@@ -3,7 +3,7 @@ package org.fiume.sketch.shared.app
 import java.util.UUID
 import scala.quoted.*
 
-object Meta:
+object Macros:
   private def typeNameMacro[T: Type](using Quotes) =
     import quotes.reflect.*
 
@@ -14,5 +14,5 @@ object Meta:
   def resouceIdApplyMacro[T <: Resource: Type](value: Expr[UUID])(using Quotes): Expr[ResourceId[T]] =
     '{
       new ResourceId[T]($value):
-        def resourceType: String = Meta.typeName[T]
+        def resourceType: String = Macros.typeName[T]
     }
