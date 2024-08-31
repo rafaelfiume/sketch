@@ -12,10 +12,10 @@ import org.fiume.sketch.shared.domain.documents.Document.Metadata.Name.InvalidDo
 
 import java.util.UUID
 
-type DocumentId = ResourceId[DocumentEntity]
+type DocumentId = ResourceId[DocumentResourceType]
 object DocumentId:
-  def apply(uuid: UUID): DocumentId = ResourceId[DocumentEntity](uuid)
-sealed trait DocumentEntity extends Resource
+  def apply(uuid: UUID): DocumentId = ResourceId[DocumentResourceType](uuid)
+sealed trait DocumentResourceType extends Resource
 
 case class Document(metadata: Metadata)
 

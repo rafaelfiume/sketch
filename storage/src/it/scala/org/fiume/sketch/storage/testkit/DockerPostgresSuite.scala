@@ -23,6 +23,9 @@ trait DockerPostgresSuite extends CatsEffectSuite:
 
   extension [A](ops: ConnectionIO[A]) def ccommit: IO[A] = ops.transact(dbContainerAndTransactor().transactor)
 
+  extension [A](stream: fs2.Stream[ConnectionIO, A])
+    def ccommitStream: fs2.Stream[IO, A] = stream.transact(dbContainerAndTransactor().transactor)
+
   /*
    * Mostly used to clean tables after running test.
    */

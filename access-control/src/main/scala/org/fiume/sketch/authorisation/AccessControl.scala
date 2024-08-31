@@ -34,6 +34,8 @@ trait AccessControl[F[_], Txn[_]: Monad] extends Store[F, Txn]:
       ifFalse = Left("Unauthorised").pure[Txn]
     )
 
+  def fetchAllAuthorisedResourceIds[T <: Resource](userId: UserId): fs2.Stream[Txn, ResourceId[T]]
+
   def revokeAccess[T <: Resource](userId: UserId, resourceId: ResourceId[T]): Txn[Unit] =
     deleteGrant(userId, resourceId)
 

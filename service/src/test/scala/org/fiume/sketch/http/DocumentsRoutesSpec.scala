@@ -342,7 +342,7 @@ trait DocumentsStoreContext:
   private def makeDocumentsStore(state: Map[DocumentId, DocumentWithIdAndStream[IO]]): IO[DocumentsStore[IO, IO]] =
     Ref.of[IO, Map[DocumentId, DocumentWithIdAndStream[IO]]](state).map { storage =>
       new DocumentsStore[IO, IO]:
-        def store(document: DocumentWithStream[IO]): IO[DocumentId] =
+        override def store(document: DocumentWithStream[IO]): IO[DocumentId] =
           import scala.language.adhocExtensions
           IO.randomUUID.map(DocumentId(_)).flatMap { uuid =>
             storage
@@ -355,25 +355,25 @@ trait DocumentsStoreContext:
               .as(uuid)
           }
 
-        def fetchDocument(uuid: DocumentId): IO[Option[DocumentWithId]] =
+        override def fetchDocument(uuid: DocumentId): IO[Option[DocumentWithId]] =
           storage.get.map(_.collectFirst {
             case (storedUuid, document) if storedUuid === uuid => document
           })
 
-        def documentStream(uuid: DocumentId): IO[Option[fs2.Stream[IO, Byte]]] =
+        override def documentStream(uuid: DocumentId): IO[Option[fs2.Stream[IO, Byte]]] =
           storage.get.map(_.collectFirst {
             case (storedUuid, document) if storedUuid === uuid => document.stream
           })
 
-        def fetchByOwner(by: UserId): fs2.Stream[IO, DocumentWithId] =
-          fetchAll().filter(_.metadata.owner === by)
+        override def fetchByOwner(by: UserId): fs2.Stream[IO, DocumentWithId] = fetchAll().filter(_.metadata.owner === by)
 
-        def delete(uuid: DocumentId): IO[Unit] =
-          storage.update { _.removed(uuid) }
+        override def delete(uuid: DocumentId): IO[Unit] = storage.update { _.removed(uuid) }
 
-        val commit: [A] => IO[A] => IO[A] = [A] => (action: IO[A]) => action
+        override val lift: [A] => IO[A] => IO[A] = [A] => (action: IO[A]) => action
 
-        val lift: [A] => IO[A] => IO[A] = [A] => (action: IO[A]) => action
+        override val commit: [A] => IO[A] => IO[A] = [A] => (action: IO[A]) => action
+
+        override val commitStream: [A] => fs2.Stream[IO, A] => fs2.Stream[IO, A] = [A] => (action: fs2.Stream[IO, A]) => action
 
         given IORuntime = IORuntime.global
         private def fetchAll(): Stream[IO, DocumentWithId] = fs2.Stream.emits(

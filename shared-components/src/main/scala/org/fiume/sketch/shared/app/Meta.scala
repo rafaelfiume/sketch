@@ -9,7 +9,7 @@ object Meta:
 
     Expr(TypeTree.of[T].symbol.name)
 
-  private inline def typeName[A] = ${ typeNameMacro[A] }
+  inline def typeName[A] = ${ typeNameMacro[A] }
 
   def resouceIdApplyMacro[T <: Resource: Type](value: Expr[UUID])(using Quotes): Expr[ResourceId[T]] =
     '{

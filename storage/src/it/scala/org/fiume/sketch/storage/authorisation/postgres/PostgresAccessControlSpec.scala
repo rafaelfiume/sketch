@@ -9,7 +9,7 @@ import org.fiume.sketch.authorisation.Role
 import org.fiume.sketch.shared.auth0.UserId
 import org.fiume.sketch.shared.auth0.testkit.UserGens.given
 import org.fiume.sketch.shared.auth0.testkit.UsersStoreContext
-import org.fiume.sketch.shared.domain.documents.DocumentWithIdAndStream
+import org.fiume.sketch.shared.domain.documents.{DocumentResourceType, DocumentWithIdAndStream}
 import org.fiume.sketch.shared.domain.testkit.DocumentsGens.given
 import org.fiume.sketch.shared.testkit.Syntax.EitherSyntax.*
 import org.fiume.sketch.storage.documents.postgres.PostgresDocumentsStore
@@ -76,6 +76,42 @@ class PostgresAccessControlSpec
           yield assertEquals(result.leftValue, "Unauthorised")
         }
       }
+    }
+
+  test("fetches all authorised resource ids"):
+    forAllF {
+      (fstUserId: UserId,
+       fstDocument: DocumentWithIdAndStream[IO],
+       sndDocument: DocumentWithIdAndStream[IO],
+       sndserId: UserId,
+       trdDocument: DocumentWithIdAndStream[IO],
+       role: Role
+      ) =>
+        will(cleanGrants) {
+          (
+            PostgresAccessControl.make[IO](transactor()),
+            PostgresDocumentsStore.make[IO](transactor())
+          ).tupled.use { case (accessControl, documentStore) =>
+            for
+              fstDocumentId <- accessControl
+                .createResourceThenAllowAccess(fstUserId, role)(documentStore.store(fstDocument))
+                .ccommit
+              sndDocumentId <- accessControl
+                .createResourceThenAllowAccess(fstUserId, role)(documentStore.store(sndDocument))
+                .ccommit
+              trdDocumentId <- accessControl
+                .createResourceThenAllowAccess(sndserId, role)(documentStore.store(trdDocument))
+                .ccommit
+
+              result <- accessControl
+                .fetchAllAuthorisedResourceIds[DocumentResourceType](fstUserId)
+                .ccommitStream
+                .compile
+                .toList
+//
+            yield assertEquals(result, List(fstDocumentId, sndDocumentId))
+          }
+        }
     }
 
   test("revokes a user's permission to access a resource"):

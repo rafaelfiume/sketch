@@ -53,7 +53,9 @@ trait UsersStoreContext:
         override def delete(uuid: UserId): IO[Unit] =
           storage.update(_.removed(uuid))
 
-        val commit: [A] => IO[A] => IO[A] = [A] => (action: IO[A]) => action
+        override val lift: [A] => IO[A] => IO[A] = [A] => (action: IO[A]) => action
 
-        val lift: [A] => IO[A] => IO[A] = [A] => (action: IO[A]) => action
+        override val commit: [A] => IO[A] => IO[A] = [A] => (action: IO[A]) => action
+
+        override val commitStream: [A] => fs2.Stream[IO, A] => fs2.Stream[IO, A] = [A] => (action: fs2.Stream[IO, A]) => action
     }
