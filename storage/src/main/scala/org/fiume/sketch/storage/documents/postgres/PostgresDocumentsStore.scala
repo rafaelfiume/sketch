@@ -8,7 +8,6 @@ import doobie.*
 import doobie.free.connection.ConnectionIO
 import doobie.implicits.*
 import fs2.Stream
-import org.fiume.sketch.shared.auth0.UserId
 import org.fiume.sketch.shared.domain.documents.{Document, DocumentId, DocumentWithId, DocumentWithStream}
 import org.fiume.sketch.shared.domain.documents.Document.Metadata
 import org.fiume.sketch.shared.domain.documents.algebras.DocumentsStore
@@ -48,9 +47,6 @@ private class PostgresDocumentsStore[F[_]: Async] private (l: F ~> ConnectionIO,
     OptionT { Statements.selectDocumentBytes(uuid).option }
       .map(Stream.emits)
       .value
-
-  def fetchByOwner(by: UserId): fs2.Stream[F, DocumentWithId] =
-    Statements.selectByOwner(by).transact(tx)
 
   private val documentsChunkSize = 50
   override def fetchDocuments(uuids: fs2.Stream[ConnectionIO, DocumentId]): fs2.Stream[ConnectionIO, DocumentWithId] =
@@ -98,17 +94,6 @@ private object Statements:
          |FROM domain.documents d
          |WHERE d.uuid = $uuid
     """.stripMargin.query[Array[Byte]]
-
-  def selectByOwner(ownerId: UserId): fs2.Stream[ConnectionIO, DocumentWithId] =
-    sql"""
-         |SELECT
-         |  d.uuid,
-         |  d.name,
-         |  d.description,
-         |  d.owner
-         |FROM domain.documents d
-         |WHERE d.owner = $ownerId
-    """.stripMargin.query[DocumentWithId].stream
 
   def selectByIds(uuids: NonEmptyList[DocumentId]): fs2.Stream[ConnectionIO, DocumentWithId] =
     val in = Fragments.in(fr"uuid", uuids)
