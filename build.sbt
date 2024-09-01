@@ -43,7 +43,7 @@ lazy val accessControl =
      .disablePlugins(plugins.JUnitXmlReportPlugin)
      .settings(commonSettings: _*)
      .settings(
-       name := "auth0",
+       name := "access-control",
        libraryDependencies ++= Seq(
          Dependency.catsEffect,
          Dependency.munit % Test,
