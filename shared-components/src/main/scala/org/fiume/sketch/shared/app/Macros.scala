@@ -3,6 +3,7 @@ package org.fiume.sketch.shared.app
 import java.util.UUID
 import scala.quoted.*
 
+// Source: https://github.com/lampepfl/dotty-macro-examples/blob/main/fullClassName/src/macros.scala
 object Macros:
   private def typeNameMacro[T: Type](using Quotes) =
     import quotes.reflect.*

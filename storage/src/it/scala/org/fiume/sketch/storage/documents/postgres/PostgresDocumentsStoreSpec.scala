@@ -71,6 +71,20 @@ class PostgresDocumentsStoreSpec
       }
     }
 
+  test("fetches multiple documents"):
+    forAllF { (fstDoc: DocumentWithStream[IO], sndDoc: DocumentWithStream[IO]) =>
+      will(cleanDocuments) {
+        PostgresDocumentsStore.make[IO](transactor()).use { store =>
+          for
+            fstUuid <- store.store(fstDoc).ccommit
+            sndUuid <- store.store(sndDoc).ccommit
+
+            result <- store.fetchDocuments(fs2.Stream(fstUuid, sndUuid)).ccommitStream.compile.toList
+          yield assertEquals(result, List(fstDoc.withUuid(fstUuid), sndDoc.withUuid(sndUuid)))
+        }
+      }
+    }
+
   test("deletes stored document"):
     forAllF { (fstDoc: DocumentWithStream[IO], sndDoc: DocumentWithStream[IO]) =>
       will(cleanDocuments) {

@@ -47,7 +47,6 @@ class DocumentsRoutes[F[_]: Concurrent, Txn[_]](
 
   given EntityEncoder[F, NewlineDelimitedJson] = NewlineDelimitedJsonEncoder.make[F]
 
-  // TODO Check if user can create resouces (`Editor`) or if she can only view (`Viewer`) it
   private val authedRoutes: AuthedRoutes[User, F] =
     AuthedRoutes.of {
       case cx @ POST -> Root / "documents" as user =>

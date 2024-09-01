@@ -1,6 +1,6 @@
 package org.fiume.sketch.storage.documents.postgres
 
-import cats.data.OptionT
+import cats.data.{NonEmptyList, OptionT}
 import cats.effect.{Async, Resource}
 import cats.implicits.*
 import cats.~>
@@ -52,6 +52,14 @@ private class PostgresDocumentsStore[F[_]: Async] private (l: F ~> ConnectionIO,
   def fetchByOwner(by: UserId): fs2.Stream[F, DocumentWithId] =
     Statements.selectByOwner(by).transact(tx)
 
+  private val documentsChunkSize = 50
+  override def fetchDocuments(uuids: fs2.Stream[ConnectionIO, DocumentId]): fs2.Stream[ConnectionIO, DocumentWithId] =
+    uuids.chunkN(documentsChunkSize).flatMap { chunk =>
+      chunk.toList.toNel match
+        case None        => fs2.Stream.empty
+        case Some(uuids) => Statements.selectByIds(uuids)
+    }
+
   override def delete(uuid: DocumentId): ConnectionIO[Unit] =
     Statements.delete(uuid).run.void
 
@@ -101,6 +109,19 @@ private object Statements:
          |FROM domain.documents d
          |WHERE d.owner = $ownerId
     """.stripMargin.query[DocumentWithId].stream
+
+  def selectByIds(uuids: NonEmptyList[DocumentId]): fs2.Stream[ConnectionIO, DocumentWithId] =
+    val in = Fragments.in(fr"uuid", uuids)
+    val query = fr"""
+       |SELECT
+       |  d.uuid,
+       |  d.name,
+       |  d.description,
+       |  d.owner
+       |FROM domain.documents d
+       |WHERE
+    """.stripMargin ++ in
+    query.query[DocumentWithId].stream
 
   def delete(uuid: DocumentId): Update0 =
     sql"""

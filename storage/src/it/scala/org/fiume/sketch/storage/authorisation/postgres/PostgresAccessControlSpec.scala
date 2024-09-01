@@ -9,14 +9,13 @@ import org.fiume.sketch.authorisation.Role
 import org.fiume.sketch.shared.auth0.UserId
 import org.fiume.sketch.shared.auth0.testkit.UserGens.given
 import org.fiume.sketch.shared.auth0.testkit.UsersStoreContext
-import org.fiume.sketch.shared.domain.documents.{DocumentEntity, DocumentWithIdAndStream}
+import org.fiume.sketch.shared.domain.documents.{DocumentEntity, DocumentId, DocumentWithIdAndStream}
 import org.fiume.sketch.shared.domain.testkit.DocumentsGens.given
 import org.fiume.sketch.shared.testkit.Syntax.EitherSyntax.*
 import org.fiume.sketch.storage.documents.postgres.PostgresDocumentsStore
 import org.fiume.sketch.storage.testkit.DockerPostgresSuite
 import org.scalacheck.ShrinkLowPriority
 import org.scalacheck.effect.PropF.forAllF
-import org.fiume.sketch.shared.domain.documents.DocumentId
 
 class PostgresAccessControlSpec
     extends ScalaCheckEffectSuite
