@@ -5,8 +5,6 @@ CREATE TABLE domain.documents (
   name VARCHAR NOT NULL,
   description VARCHAR,
   bytes BYTEA,
-  -- Worth the trouble? Are FKs necessary here?
-  owner UUID NOT NULL,--REFERENCES auth.users(uuid),
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );

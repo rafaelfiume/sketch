@@ -84,6 +84,7 @@ lazy val auth0Scripts =
 
 lazy val service =
    project.in(file("service"))
+     .dependsOn(accessControl % "compile->compile;test->test")
      .dependsOn(auth0)
      .dependsOn(sharedAuth0 % "compile->compile;test->test")
      .dependsOn(sharedComponents % "compile->compile;test->test")

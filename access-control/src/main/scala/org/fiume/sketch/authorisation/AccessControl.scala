@@ -16,6 +16,7 @@ trait AccessControl[F[_], Txn[_]: Monad] extends Store[F, Txn]:
     // It should be OK giving allowAccess will be used upon entity creation, and similarly to revokeAccess
     storeGrant(userId, entityId, role)
 
+  // TODO Is there a better name?
   def createEntityThenAllowAccess[T <: Entity](userId: UserId, role: Role)(
     entityIdTxn: => Txn[EntityId[T]]
   ): Txn[EntityId[T]] =
@@ -26,6 +27,7 @@ trait AccessControl[F[_], Txn[_]: Monad] extends Store[F, Txn]:
   def canAccess[T <: Entity](userId: UserId, entityId: EntityId[T]): Txn[Boolean] =
     fetchRole(userId, entityId).map(_.map(_ == Role.Owner).getOrElse(false))
 
+  // TODO Is there a better name?
   def fetchEntityIfAuthorised[T <: Entity, A](userId: UserId, entityId: EntityId[T])(
     ops: EntityId[T] => Txn[A]
   ): Txn[Either[Unauthorised, A]] =

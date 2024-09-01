@@ -9,6 +9,7 @@ import io.circe.{Decoder, Encoder, HCursor, *}
 import io.circe.Decoder.Result
 import io.circe.Json as JJson
 import io.circe.syntax.*
+import org.fiume.sketch.authorisation.AccessControl
 import org.fiume.sketch.http.DocumentsRoutes.{DocumentIdVar, Line, Linebreak, NewlineDelimitedJson, NewlineDelimitedJsonEncoder}
 import org.fiume.sketch.http.DocumentsRoutes.Model.*
 import org.fiume.sketch.http.DocumentsRoutes.Model.json.given
@@ -17,8 +18,8 @@ import org.fiume.sketch.shared.app.algebras.Store.Syntax.commit
 import org.fiume.sketch.shared.app.http4s.middlewares.SemanticInputError
 import org.fiume.sketch.shared.app.troubleshooting.ErrorInfo.ErrorDetails
 import org.fiume.sketch.shared.app.troubleshooting.InvariantErrorSyntax.asDetails
-import org.fiume.sketch.shared.auth0.{User, UserId}
-import org.fiume.sketch.shared.domain.documents.{Document, DocumentId, DocumentWithId, DocumentWithStream}
+import org.fiume.sketch.shared.auth0.User
+import org.fiume.sketch.shared.domain.documents.{Document, DocumentEntity, DocumentId, DocumentWithId, DocumentWithStream}
 import org.fiume.sketch.shared.domain.documents.Document.Metadata
 import org.fiume.sketch.shared.domain.documents.Document.Metadata.*
 import org.fiume.sketch.shared.domain.documents.algebras.DocumentsStore
@@ -34,6 +35,7 @@ import org.http4s.server.middleware.EntityLimiter
 class DocumentsRoutes[F[_]: Concurrent, Txn[_]](
   authMiddleware: AuthMiddleware[F, User],
   documentBytesSizeLimit: Int,
+  accessControl: AccessControl[F, Txn],
   store: DocumentsStore[F, Txn]
 ) extends Http4sDsl[F]:
 
@@ -72,8 +74,9 @@ class DocumentsRoutes[F[_]: Concurrent, Txn[_]](
 
       // experimental newline delimited json
       case GET -> Root / "documents" as user =>
+        val ids = accessControl.fetchAllAuthorisedEntityIds[DocumentEntity](user.uuid)
         val responseStream = store
-          .fetchByOwner(by = user.uuid)
+          .commitStream { store.fetchDocuments(ids) }
           .map(_.asResponsePayload.asJson)
           .map(Line(_))
           .intersperse(Linebreak)
@@ -108,14 +111,14 @@ private[http] object DocumentsRoutes:
     def unapply(uuid: String): Option[DocumentId] = uuid.parsed().toOption
 
   object Model:
-    case class MetadataRequestPayload(name: String, description: String, owner: String)
-    case class MetadataResponsePayload(name: String, description: String, owner: String)
+    case class MetadataRequestPayload(name: String, description: String)
+    case class MetadataResponsePayload(name: String, description: String)
     case class DocumentResponsePayload(uuid: DocumentId, metadata: MetadataResponsePayload, byteStreamUri: Uri)
     case class DocumentIdResponsePayload(value: DocumentId)
 
     extension (m: Metadata)
       private def asResponsePayload: MetadataResponsePayload =
-        MetadataResponsePayload(m.name.value, m.description.value, m.owner.asString())
+        MetadataResponsePayload(m.name.value, m.description.value)
 
     extension [F[_]](d: DocumentWithId)
       def asResponsePayload: DocumentResponsePayload =
@@ -146,14 +149,12 @@ private[http] object DocumentsRoutes:
             (
               EitherT.fromEither(Name.validated(payload.name).leftMap(_.asDetails)),
               EitherT.pure(Description(payload.description)),
-              EitherT.pure(stream),
-              EitherT.fromEither(payload.owner.parsed().leftMap(_.asDetails))
-            ).parMapN((name, description, bytes, ownerId: UserId) =>
-              Document.make[F](bytes, Metadata(name, description, ownerId))
-            ).foldF(
-              details => SemanticInputError.make(details).raiseError,
-              _.pure[F]
-            )
+              EitherT.pure(stream)
+            ).parMapN((name, description, bytes) => Document.make[F](bytes, Metadata(name, description)))
+              .foldF(
+                details => SemanticInputError.make(details).raiseError,
+                _.pure[F]
+              )
           }
 
       private def metadata(): EitherT[F, ErrorDetails, Part[F]] = EitherT
@@ -194,14 +195,12 @@ private[http] object DocumentsRoutes:
           for
             name <- c.downField("name").as[String]
             description <- c.downField("description").as[String]
-            owner <- c.downField("owner").as[String]
-          yield MetadataRequestPayload(name, description, owner)
+          yield MetadataRequestPayload(name, description)
 
       given Encoder[MetadataResponsePayload] = new Encoder[MetadataResponsePayload]:
         override def apply(m: MetadataResponsePayload): JJson = JJson.obj(
           "name" -> m.name.asJson,
-          "description" -> m.description.asJson,
-          "owner" -> m.owner.asJson
+          "description" -> m.description.asJson
         )
 
       given Encoder[DocumentResponsePayload] = new Encoder[DocumentResponsePayload]:

@@ -56,21 +56,6 @@ class PostgresDocumentsStoreSpec
       }
     }
 
-  test("fetches documents by owner"):
-    forAllF { (fstDoc: DocumentWithStream[IO], sndDoc: DocumentWithStream[IO]) =>
-      will(cleanDocuments) {
-        PostgresDocumentsStore.make[IO](transactor()).use { store =>
-          for
-            fstUuid <- store.store(fstDoc).ccommit
-            sndUuid <- store.store(sndDoc).ccommit
-
-            result <- store.fetchByOwner(sndDoc.metadata.owner).compile.toList
-//
-          yield assertEquals(result, List(sndDoc.withUuid(sndUuid)))
-        }
-      }
-    }
-
   test("fetches multiple documents"):
     forAllF { (fstDoc: DocumentWithStream[IO], sndDoc: DocumentWithStream[IO]) =>
       will(cleanDocuments) {
