@@ -17,9 +17,7 @@ trait AccessControl[F[_], Txn[_]: Monad] extends Store[F, Txn]:
     storeGrant(userId, entityId, role)
 
   // TODO Is there a better name?
-  def createEntityThenAllowAccess[T <: Entity](userId: UserId, role: Role)(
-    entityIdTxn: => Txn[EntityId[T]]
-  ): Txn[EntityId[T]] =
+  def ensureAccess[T <: Entity](userId: UserId, role: Role)(entityIdTxn: => Txn[EntityId[T]]): Txn[EntityId[T]] =
     entityIdTxn.flatMap { entityId =>
       storeGrant(userId, entityId, role).as(entityId)
     }
@@ -28,7 +26,7 @@ trait AccessControl[F[_], Txn[_]: Monad] extends Store[F, Txn]:
     fetchRole(userId, entityId).map(_.map(_ == Role.Owner).getOrElse(false))
 
   // TODO Is there a better name?
-  def fetchEntityIfAuthorised[T <: Entity, A](userId: UserId, entityId: EntityId[T])(
+  def attemptWithAuthorisation[T <: Entity, A](userId: UserId, entityId: EntityId[T])(
     ops: EntityId[T] => Txn[A]
   ): Txn[Either[Unauthorised, A]] =
     canAccess(userId, entityId).ifM(

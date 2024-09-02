@@ -38,7 +38,7 @@ class PostgresAccessControlSpec
       }
     }
 
-  test("grants a user permission to access an entity and then perform the action"):
+  test("stores an entity and ensures the user has access to it"):
     forAllF { (userId: UserId, document: DocumentWithIdAndStream[IO], role: Role) =>
       will(cleanGrants) {
         (
@@ -47,11 +47,11 @@ class PostgresAccessControlSpec
         ).tupled.use { case (accessControl, documentStore) =>
           for
             documentId <- accessControl
-              .createEntityThenAllowAccess(userId, role)(documentStore.store(document))
+              .ensureAccess(userId, role)(documentStore.store(document))
               .ccommit
 
             result <- accessControl
-              .fetchEntityIfAuthorised(userId, documentId)(documentStore.fetchDocument)
+              .attemptWithAuthorisation(userId, documentId)(documentStore.fetchDocument)
               .ccommit
 //
           yield assertEquals(result.rightValue, document.some)
@@ -59,7 +59,7 @@ class PostgresAccessControlSpec
       }
     }
 
-  test("does not grant a user permission to access an entity"):
+  test("does not fetch an entity if the user does not have access to it"):
     forAllF { (userId: UserId, document: DocumentWithIdAndStream[IO], role: Role) =>
       will(cleanGrants) {
         (
@@ -67,10 +67,11 @@ class PostgresAccessControlSpec
           PostgresDocumentsStore.make[IO](transactor())
         ).tupled.use { case (accessControl, documentStore) =>
           for
+            // not granting access to the user
             documentId <- documentStore.store(document).ccommit
 
             result <- accessControl
-              .fetchEntityIfAuthorised(userId, documentId)(documentStore.fetchDocument)
+              .attemptWithAuthorisation(userId, documentId)(documentStore.fetchDocument)
               .ccommit
 //
           yield assertEquals(result.leftValue, "Unauthorised")
@@ -94,13 +95,13 @@ class PostgresAccessControlSpec
           ).tupled.use { case (accessControl, documentStore) =>
             for
               fstDocumentId <- accessControl
-                .createEntityThenAllowAccess(fstUserId, role)(documentStore.store(fstDocument))
+                .ensureAccess(fstUserId, role)(documentStore.store(fstDocument))
                 .ccommit
               sndDocumentId <- accessControl
-                .createEntityThenAllowAccess(fstUserId, role)(documentStore.store(sndDocument))
+                .ensureAccess(fstUserId, role)(documentStore.store(sndDocument))
                 .ccommit
               trdDocumentId <- accessControl
-                .createEntityThenAllowAccess(sndserId, role)(documentStore.store(trdDocument))
+                .ensureAccess(sndserId, role)(documentStore.store(trdDocument))
                 .ccommit
 
               result <- accessControl
