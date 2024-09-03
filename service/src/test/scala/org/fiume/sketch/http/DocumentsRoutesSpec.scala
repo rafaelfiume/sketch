@@ -77,19 +77,19 @@ class DocumentsRoutesSpec
       yield ()
     }
 
-  // TODO User cannot retrieve documents which is not an owner
   test("retrieves metadata of stored document"):
-    forAllF { (document: DocumentWithIdAndStream[IO]) =>
+    forAllF { (document: DocumentWithIdAndStream[IO], user: User) =>
       val request = GET(Uri.unsafeFromString(s"/documents/${document.uuid.value}/metadata"))
       for
         accessControl <- makeAccessControl()
         store <- makeDocumentsStore(state = document)
-        authMiddleware = makeAuthMiddleware()
+        _ <- accessControl.allowAccess(user.uuid, document.uuid, Role.Owner)
+        authMiddleware = makeAuthMiddleware(authenticated = user)
         documentsRoutes <- makeDocumentsRoutes(authMiddleware, accessControl, store)
 
         result <- send(request)
           .to(documentsRoutes.router())
-          .expectJsonResponseWith(Status.Ok)
+          .expectJsonResponseWith(Status.Ok, debug = true)
 //
       yield assertEquals(result.as[DocumentResponsePayload].rightValue, document.asResponsePayload)
     }
@@ -158,10 +158,26 @@ class DocumentsRoutesSpec
       yield ()
     }
 
-  /* Authorisation */
-  // coming soon
-
   /* Sad Path */
+
+  /*** Authorisation ***/
+
+  test("attempt to retrieve metadata of a document without access results in 403 Forbidden"):
+    forAllF { (document: DocumentWithIdAndStream[IO], authenticated: User, owner: User) =>
+      val request = GET(Uri.unsafeFromString(s"/documents/${document.uuid.value}/metadata"))
+      for
+        accessControl <- makeAccessControl()
+        store <- makeDocumentsStore(state = document)
+        _ <- accessControl.allowAccess(owner.uuid, document.uuid, Role.Owner)
+        authMiddleware = makeAuthMiddleware(authenticated)
+        documentsRoutes <- makeDocumentsRoutes(authMiddleware, accessControl, store)
+
+        _ <- send(request)
+          .to(documentsRoutes.router())
+          .expectEmptyResponseWith(Status.Forbidden)
+      yield ()
+    }
+  /*** Others ***/
 
   test("attempt to delete a nonexistent document results in 404 Not Found"):
     forAllF { (document: DocumentWithIdAndStream[IO]) =>

@@ -71,7 +71,7 @@ class HealthStatusRoutesSpec
 
       result <- send(GET(uri"/status"))
         .to(routes.router())
-        .expectJsonResponseWith(Status.Ok, debugJsonResponse = true)
+        .expectJsonResponseWith(Status.Ok)
 //
     yield assertEquals(
       result.as[ServiceStatus].rightValue,

@@ -66,8 +66,14 @@ class DocumentsRoutes[F[_]: Concurrent, Txn[_]](
 
       case GET -> Root / "documents" / DocumentIdVar(uuid) / "metadata" as user =>
         for
-          document <- store.fetchDocument(uuid).commit()
-          res <- document.map(_.asResponsePayload).fold(ifEmpty = NotFound())(Ok(_))
+          document <- accessControl
+            .attemptWithAuthorisation(user.uuid, uuid) {
+              store.fetchDocument
+            }
+            .commit()
+          res <- document match
+            case Left(unauthorised) => Forbidden()
+            case Right(document)    => document.map(_.asResponsePayload).fold(ifEmpty = NotFound())(Ok(_))
         yield res
 
       case GET -> Root / "documents" / DocumentIdVar(uuid) as user =>

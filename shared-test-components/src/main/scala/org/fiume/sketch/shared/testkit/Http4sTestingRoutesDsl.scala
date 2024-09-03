@@ -21,12 +21,12 @@ trait Http4sTestingRoutesDsl extends Assertions:
           .run(request)
           .flatMap { res => IO(assertEquals(res.status, expected)) }
 
-      def expectJsonResponseWith(expected: Status, debugJsonResponse: Boolean = false): IO[Json] =
+      def expectJsonResponseWith(expected: Status, debug: Boolean = false): IO[Json] =
         routes.orNotFound
           .run(request)
           .flatTap { res => IO(assertEquals(res.status, expected)) }
           .flatMap { _.as[Json] }
-          .flatTap { jsonBody => IO { if debugJsonResponse then debugJson(jsonBody) else () } }
+          .flatTap { jsonBody => IO { if debug then debugJson(jsonBody) else () } }
           .handleErrorWith {
             case error: MalformedMessageBodyFailure if error.message.contains("JSON") && error.message.contains("empty") =>
               IO.delay { fail("expected a JSON body in the response, but received an empty one") }
