@@ -32,7 +32,7 @@ import org.http4s.headers.`Content-Type`
 import org.http4s.implicits.*
 import org.http4s.multipart.{Boundary, Multipart, Part}
 import org.http4s.server.AuthMiddleware
-import org.scalacheck.{Arbitrary, Gen, ShrinkLowPriority}
+import org.scalacheck.{Gen, ShrinkLowPriority}
 import org.scalacheck.effect.PropF.forAllF
 
 class DocumentsRoutesSpec
@@ -48,10 +48,10 @@ class DocumentsRoutesSpec
   override def scalaCheckTestParameters = super.scalaCheckTestParameters.withMinSuccessfulTests(10)
 
   test("uploads document"):
-    forAllF { (metadataPayload: MetadataRequestPayload, user: User) =>
+    forAllF { (metadata: Document.Metadata, user: User) =>
       val multipart = Multipart[IO](
         parts = Vector(
-          Part.formData("metadata", metadataPayload.asJson.spaces2SortKeys),
+          Part.formData("metadata", metadata.asRequestPayload.asJson.spaces2SortKeys),
           Part.fileData("bytes", montainBikeInLiguriaImageFile, `Content-Type`(MediaType.image.jpeg))
         ),
         boundary = Boundary("boundary")
@@ -69,7 +69,12 @@ class DocumentsRoutesSpec
 
         createdDocId = result.as[DocumentIdResponsePayload].rightValue
         stored <- store.fetchDocument(createdDocId.value)
-      yield assert(stored.isDefined, clue = stored)
+        canAccess <- accessControl.canAccess(user.uuid, createdDocId.value)
+        _ <- IO {
+          assertEquals(stored.map(_.metadata), metadata.some)
+          assert(canAccess)
+        }
+      yield ()
     }
 
   // TODO User cannot retrieve documents which is not an owner
@@ -250,9 +255,6 @@ trait DocumentsRoutesSpecContext extends AuthMiddlewareContext:
 
   def montainBikeInLiguriaImageFile = getClass.getClassLoader.getResource("mountain-bike-liguria-ponent.jpg")
 
-  given Arbitrary[MetadataRequestPayload] = Arbitrary(metadataRequestPayloads)
-  def metadataRequestPayloads: Gen[MetadataRequestPayload] = metadataG.map(_.asRequestPayload) :| "metadataRequestPayloads"
-
   def malformedDocumentRequests: Gen[Multipart[IO]] = Gen.delay {
     Multipart[IO](
       parts = Vector(
@@ -269,11 +271,11 @@ trait DocumentsRoutesSpecContext extends AuthMiddlewareContext:
     invalidTooShortDocumentName
   )
 
-  private def invalidPartWithNoContent: Gen[Multipart[IO]] = metadataRequestPayloads.flatMap { metadata =>
+  private def invalidPartWithNoContent: Gen[Multipart[IO]] = metadataG.flatMap { metadata =>
     Gen.delay {
       Multipart[IO](
         // no file mamma!
-        parts = Vector(Part.formData("metadata", metadata.asJson.spaces2SortKeys)),
+        parts = Vector(Part.formData("metadata", metadata.asRequestPayload.asJson.spaces2SortKeys)),
         boundary = Boundary("boundary")
       )
     }
@@ -292,7 +294,7 @@ trait DocumentsRoutesSpecContext extends AuthMiddlewareContext:
   def invalidTooShortDocumentName: Gen[Multipart[IO]] =
     (for
       name <- shortNames
-      metadata <- metadataRequestPayloads.map(_.copy(name = name))
+      metadata <- metadataG.map(_.asRequestPayload.copy(name = name))
     yield Multipart[IO](
       parts = Vector(
         Part.formData("metadata", metadata.asJson.spaces2SortKeys),

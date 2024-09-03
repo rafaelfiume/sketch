@@ -9,7 +9,7 @@ import io.circe.{Decoder, Encoder, HCursor, *}
 import io.circe.Decoder.Result
 import io.circe.Json as JJson
 import io.circe.syntax.*
-import org.fiume.sketch.authorisation.AccessControl
+import org.fiume.sketch.authorisation.{AccessControl, Role}
 import org.fiume.sketch.http.DocumentsRoutes.{DocumentIdVar, Line, Linebreak, NewlineDelimitedJson, NewlineDelimitedJsonEncoder}
 import org.fiume.sketch.http.DocumentsRoutes.Model.*
 import org.fiume.sketch.http.DocumentsRoutes.Model.json.given
@@ -55,7 +55,11 @@ class DocumentsRoutes[F[_]: Concurrent, Txn[_]](
         cx.req.decode { (uploadRequest: Multipart[F]) =>
           for
             document <- uploadRequest.validated()
-            uuid <- store.store(document).commit()
+            uuid <- accessControl
+              .ensureAccess(user.uuid, Role.Owner) {
+                store.store(document)
+              }
+              .commit()
             created <- Created(uuid.asResponsePayload)
           yield created
         }

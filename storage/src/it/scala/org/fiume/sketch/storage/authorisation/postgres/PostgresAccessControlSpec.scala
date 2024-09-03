@@ -47,11 +47,13 @@ class PostgresAccessControlSpec
         ).tupled.use { case (accessControl, documentStore) =>
           for
             documentId <- accessControl
-              .ensureAccess(userId, role)(documentStore.store(document))
+              .ensureAccess(userId, role) { documentStore.store(document) }
               .ccommit
 
             result <- accessControl
-              .attemptWithAuthorisation(userId, documentId)(documentStore.fetchDocument)
+              .attemptWithAuthorisation(userId, documentId) {
+                documentStore.fetchDocument
+              }
               .ccommit
 //
           yield assertEquals(result.rightValue, document.some)
@@ -71,7 +73,9 @@ class PostgresAccessControlSpec
             documentId <- documentStore.store(document).ccommit
 
             result <- accessControl
-              .attemptWithAuthorisation(userId, documentId)(documentStore.fetchDocument)
+              .attemptWithAuthorisation(userId, documentId) {
+                documentStore.fetchDocument
+              }
               .ccommit
 //
           yield assertEquals(result.leftValue, "Unauthorised")
@@ -84,7 +88,7 @@ class PostgresAccessControlSpec
       (fstUserId: UserId,
        fstDocument: DocumentWithIdAndStream[IO],
        sndDocument: DocumentWithIdAndStream[IO],
-       sndserId: UserId,
+       sndUserId: UserId,
        trdDocument: DocumentWithIdAndStream[IO],
        role: Role
       ) =>
@@ -95,13 +99,13 @@ class PostgresAccessControlSpec
           ).tupled.use { case (accessControl, documentStore) =>
             for
               fstDocumentId <- accessControl
-                .ensureAccess(fstUserId, role)(documentStore.store(fstDocument))
+                .ensureAccess(fstUserId, role) { documentStore.store(fstDocument) }
                 .ccommit
               sndDocumentId <- accessControl
-                .ensureAccess(fstUserId, role)(documentStore.store(sndDocument))
+                .ensureAccess(fstUserId, role) { documentStore.store(sndDocument) }
                 .ccommit
               trdDocumentId <- accessControl
-                .ensureAccess(sndserId, role)(documentStore.store(trdDocument))
+                .ensureAccess(sndUserId, role) { documentStore.store(trdDocument) }
                 .ccommit
 
               result <- accessControl
