@@ -66,14 +66,10 @@ class DocumentsRoutes[F[_]: Concurrent, Txn[_]](
 
       case GET -> Root / "documents" / DocumentIdVar(uuid) / "metadata" as user =>
         for
-          document <- accessControl
-            .attemptWithAuthorisation(user.uuid, uuid) {
-              store.fetchDocument
-            }
-            .commit()
+          document <- accessControl.attemptWithAuthorisation(user.uuid, uuid) { store.fetchDocument }.commit()
           res <- document match
-            case Left(unauthorised) => Forbidden()
             case Right(document)    => document.map(_.asResponsePayload).fold(ifEmpty = NotFound())(Ok(_))
+            case Left(unauthorised) => Forbidden()
         yield res
 
       case GET -> Root / "documents" / DocumentIdVar(uuid) as user =>
@@ -98,10 +94,10 @@ class DocumentsRoutes[F[_]: Concurrent, Txn[_]](
 
       case DELETE -> Root / "documents" / DocumentIdVar(uuid) as user =>
         for
-          metadata <- store.fetchDocument(uuid).commit()
-          res <- metadata match
-            case None    => NotFound()
-            case Some(_) => store.delete(uuid).commit() >> NoContent()
+          document <- accessControl.attemptWithAuthorisation(user.uuid, uuid) { store.delete }.commit()
+          res <- document match
+            case Right(document)    => NoContent()
+            case Left(unauthorised) => Forbidden()
         yield res
     }
 

@@ -118,9 +118,9 @@ class DocumentsRoutesSpec
     forAllF { (fstDoc: DocumentWithIdAndStream[IO], sndDoc: DocumentWithIdAndStream[IO], user: User) =>
       val request = GET(Uri.unsafeFromString("/documents"))
       for
-        store <- makeDocumentsStore(state = fstDoc, sndDoc)
         accessControl <- makeAccessControl()
         _ <- accessControl.allowAccess(user.uuid, sndDoc.uuid, Role.Owner)
+        store <- makeDocumentsStore(state = fstDoc, sndDoc)
         authMiddleware = makeAuthMiddleware(authenticated = user)
         documentsRoutes <- makeDocumentsRoutes(authMiddleware, accessControl, store)
 
@@ -134,20 +134,20 @@ class DocumentsRoutesSpec
       )
     }
 
-  // TODO User cannot delete document which is not an owner
   test("deletes stored document"):
-    forAllF { (document: DocumentWithIdAndStream[IO]) =>
+    forAllF { (document: DocumentWithIdAndStream[IO], user: User) =>
       val request = DELETE(Uri.unsafeFromString(s"/documents/${document.uuid.value}"))
       for
         accessControl <- makeAccessControl()
+        _ <- accessControl.allowAccess(user.uuid, document.uuid, Role.Owner)
         store <- makeDocumentsStore(state = document)
-        authMiddleware = makeAuthMiddleware()
+        authMiddleware = makeAuthMiddleware(authenticated = user)
         documentsRoutes <- makeDocumentsRoutes(authMiddleware, accessControl, store)
 
         _ <- send(request)
           .to(documentsRoutes.router())
+//
           .expectEmptyResponseWith(Status.NoContent)
-
         result <- store.fetchDocument(document.uuid)
       yield assertEquals(result, none)
     }
@@ -155,8 +155,8 @@ class DocumentsRoutesSpec
   /* Sad Path */
 
   /**
-   *  Authorisation
-   **/
+   * Authorisation
+   */
 
   test("attempt to retrieve metadata of a document without access results in 403 Forbidden"):
     forAllF { (document: DocumentWithIdAndStream[IO], authenticated: User) =>
@@ -192,25 +192,26 @@ class DocumentsRoutesSpec
       yield ()
     }
 
-  /**
-   *  Others
-   **/
-
-  test("attempt to delete a nonexistent document results in 404 Not Found"):
-    forAllF { (document: DocumentWithIdAndStream[IO]) =>
+  test("attempt to delete a document without access results in 403 Forbidden"):
+    forAllF { (document: DocumentWithIdAndStream[IO], authenticated: User) =>
       val request = DELETE(Uri.unsafeFromString(s"/documents/${document.uuid.value}"))
       for
         accessControl <- makeAccessControl()
-        store <- makeDocumentsStore()
-        authMiddleware = makeAuthMiddleware()
+        // the authenticated user is not the document owner
+        store <- makeDocumentsStore(state = document)
+        authMiddleware = makeAuthMiddleware(authenticated)
         documentsRoutes <- makeDocumentsRoutes(authMiddleware, accessControl, store)
 
         _ <- send(request)
           .to(documentsRoutes.router())
 //
-          .expectEmptyResponseWith(Status.NotFound)
+          .expectEmptyResponseWith(Status.Forbidden)
       yield ()
     }
+
+  /**
+   * Others
+   */
 
   test("semantically invalid upload request results in 422 Unprocessable Entity"):
     forAllF(semanticallyInvalidDocumentRequests) { (multipart: Multipart[IO]) =>
