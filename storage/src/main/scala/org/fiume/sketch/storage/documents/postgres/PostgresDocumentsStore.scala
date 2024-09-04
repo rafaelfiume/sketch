@@ -1,13 +1,12 @@
 package org.fiume.sketch.storage.documents.postgres
 
-import cats.data.{NonEmptyList, OptionT}
+import cats.data.NonEmptyList
 import cats.effect.{Async, Resource}
 import cats.implicits.*
 import cats.~>
 import doobie.*
 import doobie.free.connection.ConnectionIO
 import doobie.implicits.*
-import fs2.Stream
 import org.fiume.sketch.shared.domain.documents.{Document, DocumentId, DocumentWithId, DocumentWithStream}
 import org.fiume.sketch.shared.domain.documents.Document.Metadata
 import org.fiume.sketch.shared.domain.documents.algebras.DocumentsStore
@@ -39,13 +38,8 @@ private class PostgresDocumentsStore[F[_]: Async] private (l: F ~> ConnectionIO,
   override def fetchDocument(uuid: DocumentId): ConnectionIO[Option[DocumentWithId]] =
     Statements.selectDocument(uuid).option
 
-  override def documentStream(uuid: DocumentId): ConnectionIO[Option[Stream[F, Byte]]] =
-    // not the greatest implementation, since it will require bytes to be fully read from the db before the stream can start emiting bytes
-    // this can be better optimised later (perhaps by storing/reading documents using a file sytem? or large objects?)
-    // API is the most important part here.
-    OptionT { Statements.selectDocumentBytes(uuid).option }
-      .map(Stream.emits)
-      .value
+  override def documentStream(uuid: DocumentId): fs2.Stream[ConnectionIO, Byte] =
+    Statements.selectDocumentBytes(uuid)
 
   private val documentsChunkSize = 50
   override def fetchDocuments(uuids: fs2.Stream[ConnectionIO, DocumentId]): fs2.Stream[ConnectionIO, DocumentWithId] =
@@ -83,13 +77,13 @@ private object Statements:
          |WHERE d.uuid = $uuid
     """.stripMargin.query[DocumentWithId]
 
-  def selectDocumentBytes(uuid: DocumentId): Query0[Array[Byte]] =
+  def selectDocumentBytes(uuid: DocumentId): fs2.Stream[ConnectionIO, Byte] =
     sql"""
          |SELECT
          |  d.bytes
          |FROM domain.documents d
          |WHERE d.uuid = $uuid
-    """.stripMargin.query[Array[Byte]]
+    """.stripMargin.query[Byte].stream
 
   def selectByIds(uuids: NonEmptyList[DocumentId]): fs2.Stream[ConnectionIO, DocumentWithId] =
     val in = Fragments.in(fr"uuid", uuids)

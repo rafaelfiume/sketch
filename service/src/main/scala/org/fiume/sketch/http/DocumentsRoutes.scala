@@ -14,7 +14,7 @@ import org.fiume.sketch.http.DocumentsRoutes.{DocumentIdVar, Line, Linebreak, Ne
 import org.fiume.sketch.http.DocumentsRoutes.Model.*
 import org.fiume.sketch.http.DocumentsRoutes.Model.json.given
 import org.fiume.sketch.shared.app.EntityId.given
-import org.fiume.sketch.shared.app.algebras.Store.Syntax.commit
+import org.fiume.sketch.shared.app.algebras.Store.Syntax.*
 import org.fiume.sketch.shared.app.http4s.middlewares.SemanticInputError
 import org.fiume.sketch.shared.app.troubleshooting.ErrorInfo.ErrorDetails
 import org.fiume.sketch.shared.app.troubleshooting.InvariantErrorSyntax.asDetails
@@ -77,9 +77,13 @@ class DocumentsRoutes[F[_]: Concurrent, Txn[_]](
         yield res
 
       case GET -> Root / "documents" / DocumentIdVar(uuid) as user =>
-        for
-          stream <- store.documentStream(uuid).commit()
-          res <- stream.fold(ifEmpty = NotFound())(Ok(_, `Content-Disposition`("attachment", Map.empty)))
+        for res <- accessControl
+            .canAccess(user.uuid, uuid)
+            .commit()
+            .ifM(
+              ifTrue = Ok(store.documentStream(uuid).commitStream(), `Content-Disposition`("attachment", Map.empty)),
+              ifFalse = Forbidden()
+            )
         yield res
 
       // experimental newline delimited json

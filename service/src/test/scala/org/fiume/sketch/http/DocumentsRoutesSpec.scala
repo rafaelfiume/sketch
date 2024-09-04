@@ -1,6 +1,5 @@
 package org.fiume.sketch.http
 
-import cats.data.OptionT
 import cats.effect.{IO, Ref}
 import cats.implicits.*
 import io.circe.{Decoder, Encoder, HCursor, Json}
@@ -48,7 +47,7 @@ class DocumentsRoutesSpec
   override def scalaCheckTestParameters = super.scalaCheckTestParameters.withMinSuccessfulTests(10)
 
   test("uploads document"):
-    forAllF { (metadata: Document.Metadata, user: User) =>
+    forAllF { (metadata: Document.Metadata, user: User, randomUser: User) =>
       val multipart = Multipart[IO](
         parts = Vector(
           Part.formData("metadata", metadata.asRequestPayload.asJson.spaces2SortKeys),
@@ -70,9 +69,11 @@ class DocumentsRoutesSpec
         createdDocId = result.as[DocumentIdResponsePayload].rightValue
         stored <- store.fetchDocument(createdDocId.value)
         canAccess <- accessControl.canAccess(user.uuid, createdDocId.value)
+        cannotAccess <- accessControl.canAccess(randomUser.uuid, createdDocId.value)
         _ <- IO {
           assertEquals(stored.map(_.metadata), metadata.some)
           assert(canAccess)
+          assert(!cannotAccess)
         }
       yield ()
     }
@@ -82,26 +83,26 @@ class DocumentsRoutesSpec
       val request = GET(Uri.unsafeFromString(s"/documents/${document.uuid.value}/metadata"))
       for
         accessControl <- makeAccessControl()
-        store <- makeDocumentsStore(state = document)
         _ <- accessControl.allowAccess(user.uuid, document.uuid, Role.Owner)
+        store <- makeDocumentsStore(state = document)
         authMiddleware = makeAuthMiddleware(authenticated = user)
         documentsRoutes <- makeDocumentsRoutes(authMiddleware, accessControl, store)
 
         result <- send(request)
           .to(documentsRoutes.router())
-          .expectJsonResponseWith(Status.Ok, debug = true)
+          .expectJsonResponseWith(Status.Ok)
 //
       yield assertEquals(result.as[DocumentResponsePayload].rightValue, document.asResponsePayload)
     }
 
-  // TODO User cannot retrieve documents which is not an owner
   test("retrieves content bytes of stored document"):
-    forAllF { (document: DocumentWithIdAndStream[IO]) =>
+    forAllF { (document: DocumentWithIdAndStream[IO], user: User) =>
       val request = GET(Uri.unsafeFromString(s"/documents/${document.uuid.value}"))
       for
         accessControl <- makeAccessControl()
+        _ <- accessControl.allowAccess(user.uuid, document.uuid, Role.Owner)
         store <- makeDocumentsStore(state = document)
-        authMiddleware = makeAuthMiddleware()
+        authMiddleware = makeAuthMiddleware(authenticated = user)
         documentsRoutes <- makeDocumentsRoutes(authMiddleware, accessControl, store)
 
         result <- send(request)
@@ -147,37 +148,53 @@ class DocumentsRoutesSpec
           .to(documentsRoutes.router())
           .expectEmptyResponseWith(Status.NoContent)
 
-        stored <- IO.both(
-          store.fetchDocument(document.uuid),
-          OptionT(store.documentStream(document.uuid)).semiflatMap(_.compile.toList).value
-        )
-        _ <- IO {
-          assertEquals(stored._1, none)
-          assertEquals(stored._2, none)
-        }
-      yield ()
+        result <- store.fetchDocument(document.uuid)
+      yield assertEquals(result, none)
     }
 
   /* Sad Path */
 
-  /*** Authorisation ***/
+  /**
+   *  Authorisation
+   **/
 
   test("attempt to retrieve metadata of a document without access results in 403 Forbidden"):
-    forAllF { (document: DocumentWithIdAndStream[IO], authenticated: User, owner: User) =>
+    forAllF { (document: DocumentWithIdAndStream[IO], authenticated: User) =>
       val request = GET(Uri.unsafeFromString(s"/documents/${document.uuid.value}/metadata"))
       for
         accessControl <- makeAccessControl()
+        // the authenticated user is not the document owner
         store <- makeDocumentsStore(state = document)
-        _ <- accessControl.allowAccess(owner.uuid, document.uuid, Role.Owner)
         authMiddleware = makeAuthMiddleware(authenticated)
         documentsRoutes <- makeDocumentsRoutes(authMiddleware, accessControl, store)
 
         _ <- send(request)
           .to(documentsRoutes.router())
+//
           .expectEmptyResponseWith(Status.Forbidden)
       yield ()
     }
-  /*** Others ***/
+
+  test("attempt to retrieve content bytes of a document without access results in 403 Forbidden"):
+    forAllF { (document: DocumentWithIdAndStream[IO], authenticated: User) =>
+      val request = GET(Uri.unsafeFromString(s"/documents/${document.uuid.value}"))
+      for
+        accessControl <- makeAccessControl()
+        // the authenticated user is not the document owner
+        store <- makeDocumentsStore(state = document)
+        authMiddleware = makeAuthMiddleware(authenticated)
+        documentsRoutes <- makeDocumentsRoutes(authMiddleware, accessControl, store)
+
+        _ <- send(request)
+          .to(documentsRoutes.router())
+//
+          .expectEmptyResponseWith(Status.Forbidden)
+      yield ()
+    }
+
+  /**
+   *  Others
+   **/
 
   test("attempt to delete a nonexistent document results in 404 Not Found"):
     forAllF { (document: DocumentWithIdAndStream[IO]) =>
@@ -187,8 +204,10 @@ class DocumentsRoutesSpec
         store <- makeDocumentsStore()
         authMiddleware = makeAuthMiddleware()
         documentsRoutes <- makeDocumentsRoutes(authMiddleware, accessControl, store)
+
         _ <- send(request)
           .to(documentsRoutes.router())
+//
           .expectEmptyResponseWith(Status.NotFound)
       yield ()
     }
@@ -387,10 +406,8 @@ trait DocumentsStoreContext:
             case (storedUuid, document) if storedUuid === uuid => document
           })
 
-        override def documentStream(uuid: DocumentId): IO[Option[fs2.Stream[IO, Byte]]] =
-          storage.get.map(_.collectFirst {
-            case (storedUuid, document) if storedUuid === uuid => document.stream
-          })
+        override def documentStream(uuid: DocumentId): fs2.Stream[IO, Byte] =
+          fetchAll().filter { _.uuid === uuid }.flatMap(_.stream)
 
         override def fetchDocuments(uuids: fs2.Stream[IO, DocumentId]): fs2.Stream[IO, DocumentWithId] =
           uuids.flatMap { uuid => fetchAll().filter(_.uuid === uuid) }
@@ -404,7 +421,7 @@ trait DocumentsStoreContext:
         override val commitStream: [A] => fs2.Stream[IO, A] => fs2.Stream[IO, A] = [A] => (action: fs2.Stream[IO, A]) => action
 
         given IORuntime = IORuntime.global
-        private def fetchAll(): Stream[IO, DocumentWithId] = fs2.Stream.emits(
+        private def fetchAll(): Stream[IO, DocumentWithIdAndStream[IO]] = fs2.Stream.emits(
           storage.get.unsafeRunSync().values.toSeq
         )
     }
