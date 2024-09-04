@@ -78,12 +78,13 @@ private object Statements:
     """.stripMargin.query[DocumentWithId]
 
   def selectDocumentBytes(uuid: DocumentId): fs2.Stream[ConnectionIO, Byte] =
+    // This seems to be loading all document bytes in memory?
     sql"""
          |SELECT
          |  d.bytes
          |FROM domain.documents d
          |WHERE d.uuid = $uuid
-    """.stripMargin.query[Byte].stream
+    """.stripMargin.query[Array[Byte]].stream.flatMap(fs2.Stream.emits)
 
   def selectByIds(uuids: NonEmptyList[DocumentId]): fs2.Stream[ConnectionIO, DocumentWithId] =
     val in = Fragments.in(fr"uuid", uuids)

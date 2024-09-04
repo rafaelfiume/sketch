@@ -6,17 +6,13 @@ import org.fiume.sketch.shared.app.{Entity, EntityId}
 import org.fiume.sketch.shared.app.algebras.Store
 import org.fiume.sketch.shared.auth0.UserId
 
-/* Contextual roles, ie. a user can be a viewer of a document, but owner of another. */
+/* Contextual roles, ie. a user can be a contributor of a document, but owner of another. */
 trait AccessControl[F[_], Txn[_]: Monad] extends Store[F, Txn]:
   type Unauthorised = String
 
   def allowAccess[T <: Entity](userId: UserId, entityId: EntityId[T], role: Role): Txn[Unit] =
-    // Both allowAccess and revokeAccess need to check if user can grant or revoke access before performing the action
-    // For now, any user will be able to do it.
-    // It should be OK giving allowAccess will be used upon entity creation, and similarly to revokeAccess
     storeGrant(userId, entityId, role)
 
-  // TODO Is there a better name?
   def ensureAccess[T <: Entity](userId: UserId, role: Role)(entityIdTxn: => Txn[EntityId[T]]): Txn[EntityId[T]] =
     entityIdTxn.flatMap { entityId =>
       storeGrant(userId, entityId, role).as(entityId)
@@ -25,7 +21,6 @@ trait AccessControl[F[_], Txn[_]: Monad] extends Store[F, Txn]:
   def canAccess[T <: Entity](userId: UserId, entityId: EntityId[T]): Txn[Boolean] =
     fetchRole(userId, entityId).map(_.map(_ == Role.Owner).getOrElse(false))
 
-  // TODO Is there a better name?
   def attemptWithAuthorisation[T <: Entity, A](userId: UserId, entityId: EntityId[T])(
     ops: EntityId[T] => Txn[A]
   ): Txn[Either[Unauthorised, A]] =
