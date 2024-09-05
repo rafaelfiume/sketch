@@ -1,6 +1,6 @@
 package org.fiume.sketch.http
 
-import cats.MonadThrow
+import cats.{FlatMap, MonadThrow}
 import cats.data.EitherT
 import cats.effect.Concurrent
 import cats.implicits.*
@@ -32,7 +32,7 @@ import org.http4s.multipart.{Multipart, Part, *}
 import org.http4s.server.{AuthMiddleware, Router}
 import org.http4s.server.middleware.EntityLimiter
 
-class DocumentsRoutes[F[_]: Concurrent, Txn[_]](
+class DocumentsRoutes[F[_]: Concurrent, Txn[_]: FlatMap](
   authMiddleware: AuthMiddleware[F, User],
   documentBytesSizeLimit: Int,
   accessControl: AccessControl[F, Txn],
@@ -94,7 +94,10 @@ class DocumentsRoutes[F[_]: Concurrent, Txn[_]](
 
       case DELETE -> Root / "documents" / DocumentIdVar(uuid) as user =>
         for
-          document <- accessControl.attemptWithAuthorisation(user.uuid, uuid) { store.delete }.commit()
+          document <- accessControl
+            .attemptWithAuthorisation(user.uuid, uuid) { store.delete }
+            .flatTap { _ => accessControl.revokeAccess(user.uuid, uuid) }
+            .commit()
           res <- document match
             case Right(document)    => NoContent()
             case Left(unauthorised) => Forbidden()

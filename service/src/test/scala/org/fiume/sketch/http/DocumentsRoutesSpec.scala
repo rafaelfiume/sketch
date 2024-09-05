@@ -149,7 +149,10 @@ class DocumentsRoutesSpec
 //
           .expectEmptyResponseWith(Status.NoContent)
         result <- store.fetchDocument(document.uuid)
-      yield assertEquals(result, none)
+        _ <- IO { assertEquals(result, none) }
+        accessRevoked <- accessControl.canAccess(user.uuid, document.uuid).map(!_)
+        _ <- IO { assert(accessRevoked) }
+      yield ()
     }
 
   /* Sad Path */
