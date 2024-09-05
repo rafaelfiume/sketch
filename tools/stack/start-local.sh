@@ -113,16 +113,16 @@ main() {
     -f "$docker_compose_yml" \
     up --remove-orphans "$pull_latest_images" --detach >&2"
 
-  info "Checking 'sketch:$SKETCH_IMAGE_TAG' is healthy..."
-  exit_with_error_if_service_fails_to_start "http://localhost:8080/status"
-
-  info "All services have started up like a charm!"
-
   write_container_logs_to_file visual-sketch "$visual_log_file"
   write_container_logs_to_file sketch "$sketch_log_file"
   write_container_logs_to_file sketch-database "$sketch_database_log_file"
   write_container_logs_to_file rustic-sketch "$rustic_log_file"
   write_container_logs_to_file rustic-database "$rustic_database_log_file"
+
+  info "Checking 'sketch:$SKETCH_IMAGE_TAG' is healthy..."
+  exit_with_error_if_service_fails_to_start "http://localhost:8080/status"
+
+  info "All services have started up like a charm!"
 }
 
 main "$@"
