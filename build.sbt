@@ -275,6 +275,7 @@ lazy val testAcceptance =
          Dependency.http4sEmberClient % Test,
          Dependency.gatlingHighcharts % Test,
          Dependency.gatlingTestFramework % Test,
+         Dependency.logstashLogbackEncoder % Test,
          Dependency.munit % Test,
          Dependency.munitCatsEffect % Test
        )
