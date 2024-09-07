@@ -2,6 +2,7 @@ package org.fiume.sketch.storage.postgres
 
 import cats.effect.{Async, Resource}
 import doobie.hikari.HikariTransactor
+import doobie.util.log.{LogEvent, LogHandler}
 import doobie.util.transactor.Transactor
 import org.fiume.sketch.storage.DatabaseConfig
 
@@ -30,11 +31,16 @@ object DbTransactor:
         )(tp => Async[F].delay(tp.shutdown()))
         .map(ExecutionContext.fromExecutorService)
     _ <- Resource.eval(SchemaMigration[F](config))
+    // TODO Consider to enable LogHandler only in development
+    // See also: https://typelevel.org/doobie/docs/10-Logging.html
+    printSqlLogHandler = new LogHandler[F]:
+      def run(logEvent: LogEvent): F[Unit] = Async[F].delay { println(logEvent.sql) }
     transactor <- HikariTransactor.newHikariTransactor[F](
       config.driver,
       config.jdbcUri.renderString,
       config.user,
       config.password.value,
-      dbPool
+      dbPool,
+      Some(printSqlLogHandler)
     )
   yield transactor

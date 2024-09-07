@@ -30,7 +30,7 @@ trait AccessControl[F[_], Txn[_]: Monad] extends Store[F, Txn]:
     )
 
   // TODO Return role as well as ids?
-  def fetchAllAuthorisedEntityIds[T <: Entity](userId: UserId): fs2.Stream[Txn, EntityId[T]]
+  def fetchAllAuthorisedEntityIds[T <: Entity](userId: UserId, entity: String): fs2.Stream[Txn, EntityId[T]]
 
   def revokeAccess[T <: Entity](userId: UserId, entityId: EntityId[T]): Txn[Unit] =
     deleteGrant(userId, entityId)

@@ -19,7 +19,7 @@ import org.fiume.sketch.shared.app.http4s.middlewares.SemanticInputError
 import org.fiume.sketch.shared.app.troubleshooting.ErrorInfo.ErrorDetails
 import org.fiume.sketch.shared.app.troubleshooting.InvariantErrorSyntax.asDetails
 import org.fiume.sketch.shared.auth0.User
-import org.fiume.sketch.shared.domain.documents.{Document, DocumentEntity, DocumentId, DocumentWithId, DocumentWithStream}
+import org.fiume.sketch.shared.domain.documents.{Document, DocumentId, DocumentWithId, DocumentWithStream}
 import org.fiume.sketch.shared.domain.documents.Document.Metadata
 import org.fiume.sketch.shared.domain.documents.Document.Metadata.*
 import org.fiume.sketch.shared.domain.documents.algebras.DocumentsStore
@@ -84,13 +84,14 @@ class DocumentsRoutes[F[_]: Concurrent, Txn[_]: FlatMap](
 
       // experimental newline delimited json
       case GET -> Root / "documents" as user =>
-        val ids = accessControl.fetchAllAuthorisedEntityIds[DocumentEntity](user.uuid)
-        val responseStream = store
-          .commitStream { store.fetchDocuments(ids) }
+        val stream = accessControl
+          .fetchAllAuthorisedEntityIds(user.uuid, "DocumentEntity")
+          .through(store.fetchDocuments)
+          .commitStream()
           .map(_.asResponsePayload.asJson)
           .map(Line(_))
           .intersperse(Linebreak)
-        Ok(responseStream)
+        Ok(stream)
 
       case DELETE -> Root / "documents" / DocumentIdVar(uuid) as user =>
         for

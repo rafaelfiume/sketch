@@ -61,11 +61,11 @@ class DocumentsAccSpec extends CatsEffectSuite with AuthenticationContext with D
 
           _ <- client.status(s"http://localhost:8080/documents/$uuid/metadata".get.withHeaders(authorizationHeader)).map {
             status =>
-              assertEquals(status, NotFound)
+              assertEquals(status, Forbidden)
           }
 
           _ <- client.status(s"http://localhost:8080/documents/$uuid".get.withHeaders(authorizationHeader)).map { status =>
-            assertEquals(status, NotFound)
+            assertEquals(status, Forbidden)
           }
         yield ()
       }

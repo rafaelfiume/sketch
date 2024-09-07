@@ -109,7 +109,7 @@ class PostgresAccessControlSpec
                 .ccommit
 
               result <- accessControl
-                .fetchAllAuthorisedEntityIds[DocumentEntity](fstUserId)
+                .fetchAllAuthorisedEntityIds(fstUserId, "DocumentEntity")
                 .ccommitStream
                 .compile
                 .toList
