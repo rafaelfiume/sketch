@@ -64,16 +64,16 @@ class DocumentsRoutesSpec
 
         result <- send(request)
           .to(documentsRoutes.router())
+//
           .expectJsonResponseWith(Status.Created)
-
         createdDocId = result.as[DocumentIdResponsePayload].rightValue
         stored <- store.fetchDocument(createdDocId.value)
-        canAccess <- accessControl.canAccess(user.uuid, createdDocId.value)
-        cannotAccess <- accessControl.canAccess(randomUser.uuid, createdDocId.value)
+        grantedAccessToUser <- accessControl.canAccess(user.uuid, createdDocId.value)
+        noGrantedAccessToRandomUser <- accessControl.canAccess(randomUser.uuid, createdDocId.value).map(!_)
         _ <- IO {
           assertEquals(stored.map(_.metadata), metadata.some)
-          assert(canAccess)
-          assert(!cannotAccess)
+          assert(grantedAccessToUser)
+          assert(noGrantedAccessToRandomUser)
         }
       yield ()
     }
@@ -90,8 +90,8 @@ class DocumentsRoutesSpec
 
         result <- send(request)
           .to(documentsRoutes.router())
-          .expectJsonResponseWith(Status.Ok)
 //
+          .expectJsonResponseWith(Status.Ok)
       yield assertEquals(result.as[DocumentResponsePayload].rightValue, document.asResponsePayload)
     }
 
@@ -107,8 +107,8 @@ class DocumentsRoutesSpec
 
         result <- send(request)
           .to(documentsRoutes.router())
+//
           .expectByteStreamResponseWith(Status.Ok)
-
         obtainedStream <- result.compile.toList
         expectedStream <- document.stream.compile.toList
       yield assertEquals(obtainedStream, expectedStream)
@@ -126,12 +126,9 @@ class DocumentsRoutesSpec
 
         result <- send(request)
           .to(documentsRoutes.router())
-          .expectJsonResponseWith(Status.Ok)
 //
-      yield assertEquals(
-        result.as[DocumentResponsePayload].rightValue,
-        sndDoc.asResponsePayload
-      )
+          .expectJsonResponseWith(Status.Ok)
+      yield assertEquals(result.as[DocumentResponsePayload].rightValue, sndDoc.asResponsePayload)
     }
 
   test("deletes stored document"):
@@ -150,9 +147,8 @@ class DocumentsRoutesSpec
           .expectEmptyResponseWith(Status.NoContent)
         result <- store.fetchDocument(document.uuid)
         _ <- IO { assertEquals(result, none) }
-        accessRevoked <- accessControl.canAccess(user.uuid, document.uuid).map(!_)
-        _ <- IO { assert(accessRevoked) }
-      yield ()
+        grantRemoved <- accessControl.canAccess(user.uuid, document.uuid).map(!_)
+      yield assert(grantRemoved)
     }
 
   /* Sad Path */
@@ -411,10 +407,10 @@ trait DocumentsStoreContext:
           })
 
         override def documentStream(uuid: DocumentId): fs2.Stream[IO, Byte] =
-          fetchAll().filter { _.uuid === uuid }.flatMap(_.stream)
+          fetchAll().find { _.uuid === uuid }.flatMap(_.stream)
 
         override def fetchDocuments(uuids: fs2.Stream[IO, DocumentId]): fs2.Stream[IO, DocumentWithId] =
-          uuids.flatMap { uuid => fetchAll().filter(_.uuid === uuid) }
+          uuids.flatMap { uuid => fetchAll().find(_.uuid === uuid) }
 
         override def delete(uuid: DocumentId): IO[Unit] = storage.update { _.removed(uuid) }
 

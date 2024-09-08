@@ -62,7 +62,8 @@ class PostgresDocumentsStoreSpec
             fstUuid <- store.store(fstDoc).ccommit
             sndUuid <- store.store(sndDoc).ccommit
 
-            result <- store.fetchDocuments(fs2.Stream(fstUuid, sndUuid)).ccommitStream.compile.toList
+            result <- fs2.Stream(fstUuid, sndUuid).through { store.fetchDocuments }.ccommitStream.compile.toList
+//
           yield assertEquals(result, List(fstDoc.withUuid(fstUuid), sndDoc.withUuid(sndUuid)))
         }
       }

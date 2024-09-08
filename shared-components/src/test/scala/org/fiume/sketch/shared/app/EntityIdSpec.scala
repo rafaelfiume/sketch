@@ -22,11 +22,8 @@ class EntityIdSpec extends ScalaCheckSuite with EntityIdSpecContext with ShrinkL
     }
 
   test("entity type is the name of the type parameter"):
-    val itemId = ItemId(UUID.randomUUID())
-    val orderId = OrderId(UUID.randomUUID())
-
-    assertEquals(itemId.entityType, "ItemEntity")
-    assertEquals(orderId.entityType, "OrderEntity")
+    assertEquals(ItemId(UUID.randomUUID()).entityType, "ItemEntity")
+    assertEquals(OrderId(UUID.randomUUID()).entityType, "OrderEntity")
 
 trait EntityIdSpecContext:
   type OrderId = EntityId[OrderEntity]

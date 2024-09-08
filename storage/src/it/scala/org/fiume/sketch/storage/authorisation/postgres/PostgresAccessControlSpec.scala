@@ -128,8 +128,8 @@ class PostgresAccessControlSpec
 
             _ <- accessControl.revokeAccess(userId, entityId).ccommit
 
-            result <- accessControl.canAccess(userId, entityId).ccommit
-          yield assert(!result)
+            grantRemoved <- accessControl.canAccess(userId, entityId).map(!_).ccommit
+          yield assert(grantRemoved)
         }
       }
     }

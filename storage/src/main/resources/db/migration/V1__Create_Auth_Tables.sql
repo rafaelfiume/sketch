@@ -31,7 +31,7 @@ CREATE TABLE auth.users (
 
 CREATE INDEX idx_users_username ON auth.users (username);
 
--- Trigger to update `updated_at` timestamp during row update
+-- Trigger to update `updated_at` timestamp on row update
 CREATE TRIGGER set_users_updated_at
   BEFORE UPDATE ON auth.users
   FOR EACH ROW
@@ -40,7 +40,7 @@ CREATE TRIGGER set_users_updated_at
 CREATE TABLE auth.access_control (
     user_id UUID NOT NULL,
     entity_id UUID NOT NULL,
-    entity_type VARCHAR(30) NOT NULL CHECK (entity_type IN ('DocumentEntity', 'UserEntity')),
+    entity_type VARCHAR(30) NOT NULL CHECK (entity_type IN ('DocumentEntity')),
     role VARCHAR(20) NOT NULL CHECK (role IN ('Owner')),
     PRIMARY KEY (user_id, entity_id)
     --FOREIGN KEY (user_id) REFERENCES users(user_id)
