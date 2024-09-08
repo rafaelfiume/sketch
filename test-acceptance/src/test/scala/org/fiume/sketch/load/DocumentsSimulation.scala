@@ -5,7 +5,6 @@ import cats.effect.unsafe.IORuntime
 import io.gatling.core.Predef.*
 import io.gatling.http.Predef.{http, *}
 import org.fiume.sketch.acceptance.testkit.AuthenticationContext
-import org.fiume.sketch.shared.auth0.testkit.UserGens
 import org.fiume.sketch.shared.testkit.FileContentContext
 
 import scala.annotation.nowarn
@@ -20,9 +19,8 @@ class DocumentsSimulation extends Simulation with AuthenticationContext with Doc
     val docName = "Nicolas_e_Joana"
     val docDesc = "Meus amores <3"
     val pathToFile = "meus-fofinhos.jpg"
-    val owner = UserGens.userIds.sample.get.asString()
     val bytes = bytesFrom[IO](pathToFile).compile.toVector.map(_.toArray).unsafeRunSync()
-    val metadataPayload = payload(docName, docDesc, owner).unsafeRunSync()
+    val metadataPayload = payload(docName, docDesc).unsafeRunSync()
     exec(
       http("upload document")
         .post("/documents")
@@ -74,12 +72,11 @@ class DocumentsSimulation extends Simulation with AuthenticationContext with Doc
 
 trait DocumentsSimulationContext extends FileContentContext:
   // TODO Duplicated see acc test
-  def payload(name: String, description: String, owner: String): IO[String] =
+  def payload(name: String, description: String): IO[String] =
     stringFrom[IO]("document/metadata.request.json")
       .map { json =>
         json
           .replace("SuCJzND", name)
           .replace("19ZHxAyyBQ4olkFv7YUGuAGq7A5YWzPIfZAd703rMzCO8uvua2XliMf6dzw", description)
-          .replace("7a21d5bc-9e3a-4c1b-bf6c-33cc9926c3ac", owner)
       }
       .use(IO.pure)

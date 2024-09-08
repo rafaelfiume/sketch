@@ -11,7 +11,7 @@ import scala.util.Random
 object UserGens:
 
   given Arbitrary[UserId] = Arbitrary(userIds)
-  def userIds: Gen[UserId] = Gen.uuid.map(UserId(_))
+  def userIds: Gen[UserId] = Gen.uuid.map(UserId(_)) :| "UserId"
 
   given Arbitrary[Username] = Arbitrary(validUsernames)
   def validUsernames: Gen[Username] =

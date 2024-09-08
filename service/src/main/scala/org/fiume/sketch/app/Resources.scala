@@ -5,12 +5,14 @@ import doobie.ConnectionIO
 import fs2.io.net.Network
 import org.fiume.sketch.app.SketchVersions.VersionFile
 import org.fiume.sketch.auth0.Authenticator
+import org.fiume.sketch.authorisation.AccessControl
 import org.fiume.sketch.rustic.RusticHealthCheck
 import org.fiume.sketch.shared.app.ServiceStatus.Dependency.*
 import org.fiume.sketch.shared.app.algebras.{HealthChecker, Versions}
 import org.fiume.sketch.shared.app.algebras.HealthChecker.*
 import org.fiume.sketch.shared.domain.documents.algebras.DocumentsStore
 import org.fiume.sketch.storage.auth0.postgres.PostgresUsersStore
+import org.fiume.sketch.storage.authorisation.postgres.PostgresAccessControl
 import org.fiume.sketch.storage.documents.postgres.PostgresDocumentsStore
 import org.fiume.sketch.storage.postgres.{DbTransactor, PostgresHealthCheck}
 
@@ -25,6 +27,7 @@ trait Resources[F[_]]:
   val rusticHealthCheck: HealthChecker.DependencyHealthChecker[F, Rustic]
   val versions: Versions[F]
   val authenticator: Authenticator[F]
+  val accessControl: AccessControl[F, ConnectionIO]
   val documentsStore: DocumentsStore[F, ConnectionIO]
 
 object Resources:
@@ -43,6 +46,7 @@ object Resources:
                                             expirationOffset = 1.hour
         )
       }
+      accessControl0 <- PostgresAccessControl.make[F](transactor)
       documentsStore0 <- PostgresDocumentsStore.make[F](transactor)
     yield new Resources[F]:
       override val customWorkerThreadPool: ExecutionContext = customWorkerThreadPool0
@@ -50,6 +54,7 @@ object Resources:
       override val rusticHealthCheck: HealthChecker.DependencyHealthChecker[F, Rustic] = rusticHealthCheck0
       override val versions: Versions[F] = versions0
       override val authenticator: Authenticator[F] = authenticator0
+      override val accessControl: AccessControl[F, ConnectionIO] = accessControl0
       override val documentsStore: DocumentsStore[F, ConnectionIO] = documentsStore0
 
   private def newCustomWorkerThreadPool[F[_]: Sync]() = Resource

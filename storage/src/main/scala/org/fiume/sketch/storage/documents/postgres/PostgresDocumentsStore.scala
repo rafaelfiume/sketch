@@ -1,18 +1,15 @@
 package org.fiume.sketch.storage.documents.postgres
 
-import cats.data.OptionT
+import cats.data.NonEmptyList
 import cats.effect.{Async, Resource}
 import cats.implicits.*
 import cats.~>
 import doobie.*
 import doobie.free.connection.ConnectionIO
 import doobie.implicits.*
-import fs2.Stream
-import org.fiume.sketch.shared.auth0.UserId
 import org.fiume.sketch.shared.domain.documents.{Document, DocumentId, DocumentWithId, DocumentWithStream}
 import org.fiume.sketch.shared.domain.documents.Document.Metadata
 import org.fiume.sketch.shared.domain.documents.algebras.DocumentsStore
-import org.fiume.sketch.storage.auth0.postgres.DoobieMappings.given
 import org.fiume.sketch.storage.documents.postgres.DoobieMappings.given
 import org.fiume.sketch.storage.postgres.AbstractPostgresStore
 
@@ -41,16 +38,16 @@ private class PostgresDocumentsStore[F[_]: Async] private (l: F ~> ConnectionIO,
   override def fetchDocument(uuid: DocumentId): ConnectionIO[Option[DocumentWithId]] =
     Statements.selectDocument(uuid).option
 
-  override def documentStream(uuid: DocumentId): ConnectionIO[Option[Stream[F, Byte]]] =
-    // not the greatest implementation, since it will require bytes to be fully read from the db before the stream can start emiting bytes
-    // this can be better optimised later (perhaps by storing/reading documents using a file sytem? or large objects?)
-    // API is the most important part here.
-    OptionT { Statements.selectDocumentBytes(uuid).option }
-      .map(Stream.emits)
-      .value
+  override def documentStream(uuid: DocumentId): fs2.Stream[ConnectionIO, Byte] =
+    Statements.selectDocumentBytes(uuid)
 
-  def fetchByOwner(by: UserId): fs2.Stream[F, DocumentWithId] =
-    Statements.selectByOwner(by).transact(tx)
+  private val documentsChunkSize = 50
+  override def fetchDocuments(uuids: fs2.Stream[ConnectionIO, DocumentId]): fs2.Stream[ConnectionIO, DocumentWithId] =
+    uuids.chunkN(documentsChunkSize).flatMap { chunk =>
+      chunk.toList.toNel match
+        case None        => fs2.Stream.empty
+        case Some(uuids) => Statements.selectByIds(uuids)
+    }
 
   override def delete(uuid: DocumentId): ConnectionIO[Unit] =
     Statements.delete(uuid).run.void
@@ -61,13 +58,11 @@ private object Statements:
          |INSERT INTO domain.documents(
          |  name,
          |  description,
-         |  owner,
          |  bytes
          |)
          |VALUES (
          |  ${metadata.name},
          |  ${metadata.description},
-         |  ${metadata.owner},
          |  $bytes
          |)
     """.stripMargin.update
@@ -77,30 +72,31 @@ private object Statements:
          |SELECT
          |  d.uuid,
          |  d.name,
-         |  d.description,
-         |  d.owner
+         |  d.description
          |FROM domain.documents d
          |WHERE d.uuid = $uuid
     """.stripMargin.query[DocumentWithId]
 
-  def selectDocumentBytes(uuid: DocumentId): Query0[Array[Byte]] =
+  def selectDocumentBytes(uuid: DocumentId): fs2.Stream[ConnectionIO, Byte] =
+    // This seems to be loading all document bytes in memory?
     sql"""
          |SELECT
          |  d.bytes
          |FROM domain.documents d
          |WHERE d.uuid = $uuid
-    """.stripMargin.query[Array[Byte]]
+    """.stripMargin.query[Array[Byte]].stream.flatMap(fs2.Stream.emits)
 
-  def selectByOwner(ownerId: UserId): fs2.Stream[ConnectionIO, DocumentWithId] =
-    sql"""
-         |SELECT
-         |  d.uuid,
-         |  d.name,
-         |  d.description,
-         |  d.owner
-         |FROM domain.documents d
-         |WHERE d.owner = $ownerId
-    """.stripMargin.query[DocumentWithId].stream
+  def selectByIds(uuids: NonEmptyList[DocumentId]): fs2.Stream[ConnectionIO, DocumentWithId] =
+    val in = Fragments.in(fr"uuid", uuids)
+    val query = fr"""
+       |SELECT
+       |  d.uuid,
+       |  d.name,
+       |  d.description
+       |FROM domain.documents d
+       |WHERE
+    """.stripMargin ++ in
+    query.query[DocumentWithId].stream
 
   def delete(uuid: DocumentId): Update0 =
     sql"""

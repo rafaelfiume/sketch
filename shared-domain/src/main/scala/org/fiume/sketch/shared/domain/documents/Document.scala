@@ -3,19 +3,18 @@ package org.fiume.sketch.shared.domain.documents
 import cats.Eq
 import cats.data.{EitherNec, Validated}
 import cats.implicits.*
-import org.fiume.sketch.shared.app.{Resource, ResourceId, WithUuid}
+import org.fiume.sketch.shared.app.{Entity, EntityId, WithUuid}
 import org.fiume.sketch.shared.app.troubleshooting.InvariantError
-import org.fiume.sketch.shared.auth0.UserId
 import org.fiume.sketch.shared.domain.documents.Document.Metadata
 import org.fiume.sketch.shared.domain.documents.Document.Metadata.*
 import org.fiume.sketch.shared.domain.documents.Document.Metadata.Name.InvalidDocumentNameError.*
 
 import java.util.UUID
 
-type DocumentId = ResourceId[DocumentEntity]
+type DocumentId = EntityId[DocumentEntity]
 object DocumentId:
-  def apply(uuid: UUID): DocumentId = ResourceId[DocumentEntity](uuid)
-sealed trait DocumentEntity extends Resource
+  def apply(uuid: UUID): DocumentId = EntityId[DocumentEntity](uuid)
+sealed trait DocumentEntity extends Entity
 
 case class Document(metadata: Metadata)
 
@@ -37,7 +36,7 @@ object Document:
     new Document(metadata) with WithStream[F]:
       override val stream: fs2.Stream[F, Byte] = stream0
 
-  case class Metadata(name: Name, description: Description, owner: UserId)
+  case class Metadata(name: Name, description: Description)
 
   object Metadata:
     sealed abstract case class Name(value: String)

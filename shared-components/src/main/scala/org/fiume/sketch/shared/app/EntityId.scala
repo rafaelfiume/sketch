@@ -12,20 +12,23 @@ import scala.util.control.NoStackTrace
 
 // A phantom type is a parameterised type whose parameters do not all appear on the right-hand side of its definition.
 // See https://wiki.haskell.org/Phantom_type
-case class ResourceId[T <: Resource](value: UUID) extends AnyVal
+abstract case class EntityId[T <: Entity](val value: UUID):
+  def entityType: String
 
-object ResourceId:
-  given [T <: Resource]: AsString[ResourceId[T]] = new AsString[ResourceId[T]]:
-    extension (id: ResourceId[T]) override def asString(): String = id.value.toString
+object EntityId:
+  inline def apply[T <: Entity](value: UUID): EntityId[T] = ${ Macros.entityIdApplyMacro[T]('value) }
 
-  given [T <: Resource]: FromString[InvalidUuid, ResourceId[T]] = new FromString[InvalidUuid, ResourceId[T]]:
+  given [T <: Entity]: AsString[EntityId[T]] = new AsString[EntityId[T]]:
+    extension (id: EntityId[T]) override def asString(): String = id.value.toString
+
+  given [T <: Entity]: FromString[InvalidUuid, EntityId[T]] = new FromString[InvalidUuid, EntityId[T]]:
     extension (id: String)
       override def parsed() =
-        Try(UUID.fromString(id)).toEither.map(ResourceId[T](_)).leftMap(_ => UnparsableUuid(id))
+        Try(UUID.fromString(id)).toEither.map(EntityId[T](_)).leftMap(_ => UnparsableUuid(id))
 
-  given equality[T <: Resource]: Eq[ResourceId[T]] = Eq.fromUniversalEquals[ResourceId[T]]
+  given equality[T <: Entity]: Eq[EntityId[T]] = Eq.fromUniversalEquals[EntityId[T]]
 
-trait Resource
+trait Entity
 
 trait InvalidUuid extends InvariantError
 object InvalidUuid:
@@ -33,5 +36,5 @@ object InvalidUuid:
     override def uniqueCode: String = "invalid.uuid"
     override val message: String = s"invalid uuid '$value'"
 
-trait WithUuid[T <: ResourceId[?]]:
+trait WithUuid[T <: EntityId[?]]:
   val uuid: T

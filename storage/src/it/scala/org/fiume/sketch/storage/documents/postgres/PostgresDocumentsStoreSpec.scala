@@ -1,12 +1,10 @@
 package org.fiume.sketch.storage.documents.postgres
 
-import cats.data.OptionT
 import cats.effect.*
 import cats.implicits.*
 import doobie.{ConnectionIO, *}
 import doobie.implicits.*
 import doobie.postgres.implicits.*
-import fs2.Stream
 import munit.ScalaCheckEffectSuite
 import org.fiume.sketch.shared.domain.documents.{Document, DocumentId, DocumentWithIdAndStream, DocumentWithStream}
 import org.fiume.sketch.shared.domain.testkit.DocumentsGens.*
@@ -48,15 +46,15 @@ class PostgresDocumentsStoreSpec
           for
             uuid <- store.store(document).ccommit
 
-            result <- OptionT(store.documentStream(uuid).ccommit).semiflatMap(_.compile.toList).value
+            result <- store.documentStream(uuid).ccommitStream.compile.toList
 
             bytes <- document.stream.compile.toList
-          yield assertEquals(result, bytes.some)
+          yield assertEquals(result, bytes)
         }
       }
     }
 
-  test("fetches documents by owner"):
+  test("fetches multiple documents"):
     forAllF { (fstDoc: DocumentWithStream[IO], sndDoc: DocumentWithStream[IO]) =>
       will(cleanDocuments) {
         PostgresDocumentsStore.make[IO](transactor()).use { store =>
@@ -64,9 +62,9 @@ class PostgresDocumentsStoreSpec
             fstUuid <- store.store(fstDoc).ccommit
             sndUuid <- store.store(sndDoc).ccommit
 
-            result <- store.fetchByOwner(sndDoc.metadata.owner).compile.toList
+            result <- fs2.Stream(fstUuid, sndUuid).through { store.fetchDocuments }.ccommitStream.compile.toList
 //
-          yield assertEquals(result, List(sndDoc.withUuid(sndUuid)))
+          yield assertEquals(result, List(fstDoc.withUuid(fstUuid), sndDoc.withUuid(sndUuid)))
         }
       }
     }
@@ -81,19 +79,11 @@ class PostgresDocumentsStoreSpec
 
             _ <- store.delete(fstUuid).ccommit
 
-            fstResult <- IO.both(
-              store.fetchDocument(fstUuid).ccommit,
-              store.documentStream(fstUuid).ccommit
-            )
-            sndResult <- IO.both(
-              store.fetchDocument(sndUuid).ccommit,
-              store.documentStream(sndUuid).ccommit
-            )
+            fstDocResult <- store.fetchDocument(fstUuid).ccommit
+            sndDocResult <- store.fetchDocument(sndUuid).ccommit
             _ <- IO {
-              assertEquals(fstResult._1, none)
-              assertEquals(fstResult._2, none)
-              assert(sndResult._1.isDefined)
-              assert(sndResult._2.isDefined)
+              assertEquals(fstDocResult, none)
+              assertEquals(sndDocResult.get.uuid, sndUuid)
             }
           yield ()
         }
@@ -124,11 +114,12 @@ class PostgresDocumentsStoreSpec
         PostgresDocumentsStore.make[IO](transactor()).use { store =>
           for
             uuid <- store.store(documentsWithStream.sample.get).ccommit
-            _ <- OptionT(
-              store.documentStream(uuid).ccommit
-            ).semiflatMap {
-              _.through(fs2.io.file.Files[IO].writeAll(fs2.io.file.Path(filename))).compile.drain
-            }.value
+            _ <- store
+              .documentStream(uuid)
+              .ccommitStream
+              .through(fs2.io.file.Files[IO].writeAll(fs2.io.file.Path(filename)))
+              .compile
+              .drain
           yield ()
         }
       }

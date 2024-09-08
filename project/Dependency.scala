@@ -19,6 +19,7 @@ object Dependency {
     val slf4j                 = "2.0.16"
 
     val gatling               = "3.11.5"
+    val logstash              = "8.0"
     val munit                 = "1.0.1"
     val munitCatsEffect       = "2.0.0"
     val munitScalaCheck       = "1.0.0" 
@@ -55,6 +56,7 @@ object Dependency {
   //// Test Dependencies
   val gatlingHighcharts           = "io.gatling.highcharts"      %  "gatling-charts-highcharts"           % Version.gatling
   val gatlingTestFramework        = "io.gatling"                 %  "gatling-test-framework"              % Version.gatling
+  val logstashLogbackEncoder      = "net.logstash.logback"       % "logstash-logback-encoder"             % Version.logstash
   val munit                       = "org.scalameta"              %% "munit"                               % Version.munit
   val munitCatsEffect             = "org.typelevel"              %% "munit-cats-effect"                 % Version.munitCatsEffect
   val munitScalaCheck             = "org.scalameta"              %% "munit-scalacheck"                    % Version.munitScalaCheck

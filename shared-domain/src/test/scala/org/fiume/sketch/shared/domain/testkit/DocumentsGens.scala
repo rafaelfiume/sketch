@@ -3,7 +3,6 @@ package org.fiume.sketch.shared.domain.testkit
 import cats.effect.IO
 import fs2.Stream
 import org.fiume.sketch.shared.app.WithUuid
-import org.fiume.sketch.shared.auth0.testkit.UserGens.userIds
 import org.fiume.sketch.shared.domain.documents.{
   Document,
   DocumentId,
@@ -24,7 +23,7 @@ import scala.util.Random
 object DocumentsGens:
 
   given Arbitrary[DocumentId] = Arbitrary(documentsIds)
-  def documentsIds: Gen[DocumentId] = Gen.delay(UUID.randomUUID()).map(DocumentId(_))
+  def documentsIds: Gen[DocumentId] = Gen.delay(UUID.randomUUID()).map(DocumentId(_)) :| "DocumentId"
 
   given Arbitrary[Name] = Arbitrary(validNames)
   def validNames: Gen[Name] =
@@ -72,8 +71,7 @@ object DocumentsGens:
     for
       name <- validNames
       description <- descriptions
-      owner <- userIds
-    yield Metadata(name, description, owner)
+    yield Metadata(name, description)
 
   given Arbitrary[Stream[IO, Byte]] = Arbitrary(bytesG)
   def bytesG: Gen[Stream[IO, Byte]] = Gen.nonEmptyListOf(bytes).map(Stream.emits)

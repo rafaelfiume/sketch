@@ -5,7 +5,6 @@ import io.circe.Json
 import munit.Assertions.*
 import munit.CatsEffectSuite
 import org.fiume.sketch.acceptance.testkit.{AuthenticationContext, Http4sClientContext}
-import org.fiume.sketch.shared.auth0.testkit.UserGens
 import org.fiume.sketch.shared.testkit.FileContentContext
 import org.http4s.Status.*
 import org.http4s.circe.*
@@ -15,7 +14,6 @@ class DocumentsAccSpec extends CatsEffectSuite with AuthenticationContext with D
 
   val docName = "a-unique-name-for-altamural.jpg"
   val docDesc = "La bella Altamura in Puglia <3"
-  val owner = UserGens.userIds.sample.get.asString()
   val pathToFile = "altamura.jpg"
 
   test("store documents"):
@@ -24,7 +22,7 @@ class DocumentsAccSpec extends CatsEffectSuite with AuthenticationContext with D
       authorizationHeader = authenticated.authorization
       _ <- withHttp { client =>
         for
-          metadataPayload <- payload(docName, docDesc, owner)
+          metadataPayload <- payload(docName, docDesc)
           uuid <- client
             .expect[Json](fileUploadRequest(metadataPayload, pathToFile, authorizationHeader))
             .map(_.uuid)
@@ -34,7 +32,6 @@ class DocumentsAccSpec extends CatsEffectSuite with AuthenticationContext with D
               assertEquals(res.uuid, uuid)
               assertEquals(res.docName, docName)
               assertEquals(res.description, docDesc)
-              assertEquals(res.owner, owner)
           }
 
           content <- client
@@ -53,7 +50,7 @@ class DocumentsAccSpec extends CatsEffectSuite with AuthenticationContext with D
       authorizationHeader = authenticated.authorization
       _ <- withHttp { client =>
         for
-          metadataPayload <- payload(docName, docDesc, owner)
+          metadataPayload <- payload(docName, docDesc)
           uuid <- client
             .expect[Json](fileUploadRequest(metadataPayload, pathToFile, authorizationHeader))
             .map(_.uuid)
@@ -64,11 +61,11 @@ class DocumentsAccSpec extends CatsEffectSuite with AuthenticationContext with D
 
           _ <- client.status(s"http://localhost:8080/documents/$uuid/metadata".get.withHeaders(authorizationHeader)).map {
             status =>
-              assertEquals(status, NotFound)
+              assertEquals(status, Forbidden)
           }
 
           _ <- client.status(s"http://localhost:8080/documents/$uuid".get.withHeaders(authorizationHeader)).map { status =>
-            assertEquals(status, NotFound)
+            assertEquals(status, Forbidden)
           }
         yield ()
       }
@@ -92,13 +89,12 @@ trait DocumentsSpecContext extends Http4sClientContext with FileContentContext:
     "http://localhost:8080/documents".post.withEntity(multipart).withHeaders(multipart.headers.put(authHeader))
 
   // TODO Duplicated see load test
-  def payload(name: String, description: String, owner: String): IO[String] =
+  def payload(name: String, description: String): IO[String] =
     stringFrom[IO]("document/metadata.request.json")
       .map { json =>
         json
           .replace("SuCJzND", name)
           .replace("19ZHxAyyBQ4olkFv7YUGuAGq7A5YWzPIfZAd703rMzCO8uvua2XliMf6dzw", description)
-          .replace("7a21d5bc-9e3a-4c1b-bf6c-33cc9926c3ac", owner)
       }
       .use(IO.pure)
 
@@ -107,4 +103,3 @@ trait DocumentsSpecContext extends Http4sClientContext with FileContentContext:
     def docName: String = json.hcursor.downField("metadata").get[String]("name").getOrElse(fail("'name' field not found"))
     def description: String =
       json.hcursor.downField("metadata").get[String]("description").getOrElse(fail("'description' field not found"))
-    def owner: String = json.hcursor.downField("metadata").get[String]("owner").getOrElse(fail("'owner' field not found"))

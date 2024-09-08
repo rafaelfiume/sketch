@@ -56,7 +56,11 @@ object HttpApi:
 
     val authRoutes: HttpRoutes[F] = new AuthRoutes[F](res.authenticator).router()
     val documentsRoutes: HttpRoutes[F] =
-      new DocumentsRoutes[F, ConnectionIO](authMiddleware, config.documents.documentBytesSizeLimit, res.documentsStore).router()
+      new DocumentsRoutes[F, ConnectionIO](authMiddleware,
+                                           config.documents.documentBytesSizeLimit,
+                                           res.accessControl,
+                                           res.documentsStore
+      ).router()
     val healthStatusRoutes: HttpRoutes[F] =
       new HealthStatusRoutes[F](res.versions, res.dbHealthCheck, res.rusticHealthCheck).router()
 
