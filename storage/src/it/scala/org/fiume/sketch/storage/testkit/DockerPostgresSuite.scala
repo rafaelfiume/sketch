@@ -6,6 +6,7 @@ import com.dimafeng.testcontainers.PostgreSQLContainer
 import doobie.{ConnectionIO, Transactor}
 import doobie.hikari.HikariTransactor
 import doobie.implicits.*
+import doobie.util.log.{LogEvent, LogHandler}
 import munit.CatsEffectSuite
 import org.fiume.sketch.storage.DatabaseConfig
 import org.fiume.sketch.storage.postgres.SchemaMigration
@@ -62,12 +63,17 @@ trait DockerPostgresSuite extends CatsEffectSuite:
         password = Secret[String](DockerDatabaseConfig.password),
         dbPoolThreads = 10 // ?
       )
+      debugSql = false // set to 'true' to log SQL queries
+      // See also: https://typelevel.org/doobie/docs/10-Logging.html
+      printSqlLogHandler = new LogHandler[IO]:
+        def run(logEvent: LogEvent): IO[Unit] = IO.delay { if debugSql then println(logEvent.sql) }
       tx <- HikariTransactor.newHikariTransactor[IO](
         DockerDatabaseConfig.driver,
         dbConfig.jdbcUri.renderString,
         DockerDatabaseConfig.user,
         DockerDatabaseConfig.password,
-        connectionPool
+        connectionPool,
+        Some(printSqlLogHandler)
       )
       _ <- Resource.eval(SchemaMigration[IO](dbConfig))
     yield DbContainerAndTransactor(container, tx)

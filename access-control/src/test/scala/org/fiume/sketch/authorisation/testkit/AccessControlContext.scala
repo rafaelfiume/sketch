@@ -1,7 +1,7 @@
 package org.fiume.sketch.authorisation.testkit
 
 import cats.effect.{IO, Ref}
-import org.fiume.sketch.authorisation.{AccessControl, Role}
+import org.fiume.sketch.authorisation.{AccessControl, ContextualRole, GlobalRole, Role}
 import org.fiume.sketch.shared.app.{Entity, EntityId}
 import org.fiume.sketch.shared.auth0.UserId
 
@@ -23,8 +23,11 @@ trait AccessControlContext:
   private def makeAccessControll[T <: Entity](state: Map[UserId, (UUID, Role)]): IO[AccessControl[IO, IO]] =
     Ref.of[IO, Map[UserId, (UUID, Role)]](state).map { ref =>
       new AccessControl[IO, IO]:
-        override def storeGrant[T <: Entity](userId: UserId, entityId: EntityId[T], role: Role): IO[Unit] =
-          ref.update(_ + (userId -> (entityId.value, role)))
+
+        override def storeGlobalGrant(userId: UserId, role: GlobalRole): IO[Unit] = ???
+
+        override def storeGrant[T <: Entity](userId: UserId, entityId: EntityId[T], role: ContextualRole): IO[Unit] =
+          ref.update(_ + (userId -> (entityId.value, Role.Contextual(role))))
 
         // TODO This is a simplified version of fetchAllAuthorisedEntityIds that only supports a single entity type
         override def fetchAllAuthorisedEntityIds[T <: Entity](userId: UserId, entityType: String): fs2.Stream[IO, EntityId[T]] =

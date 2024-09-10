@@ -224,7 +224,7 @@ lazy val sketch =
 
 lazy val storage =
    project.in(file("storage"))
-     .dependsOn(accessControl)
+     .dependsOn(accessControl % "compile->compile;test->test")
      .dependsOn(sharedAuth0 % "compile->compile;test->test")
      .dependsOn(sharedComponents)
      .dependsOn(sharedDomain % "compile->compile;test->test")

@@ -7,7 +7,7 @@ import io.circe.Decoder.Result
 import io.circe.syntax.*
 import munit.{CatsEffectSuite, ScalaCheckEffectSuite}
 import munit.Assertions.*
-import org.fiume.sketch.authorisation.{AccessControl, Role}
+import org.fiume.sketch.authorisation.{AccessControl, ContextualRole}
 import org.fiume.sketch.authorisation.testkit.AccessControlContext
 import org.fiume.sketch.http.DocumentsRoutes.Model.*
 import org.fiume.sketch.http.DocumentsRoutes.Model.json.given
@@ -83,7 +83,7 @@ class DocumentsRoutesSpec
       val request = GET(Uri.unsafeFromString(s"/documents/${document.uuid.value}/metadata"))
       for
         accessControl <- makeAccessControl()
-        _ <- accessControl.allowAccess(user.uuid, document.uuid, Role.Owner)
+        _ <- accessControl.grantAccess(user.uuid, document.uuid, ContextualRole.Owner)
         store <- makeDocumentsStore(state = document)
         authMiddleware = makeAuthMiddleware(authenticated = user)
         documentsRoutes <- makeDocumentsRoutes(authMiddleware, accessControl, store)
@@ -100,7 +100,7 @@ class DocumentsRoutesSpec
       val request = GET(Uri.unsafeFromString(s"/documents/${document.uuid.value}"))
       for
         accessControl <- makeAccessControl()
-        _ <- accessControl.allowAccess(user.uuid, document.uuid, Role.Owner)
+        _ <- accessControl.grantAccess(user.uuid, document.uuid, ContextualRole.Owner)
         store <- makeDocumentsStore(state = document)
         authMiddleware = makeAuthMiddleware(authenticated = user)
         documentsRoutes <- makeDocumentsRoutes(authMiddleware, accessControl, store)
@@ -119,7 +119,7 @@ class DocumentsRoutesSpec
       val request = GET(Uri.unsafeFromString("/documents"))
       for
         accessControl <- makeAccessControl()
-        _ <- accessControl.allowAccess(user.uuid, sndDoc.uuid, Role.Owner)
+        _ <- accessControl.grantAccess(user.uuid, sndDoc.uuid, ContextualRole.Owner)
         store <- makeDocumentsStore(state = fstDoc, sndDoc)
         authMiddleware = makeAuthMiddleware(authenticated = user)
         documentsRoutes <- makeDocumentsRoutes(authMiddleware, accessControl, store)
@@ -136,7 +136,7 @@ class DocumentsRoutesSpec
       val request = DELETE(Uri.unsafeFromString(s"/documents/${document.uuid.value}"))
       for
         accessControl <- makeAccessControl()
-        _ <- accessControl.allowAccess(user.uuid, document.uuid, Role.Owner)
+        _ <- accessControl.grantAccess(user.uuid, document.uuid, ContextualRole.Owner)
         store <- makeDocumentsStore(state = document)
         authMiddleware = makeAuthMiddleware(authenticated = user)
         documentsRoutes <- makeDocumentsRoutes(authMiddleware, accessControl, store)
