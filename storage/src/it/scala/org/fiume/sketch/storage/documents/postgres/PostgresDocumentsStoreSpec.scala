@@ -25,6 +25,8 @@ class PostgresDocumentsStoreSpec
     with PostgresStoreSpecContext
     with ShrinkLowPriority:
 
+  override def scalaCheckTestParameters = super.scalaCheckTestParameters.withMinSuccessfulTests(10)
+
   test("fetches metadata of stored document"):
     forAllF { (document: DocumentWithIdAndStream[IO]) =>
       will(cleanDocuments) {

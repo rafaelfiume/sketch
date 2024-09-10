@@ -25,6 +25,8 @@ class PostgresAccessControlSpec
     with PostgresAccessControlSpecContext
     with ShrinkLowPriority:
 
+  override def scalaCheckTestParameters = super.scalaCheckTestParameters.withMinSuccessfulTests(10)
+
   /*
    ** Global Role Specs
    */

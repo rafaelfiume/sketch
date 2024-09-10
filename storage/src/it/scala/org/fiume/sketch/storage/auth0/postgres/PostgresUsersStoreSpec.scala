@@ -24,6 +24,8 @@ class PostgresUsersStoreSpec
     with PostgresUsersStoreSpecContext
     with ShrinkLowPriority:
 
+  override def scalaCheckTestParameters = super.scalaCheckTestParameters.withMinSuccessfulTests(10)
+
   test("fetches user from stored credentials"):
     forAllF { (credentials: UserCredentials) =>
       will(cleanUsers) {

@@ -9,8 +9,7 @@ import org.scalacheck.Prop.{forAll, propBoolean}
 class HashedPasswordSpec extends ScalaCheckSuite with ShrinkLowPriority:
 
   // tests are very expensive to run
-  override def scalaCheckTestParameters = super.scalaCheckTestParameters
-    .withMinSuccessfulTests(2)
+  override def scalaCheckTestParameters = super.scalaCheckTestParameters.withMinSuccessfulTests(1)
 
   test("hashing passwords is consistent for the same input (referencially transparent)"):
     forAll { (password: PlainPassword, salt: Salt) =>

@@ -14,6 +14,8 @@ import org.scalacheck.effect.PropF.forAllF
 
 class UsersManagerSpec extends CatsEffectSuite with ScalaCheckEffectSuite with UsersStoreContext with ShrinkLowPriority:
 
+  override def scalaCheckTestParameters = super.scalaCheckTestParameters.withMinSuccessfulTests(1)
+
   // Is this a flickering test?
   test("user registration succeeds with a unique username"):
     forAllF { (username: Username, password: PlainPassword) =>

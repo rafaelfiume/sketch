@@ -31,8 +31,7 @@ class AuthenticatorSpec
     with AuthenticatorSpecContext
     with ShrinkLowPriority:
 
-  override def scalaCheckTestParameters =
-    super.scalaCheckTestParameters.withMinSuccessfulTests(1)
+  override def scalaCheckTestParameters = super.scalaCheckTestParameters.withMinSuccessfulTests(1)
 
   Security.addProvider(new BouncyCastleProvider())
 

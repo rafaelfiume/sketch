@@ -33,7 +33,7 @@ object UsersScript extends IOApp:
 
   def makeScript(): IO[UsersScript] =
     DatabaseConfig
-      .envs[IO](dbPoolThreads = 10)
+      .envs[IO](dbPoolThreads = 2)
       .load[IO]
       .map(UsersScript(_))
 
