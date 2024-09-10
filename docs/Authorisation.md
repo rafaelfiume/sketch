@@ -1,4 +1,4 @@
-# Authorisation & Profile
+# Authorisation
 
 Authorisation works both via Role-Based Access Control (RBAC) and Owner-Based Access Control.
 
