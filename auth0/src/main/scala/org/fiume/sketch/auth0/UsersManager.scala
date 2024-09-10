@@ -18,8 +18,8 @@ object UsersManager:
     new UsersManager[F]:
       override def registreUser(username: Username, password: PlainPassword): F[User] =
         for
-          salt <- Salt.generate[F]()
-          hashedPassword <- Sync[F].blocking { HashedPassword.hashPassword(password, salt) }
+          salt <- Salt.generate()
+          hashedPassword <- HashedPassword.hashPassword(password, salt)
           credentials = UserCredentials(username, hashedPassword, salt)
           user <- store.store(credentials).commit().map { User(_, username) }
         yield user

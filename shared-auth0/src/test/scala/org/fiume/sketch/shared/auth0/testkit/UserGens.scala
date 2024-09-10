@@ -91,13 +91,15 @@ object UserGens:
       salt <- salts
     yield UserCredentials(username, hashedPassword, salt)
 
+  import cats.effect.IO
+  given cats.effect.unsafe.IORuntime = cats.effect.unsafe.IORuntime.global
   def validCredentialsWithIdAndPlainPassword: Gen[(UserCredentialsWithId, PlainPassword)] =
     for
       uuid <- userIds
       username <- validUsernames
       plainPassword <- validPlainPasswords
       salt <- salts
-      hashedPassword = HashedPassword.hashPassword(plainPassword, salt)
+      hashedPassword = HashedPassword.hashPassword[IO](plainPassword, salt).unsafeRunSync()
     yield UserCredentials.make(uuid, username, hashedPassword, salt) -> plainPassword
 
   // frequency is important here avoiding user names like "___", as we want to generate more valid passwords than invalid ones.

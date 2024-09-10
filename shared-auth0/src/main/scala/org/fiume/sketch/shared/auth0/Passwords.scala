@@ -97,7 +97,8 @@ object Passwords:
     val logRounds = 12
 
     /* Suspend the effect of being randomly generated */
-    def generate[F[_]: Sync](): F[Salt] = Sync[F].blocking { BCrypt.gensalt(logRounds) }.map(new Salt(_) {})
+    def generate[F[_]: Sync](): F[Salt] =
+      Sync[F].blocking { BCrypt.gensalt(logRounds) }.map(new Salt(_) {})
 
     def notValidatedFromString(base64Value: String): Salt = new Salt(base64Value) {}
 
@@ -107,9 +108,8 @@ object Passwords:
     override def toString(): String = "********"
 
   object HashedPassword:
-    def hashPassword(password: PlainPassword, salt: Salt): HashedPassword =
-      val hashedPassword = BCrypt.hashpw(password.value, salt.base64Value)
-      new HashedPassword(hashedPassword) {}
+    def hashPassword[F[_]: Sync](password: PlainPassword, salt: Salt): F[HashedPassword] =
+      Sync[F].blocking { BCrypt.hashpw(password.value, salt.base64Value) }.map(new HashedPassword(_) {})
 
     def notValidatedFromString(base64Value: String): HashedPassword = new HashedPassword(base64Value) {}
 
