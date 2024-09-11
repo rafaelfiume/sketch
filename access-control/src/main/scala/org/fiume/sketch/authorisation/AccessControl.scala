@@ -12,6 +12,8 @@ trait AccessControl[F[_], Txn[_]: Monad] extends Store[F, Txn]:
   def grantGlobalAccess(userId: UserId, role: GlobalRole): Txn[Unit] =
     storeGlobalGrant(userId, role)
 
+  def canAccessGlobal(userId: UserId): Txn[Boolean] = ??? // only needed for testing sake atm
+
   def grantAccess[T <: Entity](userId: UserId, entityId: EntityId[T], role: ContextualRole): Txn[Unit] =
     storeGrant(userId, entityId, role)
 

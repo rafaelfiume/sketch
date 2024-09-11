@@ -14,6 +14,7 @@ import org.fiume.sketch.shared.auth0.User
 import org.fiume.sketch.shared.auth0.User.Username
 import org.fiume.sketch.storage.DatabaseConfig
 import org.fiume.sketch.storage.auth0.postgres.PostgresUsersStore
+import org.fiume.sketch.storage.authorisation.postgres.PostgresAccessControl
 import org.fiume.sketch.storage.postgres.DbTransactor
 
 object UsersScript extends IOApp:
@@ -51,9 +52,14 @@ object UsersScript extends IOApp:
 
 class UsersScript private (private val config: DatabaseConfig):
   def registreUser(username: Username, password: PlainPassword): IO[User] =
-    DbTransactor.make[IO](config).flatMap(PostgresUsersStore.make[IO]).use { store =>
-      for
-        usersManager <- UsersManager.make[IO, ConnectionIO](store)
-        user <- usersManager.registreUser(username, password)
-      yield user
-    }
+    DbTransactor
+      .make[IO](config)
+      .flatMap { transactor =>
+        (PostgresUsersStore.make[IO](transactor), PostgresAccessControl.make[IO](transactor)).tupled
+      }
+      .use { case (usersStore, accessControl) =>
+        for
+          usersManager <- UsersManager.make[IO, ConnectionIO](usersStore, accessControl)
+          user <- usersManager.registreUser(username, password)
+        yield user
+      }
