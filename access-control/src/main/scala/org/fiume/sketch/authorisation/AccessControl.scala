@@ -40,10 +40,10 @@ trait AccessControl[F[_], Txn[_]: Monad] extends Store[F, Txn]:
   def revokeAccess[T <: Entity](userId: UserId, entityId: EntityId[T]): Txn[Unit] =
     deleteGrant(userId, entityId)
 
-  def storeGlobalGrant(userId: UserId, role: GlobalRole): Txn[Unit]
+  protected def fetchRole[T <: Entity](userId: UserId, entityId: EntityId[T]): Txn[Option[Role]]
 
-  def storeGrant[T <: Entity](userId: UserId, entityId: EntityId[T], role: ContextualRole): Txn[Unit]
+  protected def storeGlobalGrant(userId: UserId, role: GlobalRole): Txn[Unit]
 
-  def fetchRole[T <: Entity](userId: UserId, entityId: EntityId[T]): Txn[Option[Role]]
+  protected def storeGrant[T <: Entity](userId: UserId, entityId: EntityId[T], role: ContextualRole): Txn[Unit]
 
-  def deleteGrant[T <: Entity](userId: UserId, entityId: EntityId[T]): Txn[Unit]
+  protected def deleteGrant[T <: Entity](userId: UserId, entityId: EntityId[T]): Txn[Unit]
