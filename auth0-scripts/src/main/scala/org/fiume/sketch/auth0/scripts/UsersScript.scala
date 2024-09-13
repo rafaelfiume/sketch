@@ -23,18 +23,8 @@ object UsersScript extends IOApp:
 
   private val scriptErrorCode = ExitCode(55)
 
-  case class Args(username: Username, password: PlainPassword, isSuperuser: Boolean)
-  object Args:
-    case object InvalidSuperuserArg extends InvariantError:
-      override val uniqueCode: String = "invalid.superuser.arg"
-      override val message: String = "'isSuperuser' must be either 'true' or 'false'"
-
-    def validatedIsSuperuser(isSuperuser: String): EitherNec[InvalidSuperuserArg.type, Boolean] = Validated
-      .condNec(isSuperuser == "true" || isSuperuser == "false", isSuperuser.toBoolean, InvalidSuperuserArg)
-      .toEither
-
-  def run(args: List[String]): IO[ExitCode] =
-    extract(args) match
+  def run(cliArgs: List[String]): IO[ExitCode] =
+    Args.make(cliArgs) match
       case Right(args) =>
         makeScript().flatMap { _.createUserAccount(args).as(ExitCode.Success) }
       case Left(invalidInput) =>
@@ -44,18 +34,29 @@ object UsersScript extends IOApp:
   def makeScript(): IO[UsersScript] =
     DatabaseConfig.envs[IO](dbPoolThreads = 2).load[IO].map(UsersScript(_))
 
-  private def extract(args: List[String]): Either[ErrorInfo, Args] =
-    args match
-      case username :: password :: isSuperuser :: Nil =>
-        (
-          Username.validated(username).leftMap(_.asDetails),
-          PlainPassword.validated(password).leftMap(_.asDetails),
-          Args.validatedIsSuperuser(isSuperuser).leftMap(_.asDetails)
-        )
-          .parMapN((user, password, isSuperuser) => Args(user, password, isSuperuser))
-          .leftMap(details => ErrorInfo.make(ErrorMessage("Invalid parameters"), details))
-      case unknown =>
-        ErrorInfo.make(ErrorMessage(s"Invalid arguments: '$unknown'")).asLeft[Args]
+  object Args:
+    def make(args: List[String]): Either[ErrorInfo, Args] =
+      args match
+        case username :: password :: isSuperuser :: Nil =>
+          (
+            Username.validated(username).leftMap(_.asDetails),
+            PlainPassword.validated(password).leftMap(_.asDetails),
+            Args.validatedIsSuperuser(isSuperuser).leftMap(_.asDetails)
+          )
+            .parMapN((user, password, isSuperuser) => Args(user, password, isSuperuser))
+            .leftMap(details => ErrorInfo.make(ErrorMessage("Invalid parameters"), details))
+        case unknown =>
+          ErrorInfo.make(ErrorMessage(s"Invalid arguments: '$unknown'")).asLeft[Args]
+
+    private case object InvalidSuperuserArg extends InvariantError:
+      override val uniqueCode: String = "invalid.superuser.arg"
+      override val message: String = "'isSuperuser' must be either 'true' or 'false'"
+
+    private def validatedIsSuperuser(isSuperuser: String): EitherNec[InvalidSuperuserArg.type, Boolean] = Validated
+      .condNec(isSuperuser == "true" || isSuperuser == "false", isSuperuser.toBoolean, InvalidSuperuserArg)
+      .toEither
+
+  case class Args(username: Username, password: PlainPassword, isSuperuser: Boolean)
 
 class UsersScript private (private val config: DatabaseConfig):
   def createUserAccount(args: Args): IO[User] =
