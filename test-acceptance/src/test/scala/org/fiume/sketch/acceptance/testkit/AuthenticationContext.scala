@@ -3,7 +3,7 @@ package org.fiume.sketch.acceptance.testkit
 import cats.effect.IO
 import org.fiume.sketch.auth0.http.AuthRoutes.Model.LoginResponsePayload
 import org.fiume.sketch.auth0.http.AuthRoutes.Model.json.given
-import org.fiume.sketch.auth0.scripts.UsersScript.*
+import org.fiume.sketch.auth0.scripts.UsersScript.{Args, *}
 import org.fiume.sketch.shared.auth0.Passwords.PlainPassword
 import org.fiume.sketch.shared.auth0.User
 import org.fiume.sketch.shared.auth0.User.Username
@@ -28,7 +28,7 @@ trait AuthenticationContext extends Http4sClientContext:
     val password = aPassword()
     for
       script <- makeScript()
-      user <- script.createUserAccount(username, password)
+      user <- script.createUserAccount(Args(username, password, isSuperuser = false))
       authorization <- withHttp {
         _.expect[LoginResponsePayload](loginRequest(username, password))
           .map(_.token)

@@ -6,6 +6,7 @@ import cats.effect.std.Console
 import cats.implicits.*
 import doobie.ConnectionIO
 import org.fiume.sketch.auth0.UsersManager
+import org.fiume.sketch.auth0.scripts.UsersScript.Args
 import org.fiume.sketch.shared.app.troubleshooting.{ErrorInfo, InvariantError}
 import org.fiume.sketch.shared.app.troubleshooting.ErrorInfo.ErrorMessage
 import org.fiume.sketch.shared.app.troubleshooting.ErrorInfo.given
@@ -21,6 +22,16 @@ import org.fiume.sketch.storage.postgres.DbTransactor
 object UsersScript extends IOApp:
 
   private val scriptErrorCode = ExitCode(55)
+
+  case class Args(username: Username, password: PlainPassword, isSuperuser: Boolean)
+  object Args:
+    case object InvalidSuperuserArg extends InvariantError:
+      override val uniqueCode: String = "invalid.superuser.arg"
+      override val message: String = "'isSuperuser' must be either 'true' or 'false'"
+
+    def validatedIsSuperuser(isSuperuser: String): EitherNec[InvalidSuperuserArg.type, Boolean] = Validated
+      .condNec(isSuperuser == "true" || isSuperuser == "false", isSuperuser.toBoolean, InvalidSuperuserArg)
+      .toEither
 
   def run(args: List[String]): IO[ExitCode] =
     extract(args) match
@@ -59,14 +70,3 @@ class UsersScript private (private val config: DatabaseConfig):
           user <- usersManager.createAccount(args.username, args.password, args.isSuperuser)
         yield user
       }
-
-private object Args:
-  case object InvalidSuperuserArg extends InvariantError:
-    override val uniqueCode: String = "invalid.superuser.arg"
-    override val message: String = "'isSuperuser' must be either 'true' or 'false'"
-
-  def validatedIsSuperuser(isSuperuser: String): EitherNec[InvalidSuperuserArg.type, Boolean] = Validated
-    .condNec(isSuperuser == "true" || isSuperuser == "false", isSuperuser.toBoolean, InvalidSuperuserArg)
-    .toEither
-
-private case class Args(username: Username, password: PlainPassword, isSuperuser: Boolean)
