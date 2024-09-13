@@ -37,6 +37,7 @@ CREATE TRIGGER set_users_updated_at
   FOR EACH ROW
   EXECUTE FUNCTION update_updated_at();
 
+-- Store Role-base (global) roles
 CREATE TABLE auth.global_access_control (
     user_id UUID NOT NULL,
     role VARCHAR(20) NOT NULL CHECK (role IN ('Superuser')),
@@ -44,7 +45,7 @@ CREATE TABLE auth.global_access_control (
     --FOREIGN KEY (user_id) REFERENCES users(user_id)
 );
 
--- Table to store contextual roles
+-- Store Ownership-based (contextual) roles
 CREATE TABLE auth.access_control (
     user_id UUID NOT NULL,
     entity_id UUID NOT NULL,

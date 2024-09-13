@@ -25,7 +25,7 @@ trait AccessControlContext:
 
     def --(userId: UserId): State = copy(contextual = contextual - userId)
 
-    // Improve this and key it by userId and entityId?
+    // TODO Improve this and key it by userId and entityId?
     def getContextualRole(userId: UserId): Option[Role.Contextual] = contextual.get(userId).map(_._2).map(Role.Contextual(_))
 
   private object State:

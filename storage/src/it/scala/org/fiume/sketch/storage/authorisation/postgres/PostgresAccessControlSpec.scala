@@ -6,6 +6,7 @@ import doobie.ConnectionIO
 import doobie.implicits.*
 import munit.ScalaCheckEffectSuite
 import org.fiume.sketch.authorisation.{ContextualRole, GlobalRole, Role}
+import org.fiume.sketch.authorisation.GlobalRole.Superuser
 import org.fiume.sketch.authorisation.testkit.AccessControlGens.given
 import org.fiume.sketch.shared.auth0.UserId
 import org.fiume.sketch.shared.auth0.testkit.UserGens.given
@@ -38,7 +39,7 @@ class PostgresAccessControlSpec
           for
             _ <- accessControl.grantGlobalAccess(userId, role).ccommit
 
-            // no validation if entity exists as part of global access control
+            // always true for a Superuser even if entityId doesn't exist
             grantedAccess <- accessControl.canAccess(userId, entityId).ccommit
 //
           yield assert(grantedAccess)
@@ -52,9 +53,7 @@ class PostgresAccessControlSpec
        fstDocument: DocumentWithIdAndStream[IO],
        sndDocument: DocumentWithIdAndStream[IO],
        sndUserId: UserId,
-       trdDocument: DocumentWithIdAndStream[IO],
-       globalRole: GlobalRole,
-       contextualRole: ContextualRole
+       trdDocument: DocumentWithIdAndStream[IO]
       ) =>
         will(cleanGrants) {
           (
@@ -62,10 +61,16 @@ class PostgresAccessControlSpec
             PostgresDocumentsStore.make[IO](transactor())
           ).tupled.use { case (accessControl, documentStore) =>
             for
-              _ <- accessControl.grantGlobalAccess(fstUserId, globalRole).ccommit
-              fstDocumentId <- accessControl.ensureAccess(fstUserId, contextualRole) { documentStore.store(fstDocument) }.ccommit
-              sndDocumentId <- accessControl.ensureAccess(sndUserId, contextualRole) { documentStore.store(sndDocument) }.ccommit
-              trdDocumentId <- accessControl.ensureAccess(sndUserId, contextualRole) { documentStore.store(trdDocument) }.ccommit
+              _ <- accessControl.grantGlobalAccess(fstUserId, Superuser).ccommit
+              fstDocumentId <- accessControl
+                .ensureAccess(fstUserId, ContextualRole.Owner) { documentStore.store(fstDocument) }
+                .ccommit
+              sndDocumentId <- accessControl
+                .ensureAccess(sndUserId, ContextualRole.Owner) { documentStore.store(sndDocument) }
+                .ccommit
+              trdDocumentId <- accessControl
+                .ensureAccess(sndUserId, ContextualRole.Owner) { documentStore.store(trdDocument) }
+                .ccommit
 
               result <- accessControl
                 .fetchAllAuthorisedEntityIds(fstUserId, "DocumentEntity")

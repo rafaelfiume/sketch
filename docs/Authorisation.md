@@ -4,22 +4,12 @@ Authorisation works both via Role-Based Access Control (RBAC) and Owner-Based Ac
 
 ### Role-Based (Global) Access Control
 
-Global roles are also available to enable system-wide access that can create and access entities anywhere. 
-
-A `Superuser` can access all entities (documents for now) created by 'regular' users.
+A global `Superuser` role is available to enable system-wide authorisation for creating and accessing entities. 
 
 ### Ownership-Based Access Control
 
-Entities access are granted based on ownership of the entity.
-
-
-## Entities
-
-Owner and Superuser:
- * Has full control over entity (view, edit, delete, assign or revoke permissions to other users).
- 
-Contributor:
- * Can create or access an entity, but cannot delete it. (?)
+Access to entities is granted based on ownership of the entity, making it contextual.
+A user can be a contributor to one document, the owner of another, and unable to access others.
 
 
 ## Future Considerations
