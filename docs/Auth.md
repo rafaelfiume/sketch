@@ -16,21 +16,21 @@ In sketch's authentication system, hash-based authentication is combined with JW
 
 3. On the server side, validate the JWT's signature to ensure its authenticity and integrity. It also extracts and verifies the claims within the payload to determine the user's identity and access privileges.
 
-## Algorithms
+### Algorithms
 
 * BCrypt: Hashing algorithm for password hashing.
 * ECDSA (Elliptic Curve Digital Signature Algorithm) with P-256: Digital signature algorithm for JWT signing and verification.
 
-## Hash-based Authentication
+### Hash-based Authentication
 
-### Sault
+#### Sault
 
 Salt is an additional random value that is combined with the user's password before hashing it. It adds an extra layer of security to the password storage and unique salts help to protect against pre-computed or rainbow table attacks. Besides, salt makes each user's hashed password unique, even if they have the same password.
 
 Note that BCrypt includes the salt in the hashed password and thus doesn't require salt when verifying password.
 Including a salt column in the users table allows unique salt value for each user during the registration process and increased flexibility if changing hash algorithm.
 
-### Hashed Password and Salt Uniqueness
+#### Hashed Password and Salt Uniqueness
 
 Enforcing salt uniqueness prevents precomputed hash attacks. Note that salt should be retained during updates.
 
@@ -38,9 +38,53 @@ However, enforcing hashed password uniqueness can cause collisions (e.g. when mi
 
 This hybrid approach tries to strike a balance between security and usability.
 
-## Token-based authentication
+### Token-based authentication
 
 Please, check [this](https://github.com/rafaelfiume/sketch/pull/111) out for more details on Jwt token generation and verification.
 
 
-Feito com ❤️ por Artigiani.
+## Account Deletion
+
+By the end of this stream:
+1) An account owner should be able to delete his/her own account
+1) A superuser should be able to delete any account
+1) Account deletion should be a soft deletion
+After n days (configurable), the user data should be permanently deleted
+1) All data (entities) from user should be deleted too, including authorisation/access_control data.
+
+Consider to anonymise use data after m days have passed, m < n.
+
+Step-by-step:
+1) Clean up users algebra
+1) Persist UserEntity in `access_control` upon user registration
+1) Model `UserAccount`. Make `UserCredential` a property of `UserAccount`.
+1) Implement soft delete.
+  * Check user's permission
+  * Make sure user is unable to login
+  * (Mark it for permanent deletion)
+1) Schedule job to permanently delete user account after n days
+1) Use callback to delete all entities of user with deleted account
+
+... Rest-based Event Notification (Webhook Style)...
+... use a temporary shared secret solution to authenticate the auth part of the service when invoking
+the `/purge-user-entities` endpoint.
+
+Modelling the user account:
+
+case class UserAccount(
+  id: UserId,
+  credentials: UserCredentials,
+  /// email: Email, // possibly in the future, depending on requirements
+  state: AccountState,
+  createdAt: Instant,
+  updatedAt: Option[Instant]
+)
+
+Modelling the account state:
+
+enum AccountState:
+  case Active
+  case Deactivated(reason: String)            // For instance, too many failed login attempts
+  case Deleted (deletedAt: Instant)           // The account has been soft-deleted
+  case PermanentlyDeleted(deletedAt: Instant)
+  case PendingVerification                    // User must verify their email or other requirements

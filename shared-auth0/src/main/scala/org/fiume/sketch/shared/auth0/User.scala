@@ -17,6 +17,7 @@ object UserId:
   def apply(uuid: UUID): UserId = EntityId[UserEntity](uuid)
 sealed trait UserEntity extends Entity
 
+// Review this model
 case class User(uuid: UserId, username: Username)
 
 object User:
