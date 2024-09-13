@@ -9,18 +9,18 @@ import org.fiume.sketch.shared.auth0.algebras.UsersStore
 
 trait UsersStoreContext:
 
-  def makeUsersStore(): IO[UsersStore[IO, IO]] = makeUsersStore(Map.empty)
+  def makeUsersStore(): IO[UsersStore[IO, IO] & TestStore] = makeUsersStore(Map.empty)
 
-  def makeUsersStore(credentials: UserCredentialsWithId): IO[UsersStore[IO, IO]] =
+  def makeUsersStore(credentials: UserCredentialsWithId): IO[UsersStore[IO, IO] & TestStore] =
     makeUsersStore(
       Map(
         credentials.uuid -> UserCredentials(credentials.username, credentials.hashedPassword, credentials.salt)
       )
     )
 
-  def makeUsersStore(state: Map[UserId, UserCredentials]): IO[UsersStore[IO, IO]] =
+  def makeUsersStore(state: Map[UserId, UserCredentials]): IO[UsersStore[IO, IO] & TestStore] =
     Ref.of[IO, Map[UserId, UserCredentials]](state).map { storage =>
-      new UsersStore[IO, IO]:
+      new UsersStore[IO, IO] with TestStore:
         override def store(credentials: UserCredentials): IO[UserId] =
           IO.randomUUID.map(UserId(_)).flatMap { uuid =>
             storage
@@ -59,3 +59,7 @@ trait UsersStoreContext:
 
         override val commitStream: [A] => fs2.Stream[IO, A] => fs2.Stream[IO, A] = [A] => (action: fs2.Stream[IO, A]) => action
     }
+
+  trait TestStore:
+    // TODO Replace by fetchUserAccount ?
+    def fetchUser(uuid: UserId): IO[Option[User]]

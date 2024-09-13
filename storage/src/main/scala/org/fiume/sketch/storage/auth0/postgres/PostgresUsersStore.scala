@@ -22,20 +22,19 @@ private class PostgresUsersStore[F[_]: Async] private (l: F ~> ConnectionIO, tx:
     extends AbstractPostgresStore[F](l, tx)
     with UsersStore[F, ConnectionIO]:
 
-  def store(credentials: UserCredentials): ConnectionIO[UserId] =
+  override def store(credentials: UserCredentials): ConnectionIO[UserId] =
     insertUserCredentials(credentials.username, credentials.hashedPassword, credentials.salt)
       .withUniqueGeneratedKeys[UserId](
         "uuid"
       )
 
-  def fetchUser(uuid: UserId): ConnectionIO[Option[User]] = selectUser(uuid).option
-
-  def fetchCredentials(username: Username): ConnectionIO[Option[UserCredentialsWithId]] =
+  override def fetchCredentials(username: Username): ConnectionIO[Option[UserCredentialsWithId]] =
     Statements.selectUserCredential(username).option
 
-  def updatePassword(uuid: UserId, password: HashedPassword): ConnectionIO[Unit] =
+  override def updatePassword(uuid: UserId, password: HashedPassword): ConnectionIO[Unit] =
     Statements.updatePassword(uuid, password).run.void
-  def delete(uuid: UserId): ConnectionIO[Unit] = Statements.deleteUser(uuid).run.void
+
+  override def delete(uuid: UserId): ConnectionIO[Unit] = Statements.deleteUser(uuid).run.void
 
 private object Statements:
   def insertUserCredentials(username: Username, password: HashedPassword, salt: Salt): Update0 =
@@ -50,15 +49,6 @@ private object Statements:
          |  $salt
          |)
     """.stripMargin.update
-
-  def selectUser(uuid: UserId): Query0[User] =
-    sql"""
-         |SELECT
-         |  uuid,
-         |  username
-         |FROM auth.users
-         |WHERE uuid = $uuid
-    """.stripMargin.query
 
   def selectUserCredential(username: Username): Query0[UserCredentialsWithId] =
     sql"""
