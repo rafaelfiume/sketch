@@ -22,14 +22,14 @@ class UsersManagerSpec
 
   override def scalaCheckTestParameters = super.scalaCheckTestParameters.withMinSuccessfulTests(1)
 
-  test("user registration succeeds with a unique username"):
+  test("user account creation succeeds with a unique username"):
     forAllF { (username: Username, password: PlainPassword, isSuperuser: Boolean) =>
       for
         usersStore <- makeUsersStore()
         accessControl <- makeAccessControl()
         usersManager <- UsersManager.make[IO, IO](usersStore, accessControl)
 
-        result <- usersManager.registreUser(username, password, isSuperuser)
+        result <- usersManager.createAccount(username, password, isSuperuser)
 
         registred <- usersStore.fetchUser(result.uuid)
         canAccessGlobal <- accessControl.canAccessGlobal(result.uuid)

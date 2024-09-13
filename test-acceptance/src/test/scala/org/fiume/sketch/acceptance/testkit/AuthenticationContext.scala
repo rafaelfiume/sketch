@@ -28,7 +28,7 @@ trait AuthenticationContext extends Http4sClientContext:
     val password = aPassword()
     for
       script <- makeScript()
-      user <- script.registreUser(username, password)
+      user <- script.createUserAccount(username, password)
       authorization <- withHttp {
         _.expect[LoginResponsePayload](loginRequest(username, password))
           .map(_.token)
