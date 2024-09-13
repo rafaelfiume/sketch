@@ -32,8 +32,10 @@ class UsersManagerSpec
         accountId <- usersManager.createAccount(username, password, isSuperuser)
 
         accountUsername <- usersStore.fetchUser(accountId).map(_.map(_.username))
+        canAccess <- accessControl.canAccess(accountId, accountId)
         canAccessGlobal <- accessControl.canAccessGlobal(accountId)
       yield
         assertEquals(accountUsername, username.some)
+        assert(canAccess)
         assertEquals(canAccessGlobal, isSuperuser)
     }
