@@ -143,12 +143,9 @@ class AuthRoutesSpec
           .to(SemanticValidationMiddleware(new AuthRoutes[IO](authenticator).router()))
           .expectJsonResponseWith(Status.UnprocessableEntity)
           .map(_.as[ErrorInfo].rightValue)
-
-        _ <- IO {
-          assertEquals(result.message, SemanticInputError.message)
-          assertEquals(result.details, ErrorDetails("input.semantic.error" -> "The request body was invalid.").some)
-        }
-      yield ()
+      yield
+        assertEquals(result.message, SemanticInputError.message)
+        assertEquals(result.details, ErrorDetails("input.semantic.error" -> "The request body was invalid.").some)
     }
 
   /*

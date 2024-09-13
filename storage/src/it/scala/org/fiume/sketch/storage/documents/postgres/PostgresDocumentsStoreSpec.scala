@@ -83,11 +83,9 @@ class PostgresDocumentsStoreSpec
 
             fstDocResult <- store.fetchDocument(fstUuid).ccommit
             sndDocResult <- store.fetchDocument(sndUuid).ccommit
-            _ <- IO {
-              assertEquals(fstDocResult, none)
-              assertEquals(sndDocResult.get.uuid, sndUuid)
-            }
-          yield ()
+          yield
+            assertEquals(fstDocResult, none)
+            assertEquals(sndDocResult.get.uuid, sndUuid)
         }
       }
     }

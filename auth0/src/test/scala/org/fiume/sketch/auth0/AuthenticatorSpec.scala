@@ -53,10 +53,10 @@ class AuthenticatorSpec
       case ((credentials, plainPassword), (privateKey, publicKey), expirationOffset) =>
         for
           store <- makeUsersStore(credentials)
-
           authenticator <- Authenticator.make[IO, IO](store, privateKey, publicKey, expirationOffset)
 
           result <- authenticator.authenticate(credentials.username, plainPassword.shuffled)
+//
         yield assertEquals(result.leftValue, InvalidPasswordError)
     }
 
@@ -82,10 +82,10 @@ class AuthenticatorSpec
           jwtToken <- authenticator.authenticate(credentials.username, plainPassword).map(_.rightValue)
 
           result = authenticator.verify(jwtToken)
-
-          _ <- IO { assert(result.leftValue.isInstanceOf[JwtExpirationError]) }
-          _ <- IO { assert(result.leftValue.details.startsWith("The token is expired since")) }
-        yield ()
+//
+        yield
+          assert(result.leftValue.isInstanceOf[JwtExpirationError])
+          assert(result.leftValue.details.startsWith("The token is expired since"))
     }
 
   test("tampered token verification fails"):
@@ -113,10 +113,10 @@ class AuthenticatorSpec
           jwtToken <- authenticator.authenticate(credentials.username, plainPassword).map(_.rightValue)
 
           result = authenticator.verify(jwtToken.reversed)
-
-          _ <- IO { assert(result.leftValue.isInstanceOf[JwtInvalidTokenError]) }
-          _ <- IO { assert(result.leftValue.details.startsWith("Invalid Jwt token:")) }
-        yield ()
+//
+        yield
+          assert(result.leftValue.isInstanceOf[JwtInvalidTokenError])
+          assert(result.leftValue.details.startsWith("Invalid Jwt token:"))
     }
 
   test("token verification with invalid public key fails"):

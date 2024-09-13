@@ -70,12 +70,10 @@ class DocumentsRoutesSpec
         stored <- store.fetchDocument(createdDocId.value)
         grantedAccessToUser <- accessControl.canAccess(user.uuid, createdDocId.value)
         noGrantedAccessToRandomUser <- accessControl.canAccess(randomUser.uuid, createdDocId.value).map(!_)
-        _ <- IO {
-          assertEquals(stored.map(_.metadata), metadata.some)
-          assert(grantedAccessToUser)
-          assert(noGrantedAccessToRandomUser)
-        }
-      yield ()
+      yield
+        assertEquals(stored.map(_.metadata), metadata.some)
+        assert(grantedAccessToUser)
+        assert(noGrantedAccessToRandomUser)
     }
 
   test("retrieves metadata of stored document"):
@@ -146,9 +144,10 @@ class DocumentsRoutesSpec
 //
           .expectEmptyResponseWith(Status.NoContent)
         result <- store.fetchDocument(document.uuid)
-        _ <- IO { assertEquals(result, none) }
         grantRemoved <- accessControl.canAccess(user.uuid, document.uuid).map(!_)
-      yield assert(grantRemoved)
+      yield
+        assertEquals(result, none)
+        assert(grantRemoved)
     }
 
   /* Sad Path */
@@ -225,17 +224,15 @@ class DocumentsRoutesSpec
           .to(SemanticValidationMiddleware(documentsRoutes.router()))
           .expectJsonResponseWith(Status.UnprocessableEntity)
           .map(_.as[ErrorInfo].rightValue)
-
-        _ <- IO {
-          assertEquals(result.message, SemanticInputError.message)
-          assert(
-            result.details.get.tips.keySet.subsetOf(
-              Set("missing.document.metadata.part", "missing.document.bytes.part", "document.name.too.short")
-            ),
-            clue = result.details.get.tips.mkString
-          )
-        }
-      yield ()
+//
+      yield
+        assertEquals(result.message, SemanticInputError.message)
+        assert(
+          result.details.get.tips.keySet.subsetOf(
+            Set("missing.document.metadata.part", "missing.document.bytes.part", "document.name.too.short")
+          ),
+          clue = result.details.get.tips.mkString
+        )
     }
 
   test("malformed upload request results in 422 Unprocessable Entity"):
@@ -251,14 +248,12 @@ class DocumentsRoutesSpec
           .to(SemanticValidationMiddleware(documentsRoutes.router()))
           .expectJsonResponseWith(Status.UnprocessableEntity)
           .map(_.as[ErrorInfo].rightValue)
-
-        _ <- IO {
-          assertEquals(result.message, SemanticInputError.message)
-          assertEquals(result.details.get.tips,
-                       Map("malformed.document.metadata.payload" -> "the metadata payload does not meet the contract")
-          )
-        }
-      yield ()
+//
+      yield
+        assertEquals(result.message, SemanticInputError.message)
+        assertEquals(result.details.get.tips,
+                     Map("malformed.document.metadata.payload" -> "the metadata payload does not meet the contract")
+        )
     }
 
   /*

@@ -40,12 +40,9 @@ class JwtTokenSpec extends CatsEffectSuite with ScalaCheckEffectSuite with Clock
           JwtToken.notValidatedFromString(s"${jwtToken.value}wrong"),
           publicKey
         )
-
-        _ <- IO {
-          assert(result.leftValue.isInstanceOf[JwtValidationError])
-          assertEquals(result.leftValue.details, "Invalid signature for this token or wrong algorithm.")
-        }
-      yield ()
+      yield
+        assert(result.leftValue.isInstanceOf[JwtValidationError])
+        assertEquals(result.leftValue.details, "Invalid signature for this token or wrong algorithm.")
     }
 
   test("expired jwt verification fails"):
@@ -55,12 +52,9 @@ class JwtTokenSpec extends CatsEffectSuite with ScalaCheckEffectSuite with Clock
         jwtToken <- JwtToken.makeJwtToken[IO](privateKey, user, expirationOffset)
 
         result = JwtToken.verifyJwtToken(jwtToken, publicKey)
-
-        _ <- IO {
-          assert(result.leftValue.isInstanceOf[JwtExpirationError])
-          assert(result.leftValue.details.contains("The token is expired since "))
-        }
-      yield ()
+      yield
+        assert(result.leftValue.isInstanceOf[JwtExpirationError])
+        assert(result.leftValue.details.contains("The token is expired since "))
     }
 
   test("token verification with invalid public key fails"):
@@ -70,9 +64,7 @@ class JwtTokenSpec extends CatsEffectSuite with ScalaCheckEffectSuite with Clock
           jwtToken <- JwtToken.makeJwtToken[IO](privateKey, user, expirationOffset)
 
           result = JwtToken.verifyJwtToken(jwtToken, strangePublicKey)
-          _ <- IO {
-            assert(result.leftValue.isInstanceOf[JwtValidationError])
-            assertEquals(result.leftValue.details, "Invalid signature for this token or wrong algorithm.")
-          }
-        yield ()
+        yield
+          assert(result.leftValue.isInstanceOf[JwtValidationError])
+          assertEquals(result.leftValue.details, "Invalid signature for this token or wrong algorithm.")
     }

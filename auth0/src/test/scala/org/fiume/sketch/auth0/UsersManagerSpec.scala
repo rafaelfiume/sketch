@@ -33,10 +33,8 @@ class UsersManagerSpec
 
         registred <- usersStore.fetchUser(result.uuid)
         canAccessGlobal <- accessControl.canAccessGlobal(result.uuid)
-        _ <- IO {
-          assertEquals(result.some, registred)
-          assertEquals(result.username, username)
-          assertEquals(canAccessGlobal, isSuperuser)
-        }
-      yield ()
+      yield
+        assertEquals(result.some, registred)
+        assertEquals(result.username, username)
+        assertEquals(canAccessGlobal, isSuperuser)
     }

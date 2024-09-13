@@ -63,17 +63,14 @@ class Auth0MiddlewareSpec
         request = GET(uri"/user").withHeaders(Headers(Authorization.parse(s"Bearer ${jwtToken.value}")))
         response <- middleware(authedRoutes).orNotFound.run(request)
 
-        _ <- response.as[ErrorInfo].flatMap { result =>
-          IO {
-            assertEquals(response.status, Status.Unauthorized)
-            assertEquals(
-              result,
-              ErrorInfo.make(
-                ErrorMessage("Invalid credentials"),
-                ErrorDetails("invalid.jwt" -> jwtError.toString)
-              )
-            )
-          }
-        }
-      yield ()
+        payload <- response.as[ErrorInfo]
+      yield
+        assertEquals(response.status, Status.Unauthorized)
+        assertEquals(
+          payload,
+          ErrorInfo.make(
+            ErrorMessage("Invalid credentials"),
+            ErrorDetails("invalid.jwt" -> jwtError.toString)
+          )
+        )
     }
