@@ -9,9 +9,10 @@ import org.fiume.sketch.shared.auth0.Passwords.{HashedPassword, PlainPassword, S
 import org.fiume.sketch.shared.auth0.User
 import org.fiume.sketch.shared.auth0.User.*
 import org.fiume.sketch.shared.auth0.algebras.UsersStore
+import org.fiume.sketch.shared.auth0.UserId
 
 trait UsersManager[F[_]]:
-  def createAccount(username: Username, password: PlainPassword, isSuperuser: Boolean = false): F[User]
+  def createAccount(username: Username, password: PlainPassword, isSuperuser: Boolean = false): F[UserId]
 
 object UsersManager:
   def make[F[_]: Sync, Txn[_]: Monad](store: UsersStore[F, Txn], accessControl: AccessControl[F, Txn]): F[UsersManager[F]] =
@@ -19,7 +20,7 @@ object UsersManager:
       given UsersStore[F, Txn] = store
 
       new UsersManager[F]:
-        override def createAccount(username: Username, password: PlainPassword, isSuperuser: Boolean): F[User] =
+        override def createAccount(username: Username, password: PlainPassword, isSuperuser: Boolean): F[UserId] =
           val credentials = for
             salt <- Salt.generate()
             hashedPassword <- HashedPassword.hashPassword(password, salt)
@@ -27,9 +28,9 @@ object UsersManager:
 
           val setUpAccount = for
             creds <- store.lift { credentials }
-            user <- store.store(creds).map { User(_, username) }
-            _ <- accessControl.grantGlobalAccess(user.uuid, GlobalRole.Superuser).whenA(isSuperuser)
-          yield user
+            userId <- store.store(creds)
+            _ <- accessControl.grantGlobalAccess(userId, GlobalRole.Superuser).whenA(isSuperuser)
+          yield userId
 
           setUpAccount.commit()
     }

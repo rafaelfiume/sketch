@@ -59,7 +59,7 @@ object UsersScript extends IOApp:
   case class Args(username: Username, password: PlainPassword, isSuperuser: Boolean)
 
 class UsersScript private (private val config: DatabaseConfig):
-  def createUserAccount(args: Args): IO[User] =
+  def createUserAccount(args: Args): IO[Unit] =
     DbTransactor
       .make[IO](config)
       .flatMap { transactor =>
@@ -68,6 +68,6 @@ class UsersScript private (private val config: DatabaseConfig):
       .use { case (usersStore, accessControl) =>
         for
           usersManager <- UsersManager.make[IO, ConnectionIO](usersStore, accessControl)
-          user <- usersManager.createAccount(args.username, args.password, args.isSuperuser)
-        yield user
+          _ <- usersManager.createAccount(args.username, args.password, args.isSuperuser)
+        yield ()
       }

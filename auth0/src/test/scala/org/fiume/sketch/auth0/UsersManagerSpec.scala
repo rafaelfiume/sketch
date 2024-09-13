@@ -29,12 +29,11 @@ class UsersManagerSpec
         accessControl <- makeAccessControl()
         usersManager <- UsersManager.make[IO, IO](usersStore, accessControl)
 
-        result <- usersManager.createAccount(username, password, isSuperuser)
+        accountId <- usersManager.createAccount(username, password, isSuperuser)
 
-        registred <- usersStore.fetchUser(result.uuid)
-        canAccessGlobal <- accessControl.canAccessGlobal(result.uuid)
+        accountUsername <- usersStore.fetchUser(accountId).map(_.map(_.username))
+        canAccessGlobal <- accessControl.canAccessGlobal(accountId)
       yield
-        assertEquals(result.some, registred)
-        assertEquals(result.username, username)
+        assertEquals(accountUsername, username.some)
         assertEquals(canAccessGlobal, isSuperuser)
     }
