@@ -50,7 +50,7 @@ services:
       - POSTGRES_USER=${DB_USER}
       - POSTGRES_PASSWORD=${DB_PASS}
     volumes:
-      - sketch_postgres_data:/var/lib/postgresql/rustic/data # Persist the database data
+      - sketch_postgres_data:/var/lib/postgresql/sketch/data # Persist the database data
 
   rustic-sketch:
     image: rafaelfiume/rustic-sketch:latest

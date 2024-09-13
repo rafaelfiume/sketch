@@ -17,7 +17,8 @@ object Main extends IOApp:
         System.exit(1)
   )
 
-  override protected def blockedThreadDetectionEnabled = true
+  // See https://typelevel.org/cats-effect/docs/core/starvation-and-tuning#blocking-tasks
+  // override protected def blockedThreadDetectionEnabled = true
 
   override def run(args: List[String]): IO[ExitCode] =
     IO.delay { Security.addProvider(new BouncyCastleProvider()) } *>

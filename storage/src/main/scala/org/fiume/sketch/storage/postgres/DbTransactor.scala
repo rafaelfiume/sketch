@@ -31,10 +31,9 @@ object DbTransactor:
         )(tp => Async[F].delay(tp.shutdown()))
         .map(ExecutionContext.fromExecutorService)
     _ <- Resource.eval(SchemaMigration[F](config))
-    // TODO Consider to enable LogHandler only in development
-    // See also: https://typelevel.org/doobie/docs/10-Logging.html
+    debugSql = false
     printSqlLogHandler = new LogHandler[F]:
-      def run(logEvent: LogEvent): F[Unit] = Async[F].delay { println(logEvent.sql) }
+      def run(logEvent: LogEvent): F[Unit] = Async[F].delay { if debugSql then println(logEvent.sql) }
     transactor <- HikariTransactor.newHikariTransactor[F](
       config.driver,
       config.jdbcUri.renderString,

@@ -37,6 +37,15 @@ CREATE TRIGGER set_users_updated_at
   FOR EACH ROW
   EXECUTE FUNCTION update_updated_at();
 
+-- Store Role-base (global) roles
+CREATE TABLE auth.global_access_control (
+    user_id UUID NOT NULL,
+    role VARCHAR(20) NOT NULL CHECK (role IN ('Superuser')),
+    PRIMARY KEY (user_id)
+    --FOREIGN KEY (user_id) REFERENCES users(user_id)
+);
+
+-- Store Ownership-based (contextual) roles
 CREATE TABLE auth.access_control (
     user_id UUID NOT NULL,
     entity_id UUID NOT NULL,
@@ -45,3 +54,6 @@ CREATE TABLE auth.access_control (
     PRIMARY KEY (user_id, entity_id)
     --FOREIGN KEY (user_id) REFERENCES users(user_id)
 );
+
+-- TODO Create index to improve performance of selectAllAuthorisedEntityIds
+-- CREATE INDEX idx_user_entity_type ON auth.access_control (user_id, entity_type);

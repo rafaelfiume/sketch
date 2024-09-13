@@ -5,7 +5,7 @@ package org.fiume.sketch.shared.typeclasses
  *
  * Examples of semantic strings:
  * - User-facing output
- * - Serialised instances (e.g. Json, Xml)
+ * - Serialised instances (e.g. Json, Xml, dabatase values)
  * - Business entities (e.g. Id, Product)
  *
  * Example of non-semantic strings:

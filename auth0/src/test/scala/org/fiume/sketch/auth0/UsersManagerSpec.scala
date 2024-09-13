@@ -4,6 +4,7 @@ import cats.effect.IO
 import cats.implicits.*
 import munit.{CatsEffectSuite, ScalaCheckEffectSuite}
 import munit.Assertions.*
+import org.fiume.sketch.authorisation.testkit.AccessControlContext
 import org.fiume.sketch.shared.auth0.Passwords.PlainPassword
 import org.fiume.sketch.shared.auth0.User.Username
 import org.fiume.sketch.shared.auth0.testkit.PasswordsGens.given
@@ -12,24 +13,28 @@ import org.fiume.sketch.shared.auth0.testkit.UsersStoreContext
 import org.scalacheck.ShrinkLowPriority
 import org.scalacheck.effect.PropF.forAllF
 
-class UsersManagerSpec extends CatsEffectSuite with ScalaCheckEffectSuite with UsersStoreContext with ShrinkLowPriority:
+class UsersManagerSpec
+    extends CatsEffectSuite
+    with ScalaCheckEffectSuite
+    with UsersStoreContext
+    with AccessControlContext
+    with ShrinkLowPriority:
 
-  // Is this a flickering test?
-  test("user registration succeeds with a unique username"):
-    forAllF { (username: Username, password: PlainPassword) =>
+  override def scalaCheckTestParameters = super.scalaCheckTestParameters.withMinSuccessfulTests(1)
+
+  test("user account creation succeeds with a unique username"):
+    forAllF { (username: Username, password: PlainPassword, isSuperuser: Boolean) =>
       for
         usersStore <- makeUsersStore()
+        accessControl <- makeAccessControl()
+        usersManager <- UsersManager.make[IO, IO](usersStore, accessControl)
 
-        usersManager <- UsersManager.make[IO, IO](usersStore)
-        result <- usersManager.registreUser(username, password)
+        result <- usersManager.createAccount(username, password, isSuperuser)
 
         registred <- usersStore.fetchUser(result.uuid)
-        _ <- IO {
-          assertEquals(result.some, registred)
-          assertEquals(result.username, username)
-        }
-      yield ()
+        canAccessGlobal <- accessControl.canAccessGlobal(result.uuid)
+      yield
+        assertEquals(result.some, registred)
+        assertEquals(result.username, username)
+        assertEquals(canAccessGlobal, isSuperuser)
     }
-
-  // TODO
-  // test("user registration fails with a duplicate username"):

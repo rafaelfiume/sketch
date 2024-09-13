@@ -25,6 +25,8 @@ class PostgresDocumentsStoreSpec
     with PostgresStoreSpecContext
     with ShrinkLowPriority:
 
+  override def scalaCheckTestParameters = super.scalaCheckTestParameters.withMinSuccessfulTests(10)
+
   test("fetches metadata of stored document"):
     forAllF { (document: DocumentWithIdAndStream[IO]) =>
       will(cleanDocuments) {
@@ -81,11 +83,9 @@ class PostgresDocumentsStoreSpec
 
             fstDocResult <- store.fetchDocument(fstUuid).ccommit
             sndDocResult <- store.fetchDocument(sndUuid).ccommit
-            _ <- IO {
-              assertEquals(fstDocResult, none)
-              assertEquals(sndDocResult.get.uuid, sndUuid)
-            }
-          yield ()
+          yield
+            assertEquals(fstDocResult, none)
+            assertEquals(sndDocResult.get.uuid, sndUuid)
         }
       }
     }

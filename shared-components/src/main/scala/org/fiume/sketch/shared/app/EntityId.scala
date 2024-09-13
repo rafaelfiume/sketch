@@ -26,7 +26,7 @@ object EntityId:
       override def parsed() =
         Try(UUID.fromString(id)).toEither.map(EntityId[T](_)).leftMap(_ => UnparsableUuid(id))
 
-  given equality[T <: Entity]: Eq[EntityId[T]] = Eq.fromUniversalEquals[EntityId[T]]
+  given [T <: Entity]: Eq[EntityId[T]] = Eq.fromUniversalEquals[EntityId[T]]
 
 trait Entity
 

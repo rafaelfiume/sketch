@@ -11,10 +11,8 @@ class PostgresHealthCheckSpec extends CatsEffectSuite with DockerPostgresSuite w
 
   test("dependency status is Ok when database is available") {
     PostgresHealthCheck.make[IO](transactor()).use { healthCheck =>
-      for
-        result <- healthCheck.check()
-        _ <- IO { assertEquals(result, DependencyStatus(database, Status.Ok)) }
-      yield ()
+      for result <- healthCheck.check()
+      yield assertEquals(result, DependencyStatus(database, Status.Ok))
     }
   }
 
@@ -23,7 +21,6 @@ class PostgresHealthCheckSpec extends CatsEffectSuite with DockerPostgresSuite w
       for
         _ <- IO.delay { container().stop() }
         result <- healthCheck.check()
-        _ <- IO { assertEquals(result, DependencyStatus(database, Status.Degraded)) }
-      yield ()
+      yield assertEquals(result, DependencyStatus(database, Status.Degraded))
     }
   }

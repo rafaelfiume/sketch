@@ -47,6 +47,9 @@
  - `docker logs <container-id>`
  - `docker exec -it <container-id> /bin/bash`
  - `docker network prune`
+ - `docker volume ls`
+ - `docker volume rm my_database_volume`
+ - `docker volume prune`
 
 Check postgres connection with: `lsof -nP -iTCP:5433 | grep LISTEN`
 

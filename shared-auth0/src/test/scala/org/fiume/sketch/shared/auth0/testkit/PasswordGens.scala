@@ -24,7 +24,7 @@ object PasswordsGens:
       uppercase <- Gen.listOfN(length / 4, uppercaseGen)
       digit <- Gen.listOfN(length / 4, digitGen)
       specialChar <- Gen.listOfN(length / 4, specialCharGen)
-      password = scala.util.Random.shuffle(lowercase ++ uppercase ++ digit ++ specialChar).take(length).mkString
+      password = scala.util.Random.shuffle(lowercase ++ uppercase ++ digit ++ specialChar).mkString
     yield password) :| "valid passwords"
 
   def shortPasswords: Gen[String] =

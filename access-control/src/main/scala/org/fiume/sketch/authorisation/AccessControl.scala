@@ -6,20 +6,25 @@ import org.fiume.sketch.shared.app.{Entity, EntityId}
 import org.fiume.sketch.shared.app.algebras.Store
 import org.fiume.sketch.shared.auth0.UserId
 
-/* Contextual roles, ie. a user can be a contributor of a document, but owner of another. */
 trait AccessControl[F[_], Txn[_]: Monad] extends Store[F, Txn]:
   type Unauthorised = String
 
-  def allowAccess[T <: Entity](userId: UserId, entityId: EntityId[T], role: Role): Txn[Unit] =
+  def grantGlobalAccess(userId: UserId, role: GlobalRole): Txn[Unit] =
+    storeGlobalGrant(userId, role)
+
+  def canAccessGlobal(userId: UserId): Txn[Boolean] = ??? // only needed for testing sake atm
+
+  def grantAccess[T <: Entity](userId: UserId, entityId: EntityId[T], role: ContextualRole): Txn[Unit] =
     storeGrant(userId, entityId, role)
 
-  def ensureAccess[T <: Entity](userId: UserId, role: Role)(entityIdTxn: => Txn[EntityId[T]]): Txn[EntityId[T]] =
+  def ensureAccess[T <: Entity](userId: UserId, role: ContextualRole)(entityIdTxn: => Txn[EntityId[T]]): Txn[EntityId[T]] =
     entityIdTxn.flatMap { entityId =>
-      storeGrant(userId, entityId, role).as(entityId)
+      grantAccess(userId, entityId, role).as(entityId)
     }
 
   def canAccess[T <: Entity](userId: UserId, entityId: EntityId[T]): Txn[Boolean] =
-    fetchRole(userId, entityId).map(_.map(_ == Role.Owner).getOrElse(false))
+    // a simplistic implementation that works since currently there is only one global and one contextual roles
+    fetchRole(userId, entityId).map(_.isDefined)
 
   def attemptWithAuthorisation[T <: Entity, A](userId: UserId, entityId: EntityId[T])(
     ops: EntityId[T] => Txn[A]
@@ -30,13 +35,15 @@ trait AccessControl[F[_], Txn[_]: Monad] extends Store[F, Txn]:
     )
 
   // TODO Return role as well as ids?
-  def fetchAllAuthorisedEntityIds[T <: Entity](userId: UserId, entity: String): fs2.Stream[Txn, EntityId[T]]
+  def fetchAllAuthorisedEntityIds[T <: Entity](userId: UserId, entityType: String): fs2.Stream[Txn, EntityId[T]]
 
   def revokeAccess[T <: Entity](userId: UserId, entityId: EntityId[T]): Txn[Unit] =
     deleteGrant(userId, entityId)
 
-  def storeGrant[T <: Entity](userId: UserId, entityId: EntityId[T], role: Role): Txn[Unit]
+  protected def fetchRole[T <: Entity](userId: UserId, entityId: EntityId[T]): Txn[Option[Role]]
 
-  def fetchRole[T <: Entity](userId: UserId, entityId: EntityId[T]): Txn[Option[Role]]
+  protected def storeGlobalGrant(userId: UserId, role: GlobalRole): Txn[Unit]
 
-  def deleteGrant[T <: Entity](userId: UserId, entityId: EntityId[T]): Txn[Unit]
+  protected def storeGrant[T <: Entity](userId: UserId, entityId: EntityId[T], role: ContextualRole): Txn[Unit]
+
+  protected def deleteGrant[T <: Entity](userId: UserId, entityId: EntityId[T]): Txn[Unit]

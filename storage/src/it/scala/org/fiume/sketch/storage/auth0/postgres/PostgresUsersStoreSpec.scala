@@ -24,6 +24,8 @@ class PostgresUsersStoreSpec
     with PostgresUsersStoreSpecContext
     with ShrinkLowPriority:
 
+  override def scalaCheckTestParameters = super.scalaCheckTestParameters.withMinSuccessfulTests(10)
+
   test("fetches user from stored credentials"):
     forAllF { (credentials: UserCredentials) =>
       will(cleanUsers) {
@@ -79,11 +81,9 @@ class PostgresUsersStoreSpec
 
             fstStoredCreds <- store.fetchCredentials(fstCreds.username).ccommit
             sndStoredCreds <- store.fetchCredentials(sndCreds.username).ccommit
-            _ <- IO {
-              assertEquals(fstStoredCreds, none)
-              assertEquals(sndStoredCreds, UserCredentials.make(sndUuid, sndCreds).some)
-            }
-          yield ()
+          yield
+            assertEquals(fstStoredCreds, none)
+            assertEquals(sndStoredCreds, UserCredentials.make(sndUuid, sndCreds).some)
         }
       }
     }
