@@ -9,6 +9,8 @@ import scala.concurrent.duration.*
 
 trait ClockContext:
 
+  def makeAnytime(): Clock[IO] = makeFrozenTime(ZonedDateTime.now(ZoneOffset.UTC))
+
   def makeFrozenTime(frozen: ZonedDateTime): Clock[IO] =
     new Clock[IO]:
 
@@ -21,5 +23,3 @@ trait ClockContext:
         // does this work?
         .delay(ZonedDateTime.now().toInstant.getEpochSecond * 1000000000L + ZonedDateTime.now().getNano)
         .map(_.nanos)
-
-  def anyTime: Clock[IO] = makeFrozenTime(ZonedDateTime.now(ZoneOffset.UTC))

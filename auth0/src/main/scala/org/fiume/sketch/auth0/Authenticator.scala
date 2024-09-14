@@ -37,12 +37,13 @@ trait Authenticator[F[_]]:
   def verify(jwtToken: JwtToken): Either[JwtError, User]
 
 object Authenticator:
-  def make[F[_], Txn[_]](
+  def make[F[_]: Sync, Txn[_]](
+    clock: Clock[F],
     store: UsersStore[F, Txn],
     privateKey: PrivateKey,
     publicKey: PublicKey,
     expirationOffset: Duration
-  )(using F: Sync[F], clock: Clock[F]): F[Authenticator[F]] = F.delay {
+  ): F[Authenticator[F]] = Sync[F].delay {
     given UsersStore[F, Txn] = store
 
     new Authenticator[F]:
@@ -60,7 +61,9 @@ object Authenticator:
               HashedPassword
                 .verifyPassword(password, account.credentials.hashedPassword)
                 .ifM(
-                  ifTrue = JwtToken.makeJwtToken(privateKey, User(account.uuid, username), expirationOffset).map(_.asRight),
+                  ifTrue = clock.realTimeInstant.map { now =>
+                    JwtToken.makeJwtToken(privateKey, User(account.uuid, username), now, expirationOffset).asRight
+                  },
                   ifFalse = InvalidPasswordError.asLeft.pure[F]
                 )
         yield jwtToken

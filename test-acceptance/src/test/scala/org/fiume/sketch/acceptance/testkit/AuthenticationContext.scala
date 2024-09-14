@@ -10,10 +10,10 @@ import org.fiume.sketch.shared.auth0.User.Username
 import org.fiume.sketch.shared.auth0.testkit.PasswordsGens.*
 import org.fiume.sketch.shared.auth0.testkit.UserGens.*
 import org.fiume.sketch.shared.testkit.syntax.EitherSyntax.*
+import org.fiume.sketch.shared.testkit.syntax.OptionSyntax.*
 import org.http4s.circe.CirceEntityDecoder.*
 import org.http4s.headers.Authorization
 import org.scalacheck.Gen
-import org.fiume.sketch.shared.testkit.syntax.OptionSyntax.*
 
 trait AuthenticationContext extends Http4sClientContext:
 

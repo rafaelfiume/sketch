@@ -1,6 +1,6 @@
 package org.fiume.sketch.app
 
-import cats.effect.{Async, Resource, Sync}
+import cats.effect.{Async, Clock, Resource, Sync}
 import doobie.ConnectionIO
 import fs2.io.net.Network
 import org.fiume.sketch.app.SketchVersions.VersionFile
@@ -41,6 +41,7 @@ object Resources:
       usersStore0 <- PostgresUsersStore.make[F](transactor)
       authenticator0 <- Resource.liftK {
         Authenticator.make[F, ConnectionIO](
+          summon[Clock[F]],
           usersStore0,
           config.keyPair.privateKey,
           config.keyPair.publicKey,
