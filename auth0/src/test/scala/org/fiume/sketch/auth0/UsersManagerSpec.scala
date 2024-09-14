@@ -1,7 +1,6 @@
 package org.fiume.sketch.auth0
 
 import cats.effect.IO
-import cats.implicits.*
 import munit.{CatsEffectSuite, ScalaCheckEffectSuite}
 import munit.Assertions.*
 import org.fiume.sketch.authorisation.testkit.AccessControlContext
