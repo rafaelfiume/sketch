@@ -60,8 +60,9 @@ Step-by-step:
 1) Set account state as `Active` when registering user
 1) Model `UserAccount`. Make `UserCredential` a property of `UserAccount`.
 1) Implement soft delete.
-  * Check user's permission
-  * Make sure user is unable to login
+  * Make sure user with deleted account is unable to login
+  * Users can delete their own account
+  * Superuser can delete other users' account
   * (Mark it for permanent deletion)
 1) Schedule job to permanently delete user account after n days
 1) Use callback to delete all entities of user with deleted account
@@ -75,3 +76,7 @@ Clean up needed:
  - Frozen time to facilitate test assertions
  - Error handling in DoobieMappings
  - Extract an OptionSyntax
+ - Rename `notValidatedFromString` to `makeNotValidatedFromString`
+
+Consider:
+ * Only 'Admin' can delete other users account
