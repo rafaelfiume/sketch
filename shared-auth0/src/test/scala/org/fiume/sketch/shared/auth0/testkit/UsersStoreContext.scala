@@ -11,21 +11,21 @@ import java.time.Instant
 
 trait UsersStoreContext:
 
-  def makeUsersStore(): IO[UsersStore[IO, IO] & TestStore] = makeUsersStore(Map.empty)
+  def makeUsersStore(): IO[UsersStore[IO, IO]] = makeUsersStore(Map.empty)
 
-  def makeUsersStore(credentials: UserCredentialsWithId): IO[UsersStore[IO, IO] & TestStore] =
+  def makeUsersStore(credentials: UserCredentialsWithId): IO[UsersStore[IO, IO]] =
     makeUsersStore(
       Map(
         credentials.uuid -> Account(credentials.uuid, credentials, AccountState.Active(Instant.now()))
       )
     )
 
-  def makeUsersStore(account: Account): IO[UsersStore[IO, IO] & TestStore] =
+  def makeUsersStore(account: Account): IO[UsersStore[IO, IO]] =
     makeUsersStore(Map(account.uuid -> account))
 
-  private def makeUsersStore(state: Map[UserId, Account]): IO[UsersStore[IO, IO] & TestStore] =
+  private def makeUsersStore(state: Map[UserId, Account]): IO[UsersStore[IO, IO]] =
     Ref.of[IO, Map[UserId, Account]](state).map { storage =>
-      new UsersStore[IO, IO] with TestStore:
+      new UsersStore[IO, IO]:
         override def store(credentials: UserCredentials): IO[UserId] =
           IO.randomUUID.map(UserId(_)).flatMap { uuid =>
             val account = Account(uuid, credentials, AccountState.Active(Instant.now()))
@@ -60,15 +60,4 @@ trait UsersStoreContext:
         override val commit: [A] => IO[A] => IO[A] = [A] => (action: IO[A]) => action
 
         override val commitStream: [A] => fs2.Stream[IO, A] => fs2.Stream[IO, A] = [A] => (action: fs2.Stream[IO, A]) => action
-
-        override def fetchUser(uuid: UserId): IO[Option[User]] =
-          storage.get.map(_.collectFirst {
-            case (storedUuid, account) if storedUuid == uuid =>
-              User(uuid, account.credentials.username)
-          })
-
     }
-
-  trait TestStore:
-    // TODO Replace by fetchUserAccount ?
-    def fetchUser(uuid: UserId): IO[Option[User]]
