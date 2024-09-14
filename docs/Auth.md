@@ -69,3 +69,9 @@ Step-by-step:
 ... Rest-based Event Notification (Webhook Style)...
 ... use a temporary shared secret solution to authenticate the auth part of the service when invoking
 the `/purge-user-entities` endpoint.
+
+Clean up needed:
+ - Replace Instant by ZonedDateTime ?
+ - Frozen time to facilitate test assertions
+ - Error handling in DoobieMappings
+ - Extract an OptionSyntax

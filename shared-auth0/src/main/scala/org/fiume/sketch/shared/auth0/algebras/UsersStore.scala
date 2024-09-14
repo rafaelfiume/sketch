@@ -11,4 +11,4 @@ trait UsersStore[F[_], Txn[_]] extends Store[F, Txn]:
   def fetchCredentials(username: Username): Txn[Option[UserCredentialsWithId]]
   def updatePassword(uuid: UserId, password: HashedPassword): Txn[Unit]
   // TODO Distinguish between soft and hard deletion
-  def delete(uuid: UserId): Txn[Unit]
+  def markForDeletion(uuid: UserId): Txn[Unit]

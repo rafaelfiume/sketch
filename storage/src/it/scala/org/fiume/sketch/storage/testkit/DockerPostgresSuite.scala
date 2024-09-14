@@ -63,7 +63,7 @@ trait DockerPostgresSuite extends CatsEffectSuite:
         password = Secret[String](DockerDatabaseConfig.password),
         dbPoolThreads = 10 // ?
       )
-      debugSql = false // set to 'true' to log SQL queries
+      debugSql = true // set to 'true' to log SQL queries
       // See also: https://typelevel.org/doobie/docs/10-Logging.html
       printSqlLogHandler = new LogHandler[IO]:
         def run(logEvent: LogEvent): IO[Unit] = IO.delay { if debugSql then println(logEvent.sql) }

@@ -40,10 +40,11 @@ object Resources:
       versions0 <- SketchVersions.make[F](config.env, VersionFile("sketch.version"))
       usersStore0 <- PostgresUsersStore.make[F](transactor)
       authenticator0 <- Resource.liftK {
-        Authenticator.make[F, ConnectionIO](usersStore0,
-                                            config.keyPair.privateKey,
-                                            config.keyPair.publicKey,
-                                            expirationOffset = 1.hour
+        Authenticator.make[F, ConnectionIO](
+          usersStore0,
+          config.keyPair.privateKey,
+          config.keyPair.publicKey,
+          expirationOffset = 1.hour
         )
       }
       accessControl0 <- PostgresAccessControl.make[F](transactor)

@@ -48,15 +48,14 @@ class PostgresUsersStoreSpec
             uuid <- store.store(credentials).ccommit
 
             // TODO Extract an OptionSyntax
-            result <- store.fetchAccount(credentials.username).ccommit.map(_.get)
+            result <- store.fetchAccount(credentials.username).map(_.get).ccommit
 //
           yield
             assertEquals(result.uuid, uuid)
             assertEquals(result.credentials, credentials)
             result.state match
               case AccountState.Active(_) => assert(true)
-              // coming soon
-              //case _                      => fail(s"Expected AccountState.Active, got ${result.state}")
+              case _                      => fail(s"Expected AccountState.Active, got ${result.state}")
         }
       }
     }
@@ -76,7 +75,7 @@ class PostgresUsersStoreSpec
       }
     }
 
-  test("deletes credentials"):
+  test("marks account for deletion"):
     forAllF { (fstCreds: UserCredentials, sndCreds: UserCredentials) =>
       will(cleanUsers) {
         PostgresUsersStore.make[IO](transactor()).use { store =>
@@ -84,13 +83,17 @@ class PostgresUsersStoreSpec
             fstUuid <- store.store(fstCreds).ccommit
             sndUuid <- store.store(sndCreds).ccommit
 
-            _ <- store.delete(fstUuid).ccommit
+            _ <- store.markForDeletion(fstUuid).ccommit
 
-            fstStoredCreds <- store.fetchCredentials(fstCreds.username).ccommit
-            sndStoredCreds <- store.fetchCredentials(sndCreds.username).ccommit
+            // TODO Extract an OptionSyntax
+            fstAccount <- store.fetchAccount(fstCreds.username).map(_.get).ccommit
+            sndAccount <- store.fetchAccount(sndCreds.username).map(_.get).ccommit
           yield
-            assertEquals(fstStoredCreds, none)
-            assertEquals(sndStoredCreds, UserCredentials.make(sndUuid, sndCreds).some)
+            assert(sndAccount.isActive)
+            assert(!fstAccount.isActive)
+            fstAccount.state match
+              case AccountState.SoftDeleted(_) => assert(true)
+              case _                           => fail(s"Expected AccountState.SoftDeleted, got ${fstAccount.state}")
         }
       }
     }

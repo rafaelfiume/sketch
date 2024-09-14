@@ -4,8 +4,8 @@ import cats.effect.{Clock, Sync}
 import cats.implicits.*
 import org.fiume.sketch.auth0.AuthenticationError.*
 import org.fiume.sketch.shared.app.algebras.Store.Syntax.commit
+import org.fiume.sketch.shared.auth0.{AccountState, User}
 import org.fiume.sketch.shared.auth0.Passwords.{HashedPassword, PlainPassword}
-import org.fiume.sketch.shared.auth0.User
 import org.fiume.sketch.shared.auth0.User.Username
 import org.fiume.sketch.shared.auth0.algebras.UsersStore
 
@@ -23,6 +23,14 @@ object AuthenticationError:
   case object InvalidPasswordError extends AuthenticationError:
     override def details: String = "Invalid password"
 
+  case class AccountNotActiveError private (state: AccountState) extends AuthenticationError:
+    override def details: String = s"Account is not active: $state"
+
+  object AccountNotActiveError:
+    def apply(state: AccountState): AccountNotActiveError =
+      if state.isInstanceOf[AccountState.Active] then throw new IllegalArgumentException("Account is active")
+      else AccountNotActiveError(state)
+
 trait Authenticator[F[_]]:
   def authenticate(username: Username, password: PlainPassword): F[Either[AuthenticationError, JwtToken]]
   def verify(jwtToken: JwtToken): Either[JwtError, User]
@@ -39,14 +47,20 @@ object Authenticator:
     new Authenticator[F]:
       override def authenticate(username: Username, password: PlainPassword): F[Either[AuthenticationError, JwtToken]] =
         for
-          credentials <- store.fetchCredentials(username).commit()
-          jwtToken <- credentials match
+          account <- store.fetchAccount(username).commit()
+          jwtToken <- account match
             case None =>
               UserNotFoundError.asLeft.pure[F]
-            case Some(creds) =>
-              if HashedPassword.verifyPassword(password, creds.hashedPassword) then
-                JwtToken.makeJwtToken(privateKey, User(creds.uuid, username), expirationOffset)(using F, clock).map(_.asRight)
-              else InvalidPasswordError.asLeft.pure[F]
+
+            case Some(account) if !account.isActive =>
+              println("Account is not active")
+              AccountNotActiveError(account.state).asLeft.pure[F]
+
+            case Some(account) =>
+              Sync[F].ifM(HashedPassword.verifyPassword(password, account.credentials.hashedPassword))(
+                ifTrue = JwtToken.makeJwtToken(privateKey, User(account.uuid, username), expirationOffset).map(_.asRight),
+                ifFalse = InvalidPasswordError.asLeft.pure[F]
+              )
         yield jwtToken
 
       override def verify(jwtToken: JwtToken): Either[JwtError, User] =

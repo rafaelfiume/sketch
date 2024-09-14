@@ -113,7 +113,7 @@ object Passwords:
 
     def notValidatedFromString(base64Value: String): HashedPassword = new HashedPassword(base64Value) {}
 
-    def verifyPassword(password: PlainPassword, hashedPassword: HashedPassword): Boolean =
-      BCrypt.checkpw(password.value, hashedPassword.base64Value)
+    def verifyPassword[F[_]: Sync](password: PlainPassword, hashedPassword: HashedPassword): F[Boolean] =
+      Sync[F].blocking { BCrypt.checkpw(password.value, hashedPassword.base64Value) }
 
     given Show[HashedPassword] = Show.show(_ => "********")

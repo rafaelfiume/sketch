@@ -27,13 +27,15 @@ private[storage] object DoobieMappings:
 
   // "There is no equivalent to Meta for bidirectional column vector mappings."
   // Source: https://typelevel.org/doobie/docs/12-Custom-Mappings.html
-  given Read[AccountState] = Read[(String, Instant)].map {
-    case ("Active", createdAt) => AccountState.Active(createdAt)
+  given Read[AccountState] = Read[(String, Instant, Option[Instant])].map {
+    case ("Active", createdAt, _)                => AccountState.Active(createdAt)
+    case ("PendingDeletion", _, Some(deletedAt)) => AccountState.SoftDeleted(deletedAt)
     // TODO Error handling?
-    case _                     => ???
+    case _ => ???
   }
-  given Write[AccountState] = Write[(String, Instant)].contramap {
-    case AccountState.Active(createdAt) => ("Active", createdAt)
+  given Write[AccountState] = Write[String].contramap {
+    case AccountState.Active(_)      => "Active"
+    case AccountState.SoftDeleted(_) => "PendingDeletion"
   }
 
   given Read[Account] = Read[(UserCredentialsWithId, AccountState)].map { case (creds, state) =>
