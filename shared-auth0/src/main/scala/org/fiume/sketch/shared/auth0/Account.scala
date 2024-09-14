@@ -13,7 +13,6 @@ case class Account(
   def isActive: Boolean = state match
     case AccountState.Active(_) => true
     case _                      => false
-// TODO Redact UserCredentials toString to avoid leaking sensitive information
 
 enum AccountState:
   case Active(createdAt: Instant)
