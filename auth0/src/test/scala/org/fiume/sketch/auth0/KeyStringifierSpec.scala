@@ -2,7 +2,7 @@ package org.fiume.sketch.auth0
 
 import munit.ScalaCheckSuite
 import org.fiume.sketch.auth0.testkit.EcKeysGens
-import org.fiume.sketch.shared.testkit.Syntax.EitherSyntax.*
+import org.fiume.sketch.shared.testkit.syntax.EitherSyntax.*
 import org.scalacheck.Prop.forAll
 
 class KeyStringifierSpec extends ScalaCheckSuite with EcKeysGens:
@@ -15,15 +15,15 @@ class KeyStringifierSpec extends ScalaCheckSuite with EcKeysGens:
   property("ECPrivateKey toPemString and fromPemString form an isomorphism"):
     forAll(ecKeyPairs) { case (privateKey, _) =>
       val pemString = KeyStringifier.toPemString(privateKey)
-      val result = KeyStringifier.ecPrivateKeyFromPem(pemString).rightValue
-      assertEquals(result, privateKey)
+      val result = KeyStringifier.ecPrivateKeyFromPem(pemString)
+      assertEquals(result.rightOrFail, privateKey)
     }
 
   property("ECPublicKey toPemString and fromPemString form an isomorphism"):
     forAll(ecKeyPairs) { case (_, publicKey) =>
       val pemString = KeyStringifier.toPemString(publicKey)
-      val result = KeyStringifier.ecPublicKeyFromPem(pemString).rightValue
-      assertEquals(result, publicKey)
+      val result = KeyStringifier.ecPublicKeyFromPem(pemString)
+      assertEquals(result.rightOrFail, publicKey)
     }
 
   property("fromPemString fails for invalid private key pem string"):

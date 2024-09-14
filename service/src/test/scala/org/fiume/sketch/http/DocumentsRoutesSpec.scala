@@ -23,7 +23,7 @@ import org.fiume.sketch.shared.domain.documents.algebras.DocumentsStore
 import org.fiume.sketch.shared.domain.testkit.DocumentsGens.*
 import org.fiume.sketch.shared.domain.testkit.DocumentsGens.given
 import org.fiume.sketch.shared.testkit.{ContractContext, Http4sTestingRoutesDsl}
-import org.fiume.sketch.shared.testkit.Syntax.EitherSyntax.*
+import org.fiume.sketch.shared.testkit.syntax.EitherSyntax.*
 import org.http4s.{MediaType, *}
 import org.http4s.Method.*
 import org.http4s.client.dsl.io.*
@@ -66,7 +66,7 @@ class DocumentsRoutesSpec
           .to(documentsRoutes.router())
 //
           .expectJsonResponseWith(Status.Created)
-        createdDocId = result.as[DocumentIdResponsePayload].rightValue
+        createdDocId = result.as[DocumentIdResponsePayload].rightOrFail
         stored <- store.fetchDocument(createdDocId.value)
         grantedAccessToUser <- accessControl.canAccess(user.uuid, createdDocId.value)
         noGrantedAccessToRandomUser <- accessControl.canAccess(randomUser.uuid, createdDocId.value).map(!_)
@@ -90,7 +90,7 @@ class DocumentsRoutesSpec
           .to(documentsRoutes.router())
 //
           .expectJsonResponseWith(Status.Ok)
-      yield assertEquals(result.as[DocumentResponsePayload].rightValue, document.asResponsePayload)
+      yield assertEquals(result.as[DocumentResponsePayload].rightOrFail, document.asResponsePayload)
     }
 
   test("retrieves content bytes of stored document"):
@@ -126,7 +126,7 @@ class DocumentsRoutesSpec
           .to(documentsRoutes.router())
 //
           .expectJsonResponseWith(Status.Ok)
-      yield assertEquals(result.as[DocumentResponsePayload].rightValue, sndDoc.asResponsePayload)
+      yield assertEquals(result.as[DocumentResponsePayload].rightOrFail, sndDoc.asResponsePayload)
     }
 
   test("deletes stored document"):
@@ -223,7 +223,7 @@ class DocumentsRoutesSpec
         result <- send(request)
           .to(SemanticValidationMiddleware(documentsRoutes.router()))
           .expectJsonResponseWith(Status.UnprocessableEntity)
-          .map(_.as[ErrorInfo].rightValue)
+          .map(_.as[ErrorInfo].rightOrFail)
 //
       yield
         assertEquals(result.message, SemanticInputError.message)
@@ -247,7 +247,7 @@ class DocumentsRoutesSpec
         result <- send(request)
           .to(SemanticValidationMiddleware(documentsRoutes.router()))
           .expectJsonResponseWith(Status.UnprocessableEntity)
-          .map(_.as[ErrorInfo].rightValue)
+          .map(_.as[ErrorInfo].rightOrFail)
 //
       yield
         assertEquals(result.message, SemanticInputError.message)
@@ -273,7 +273,7 @@ class DocumentsRoutesSpec
     /* Also see `given accumulatingParallel: cats.Parallel[EitherT[IO, String, *]] = EitherT.accumulatingParallel` */
     // no metadata part / no bytes part
     val noMultiparts = Multipart[IO](parts = Vector.empty, boundary = Boundary("boundary"))
-    for inputErrors <- noMultiparts.validated().attempt.map(_.leftValue)
+    for inputErrors <- noMultiparts.validated().attempt.map(_.leftOfFail)
     yield assert(
       inputErrors.asInstanceOf[SemanticInputError].details.tips.size === 2,
       clue = inputErrors

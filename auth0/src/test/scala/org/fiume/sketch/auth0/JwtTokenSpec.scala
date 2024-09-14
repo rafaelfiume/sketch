@@ -10,7 +10,7 @@ import org.fiume.sketch.shared.auth0.User
 import org.fiume.sketch.shared.auth0.testkit.UserGens.*
 import org.fiume.sketch.shared.testkit.ClockContext
 import org.fiume.sketch.shared.testkit.Gens.DateAndTime.*
-import org.fiume.sketch.shared.testkit.Syntax.EitherSyntax.*
+import org.fiume.sketch.shared.testkit.syntax.EitherSyntax.*
 import org.scalacheck.ShrinkLowPriority
 import org.scalacheck.effect.PropF.forAllF
 
@@ -28,7 +28,7 @@ class JwtTokenSpec extends CatsEffectSuite with ScalaCheckEffectSuite with Clock
 
         result = JwtToken.verifyJwtToken(jwtToken, publicKey)
 //
-      yield assertEquals(result.rightValue, user)
+      yield assertEquals(result.rightOrFail, user)
     }
 
   test("invalid jwt verification fails"):
@@ -41,8 +41,8 @@ class JwtTokenSpec extends CatsEffectSuite with ScalaCheckEffectSuite with Clock
           publicKey
         )
       yield
-        assert(result.leftValue.isInstanceOf[JwtValidationError])
-        assertEquals(result.leftValue.details, "Invalid signature for this token or wrong algorithm.")
+        assert(result.leftOfFail.isInstanceOf[JwtValidationError])
+        assertEquals(result.leftOfFail.details, "Invalid signature for this token or wrong algorithm.")
     }
 
   test("expired jwt verification fails"):
@@ -53,8 +53,8 @@ class JwtTokenSpec extends CatsEffectSuite with ScalaCheckEffectSuite with Clock
 
         result = JwtToken.verifyJwtToken(jwtToken, publicKey)
       yield
-        assert(result.leftValue.isInstanceOf[JwtExpirationError])
-        assert(result.leftValue.details.contains("The token is expired since "))
+        assert(result.leftOfFail.isInstanceOf[JwtExpirationError])
+        assert(result.leftOfFail.details.contains("The token is expired since "))
     }
 
   test("token verification with invalid public key fails"):
@@ -65,6 +65,6 @@ class JwtTokenSpec extends CatsEffectSuite with ScalaCheckEffectSuite with Clock
 
           result = JwtToken.verifyJwtToken(jwtToken, strangePublicKey)
         yield
-          assert(result.leftValue.isInstanceOf[JwtValidationError])
-          assertEquals(result.leftValue.details, "Invalid signature for this token or wrong algorithm.")
+          assert(result.leftOfFail.isInstanceOf[JwtValidationError])
+          assertEquals(result.leftOfFail.details, "Invalid signature for this token or wrong algorithm.")
     }

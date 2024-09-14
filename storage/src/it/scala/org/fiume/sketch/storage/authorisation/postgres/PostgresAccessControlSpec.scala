@@ -13,7 +13,7 @@ import org.fiume.sketch.shared.auth0.testkit.UserGens.given
 import org.fiume.sketch.shared.auth0.testkit.UsersStoreContext
 import org.fiume.sketch.shared.domain.documents.{DocumentEntity, DocumentId, DocumentWithIdAndStream}
 import org.fiume.sketch.shared.domain.testkit.DocumentsGens.given
-import org.fiume.sketch.shared.testkit.Syntax.EitherSyntax.*
+import org.fiume.sketch.shared.testkit.syntax.EitherSyntax.*
 import org.fiume.sketch.storage.documents.postgres.PostgresDocumentsStore
 import org.fiume.sketch.storage.testkit.DockerPostgresSuite
 import org.scalacheck.ShrinkLowPriority
@@ -120,7 +120,7 @@ class PostgresAccessControlSpec
               }
               .ccommit
 //
-          yield assertEquals(result.rightValue, document.some)
+          yield assertEquals(result.rightOrFail, document.some)
         }
       }
     }
@@ -142,7 +142,7 @@ class PostgresAccessControlSpec
               }
               .ccommit
 //
-          yield assertEquals(result.leftValue, "Unauthorised")
+          yield assertEquals(result.leftOfFail, "Unauthorised")
         }
       }
     }

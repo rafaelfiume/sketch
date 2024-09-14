@@ -20,8 +20,8 @@ import org.fiume.sketch.shared.auth0.User.Username.WeakUsernameError
 import org.fiume.sketch.shared.auth0.testkit.PasswordsGens.*
 import org.fiume.sketch.shared.auth0.testkit.UserGens.*
 import org.fiume.sketch.shared.testkit.{ContractContext, Http4sTestingRoutesDsl}
-import org.fiume.sketch.shared.testkit.Syntax.EitherSyntax.*
-import org.fiume.sketch.shared.testkit.Syntax.StringSyntax.*
+import org.fiume.sketch.shared.testkit.syntax.EitherSyntax.*
+import org.fiume.sketch.shared.testkit.syntax.StringSyntax.*
 import org.http4s.Method.*
 import org.http4s.Status
 import org.http4s.circe.CirceEntityEncoder.*
@@ -54,7 +54,7 @@ class AuthRoutesSpec
           .expectJsonResponseWith(Status.Ok)
 //
       yield assertEquals(
-        jsonResponse.as[LoginResponsePayload].map(_.token).rightValue,
+        jsonResponse.as[LoginResponsePayload].map(_.token).rightOrFail,
         jwtToken.value
       )
     }
@@ -76,7 +76,7 @@ class AuthRoutesSpec
           .expectJsonResponseWith(Status.Unauthorized)
 //
       yield assertEquals(
-        jsonResponse.as[ErrorInfo].rightValue,
+        jsonResponse.as[ErrorInfo].rightOrFail,
         ErrorInfo.make(
           message = ErrorMessage("The username or password provided is incorrect.")
         )
@@ -100,7 +100,7 @@ class AuthRoutesSpec
           .expectJsonResponseWith(Status.Unauthorized)
 //
       yield assertEquals(
-        jsonResponse.as[ErrorInfo].rightValue,
+        jsonResponse.as[ErrorInfo].rightOrFail,
         ErrorInfo.make(
           message = ErrorMessage("The username or password provided is incorrect.")
         )
@@ -120,7 +120,7 @@ class AuthRoutesSpec
         result <- send(request)
           .to(SemanticValidationMiddleware(new AuthRoutes[IO](authenticator).router()))
           .expectJsonResponseWith(Status.UnprocessableEntity)
-          .map(_.as[ErrorInfo].rightValue)
+          .map(_.as[ErrorInfo].rightOrFail)
 
         _ <- IO {
           assertEquals(result.message, SemanticInputError.message)
@@ -142,7 +142,7 @@ class AuthRoutesSpec
         result <- send(request)
           .to(SemanticValidationMiddleware(new AuthRoutes[IO](authenticator).router()))
           .expectJsonResponseWith(Status.UnprocessableEntity)
-          .map(_.as[ErrorInfo].rightValue)
+          .map(_.as[ErrorInfo].rightOrFail)
       yield
         assertEquals(result.message, SemanticInputError.message)
         assertEquals(result.details, ErrorDetails("input.semantic.error" -> "The request body was invalid.").some)

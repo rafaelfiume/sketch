@@ -57,10 +57,12 @@ object Authenticator:
               AccountNotActiveError.make(account.state).asLeft.pure[F]
 
             case Some(account) =>
-              HashedPassword.verifyPassword(password, account.credentials.hashedPassword).ifM(
-                ifTrue = JwtToken.makeJwtToken(privateKey, User(account.uuid, username), expirationOffset).map(_.asRight),
-                ifFalse = InvalidPasswordError.asLeft.pure[F]
-              )
+              HashedPassword
+                .verifyPassword(password, account.credentials.hashedPassword)
+                .ifM(
+                  ifTrue = JwtToken.makeJwtToken(privateKey, User(account.uuid, username), expirationOffset).map(_.asRight),
+                  ifFalse = InvalidPasswordError.asLeft.pure[F]
+                )
         yield jwtToken
 
       override def verify(jwtToken: JwtToken): Either[JwtError, User] =

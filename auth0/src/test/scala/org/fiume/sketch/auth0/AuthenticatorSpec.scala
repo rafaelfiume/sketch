@@ -13,8 +13,8 @@ import org.fiume.sketch.shared.auth0.testkit.{UserGens, UsersStoreContext}
 import org.fiume.sketch.shared.auth0.testkit.UserGens.*
 import org.fiume.sketch.shared.testkit.ClockContext
 import org.fiume.sketch.shared.testkit.Gens.DateAndTime.shortDurations
-import org.fiume.sketch.shared.testkit.Syntax.EitherSyntax.*
-import org.fiume.sketch.shared.testkit.Syntax.StringSyntax.*
+import org.fiume.sketch.shared.testkit.syntax.EitherSyntax.*
+import org.fiume.sketch.shared.testkit.syntax.StringSyntax.*
 import org.scalacheck.ShrinkLowPriority
 import org.scalacheck.effect.PropF.forAllF
 
@@ -42,10 +42,10 @@ class AuthenticatorSpec
           store <- makeUsersStore(credentials)
 
           authenticator <- Authenticator.make[IO, IO](store, privateKey, publicKey, expirationOffset)
-          result <- authenticator.authenticate(credentials.username, plainPassword).map(_.rightValue)
+          result <- authenticator.authenticate(credentials.username, plainPassword)
 
-          user = authenticator.verify(result)
-        yield assertEquals(user.rightValue, User(credentials.uuid, credentials.username))
+          user = authenticator.verify(result.rightOrFail)
+        yield assertEquals(user.rightOrFail, User(credentials.uuid, credentials.username))
     }
 
   test("wrong password authentication fails"):
@@ -57,7 +57,7 @@ class AuthenticatorSpec
 
           result <- authenticator.authenticate(credentials.username, plainPassword.shuffled)
 //
-        yield assertEquals(result.leftValue, InvalidPasswordError)
+        yield assertEquals(result.leftOfFail, InvalidPasswordError)
     }
 
   test("unknown username authentication fails"):
@@ -69,7 +69,7 @@ class AuthenticatorSpec
           authenticator <- Authenticator.make[IO, IO](store, privateKey, publicKey, expirationOffset)
           result <- authenticator.authenticate(credentials.username.shuffled, plainPassword)
 //
-        yield assertEquals(result.leftValue, UserNotFoundError)
+        yield assertEquals(result.leftOfFail, UserNotFoundError)
     }
 
   test("inactive account authentication fails"):
@@ -81,9 +81,9 @@ class AuthenticatorSpec
           store <- makeUsersStore(userAccount)
 
           authenticator <- Authenticator.make[IO, IO](store, privateKey, publicKey, expirationOffset)
-          result <- authenticator.authenticate(credentials.username, plainPassword).map(_.leftValue)
+          result <- authenticator.authenticate(credentials.username, plainPassword)
 //
-        yield result match
+        yield result.leftOfFail match
           case AccountNotActiveError(_) => assert(true)
           case _                        => fail(s"Expected AccountNotActiveError, got: $result")
     }
@@ -95,13 +95,13 @@ class AuthenticatorSpec
         for
           store <- makeUsersStore(credentials)
           authenticator <- Authenticator.make[IO, IO](store, privateKey, publicKey, expirationOffset)
-          jwtToken <- authenticator.authenticate(credentials.username, plainPassword).map(_.rightValue)
+          jwtToken <- authenticator.authenticate(credentials.username, plainPassword).map(_.rightOrFail)
 
           result = authenticator.verify(jwtToken)
 //
         yield
-          assert(result.leftValue.isInstanceOf[JwtExpirationError])
-          assert(result.leftValue.details.startsWith("The token is expired since"))
+          assert(result.leftOfFail.isInstanceOf[JwtExpirationError])
+          assert(result.leftOfFail.details.startsWith("The token is expired since"))
     }
 
   test("tampered token verification fails"):
@@ -110,12 +110,12 @@ class AuthenticatorSpec
         for
           store <- makeUsersStore(credentials)
           authenticator <- Authenticator.make[IO, IO](store, privateKey, publicKey, expirationOffset)
-          token <- authenticator.authenticate(credentials.username, plainPassword).map(_.rightValue)
+          token <- authenticator.authenticate(credentials.username, plainPassword).map(_.rightOrFail)
 
           result = authenticator.verify(token.tampered)
 //
         yield assertEquals(
-          result.leftValue,
+          result.leftOfFail,
           JwtEmptySignatureError("No signature found inside the token while trying to verify it with a key.")
         )
     }
@@ -126,13 +126,13 @@ class AuthenticatorSpec
         for
           store <- makeUsersStore(credentials)
           authenticator <- Authenticator.make[IO, IO](store, privateKey, publicKey, expirationOffset)
-          jwtToken <- authenticator.authenticate(credentials.username, plainPassword).map(_.rightValue)
+          jwtToken <- authenticator.authenticate(credentials.username, plainPassword).map(_.rightOrFail)
 
           result = authenticator.verify(jwtToken.reversed)
 //
         yield
-          assert(result.leftValue.isInstanceOf[JwtInvalidTokenError])
-          assert(result.leftValue.details.startsWith("Invalid Jwt token:"))
+          assert(result.leftOfFail.isInstanceOf[JwtInvalidTokenError])
+          assert(result.leftOfFail.details.startsWith("Invalid Jwt token:"))
     }
 
   test("token verification with invalid public key fails"):
@@ -141,12 +141,12 @@ class AuthenticatorSpec
         for
           store <- makeUsersStore(credentials)
           authenticator <- Authenticator.make[IO, IO](store, privateKey, strangePublicKey, expirationOffset)
-          jwtToken <- authenticator.authenticate(credentials.username, plainPassword).map(_.rightValue)
+          jwtToken <- authenticator.authenticate(credentials.username, plainPassword).map(_.rightOrFail)
 
           result = authenticator.verify(jwtToken)
 //
         yield assertEquals(
-          result.leftValue,
+          result.leftOfFail,
           JwtValidationError("Invalid signature for this token or wrong algorithm.")
         )
     }

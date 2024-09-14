@@ -9,7 +9,7 @@ import org.fiume.sketch.shared.auth0.User
 import org.fiume.sketch.shared.auth0.User.Username
 import org.fiume.sketch.shared.auth0.testkit.PasswordsGens.*
 import org.fiume.sketch.shared.auth0.testkit.UserGens.*
-import org.fiume.sketch.shared.testkit.Syntax.EitherSyntax.*
+import org.fiume.sketch.shared.testkit.syntax.EitherSyntax.*
 import org.http4s.circe.CirceEntityDecoder.*
 import org.http4s.headers.Authorization
 import org.scalacheck.Gen
@@ -33,7 +33,7 @@ trait AuthenticationContext extends Http4sClientContext:
         _.expect[LoginResponsePayload](loginRequest(username, password))
           .map(_.token)
           .map(jwtToken => Authorization.parse(s"Bearer $jwtToken"))
-          .map(_.rightValue)
+          .map(_.rightOrFail)
       }
     yield AuthenticatedUser(authorization)
 

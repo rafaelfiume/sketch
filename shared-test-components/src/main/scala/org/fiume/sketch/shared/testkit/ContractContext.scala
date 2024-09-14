@@ -5,7 +5,7 @@ import io.circe.{Decoder, Encoder}
 import io.circe.parser.decode
 import io.circe.syntax.*
 import munit.Assertions.*
-import org.fiume.sketch.shared.testkit.Syntax.EitherSyntax.*
+import org.fiume.sketch.shared.testkit.syntax.EitherSyntax.*
 
 /*
  * A note regarding bijective relationship an isomorphism.
@@ -26,7 +26,7 @@ trait ContractContext extends FileContentContext:
     sample: String
   ): IO[Unit] =
     jsonFrom[IO](sample).map { original =>
-      val instance = decode[A](original.noSpaces).rightValue
+      val instance = decode[A](original.noSpaces).rightOrFail
       val roundtrip = instance.asJson
       assertEquals(roundtrip.spaces2SortKeys, original.spaces2SortKeys)
     }.use_
