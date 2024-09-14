@@ -6,7 +6,7 @@ import doobie.ConnectionIO
 import doobie.implicits.*
 import doobie.postgres.implicits.*
 import munit.ScalaCheckEffectSuite
-import org.fiume.sketch.shared.auth0.{Passwords, User, UserId}
+import org.fiume.sketch.shared.auth0.{AccountState, Passwords, User, UserId}
 import org.fiume.sketch.shared.auth0.Passwords.HashedPassword
 import org.fiume.sketch.shared.auth0.User.*
 import org.fiume.sketch.shared.auth0.testkit.PasswordsGens.given
@@ -26,7 +26,7 @@ class PostgresUsersStoreSpec
 
   override def scalaCheckTestParameters = super.scalaCheckTestParameters.withMinSuccessfulTests(10)
 
-  test("fetches stored credentials"):
+  test("stores credentials"):
     forAllF { (credentials: UserCredentials) =>
       will(cleanUsers) {
         PostgresUsersStore.make[IO](transactor()).use { store =>
@@ -36,6 +36,27 @@ class PostgresUsersStoreSpec
             result <- store.fetchCredentials(credentials.username).ccommit
 //
           yield assertEquals(result, UserCredentials.make(uuid, credentials).some)
+        }
+      }
+    }
+
+  test("fetches user account"):
+    forAllF { (credentials: UserCredentials) =>
+      will(cleanUsers) {
+        PostgresUsersStore.make[IO](transactor()).use { store =>
+          for
+            uuid <- store.store(credentials).ccommit
+
+            // TODO Extract an OptionSyntax
+            result <- store.fetchAccount(credentials.username).ccommit.map(_.get)
+//
+          yield
+            assertEquals(result.uuid, uuid)
+            assertEquals(result.credentials, credentials)
+            result.state match
+              case AccountState.Active(_) => assert(true)
+              // coming soon
+              //case _                      => fail(s"Expected AccountState.Active, got ${result.state}")
         }
       }
     }

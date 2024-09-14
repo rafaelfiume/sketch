@@ -2,7 +2,7 @@ package org.fiume.sketch.shared.auth0.testkit
 
 import cats.effect.{IO, Ref}
 import cats.implicits.*
-import org.fiume.sketch.shared.auth0.{User, UserId}
+import org.fiume.sketch.shared.auth0.{Account, User, UserId}
 import org.fiume.sketch.shared.auth0.Passwords.HashedPassword
 import org.fiume.sketch.shared.auth0.User.{UserCredentials, UserCredentialsWithId, Username}
 import org.fiume.sketch.shared.auth0.algebras.UsersStore
@@ -30,11 +30,7 @@ trait UsersStoreContext:
               .as(uuid)
           }
 
-        override def fetchUser(uuid: UserId): IO[Option[User]] =
-          storage.get.map(_.collectFirst {
-            case (storedUuid, storedCreds) if storedUuid == uuid =>
-              User(uuid, storedCreds.username)
-          })
+        override def fetchAccount(username: Username): IO[Option[Account]] = ???
 
         override def fetchCredentials(username: Username): IO[Option[UserCredentialsWithId]] =
           storage.get.map(_.collectFirst {
@@ -58,6 +54,13 @@ trait UsersStoreContext:
         override val commit: [A] => IO[A] => IO[A] = [A] => (action: IO[A]) => action
 
         override val commitStream: [A] => fs2.Stream[IO, A] => fs2.Stream[IO, A] = [A] => (action: fs2.Stream[IO, A]) => action
+
+        override def fetchUser(uuid: UserId): IO[Option[User]] =
+          storage.get.map(_.collectFirst {
+            case (storedUuid, storedCreds) if storedUuid == uuid =>
+              User(uuid, storedCreds.username)
+          })
+
     }
 
   trait TestStore:

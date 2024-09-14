@@ -6,7 +6,7 @@ import cats.~>
 import doobie.*
 import doobie.free.connection.ConnectionIO
 import doobie.implicits.*
-import org.fiume.sketch.shared.auth0.{Passwords, User, UserId}
+import org.fiume.sketch.shared.auth0.{Account, Passwords, User, UserId}
 import org.fiume.sketch.shared.auth0.Passwords.{HashedPassword, Salt}
 import org.fiume.sketch.shared.auth0.User.*
 import org.fiume.sketch.shared.auth0.algebras.UsersStore
@@ -27,6 +27,9 @@ private class PostgresUsersStore[F[_]: Async] private (l: F ~> ConnectionIO, tx:
       .withUniqueGeneratedKeys[UserId](
         "uuid"
       )
+
+  override def fetchAccount(username: Username): ConnectionIO[Option[Account]] =
+    Statements.selectUserAccount(username).option
 
   override def fetchCredentials(username: Username): ConnectionIO[Option[UserCredentialsWithId]] =
     Statements.selectUserCredential(username).option
@@ -49,6 +52,19 @@ private object Statements:
          |  $salt
          |)
     """.stripMargin.update
+
+  def selectUserAccount(username: Username): Query0[Account] =
+    sql"""
+         |SELECT
+         |  uuid,
+         |  username,
+         |  password_hash,
+         |  salt,
+         |  state,
+         |  created_at
+         |FROM auth.users
+         |WHERE username = $username
+    """.stripMargin.query
 
   def selectUserCredential(username: Username): Query0[UserCredentialsWithId] =
     sql"""

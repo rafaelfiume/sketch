@@ -57,6 +57,7 @@ Consider to anonymise use data after m days have passed, m < n.
 Step-by-step:
 1) Clean up users algebra
 1) Persist UserEntity in `access_control` upon user registration
+1) Set account state as `Active` when registering user
 1) Model `UserAccount`. Make `UserCredential` a property of `UserAccount`.
 1) Implement soft delete.
   * Check user's permission
@@ -68,23 +69,3 @@ Step-by-step:
 ... Rest-based Event Notification (Webhook Style)...
 ... use a temporary shared secret solution to authenticate the auth part of the service when invoking
 the `/purge-user-entities` endpoint.
-
-Modelling the user account:
-
-case class UserAccount(
-  id: UserId,
-  credentials: UserCredentials,
-  /// email: Email, // possibly in the future, depending on requirements
-  state: AccountState,
-  createdAt: Instant,
-  updatedAt: Option[Instant]
-)
-
-Modelling the account state:
-
-enum AccountState:
-  case Active
-  case Deactivated(reason: String)            // For instance, too many failed login attempts
-  case Deleted (deletedAt: Instant)           // The account has been soft-deleted
-  case PermanentlyDeleted(deletedAt: Instant)
-  case PendingVerification                    // User must verify their email or other requirements

@@ -25,6 +25,7 @@ CREATE TABLE auth.users (
   -- jbcrypt uses 16 bytes salt, and its actual size is 29 chars length
   -- UNIQUE salts helps to prevent precomputed hash attacks
   salt VARCHAR(50) NOT NULL UNIQUE,
+  state VARCHAR(20) NOT NULL CHECK (state IN ('Active')) DEFAULT 'Active',
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
