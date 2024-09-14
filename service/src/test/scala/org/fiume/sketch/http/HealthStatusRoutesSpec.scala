@@ -12,6 +12,7 @@ import org.fiume.sketch.shared.app.algebras.{HealthChecker, Versions}
 import org.fiume.sketch.shared.app.testkit.VersionGens.versions
 import org.fiume.sketch.shared.testkit.Http4sTestingRoutesDsl
 import org.fiume.sketch.shared.testkit.syntax.EitherSyntax.*
+import org.fiume.sketch.shared.testkit.syntax.OptionSyntax.*
 import org.http4s.Method.*
 import org.http4s.Status
 import org.http4s.client.dsl.io.*
@@ -89,7 +90,7 @@ trait HealthStatusRoutesSpecContext:
   }
 
 trait VersionsContext:
-  val version = versions.sample.get
+  val version = versions.sample.someOrFail
 
   def makeVersions[F[_]: Applicative](returning: Version) = new Versions[F]:
     override def currentVersion: F[Version] = returning.pure[F]

@@ -13,11 +13,12 @@ import org.fiume.sketch.shared.testkit.syntax.EitherSyntax.*
 import org.http4s.circe.CirceEntityDecoder.*
 import org.http4s.headers.Authorization
 import org.scalacheck.Gen
+import org.fiume.sketch.shared.testkit.syntax.OptionSyntax.*
 
 trait AuthenticationContext extends Http4sClientContext:
 
-  private def aUsername() = Gen.delay(validUsernames).sample.get
-  private def aPassword() = Gen.delay(validPlainPasswords).sample.get
+  private def aUsername() = Gen.delay(validUsernames).sample.someOrFail
+  private def aPassword() = Gen.delay(validPlainPasswords).sample.someOrFail
   private def loginRequest(username: Username, password: PlainPassword) =
     "http://localhost:8080/login".post.withEntity(payload(username, password))
 

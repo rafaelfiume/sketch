@@ -24,6 +24,7 @@ import org.fiume.sketch.shared.domain.testkit.DocumentsGens.*
 import org.fiume.sketch.shared.domain.testkit.DocumentsGens.given
 import org.fiume.sketch.shared.testkit.{ContractContext, Http4sTestingRoutesDsl}
 import org.fiume.sketch.shared.testkit.syntax.EitherSyntax.*
+import org.fiume.sketch.shared.testkit.syntax.OptionSyntax.*
 import org.http4s.{MediaType, *}
 import org.http4s.Method.*
 import org.http4s.client.dsl.io.*
@@ -228,10 +229,10 @@ class DocumentsRoutesSpec
       yield
         assertEquals(result.message, SemanticInputError.message)
         assert(
-          result.details.get.tips.keySet.subsetOf(
+          result.details.someOrFail.tips.keySet.subsetOf(
             Set("missing.document.metadata.part", "missing.document.bytes.part", "document.name.too.short")
           ),
-          clue = result.details.get.tips.mkString
+          clue = result.details.someOrFail.tips.mkString
         )
     }
 
@@ -251,7 +252,7 @@ class DocumentsRoutesSpec
 //
       yield
         assertEquals(result.message, SemanticInputError.message)
-        assertEquals(result.details.get.tips,
+        assertEquals(result.details.someOrFail.tips,
                      Map("malformed.document.metadata.payload" -> "the metadata payload does not meet the contract")
         )
     }

@@ -11,6 +11,7 @@ import org.fiume.sketch.shared.auth0.Passwords.HashedPassword
 import org.fiume.sketch.shared.auth0.User.*
 import org.fiume.sketch.shared.auth0.testkit.PasswordsGens.given
 import org.fiume.sketch.shared.auth0.testkit.UserGens.given
+import org.fiume.sketch.shared.testkit.syntax.OptionSyntax.*
 import org.fiume.sketch.storage.auth0.postgres.DoobieMappings.given
 import org.fiume.sketch.storage.testkit.DockerPostgresSuite
 import org.scalacheck.ShrinkLowPriority
@@ -47,8 +48,7 @@ class PostgresUsersStoreSpec
           for
             uuid <- store.store(credentials).ccommit
 
-            // TODO Extract an OptionSyntax
-            result <- store.fetchAccount(credentials.username).map(_.get).ccommit
+            result <- store.fetchAccount(credentials.username).ccommit.map(_.someOrFail)
 //
           yield
             assertEquals(result.uuid, uuid)
@@ -86,8 +86,8 @@ class PostgresUsersStoreSpec
             _ <- store.markForDeletion(fstUuid).ccommit
 
             // TODO Extract an OptionSyntax
-            fstAccount <- store.fetchAccount(fstCreds.username).map(_.get).ccommit
-            sndAccount <- store.fetchAccount(sndCreds.username).map(_.get).ccommit
+            fstAccount <- store.fetchAccount(fstCreds.username).ccommit.map(_.someOrFail)
+            sndAccount <- store.fetchAccount(sndCreds.username).ccommit.map(_.someOrFail)
           yield
             assert(sndAccount.isActive)
             assert(!fstAccount.isActive)

@@ -21,6 +21,7 @@ import org.fiume.sketch.shared.auth0.testkit.PasswordsGens.*
 import org.fiume.sketch.shared.auth0.testkit.UserGens.*
 import org.fiume.sketch.shared.testkit.{ContractContext, Http4sTestingRoutesDsl}
 import org.fiume.sketch.shared.testkit.syntax.EitherSyntax.*
+import org.fiume.sketch.shared.testkit.syntax.OptionSyntax.*
 import org.fiume.sketch.shared.testkit.syntax.StringSyntax.*
 import org.http4s.Method.*
 import org.http4s.Status
@@ -125,7 +126,7 @@ class AuthRoutesSpec
         _ <- IO {
           assertEquals(result.message, SemanticInputError.message)
           val allInputErrors = usernameInvariantErrors.map(_.uniqueCode) ++ plainPasswordInvariantErrors.map(_.uniqueCode)
-          val actualInputErrors = result.details.get.tips.keys.toSet
+          val actualInputErrors = result.details.someOrFail.tips.keys.toSet
           assert(actualInputErrors.subsetOf(allInputErrors),
                  clue = s"actualInputErrors: $actualInputErrors\nallInputErrors: $allInputErrors"
           )

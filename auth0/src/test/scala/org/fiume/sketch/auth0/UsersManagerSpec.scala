@@ -9,6 +9,7 @@ import org.fiume.sketch.shared.auth0.User.Username
 import org.fiume.sketch.shared.auth0.testkit.PasswordsGens.given
 import org.fiume.sketch.shared.auth0.testkit.UserGens.given
 import org.fiume.sketch.shared.auth0.testkit.UsersStoreContext
+import org.fiume.sketch.shared.testkit.syntax.OptionSyntax.*
 import org.scalacheck.ShrinkLowPriority
 import org.scalacheck.effect.PropF.forAllF
 
@@ -30,8 +31,7 @@ class UsersManagerSpec
 
         accountId <- usersManager.createAccount(username, password, isSuperuser)
 
-        // TODO Extract Option syntax
-        account <- usersStore.fetchAccount(username).map(_.get)
+        account <- usersStore.fetchAccount(username).map(_.someOrFail)
         canAccess <- accessControl.canAccess(accountId, accountId)
         canAccessGlobal <- accessControl.canAccessGlobal(accountId)
       yield
