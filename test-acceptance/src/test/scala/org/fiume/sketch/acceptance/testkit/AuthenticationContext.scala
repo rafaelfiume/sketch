@@ -21,21 +21,21 @@ trait AuthenticationContext extends Http4sClientContext:
   private def loginRequest(username: Username, password: PlainPassword) =
     "http://localhost:8080/login".post.withEntity(payload(username, password))
 
-  case class AuthenticatedUser(user: User, authorization: Authorization)
+  case class AuthenticatedUser(authorization: Authorization)
 
   def loginAndGetAuthenticatedUser(): IO[AuthenticatedUser] =
     val username = aUsername()
     val password = aPassword()
     for
       script <- makeScript()
-      user <- script.createUserAccount(Args(username, password, isSuperuser = false))
+      _ <- script.createUserAccount(Args(username, password, isSuperuser = false))
       authorization <- withHttp {
         _.expect[LoginResponsePayload](loginRequest(username, password))
           .map(_.token)
           .map(jwtToken => Authorization.parse(s"Bearer $jwtToken"))
           .map(_.rightValue)
       }
-    yield AuthenticatedUser(user, authorization)
+    yield AuthenticatedUser(authorization)
 
   // TODO Improve this somehow....
   private def payload(username: Username, password: PlainPassword): String =
