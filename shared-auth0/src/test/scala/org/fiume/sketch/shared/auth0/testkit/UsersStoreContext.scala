@@ -20,6 +20,9 @@ trait UsersStoreContext:
       )
     )
 
+  def makeUsersStore(account: Account): IO[UsersStore[IO, IO] & TestStore] =
+    makeUsersStore(Map(account.uuid -> account))
+
   private def makeUsersStore(state: Map[UserId, Account]): IO[UsersStore[IO, IO] & TestStore] =
     Ref.of[IO, Map[UserId, Account]](state).map { storage =>
       new UsersStore[IO, IO] with TestStore:

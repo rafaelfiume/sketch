@@ -6,8 +6,8 @@ import org.bouncycastle.jce.provider.BouncyCastleProvider
 import org.fiume.sketch.auth0.AuthenticationError.*
 import org.fiume.sketch.auth0.JwtError.*
 import org.fiume.sketch.auth0.testkit.EcKeysGens
+import org.fiume.sketch.shared.auth0.{Account, AccountState, User}
 import org.fiume.sketch.shared.auth0.Passwords.PlainPassword
-import org.fiume.sketch.shared.auth0.User
 import org.fiume.sketch.shared.auth0.User.Username
 import org.fiume.sketch.shared.auth0.testkit.{UserGens, UsersStoreContext}
 import org.fiume.sketch.shared.auth0.testkit.UserGens.*
@@ -19,7 +19,7 @@ import org.scalacheck.ShrinkLowPriority
 import org.scalacheck.effect.PropF.forAllF
 
 import java.security.Security
-import java.time.ZonedDateTime
+import java.time.{Instant, ZonedDateTime}
 import scala.concurrent.duration.*
 
 class AuthenticatorSpec
@@ -72,23 +72,20 @@ class AuthenticatorSpec
         yield assertEquals(result.leftValue, UserNotFoundError)
     }
 
-  // This test blocks before `authenticate` returns when invoking `store#markForDeletion`!
-  // The current solution is to execute this test as an integration test
   test("inactive account authentication fails"):
     forAllF(validCredentialsWithIdAndPlainPassword, ecKeyPairs, shortDurations) {
       case ((credentials, plainPassword), (privateKey, publicKey), expirationOffset) =>
+        // The idea is to check all possible inactive states within the AccountState ADT here
+        val userAccount = Account(credentials.uuid, credentials, AccountState.SoftDeleted(Instant.now()))
         for
-          store <- makeUsersStore(credentials)
-          // The idea is to check all possible inactive states within the AccountState ADT here
-          _ <- store.markForDeletion(credentials.uuid)
+          store <- makeUsersStore(userAccount)
 
           authenticator <- Authenticator.make[IO, IO](store, privateKey, publicKey, expirationOffset)
           result <- authenticator.authenticate(credentials.username, plainPassword).map(_.leftValue)
-          _ <- IO.println(s"Authentication result obtained: $result")
 //
         yield result match
           case AccountNotActiveError(_) => assert(true)
-          case _                        => fail("Expected AccountNotActiveError")
+          case _                        => fail(s"Expected AccountNotActiveError, got: $result")
     }
 
   test("expired token verification fails"):

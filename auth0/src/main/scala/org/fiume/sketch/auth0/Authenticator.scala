@@ -27,7 +27,8 @@ object AuthenticationError:
     override def details: String = s"Account is not active: $state"
 
   object AccountNotActiveError:
-    def apply(state: AccountState): AccountNotActiveError =
+    def make(state: AccountState): AccountNotActiveError =
+      // checking invariant first
       if state.isInstanceOf[AccountState.Active] then throw new IllegalArgumentException("Account is active")
       else AccountNotActiveError(state)
 
@@ -53,11 +54,10 @@ object Authenticator:
               UserNotFoundError.asLeft.pure[F]
 
             case Some(account) if !account.isActive =>
-              println("Account is not active")
-              AccountNotActiveError(account.state).asLeft.pure[F]
+              AccountNotActiveError.make(account.state).asLeft.pure[F]
 
             case Some(account) =>
-              Sync[F].ifM(HashedPassword.verifyPassword(password, account.credentials.hashedPassword))(
+              HashedPassword.verifyPassword(password, account.credentials.hashedPassword).ifM(
                 ifTrue = JwtToken.makeJwtToken(privateKey, User(account.uuid, username), expirationOffset).map(_.asRight),
                 ifFalse = InvalidPasswordError.asLeft.pure[F]
               )

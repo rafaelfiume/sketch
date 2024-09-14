@@ -51,7 +51,9 @@ CREATE TABLE auth.global_access_control (
 CREATE TABLE auth.access_control (
     user_id UUID NOT NULL,
     entity_id UUID NOT NULL,
-    entity_type VARCHAR(30) NOT NULL CHECK (entity_type IN ('DocumentEntity')),
+    entity_type VARCHAR(30) NOT NULL CHECK (entity_type IN (
+      'DocumentEntity', 'UserEntity'
+    )),
     role VARCHAR(20) NOT NULL CHECK (role IN ('Owner')),
     PRIMARY KEY (user_id, entity_id)
     --FOREIGN KEY (user_id) REFERENCES users(user_id)
