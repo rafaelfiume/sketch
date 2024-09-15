@@ -1,6 +1,7 @@
 package org.fiume.sketch.storage.auth0.postgres
 
 import cats.effect.{Async, Resource}
+import cats.effect.kernel.Clock
 import cats.implicits.*
 import cats.~>
 import doobie.*
@@ -18,10 +19,10 @@ import org.fiume.sketch.storage.postgres.AbstractPostgresStore
 import java.time.Instant
 
 object PostgresUsersStore:
-  def make[F[_]: Async](tx: Transactor[F]): Resource[F, PostgresUsersStore[F]] =
-    WeakAsync.liftK[F, ConnectionIO].map(l => new PostgresUsersStore[F](l, tx))
+  def make[F[_]: Async](tx: Transactor[F], clock: Clock[F]): Resource[F, PostgresUsersStore[F]] =
+    WeakAsync.liftK[F, ConnectionIO].map(l => new PostgresUsersStore[F](l, tx, clock))
 
-private class PostgresUsersStore[F[_]: Async] private (l: F ~> ConnectionIO, tx: Transactor[F])
+private class PostgresUsersStore[F[_]: Async] private (l: F ~> ConnectionIO, tx: Transactor[F], clock: Clock[F])
     extends AbstractPostgresStore[F](l, tx)
     with UsersStore[F, ConnectionIO]:
 
@@ -41,7 +42,7 @@ private class PostgresUsersStore[F[_]: Async] private (l: F ~> ConnectionIO, tx:
     Statements.updatePassword(uuid, password).run.void
 
   override def markForDeletion(uuid: UserId): ConnectionIO[Unit] =
-    Statements.updateSoftDeletion(uuid, Instant.now()).run.void
+    l(clock.realTimeInstant).flatMap { Statements.updateSoftDeletion(uuid, _).run.void }
 
 private object Statements:
   def insertUserCredentials(username: Username, password: HashedPassword, salt: Salt): Update0 =

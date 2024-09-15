@@ -38,10 +38,10 @@ object Resources:
       dbHealthCheck0 <- PostgresHealthCheck.make[F](transactor)
       rusticHealthCheck0 <- RusticHealthCheck.make[F](config.rusticClient)
       versions0 <- SketchVersions.make[F](config.env, VersionFile("sketch.version"))
-      usersStore0 <- PostgresUsersStore.make[F](transactor)
+      usersStore0 <- PostgresUsersStore.make[F](transactor, Clock[F])
       authenticator0 <- Resource.liftK {
         Authenticator.make[F, ConnectionIO](
-          summon[Clock[F]],
+          Clock[F],
           usersStore0,
           config.keyPair.privateKey,
           config.keyPair.publicKey,

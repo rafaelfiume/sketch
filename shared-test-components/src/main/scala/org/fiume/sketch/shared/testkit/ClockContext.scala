@@ -4,22 +4,24 @@ import cats.Applicative
 import cats.effect.{Clock, IO}
 import cats.implicits.*
 
-import java.time.{ZoneOffset, ZonedDateTime}
+import java.time.{Instant, ZoneOffset, ZonedDateTime}
 import scala.concurrent.duration.*
 
 trait ClockContext:
 
   def makeAnytime(): Clock[IO] = makeFrozenTime(ZonedDateTime.now(ZoneOffset.UTC))
 
-  def makeFrozenTime(frozen: ZonedDateTime): Clock[IO] =
-    new Clock[IO]:
+  def makeFrozenTime(zdt: ZonedDateTime): Clock[IO] = makeFrozenTime(zdt.toInstant)
 
-      override def realTime: IO[FiniteDuration] =
-        frozen.toInstant().toEpochMilli().milliseconds.pure[IO]
+  def makeFrozenTime(instant: Instant): Clock[IO] =
+    new Clock[IO]:
 
       override def applicative: cats.Applicative[IO] = Applicative.apply
 
+      override def realTime: IO[FiniteDuration] =
+        instant.toEpochMilli().milliseconds.pure[IO]
+
       override def monotonic: IO[FiniteDuration] = IO
-        // does this work?
-        .delay(ZonedDateTime.now().toInstant.getEpochSecond * 1000000000L + ZonedDateTime.now().getNano)
+        // this seems correct?
+        .delay(Instant.now().getEpochSecond * 1000000000L + ZonedDateTime.now().getNano)
         .map(_.nanos)

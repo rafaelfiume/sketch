@@ -2,6 +2,7 @@ package org.fiume.sketch.auth0.scripts
 
 import cats.data.{EitherNec, Validated}
 import cats.effect.{ExitCode, IO, IOApp}
+import cats.effect.kernel.Clock
 import cats.effect.std.Console
 import cats.implicits.*
 import doobie.ConnectionIO
@@ -32,7 +33,7 @@ object UsersScript extends IOApp:
           IO.pure(scriptErrorCode)
 
   def makeScript(): IO[UsersScript] =
-    DatabaseConfig.envs[IO](dbPoolThreads = 2).load[IO].map(UsersScript(_))
+    DatabaseConfig.envs[IO](dbPoolThreads = 2).load[IO].map(UsersScript(_, Clock[IO]))
 
   object Args:
     def make(args: List[String]): Either[ErrorInfo, Args] =
@@ -58,12 +59,12 @@ object UsersScript extends IOApp:
 
   case class Args(username: Username, password: PlainPassword, isSuperuser: Boolean)
 
-class UsersScript private (private val config: DatabaseConfig):
+class UsersScript private (config: DatabaseConfig, clock: Clock[IO]):
   def createUserAccount(args: Args): IO[Unit] =
     DbTransactor
       .make[IO](config)
       .flatMap { transactor =>
-        (PostgresUsersStore.make[IO](transactor), PostgresAccessControl.make[IO](transactor)).tupled
+        (PostgresUsersStore.make[IO](transactor, clock), PostgresAccessControl.make[IO](transactor)).tupled
       }
       .use { case (usersStore, accessControl) =>
         for
