@@ -49,7 +49,7 @@ class UsersRoutesSpec
     }
   }
 
-  test("returns 403 when user is not allowed to delete or does not exist") {
+  test("returns 403 when user lacks permission to delete account or account does not exist") {
     forAllF { (authedUser: UserCredentials, maybeAnotherUser: UserCredentials, anotherUserExists: Boolean) =>
       for
         store <- makeUsersStore()
