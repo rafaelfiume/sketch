@@ -36,7 +36,7 @@ class PostgresUsersStoreSpec
 
             result <- store.fetchCredentials(credentials.username).ccommit
 //
-          yield assertEquals(result, UserCredentials.make(uuid, credentials).some)
+          yield assertEquals(result.someOrFail, UserCredentials.make(uuid, credentials))
         }
       }
     }
