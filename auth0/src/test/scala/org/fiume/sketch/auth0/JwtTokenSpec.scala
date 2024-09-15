@@ -38,8 +38,8 @@ class JwtTokenSpec extends ScalaCheckSuite with ClockContext with EcKeysGens wit
         publicKey
       )
 
-      assert(result.leftOfFail.isInstanceOf[JwtValidationError])
-      assertEquals(result.leftOfFail.details, "Invalid signature for this token or wrong algorithm.")
+      assert(result.leftOrFail.isInstanceOf[JwtValidationError])
+      assertEquals(result.leftOrFail.details, "Invalid signature for this token or wrong algorithm.")
     }
 
   test("expired jwt verification fails"):
@@ -49,8 +49,8 @@ class JwtTokenSpec extends ScalaCheckSuite with ClockContext with EcKeysGens wit
 
       val result = JwtToken.verifyJwtToken(jwtToken, publicKey)
 
-      assert(result.leftOfFail.isInstanceOf[JwtExpirationError])
-      assert(result.leftOfFail.details.contains("The token is expired since "))
+      assert(result.leftOrFail.isInstanceOf[JwtExpirationError])
+      assert(result.leftOrFail.details.contains("The token is expired since "))
     }
 
   test("token verification with invalid public key fails"):
@@ -60,8 +60,8 @@ class JwtTokenSpec extends ScalaCheckSuite with ClockContext with EcKeysGens wit
 
         val result = JwtToken.verifyJwtToken(jwtToken, strangePublicKey)
 
-        assert(result.leftOfFail.isInstanceOf[JwtValidationError])
-        assertEquals(result.leftOfFail.details, "Invalid signature for this token or wrong algorithm.")
+        assert(result.leftOrFail.isInstanceOf[JwtValidationError])
+        assertEquals(result.leftOrFail.details, "Invalid signature for this token or wrong algorithm.")
     }
 
 trait JwtTokenSpecContext:

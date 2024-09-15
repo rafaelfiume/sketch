@@ -18,47 +18,47 @@ class PlainPasswordSpec extends ScalaCheckSuite:
 
   test("rejects short passwords"):
     forAll(shortPasswords) { shortPassword =>
-      PlainPassword.validated(shortPassword).leftOfFail.contains(WeakPasswordError.TooShort)
+      PlainPassword.validated(shortPassword).leftOrFail.contains(WeakPasswordError.TooShort)
     }
 
   test("rejects long passwords"):
     forAll(longPasswords) { longPassword =>
-      PlainPassword.validated(longPassword).leftOfFail.contains(WeakPasswordError.TooLong)
+      PlainPassword.validated(longPassword).leftOrFail.contains(WeakPasswordError.TooLong)
     }
 
   test("rejects passwords without uppercase"):
     forAll(invalidPasswordsWithoutUppercase) { noUpperCase =>
-      PlainPassword.validated(noUpperCase).leftOfFail.contains(WeakPasswordError.NoUpperCase)
+      PlainPassword.validated(noUpperCase).leftOrFail.contains(WeakPasswordError.NoUpperCase)
     }
 
   test("rejects passwords without lowercase"):
     forAll(invalidPasswordsWithoutLowercase) { noLowerCase =>
-      PlainPassword.validated(noLowerCase).leftOfFail.contains(WeakPasswordError.NoLowerCase)
+      PlainPassword.validated(noLowerCase).leftOrFail.contains(WeakPasswordError.NoLowerCase)
     }
 
   test("rejects passwords without digit"):
     forAll(invalidPasswordsWithoutDigit) { noDigit =>
-      PlainPassword.validated(noDigit).leftOfFail.contains(WeakPasswordError.NoDigit)
+      PlainPassword.validated(noDigit).leftOrFail.contains(WeakPasswordError.NoDigit)
     }
 
   test("rejects weak passwords without special character"):
     forAll(invalidPasswordsWithoutSpecialChar) { noSpecialChar =>
-      PlainPassword.validated(noSpecialChar).leftOfFail.contains(WeakPasswordError.NoSpecialChar)
+      PlainPassword.validated(noSpecialChar).leftOrFail.contains(WeakPasswordError.NoSpecialChar)
     }
 
   test("rejects passwords with whitespace"):
     forAll(invalidPasswordsWithWhitespace) { withWhitespace =>
-      PlainPassword.validated(withWhitespace).leftOfFail.contains(WeakPasswordError.Whitespace)
+      PlainPassword.validated(withWhitespace).leftOrFail.contains(WeakPasswordError.Whitespace)
     }
 
   test("rejects passwords with invalid special chars"):
     forAll(invalidPasswordsWithInvalidSpecialChars) { withInvalidChar =>
-      PlainPassword.validated(withInvalidChar).leftOfFail.contains(WeakPasswordError.InvalidSpecialChar)
+      PlainPassword.validated(withInvalidChar).leftOrFail.contains(WeakPasswordError.InvalidSpecialChar)
     }
 
   test("rejects passwords with control chars or emojis"):
     forAll(passwordsWithControlCharsOrEmojis) { withControlCharsOrEmojis =>
-      PlainPassword.validated(withControlCharsOrEmojis).leftOfFail.contains(WeakPasswordError.InvalidChar)
+      PlainPassword.validated(withControlCharsOrEmojis).leftOrFail.contains(WeakPasswordError.InvalidChar)
     }
 
   test("accumulates validation errors"):
@@ -68,5 +68,5 @@ class PlainPasswordSpec extends ScalaCheckSuite:
         WeakPasswordError.Whitespace,
         WeakPasswordError.InvalidSpecialChar,
         WeakPasswordError.InvalidChar
-      ).subsetOf(result.leftOfFail.toList.toSet)
+      ).subsetOf(result.leftOrFail.toList.toSet)
     }

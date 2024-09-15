@@ -275,7 +275,7 @@ class DocumentsRoutesSpec
     /* Also see `given accumulatingParallel: cats.Parallel[EitherT[IO, String, *]] = EitherT.accumulatingParallel` */
     // no metadata part / no bytes part
     val noMultiparts = Multipart[IO](parts = Vector.empty, boundary = Boundary("boundary"))
-    for inputErrors <- noMultiparts.validated().attempt.map(_.leftOfFail)
+    for inputErrors <- noMultiparts.validated().attempt.map(_.leftOrFail)
     yield assert(
       inputErrors.asInstanceOf[SemanticInputError].details.tips.size === 2,
       clue = inputErrors

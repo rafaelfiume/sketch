@@ -57,7 +57,7 @@ class AuthenticatorSpec
 
           result <- authenticator.authenticate(credentials.username, plainPassword.shuffled)
 //
-        yield assertEquals(result.leftOfFail, InvalidPasswordError)
+        yield assertEquals(result.leftOrFail, InvalidPasswordError)
     }
 
   test("unknown username authentication fails"):
@@ -69,7 +69,7 @@ class AuthenticatorSpec
           authenticator <- Authenticator.make[IO, IO](makeAnytime(), store, privateKey, publicKey, expirationOffset)
           result <- authenticator.authenticate(credentials.username.shuffled, plainPassword)
 //
-        yield assertEquals(result.leftOfFail, UserNotFoundError)
+        yield assertEquals(result.leftOrFail, UserNotFoundError)
     }
 
   test("inactive account authentication fails"):
@@ -83,7 +83,7 @@ class AuthenticatorSpec
           authenticator <- Authenticator.make[IO, IO](makeAnytime(), store, privateKey, publicKey, expirationOffset)
           result <- authenticator.authenticate(credentials.username, plainPassword)
 //
-        yield result.leftOfFail match
+        yield result.leftOrFail match
           case AccountNotActiveError(_) => assert(true)
           case _                        => fail(s"Expected AccountNotActiveError, got: $result")
     }
@@ -100,8 +100,8 @@ class AuthenticatorSpec
           result = authenticator.verify(jwtToken)
 //
         yield
-          assert(result.leftOfFail.isInstanceOf[JwtExpirationError])
-          assert(result.leftOfFail.details.startsWith("The token is expired since"))
+          assert(result.leftOrFail.isInstanceOf[JwtExpirationError])
+          assert(result.leftOrFail.details.startsWith("The token is expired since"))
     }
 
   test("tampered token verification fails"):
@@ -115,7 +115,7 @@ class AuthenticatorSpec
           result = authenticator.verify(token.tampered)
 //
         yield assertEquals(
-          result.leftOfFail,
+          result.leftOrFail,
           JwtEmptySignatureError("No signature found inside the token while trying to verify it with a key.")
         )
     }
@@ -131,8 +131,8 @@ class AuthenticatorSpec
           result = authenticator.verify(jwtToken.reversed)
 //
         yield
-          assert(result.leftOfFail.isInstanceOf[JwtInvalidTokenError])
-          assert(result.leftOfFail.details.startsWith("Invalid Jwt token:"))
+          assert(result.leftOrFail.isInstanceOf[JwtInvalidTokenError])
+          assert(result.leftOrFail.details.startsWith("Invalid Jwt token:"))
     }
 
   test("token verification with invalid public key fails"):
@@ -146,7 +146,7 @@ class AuthenticatorSpec
           result = authenticator.verify(jwtToken)
 //
         yield assertEquals(
-          result.leftOfFail,
+          result.leftOrFail,
           JwtValidationError("Invalid signature for this token or wrong algorithm.")
         )
     }

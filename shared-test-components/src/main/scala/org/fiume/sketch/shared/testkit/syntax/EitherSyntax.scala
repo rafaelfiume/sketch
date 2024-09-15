@@ -4,7 +4,7 @@ import munit.Assertions.fail
 
 object EitherSyntax:
   extension [L, R](e: Either[L, R])
-    def leftOfFail: L =
+    def leftOrFail: L =
       e match
         case Left(e)  => e
         case Right(_) => fail(s"expected left value; got '$e' instead")

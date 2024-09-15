@@ -18,25 +18,25 @@ class UsernameSpec extends ScalaCheckSuite with ShrinkLowPriority:
 
   test("rejects short username"):
     forAll(shortUsernames) { shortUsername =>
-      Username.validated(shortUsername).leftOfFail.contains(WeakUsernameError.TooShort)
+      Username.validated(shortUsername).leftOrFail.contains(WeakUsernameError.TooShort)
     }
 
   test("rejects long username"):
     forAll(longUsernames) { longUsername =>
-      Username.validated(longUsername).leftOfFail.contains(WeakUsernameError.TooLong)
+      Username.validated(longUsername).leftOrFail.contains(WeakUsernameError.TooLong)
     }
 
   test("rejects username with invalid characters"):
     forAll(usernamesWithInvalidChars) { usernameWithInvalidChars =>
-      Username.validated(usernameWithInvalidChars).leftOfFail.contains(WeakUsernameError.InvalidChar)
+      Username.validated(usernameWithInvalidChars).leftOrFail.contains(WeakUsernameError.InvalidChar)
     }
 
   test("rejects username with reserved words"):
     forAll(usernamesWithReservedWords) { usernameWithReservedWords =>
-      Username.validated(usernameWithReservedWords).leftOfFail.contains(WeakUsernameError.ReservedWords)
+      Username.validated(usernameWithReservedWords).leftOrFail.contains(WeakUsernameError.ReservedWords)
     }
 
   test("rejects username with excessive repeated characters"):
     forAll(usernamesWithRepeatedChars) { usernameWithExcessiveRepeatedChars =>
-      Username.validated(usernameWithExcessiveRepeatedChars).leftOfFail.contains(WeakUsernameError.ExcessiveRepeatedChars)
+      Username.validated(usernameWithExcessiveRepeatedChars).leftOrFail.contains(WeakUsernameError.ExcessiveRepeatedChars)
     }

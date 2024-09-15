@@ -27,8 +27,6 @@ class UsersRoutesSpec
     with UsersStoreContext
     with ShrinkLowPriority:
 
-  // override def scalaCheckTestParameters = super.scalaCheckTestParameters.withMinSuccessfulTests(10)
-
   test("marks user for deletion") {
     forAllF { (user: UserCredentials) =>
       for

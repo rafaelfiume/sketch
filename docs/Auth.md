@@ -55,15 +55,11 @@ After n days (configurable), the user data should be permanently deleted
 Consider to anonymise use data after m days have passed, m < n.
 
 Step-by-step:
-1) Clean up users algebra
-1) Persist UserEntity in `access_control` upon user registration
-1) Set account state as `Active` when registering user
-1) Model `UserAccount`. Make `UserCredential` a property of `UserAccount`.
 1) Implement soft delete.
   * Make sure user with deleted account is unable to login
   * Users can delete their own account
   * Admin can delete other users' account
-  * (Mark it for permanent deletion)
+1) Mark soft deleted account it to permanent deletion
 1) Schedule job to permanently delete user account after n days
 1) Use callback to delete all entities of user with deleted account
     (search for '1. REST-based Event Notifications (Webhook-Style)')
@@ -71,7 +67,6 @@ Step-by-step:
 ```
 DELETE /users/{userId}
 {
-  "status": "success",
   "message": "User account has been soft deleted.",
   "deletionDate": "2024-09-13T12:00:00Z",
   "permanentDeletionDate": "2024-12-13T12:00:00Z"
@@ -88,6 +83,10 @@ Clean up needed:
  - Error handling in DoobieMappings
  - Extract an OptionSyntax
  - Rename `notValidatedFromString` to `makeNotValidatedFromString`
+ - Rename `makeJwtToken` to `make`
+ - Rename `verifyJwtToken` to `verify`
 
-Consider:
- * Only 'Admin' can delete other users account
+ Next PR clean up, missing unit and acc tests, response payload (?), document with Postman collection
+ Subsequent PR Admin can delete any user account
+ 3rd PR Mark it to permanent deletion
+ 4th PR clean up all entities upon permanent deletion

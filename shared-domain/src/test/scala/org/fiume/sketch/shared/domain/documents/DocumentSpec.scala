@@ -18,15 +18,15 @@ class DocumentSpec extends ScalaCheckSuite with ShrinkLowPriority:
 
   test("rejects short document names"):
     forAll(shortNames) { shortName =>
-      Name.validated(shortName).leftOfFail.contains(InvalidDocumentNameError.TooShort)
+      Name.validated(shortName).leftOrFail.contains(InvalidDocumentNameError.TooShort)
     }
 
   test("rejects long document name"):
     forAll(longNames) { longName =>
-      Name.validated(longName).leftOfFail.contains(InvalidDocumentNameError.TooLong)
+      Name.validated(longName).leftOrFail.contains(InvalidDocumentNameError.TooLong)
     }
 
   test("rejects document name with invalid characters"):
     forAll(namesWithInvalidChars) { nameWithInvalidChars =>
-      Name.validated(nameWithInvalidChars).leftOfFail.contains(InvalidDocumentNameError.InvalidChar)
+      Name.validated(nameWithInvalidChars).leftOrFail.contains(InvalidDocumentNameError.InvalidChar)
     }

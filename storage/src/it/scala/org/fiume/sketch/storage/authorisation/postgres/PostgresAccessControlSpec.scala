@@ -142,7 +142,7 @@ class PostgresAccessControlSpec
               }
               .ccommit
 //
-          yield assertEquals(result.leftOfFail, "Unauthorised")
+          yield assertEquals(result.leftOrFail, "Unauthorised")
         }
       }
     }
