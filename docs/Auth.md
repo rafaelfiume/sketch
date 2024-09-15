@@ -62,10 +62,21 @@ Step-by-step:
 1) Implement soft delete.
   * Make sure user with deleted account is unable to login
   * Users can delete their own account
-  * Superuser can delete other users' account
+  * Admin can delete other users' account
   * (Mark it for permanent deletion)
 1) Schedule job to permanently delete user account after n days
 1) Use callback to delete all entities of user with deleted account
+    (search for '1. REST-based Event Notifications (Webhook-Style)')
+
+```
+DELETE /users/{userId}
+{
+  "status": "success",
+  "message": "User account has been soft deleted.",
+  "deletionDate": "2024-09-13T12:00:00Z",
+  "permanentDeletionDate": "2024-12-13T12:00:00Z"
+}
+```
 
 ... Rest-based Event Notification (Webhook Style)...
 ... use a temporary shared secret solution to authenticate the auth part of the service when invoking

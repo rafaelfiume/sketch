@@ -41,6 +41,7 @@ class DocumentsRoutes[F[_]: Concurrent, Txn[_]: FlatMap](
 
   private val prefix = "/"
 
+  // enable Store's syntax
   given DocumentsStore[F, Txn] = store
 
   def router(): HttpRoutes[F] = Router(

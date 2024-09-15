@@ -39,9 +39,10 @@ class DocumentsRoutesSpec
     extends CatsEffectSuite
     with ScalaCheckEffectSuite
     with Http4sTestingRoutesDsl
-    with ContractContext
-    with DocumentsStoreContext
+    with AuthMiddlewareContext
     with AccessControlContext
+    with DocumentsStoreContext
+    with ContractContext
     with DocumentsRoutesSpecContext
     with ShrinkLowPriority:
 
@@ -282,7 +283,7 @@ class DocumentsRoutesSpec
 
   }
 
-trait DocumentsRoutesSpecContext extends AuthMiddlewareContext:
+trait DocumentsRoutesSpecContext:
 
   def montainBikeInLiguriaImageFile = getClass.getClassLoader.getResource("mountain-bike-liguria-ponent.jpg")
 
