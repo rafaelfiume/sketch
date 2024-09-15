@@ -4,7 +4,7 @@ import cats.Monad
 import cats.effect.Sync
 import cats.implicits.*
 import org.fiume.sketch.authorisation.{AccessControl, ContextualRole, GlobalRole}
-import org.fiume.sketch.shared.app.algebras.Store.Syntax.commit
+import org.fiume.sketch.shared.app.syntax.StoreSyntax.*
 import org.fiume.sketch.shared.auth0.{User, UserId}
 import org.fiume.sketch.shared.auth0.Passwords.{HashedPassword, PlainPassword, Salt}
 import org.fiume.sketch.shared.auth0.User.*

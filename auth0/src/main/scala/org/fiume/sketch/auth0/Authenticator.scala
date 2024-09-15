@@ -3,7 +3,7 @@ package org.fiume.sketch.auth0
 import cats.effect.{Clock, Sync}
 import cats.implicits.*
 import org.fiume.sketch.auth0.AuthenticationError.*
-import org.fiume.sketch.shared.app.algebras.Store.Syntax.commit
+import org.fiume.sketch.shared.app.syntax.StoreSyntax.*
 import org.fiume.sketch.shared.auth0.{AccountState, User}
 import org.fiume.sketch.shared.auth0.Passwords.{HashedPassword, PlainPassword}
 import org.fiume.sketch.shared.auth0.User.Username

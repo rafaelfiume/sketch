@@ -6,7 +6,7 @@ import cats.implicits.*
 import org.fiume.sketch.auth0.http.UsersRoutes.UserIdVar
 import org.fiume.sketch.authorisation.AccessControl
 import org.fiume.sketch.shared.app.EntityId.given
-import org.fiume.sketch.shared.app.algebras.Store.Syntax.*
+import org.fiume.sketch.shared.app.syntax.StoreSyntax.*
 import org.fiume.sketch.shared.auth0.{User, UserId}
 import org.fiume.sketch.shared.auth0.algebras.UsersStore
 import org.http4s.{HttpRoutes, *}
