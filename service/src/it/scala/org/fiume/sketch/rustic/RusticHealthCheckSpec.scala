@@ -8,6 +8,7 @@ import munit.CatsEffectSuite
 import org.fiume.sketch.shared.app.ServiceStatus.{DependencyStatus, Status}
 import org.fiume.sketch.shared.app.ServiceStatus.Dependency.*
 import org.fiume.sketch.shared.testkit.FileContentContext
+import org.fiume.sketch.shared.testkit.syntax.OptionSyntax.*
 import org.fiume.sketch.testkit.HttpServiceContext
 import org.http4s.*
 import org.http4s.circe.CirceEntityEncoder.*
@@ -78,7 +79,7 @@ trait RusticHealthCheckSpecContext extends FileContentContext with HttpServiceCo
 
   private def rusticIsDegraded(): Resource[IO, HttpRoutes[IO]] =
     def response: Gen[IO[Response[IO]]] = Gen.oneOf(InternalServerError(), BadRequest())
-    Resource.pure { makeStatusRoute(willRespond = response.sample.get) }
+    Resource.pure { makeStatusRoute(willRespond = response.sample.someOrFail) }
 
   private def makeStatusRoute(willRespond: IO[Response[IO]]) =
     val route = HttpRoutes.of[IO] { case GET -> Root / "status" => willRespond }

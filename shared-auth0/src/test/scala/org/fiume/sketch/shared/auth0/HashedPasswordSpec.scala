@@ -49,14 +49,14 @@ class HashedPasswordSpec extends ScalaCheckSuite with ShrinkLowPriority:
   test("plain password matches hashed version"):
     forAll { (password: PlainPassword, salt: Salt) =>
       val hashedPassword = HashedPassword.hashPassword[IO](password, salt).unsafeRunSync()
-      HashedPassword.verifyPassword(password, hashedPassword)
+      HashedPassword.verifyPassword[IO](password, hashedPassword).unsafeRunSync()
     }
 
   test("plain password does not match hashed version"):
     forAll { (password: PlainPassword, differentPassword: PlainPassword, salt: Salt) =>
       (password != differentPassword) ==> {
         val hashedPassword = HashedPassword.hashPassword[IO](password, salt).unsafeRunSync()
-        !HashedPassword.verifyPassword(differentPassword, hashedPassword)
+        !HashedPassword.verifyPassword[IO](differentPassword, hashedPassword).unsafeRunSync()
       }
     }
 

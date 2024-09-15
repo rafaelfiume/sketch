@@ -4,7 +4,7 @@ import cats.effect.{Async, Resource, Sync}
 import fs2.io.file.{Files, Path}
 import io.circe.Json
 import io.circe.parser.parse
-import org.fiume.sketch.shared.testkit.Syntax.EitherSyntax.*
+import org.fiume.sketch.shared.testkit.syntax.EitherSyntax.*
 
 import scala.io.Source
 
@@ -13,7 +13,7 @@ import scala.io.Source
  */
 trait FileContentContext:
   def jsonFrom[F[_]: Sync](path: String, debug: Boolean = false): Resource[F, Json] =
-    stringFrom(path, debug).map(parse(_).rightValue)
+    stringFrom(path, debug).map(parse(_).rightOrFail)
 
   def stringFrom[F[_]: Sync](path: String, debug: Boolean = false): Resource[F, String] =
     Resource

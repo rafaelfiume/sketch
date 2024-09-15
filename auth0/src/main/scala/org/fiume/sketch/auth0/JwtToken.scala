@@ -1,7 +1,6 @@
 package org.fiume.sketch.auth0
 
 import cats.{FlatMap, Show}
-import cats.effect.Clock
 import cats.implicits.*
 import io.circe.{Decoder, Encoder, HCursor, Json, ParsingFailure}
 import io.circe.parser.parse
@@ -14,6 +13,7 @@ import pdi.jwt.{JwtAlgorithm, JwtCirce, JwtClaim}
 import pdi.jwt.exceptions.*
 
 import java.security.{PrivateKey, PublicKey}
+import java.time.Instant
 import scala.concurrent.duration.Duration
 import scala.util.control.NoStackTrace
 
@@ -34,19 +34,17 @@ object JwtError:
 
 private[auth0] object JwtToken:
   // offset: a shift in time from a reference point
-  def makeJwtToken[F[_]: FlatMap: Clock](privateKey: PrivateKey, user: User, expirationOffset: Duration): F[JwtToken] =
-    for
-      now <- Clock[F].realTimeInstant
-      content = Content(
-        preferredUsername = user.username
-      )
-      claim = JwtClaim(
-        subject = user.uuid.asString().some,
-        content = content.asJson.noSpaces,
-        issuedAt = now.getEpochSecond.some,
-        expiration = now.plusSeconds(expirationOffset.toSeconds).getEpochSecond.some
-      )
-    yield new JwtToken(value = JwtCirce.encode(claim, privateKey, JwtAlgorithm.ES256)) {}
+  def makeJwtToken[F[_]: FlatMap](privateKey: PrivateKey, user: User, now: Instant, expirationOffset: Duration): JwtToken =
+    val content = Content(
+      preferredUsername = user.username
+    )
+    val claim = JwtClaim(
+      subject = user.uuid.asString().some,
+      content = content.asJson.noSpaces,
+      issuedAt = now.getEpochSecond.some,
+      expiration = now.plusSeconds(expirationOffset.toSeconds).getEpochSecond.some
+    )
+    new JwtToken(value = JwtCirce.encode(claim, privateKey, JwtAlgorithm.ES256)) {}
 
   def verifyJwtToken(token: JwtToken, publicKey: PublicKey): Either[JwtError, User] =
     (for

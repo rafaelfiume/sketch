@@ -4,7 +4,7 @@ package org.fiume.sketch.shared.typeclasses
 
 /*
  * Laws:
- * - Isomorphism: `T.asString()` <-> `T.parsed().rightValue`
+ * - Isomorphism: `T.asString()` <-> `T.parsed().rightOrFail`
  */
 trait FromString[E, T]:
   extension (s: String) def parsed(): Either[E, T]

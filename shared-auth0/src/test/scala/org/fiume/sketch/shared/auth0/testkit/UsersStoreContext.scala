@@ -2,10 +2,12 @@ package org.fiume.sketch.shared.auth0.testkit
 
 import cats.effect.{IO, Ref}
 import cats.implicits.*
-import org.fiume.sketch.shared.auth0.{User, UserId}
+import org.fiume.sketch.shared.auth0.{Account, AccountState, User, UserId}
 import org.fiume.sketch.shared.auth0.Passwords.HashedPassword
 import org.fiume.sketch.shared.auth0.User.{UserCredentials, UserCredentialsWithId, Username}
 import org.fiume.sketch.shared.auth0.algebras.UsersStore
+
+import java.time.Instant
 
 trait UsersStoreContext:
 
@@ -14,44 +16,44 @@ trait UsersStoreContext:
   def makeUsersStore(credentials: UserCredentialsWithId): IO[UsersStore[IO, IO]] =
     makeUsersStore(
       Map(
-        credentials.uuid -> UserCredentials(credentials.username, credentials.hashedPassword, credentials.salt)
+        credentials.uuid -> Account(credentials.uuid, credentials, AccountState.Active(Instant.now()))
       )
     )
 
-  def makeUsersStore(state: Map[UserId, UserCredentials]): IO[UsersStore[IO, IO]] =
-    Ref.of[IO, Map[UserId, UserCredentials]](state).map { storage =>
+  def makeUsersStore(account: Account): IO[UsersStore[IO, IO]] =
+    makeUsersStore(Map(account.uuid -> account))
+
+  private def makeUsersStore(state: Map[UserId, Account]): IO[UsersStore[IO, IO]] =
+    Ref.of[IO, Map[UserId, Account]](state).map { storage =>
       new UsersStore[IO, IO]:
         override def store(credentials: UserCredentials): IO[UserId] =
           IO.randomUUID.map(UserId(_)).flatMap { uuid =>
-            storage
-              .update {
-                _.updated(uuid, credentials)
-              }
-              .as(uuid)
+            val account = Account(uuid, credentials, AccountState.Active(Instant.now()))
+            storage.update { _.updated(uuid, account) }.as(uuid)
           }
 
-        override def fetchUser(uuid: UserId): IO[Option[User]] =
+        override def fetchAccount(username: Username): IO[Option[Account]] =
           storage.get.map(_.collectFirst {
-            case (storedUuid, storedCreds) if storedUuid == uuid =>
-              User(uuid, storedCreds.username)
+            case (_, account) if account.credentials.username == username => account
           })
 
         override def fetchCredentials(username: Username): IO[Option[UserCredentialsWithId]] =
           storage.get.map(_.collectFirst {
-            case (uuid, storedCreds) if storedCreds.username == username =>
-              UserCredentials.make(uuid, storedCreds)
+            case (uuid, account) if account.credentials.username == username =>
+              UserCredentials.make(uuid, account.credentials)
           })
 
-        override def updatePassword(uuid: UserId, newPassword: HashedPassword): IO[Unit] =
+        override def updatePassword(uuid: UserId, newPassword: HashedPassword): IO[Unit] = ???
+
+        override def markForDeletion(uuid: UserId): IO[Unit] =
           storage.update {
             _.updatedWith(uuid) {
-              case Some(storedCreds) => UserCredentials(storedCreds.username, newPassword, storedCreds.salt).some
-              case None              => none
+              case Some(account) =>
+                val softDeletion = AccountState.SoftDeleted(deletedAt = Instant.now())
+                account.copy(state = softDeletion).some
+              case None => none
             }
           }
-
-        override def delete(uuid: UserId): IO[Unit] =
-          storage.update(_.removed(uuid))
 
         override val lift: [A] => IO[A] => IO[A] = [A] => (action: IO[A]) => action
 

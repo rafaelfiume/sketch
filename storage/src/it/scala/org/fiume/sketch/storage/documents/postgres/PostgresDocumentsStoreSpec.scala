@@ -9,8 +9,9 @@ import munit.ScalaCheckEffectSuite
 import org.fiume.sketch.shared.domain.documents.{Document, DocumentId, DocumentWithIdAndStream, DocumentWithStream}
 import org.fiume.sketch.shared.domain.testkit.DocumentsGens.*
 import org.fiume.sketch.shared.domain.testkit.DocumentsGens.given
-import org.fiume.sketch.shared.domain.testkit.Syntax.DocumentSyntax.*
+import org.fiume.sketch.shared.domain.testkit.syntax.DocumentSyntax.*
 import org.fiume.sketch.shared.testkit.FileContentContext
+import org.fiume.sketch.shared.testkit.syntax.OptionSyntax.*
 import org.fiume.sketch.storage.documents.postgres.DoobieMappings.given
 import org.fiume.sketch.storage.testkit.DockerPostgresSuite
 import org.scalacheck.ShrinkLowPriority
@@ -85,7 +86,7 @@ class PostgresDocumentsStoreSpec
             sndDocResult <- store.fetchDocument(sndUuid).ccommit
           yield
             assertEquals(fstDocResult, none)
-            assertEquals(sndDocResult.get.uuid, sndUuid)
+            assertEquals(sndDocResult.someOrFail.uuid, sndUuid)
         }
       }
     }
@@ -113,7 +114,7 @@ class PostgresDocumentsStoreSpec
       will(cleanDocuments) {
         PostgresDocumentsStore.make[IO](transactor()).use { store =>
           for
-            uuid <- store.store(documentsWithStream.sample.get).ccommit
+            uuid <- store.store(documentsWithStream.sample.someOrFail).ccommit
             _ <- store
               .documentStream(uuid)
               .ccommitStream

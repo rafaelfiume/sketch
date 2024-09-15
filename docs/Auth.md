@@ -55,36 +55,38 @@ After n days (configurable), the user data should be permanently deleted
 Consider to anonymise use data after m days have passed, m < n.
 
 Step-by-step:
-1) Clean up users algebra
-1) Persist UserEntity in `access_control` upon user registration
-1) Model `UserAccount`. Make `UserCredential` a property of `UserAccount`.
 1) Implement soft delete.
-  * Check user's permission
-  * Make sure user is unable to login
-  * (Mark it for permanent deletion)
+  * Make sure user with deleted account is unable to login
+  * Users can delete their own account
+  * Admin can delete other users' account
+1) Mark soft deleted account it to permanent deletion
 1) Schedule job to permanently delete user account after n days
 1) Use callback to delete all entities of user with deleted account
+    (search for '1. REST-based Event Notifications (Webhook-Style)')
+
+```
+DELETE /users/{userId}
+{
+  "message": "User account has been soft deleted.",
+  "deletionDate": "2024-09-13T12:00:00Z",
+  "permanentDeletionDate": "2024-12-13T12:00:00Z"
+}
+```
 
 ... Rest-based Event Notification (Webhook Style)...
 ... use a temporary shared secret solution to authenticate the auth part of the service when invoking
 the `/purge-user-entities` endpoint.
 
-Modelling the user account:
+Clean up needed:
+ - Replace Instant by ZonedDateTime ?
+ - Frozen time to facilitate test assertions
+ - Error handling in DoobieMappings
+ - Extract an OptionSyntax
+ - Rename `notValidatedFromString` to `makeNotValidatedFromString`
+ - Rename `makeJwtToken` to `make`
+ - Rename `verifyJwtToken` to `verify`
 
-case class UserAccount(
-  id: UserId,
-  credentials: UserCredentials,
-  /// email: Email, // possibly in the future, depending on requirements
-  state: AccountState,
-  createdAt: Instant,
-  updatedAt: Option[Instant]
-)
-
-Modelling the account state:
-
-enum AccountState:
-  case Active
-  case Deactivated(reason: String)            // For instance, too many failed login attempts
-  case Deleted (deletedAt: Instant)           // The account has been soft-deleted
-  case PermanentlyDeleted(deletedAt: Instant)
-  case PendingVerification                    // User must verify their email or other requirements
+ Next PR clean up, missing unit and acc tests, response payload (?), document with Postman collection
+ Subsequent PR Admin can delete any user account
+ 3rd PR Mark it to permanent deletion
+ 4th PR clean up all entities upon permanent deletion

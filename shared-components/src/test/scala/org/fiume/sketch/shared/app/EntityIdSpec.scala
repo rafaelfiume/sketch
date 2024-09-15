@@ -3,7 +3,7 @@ package org.fiume.sketch.shared.app
 import cats.implicits.*
 import munit.ScalaCheckSuite
 import org.fiume.sketch.shared.app.EntityId.given
-import org.fiume.sketch.shared.testkit.Syntax.EitherSyntax.*
+import org.fiume.sketch.shared.testkit.syntax.EitherSyntax.*
 import org.scalacheck.{Arbitrary, Gen, ShrinkLowPriority}
 import org.scalacheck.Prop.forAll
 
@@ -13,7 +13,7 @@ class EntityIdSpec extends ScalaCheckSuite with EntityIdSpecContext with ShrinkL
 
   test("AsString and FromString form an isomorphism"):
     forAll { (id: OrderId) =>
-      id.asString().parsed().rightValue === id
+      id.asString().parsed().rightOrFail === id
     }
 
   test("Equality is based on the UUID value"):

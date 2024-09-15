@@ -25,8 +25,10 @@ CREATE TABLE auth.users (
   -- jbcrypt uses 16 bytes salt, and its actual size is 29 chars length
   -- UNIQUE salts helps to prevent precomputed hash attacks
   salt VARCHAR(50) NOT NULL UNIQUE,
+  state VARCHAR(20) NOT NULL CHECK (state IN ('Active', 'PendingDeletion')) DEFAULT 'Active',
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  deleted_at TIMESTAMPTZ
 );
 
 CREATE INDEX idx_users_username ON auth.users (username);
@@ -49,7 +51,9 @@ CREATE TABLE auth.global_access_control (
 CREATE TABLE auth.access_control (
     user_id UUID NOT NULL,
     entity_id UUID NOT NULL,
-    entity_type VARCHAR(30) NOT NULL CHECK (entity_type IN ('DocumentEntity')),
+    entity_type VARCHAR(30) NOT NULL CHECK (entity_type IN (
+      'DocumentEntity', 'UserEntity'
+    )),
     role VARCHAR(20) NOT NULL CHECK (role IN ('Owner')),
     PRIMARY KEY (user_id, entity_id)
     --FOREIGN KEY (user_id) REFERENCES users(user_id)

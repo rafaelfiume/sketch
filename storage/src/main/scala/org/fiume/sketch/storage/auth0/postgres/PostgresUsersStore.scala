@@ -6,13 +6,16 @@ import cats.~>
 import doobie.*
 import doobie.free.connection.ConnectionIO
 import doobie.implicits.*
-import org.fiume.sketch.shared.auth0.{Passwords, User, UserId}
+import doobie.postgres.implicits.*
+import org.fiume.sketch.shared.auth0.{Account, Passwords, User, UserId}
 import org.fiume.sketch.shared.auth0.Passwords.{HashedPassword, Salt}
 import org.fiume.sketch.shared.auth0.User.*
 import org.fiume.sketch.shared.auth0.algebras.UsersStore
 import org.fiume.sketch.storage.auth0.postgres.DoobieMappings.given
 import org.fiume.sketch.storage.auth0.postgres.Statements.*
 import org.fiume.sketch.storage.postgres.AbstractPostgresStore
+
+import java.time.Instant
 
 object PostgresUsersStore:
   def make[F[_]: Async](tx: Transactor[F]): Resource[F, PostgresUsersStore[F]] =
@@ -22,20 +25,23 @@ private class PostgresUsersStore[F[_]: Async] private (l: F ~> ConnectionIO, tx:
     extends AbstractPostgresStore[F](l, tx)
     with UsersStore[F, ConnectionIO]:
 
-  def store(credentials: UserCredentials): ConnectionIO[UserId] =
+  override def store(credentials: UserCredentials): ConnectionIO[UserId] =
     insertUserCredentials(credentials.username, credentials.hashedPassword, credentials.salt)
       .withUniqueGeneratedKeys[UserId](
         "uuid"
       )
 
-  def fetchUser(uuid: UserId): ConnectionIO[Option[User]] = selectUser(uuid).option
+  override def fetchAccount(username: Username): ConnectionIO[Option[Account]] =
+    Statements.selectUserAccount(username).option
 
-  def fetchCredentials(username: Username): ConnectionIO[Option[UserCredentialsWithId]] =
+  override def fetchCredentials(username: Username): ConnectionIO[Option[UserCredentialsWithId]] =
     Statements.selectUserCredential(username).option
 
-  def updatePassword(uuid: UserId, password: HashedPassword): ConnectionIO[Unit] =
+  override def updatePassword(uuid: UserId, password: HashedPassword): ConnectionIO[Unit] =
     Statements.updatePassword(uuid, password).run.void
-  def delete(uuid: UserId): ConnectionIO[Unit] = Statements.deleteUser(uuid).run.void
+
+  override def markForDeletion(uuid: UserId): ConnectionIO[Unit] =
+    Statements.updateSoftDeletion(uuid, Instant.now()).run.void
 
 private object Statements:
   def insertUserCredentials(username: Username, password: HashedPassword, salt: Salt): Update0 =
@@ -51,13 +57,18 @@ private object Statements:
          |)
     """.stripMargin.update
 
-  def selectUser(uuid: UserId): Query0[User] =
+  def selectUserAccount(username: Username): Query0[Account] =
     sql"""
          |SELECT
          |  uuid,
-         |  username
+         |  username,
+         |  password_hash,
+         |  salt,
+         |  state,
+         |  created_at,
+         |  deleted_at
          |FROM auth.users
-         |WHERE uuid = $uuid
+         |WHERE username = $username
     """.stripMargin.query
 
   def selectUserCredential(username: Username): Query0[UserCredentialsWithId] =
@@ -74,13 +85,15 @@ private object Statements:
   def updatePassword(uuid: UserId, password: HashedPassword): Update0 =
     sql"""
          |UPDATE auth.users
-         |SET
-         |  password_hash = $password
+         |SET password_hash = $password
          |WHERE uuid = $uuid
     """.stripMargin.update
 
-  def deleteUser(uuid: UserId): Update0 =
+  def updateSoftDeletion(uuid: UserId, deletedAt: Instant): Update0 =
     sql"""
-         |DELETE FROM auth.users
+         |UPDATE auth.users
+         |SET
+         |  state = 'PendingDeletion',
+         |  deleted_at = $deletedAt
          |WHERE uuid = $uuid
     """.stripMargin.update

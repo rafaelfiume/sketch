@@ -23,7 +23,8 @@ import org.fiume.sketch.shared.domain.documents.algebras.DocumentsStore
 import org.fiume.sketch.shared.domain.testkit.DocumentsGens.*
 import org.fiume.sketch.shared.domain.testkit.DocumentsGens.given
 import org.fiume.sketch.shared.testkit.{ContractContext, Http4sTestingRoutesDsl}
-import org.fiume.sketch.shared.testkit.Syntax.EitherSyntax.*
+import org.fiume.sketch.shared.testkit.syntax.EitherSyntax.*
+import org.fiume.sketch.shared.testkit.syntax.OptionSyntax.*
 import org.http4s.{MediaType, *}
 import org.http4s.Method.*
 import org.http4s.client.dsl.io.*
@@ -38,9 +39,10 @@ class DocumentsRoutesSpec
     extends CatsEffectSuite
     with ScalaCheckEffectSuite
     with Http4sTestingRoutesDsl
-    with ContractContext
-    with DocumentsStoreContext
+    with AuthMiddlewareContext
     with AccessControlContext
+    with DocumentsStoreContext
+    with ContractContext
     with DocumentsRoutesSpecContext
     with ShrinkLowPriority:
 
@@ -66,7 +68,7 @@ class DocumentsRoutesSpec
           .to(documentsRoutes.router())
 //
           .expectJsonResponseWith(Status.Created)
-        createdDocId = result.as[DocumentIdResponsePayload].rightValue
+        createdDocId = result.as[DocumentIdResponsePayload].rightOrFail
         stored <- store.fetchDocument(createdDocId.value)
         grantedAccessToUser <- accessControl.canAccess(user.uuid, createdDocId.value)
         noGrantedAccessToRandomUser <- accessControl.canAccess(randomUser.uuid, createdDocId.value).map(!_)
@@ -90,7 +92,7 @@ class DocumentsRoutesSpec
           .to(documentsRoutes.router())
 //
           .expectJsonResponseWith(Status.Ok)
-      yield assertEquals(result.as[DocumentResponsePayload].rightValue, document.asResponsePayload)
+      yield assertEquals(result.as[DocumentResponsePayload].rightOrFail, document.asResponsePayload)
     }
 
   test("retrieves content bytes of stored document"):
@@ -126,7 +128,7 @@ class DocumentsRoutesSpec
           .to(documentsRoutes.router())
 //
           .expectJsonResponseWith(Status.Ok)
-      yield assertEquals(result.as[DocumentResponsePayload].rightValue, sndDoc.asResponsePayload)
+      yield assertEquals(result.as[DocumentResponsePayload].rightOrFail, sndDoc.asResponsePayload)
     }
 
   test("deletes stored document"):
@@ -223,15 +225,15 @@ class DocumentsRoutesSpec
         result <- send(request)
           .to(SemanticValidationMiddleware(documentsRoutes.router()))
           .expectJsonResponseWith(Status.UnprocessableEntity)
-          .map(_.as[ErrorInfo].rightValue)
+          .map(_.as[ErrorInfo].rightOrFail)
 //
       yield
         assertEquals(result.message, SemanticInputError.message)
         assert(
-          result.details.get.tips.keySet.subsetOf(
+          result.details.someOrFail.tips.keySet.subsetOf(
             Set("missing.document.metadata.part", "missing.document.bytes.part", "document.name.too.short")
           ),
-          clue = result.details.get.tips.mkString
+          clue = result.details.someOrFail.tips.mkString
         )
     }
 
@@ -247,11 +249,11 @@ class DocumentsRoutesSpec
         result <- send(request)
           .to(SemanticValidationMiddleware(documentsRoutes.router()))
           .expectJsonResponseWith(Status.UnprocessableEntity)
-          .map(_.as[ErrorInfo].rightValue)
+          .map(_.as[ErrorInfo].rightOrFail)
 //
       yield
         assertEquals(result.message, SemanticInputError.message)
-        assertEquals(result.details.get.tips,
+        assertEquals(result.details.someOrFail.tips,
                      Map("malformed.document.metadata.payload" -> "the metadata payload does not meet the contract")
         )
     }
@@ -273,7 +275,7 @@ class DocumentsRoutesSpec
     /* Also see `given accumulatingParallel: cats.Parallel[EitherT[IO, String, *]] = EitherT.accumulatingParallel` */
     // no metadata part / no bytes part
     val noMultiparts = Multipart[IO](parts = Vector.empty, boundary = Boundary("boundary"))
-    for inputErrors <- noMultiparts.validated().attempt.map(_.leftValue)
+    for inputErrors <- noMultiparts.validated().attempt.map(_.leftOrFail)
     yield assert(
       inputErrors.asInstanceOf[SemanticInputError].details.tips.size === 2,
       clue = inputErrors
@@ -281,7 +283,7 @@ class DocumentsRoutesSpec
 
   }
 
-trait DocumentsRoutesSpecContext extends AuthMiddlewareContext:
+trait DocumentsRoutesSpecContext:
 
   def montainBikeInLiguriaImageFile = getClass.getClassLoader.getResource("mountain-bike-liguria-ponent.jpg")
 

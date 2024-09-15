@@ -11,7 +11,8 @@ import org.fiume.sketch.shared.app.ServiceStatus.json.given
 import org.fiume.sketch.shared.app.algebras.{HealthChecker, Versions}
 import org.fiume.sketch.shared.app.testkit.VersionGens.versions
 import org.fiume.sketch.shared.testkit.Http4sTestingRoutesDsl
-import org.fiume.sketch.shared.testkit.Syntax.EitherSyntax.*
+import org.fiume.sketch.shared.testkit.syntax.EitherSyntax.*
+import org.fiume.sketch.shared.testkit.syntax.OptionSyntax.*
 import org.http4s.Method.*
 import org.http4s.Status
 import org.http4s.client.dsl.io.*
@@ -40,7 +41,7 @@ class HealthStatusRoutesSpec
         .to(routes.router())
         .expectJsonResponseWith(Status.Ok)
 //
-    yield assertEquals(result.as[String].rightValue, "pong")
+    yield assertEquals(result.as[String].rightOrFail, "pong")
   }
 
   test("healthy status succeeds when dependencies are healthy") {
@@ -56,7 +57,7 @@ class HealthStatusRoutesSpec
         .expectJsonResponseWith(Status.Ok)
 //
     yield assertEquals(
-      result.as[ServiceStatus].rightValue,
+      result.as[ServiceStatus].rightOrFail,
       ServiceStatus.make(version, List(healthyDatabase, healthyRustic))
     )
   }
@@ -74,7 +75,7 @@ class HealthStatusRoutesSpec
         .expectJsonResponseWith(Status.Ok)
 //
     yield assertEquals(
-      result.as[ServiceStatus].rightValue,
+      result.as[ServiceStatus].rightOrFail,
       ServiceStatus.make(version, List(faultyDatabase, healthyRustic))
     )
   }
@@ -89,7 +90,7 @@ trait HealthStatusRoutesSpecContext:
   }
 
 trait VersionsContext:
-  val version = versions.sample.get
+  val version = versions.sample.someOrFail
 
   def makeVersions[F[_]: Applicative](returning: Version) = new Versions[F]:
     override def currentVersion: F[Version] = returning.pure[F]

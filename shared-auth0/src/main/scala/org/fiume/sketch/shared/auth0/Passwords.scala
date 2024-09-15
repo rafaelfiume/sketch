@@ -91,7 +91,8 @@ object Passwords:
     given Show[PlainPassword] = Show.fromToString
     given Eq[WeakPasswordError] = Eq.fromUniversalEquals[WeakPasswordError]
 
-  sealed abstract case class Salt(base64Value: String)
+  sealed abstract case class Salt(base64Value: String):
+    override def toString(): String = "********"
 
   object Salt:
     val logRounds = 12
@@ -102,7 +103,7 @@ object Passwords:
 
     def notValidatedFromString(base64Value: String): Salt = new Salt(base64Value) {}
 
-    given Show[Salt] = Show.fromToString
+    given Show[Salt] = Show.show(_ => "********")
 
   sealed abstract case class HashedPassword(base64Value: String):
     override def toString(): String = "********"
@@ -113,7 +114,7 @@ object Passwords:
 
     def notValidatedFromString(base64Value: String): HashedPassword = new HashedPassword(base64Value) {}
 
-    def verifyPassword(password: PlainPassword, hashedPassword: HashedPassword): Boolean =
-      BCrypt.checkpw(password.value, hashedPassword.base64Value)
+    def verifyPassword[F[_]: Sync](password: PlainPassword, hashedPassword: HashedPassword): F[Boolean] =
+      Sync[F].blocking { BCrypt.checkpw(password.value, hashedPassword.base64Value) }
 
     given Show[HashedPassword] = Show.show(_ => "********")

@@ -12,7 +12,7 @@ package org.fiume.sketch.shared.typeclasses
  * - Debug and logging.
  *
  * Laws:
- * - Isomorphism: `T.asString()` <-> `T.parsed().rightValue`
+ * - Isomorphism: `T.asString()` <-> `T.parsed().rightOrFail`
  */
 trait AsString[A]:
   extension (value: A) def asString(): String

@@ -6,11 +6,12 @@ import doobie.ConnectionIO
 import doobie.implicits.*
 import doobie.postgres.implicits.*
 import munit.ScalaCheckEffectSuite
-import org.fiume.sketch.shared.auth0.{Passwords, User, UserId}
+import org.fiume.sketch.shared.auth0.{AccountState, Passwords, User, UserId}
 import org.fiume.sketch.shared.auth0.Passwords.HashedPassword
 import org.fiume.sketch.shared.auth0.User.*
 import org.fiume.sketch.shared.auth0.testkit.PasswordsGens.given
 import org.fiume.sketch.shared.auth0.testkit.UserGens.given
+import org.fiume.sketch.shared.testkit.syntax.OptionSyntax.*
 import org.fiume.sketch.storage.auth0.postgres.DoobieMappings.given
 import org.fiume.sketch.storage.testkit.DockerPostgresSuite
 import org.scalacheck.ShrinkLowPriority
@@ -26,21 +27,7 @@ class PostgresUsersStoreSpec
 
   override def scalaCheckTestParameters = super.scalaCheckTestParameters.withMinSuccessfulTests(10)
 
-  test("fetches user from stored credentials"):
-    forAllF { (credentials: UserCredentials) =>
-      will(cleanUsers) {
-        PostgresUsersStore.make[IO](transactor()).use { store =>
-          for
-            uuid <- store.store(credentials).ccommit
-
-            result <- store.fetchUser(uuid).ccommit
-//
-          yield assertEquals(result, User(uuid, credentials.username).some)
-        }
-      }
-    }
-
-  test("fetches stored credentials"):
+  test("stores credentials"):
     forAllF { (credentials: UserCredentials) =>
       will(cleanUsers) {
         PostgresUsersStore.make[IO](transactor()).use { store =>
@@ -49,7 +36,26 @@ class PostgresUsersStoreSpec
 
             result <- store.fetchCredentials(credentials.username).ccommit
 //
-          yield assertEquals(result, UserCredentials.make(uuid, credentials).some)
+          yield assertEquals(result.someOrFail, UserCredentials.make(uuid, credentials))
+        }
+      }
+    }
+
+  test("fetches user account"):
+    forAllF { (credentials: UserCredentials) =>
+      will(cleanUsers) {
+        PostgresUsersStore.make[IO](transactor()).use { store =>
+          for
+            uuid <- store.store(credentials).ccommit
+
+            result <- store.fetchAccount(credentials.username).ccommit.map(_.someOrFail)
+//
+          yield
+            assertEquals(result.uuid, uuid)
+            assertEquals(result.credentials, credentials)
+            result.state match
+              case AccountState.Active(_) => assert(true)
+              case _                      => fail(s"Expected AccountState.Active, got ${result.state}")
         }
       }
     }
@@ -69,7 +75,7 @@ class PostgresUsersStoreSpec
       }
     }
 
-  test("deletes credentials"):
+  test("marks account for deletion"):
     forAllF { (fstCreds: UserCredentials, sndCreds: UserCredentials) =>
       will(cleanUsers) {
         PostgresUsersStore.make[IO](transactor()).use { store =>
@@ -77,13 +83,17 @@ class PostgresUsersStoreSpec
             fstUuid <- store.store(fstCreds).ccommit
             sndUuid <- store.store(sndCreds).ccommit
 
-            _ <- store.delete(fstUuid).ccommit
+            _ <- store.markForDeletion(fstUuid).ccommit
 
-            fstStoredCreds <- store.fetchCredentials(fstCreds.username).ccommit
-            sndStoredCreds <- store.fetchCredentials(sndCreds.username).ccommit
+            // TODO Extract an OptionSyntax
+            fstAccount <- store.fetchAccount(fstCreds.username).ccommit.map(_.someOrFail)
+            sndAccount <- store.fetchAccount(sndCreds.username).ccommit.map(_.someOrFail)
           yield
-            assertEquals(fstStoredCreds, none)
-            assertEquals(sndStoredCreds, UserCredentials.make(sndUuid, sndCreds).some)
+            assert(sndAccount.isActive)
+            assert(!fstAccount.isActive)
+            fstAccount.state match
+              case AccountState.SoftDeleted(_) => assert(true)
+              case _                           => fail(s"Expected AccountState.SoftDeleted, got ${fstAccount.state}")
         }
       }
     }

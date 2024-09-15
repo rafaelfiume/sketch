@@ -14,8 +14,8 @@ import org.fiume.sketch.http.DocumentsRoutes.{DocumentIdVar, Line, Linebreak, Ne
 import org.fiume.sketch.http.DocumentsRoutes.Model.*
 import org.fiume.sketch.http.DocumentsRoutes.Model.json.given
 import org.fiume.sketch.shared.app.EntityId.given
-import org.fiume.sketch.shared.app.algebras.Store.Syntax.*
 import org.fiume.sketch.shared.app.http4s.middlewares.SemanticInputError
+import org.fiume.sketch.shared.app.syntax.StoreSyntax.*
 import org.fiume.sketch.shared.app.troubleshooting.ErrorInfo.ErrorDetails
 import org.fiume.sketch.shared.app.troubleshooting.InvariantErrorSyntax.asDetails
 import org.fiume.sketch.shared.auth0.User
@@ -41,6 +41,7 @@ class DocumentsRoutes[F[_]: Concurrent, Txn[_]: FlatMap](
 
   private val prefix = "/"
 
+  // enable Store's syntax
   given DocumentsStore[F, Txn] = store
 
   def router(): HttpRoutes[F] = Router(

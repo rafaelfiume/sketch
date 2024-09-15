@@ -15,7 +15,7 @@ import org.fiume.sketch.shared.auth0.Passwords.PlainPassword
 import org.fiume.sketch.shared.auth0.User
 import org.fiume.sketch.shared.auth0.testkit.PasswordsGens.given
 import org.fiume.sketch.shared.auth0.testkit.UserGens.given
-import org.fiume.sketch.shared.testkit.Syntax.EitherSyntax.*
+import org.fiume.sketch.shared.testkit.syntax.EitherSyntax.*
 import org.http4s.{AuthedRoutes, Headers, Response, Status}
 import org.http4s.circe.CirceEntityDecoder.*
 import org.http4s.circe.CirceEntityEncoder.*
@@ -37,7 +37,7 @@ class Auth0MiddlewareSpec
     forAllF { (user: User, plainPassword: PlainPassword, jwtToken: JwtToken) =>
       for
         authenticator <- makeAuthenticator(signee = (user, plainPassword), signeeAuthToken = jwtToken)
-        routeResponsePayload = parse(s"""{"a.property" : "${user.uuid}" }""").rightValue
+        routeResponsePayload = parse(s"""{"a.property" : "${user.uuid}" }""").rightOrFail
         authedRoutes = AuthedRoutes.of[User, IO] { case GET -> Root / "user" as user => Ok(routeResponsePayload) }
 
         middleware = Auth0Middleware(authenticator)

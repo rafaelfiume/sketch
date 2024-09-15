@@ -42,6 +42,7 @@ class AuthRoutes[F[_]: Async](authenticator: Authenticator[F]) extends Http4sDsl
               .putHeaders(`WWW-Authenticate`(Challenge("Bearer", "Authentication Service")))
               .withEntity(
                 ErrorInfo.make(
+                  // always the same error message for security reasons
                   ErrorMessage("The username or password provided is incorrect.")
                 )
               )
