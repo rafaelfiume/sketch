@@ -42,7 +42,7 @@ class AuthRoutesSpec
 
   test("valid login request results in a jwt token"):
     forAllF(loginRequests, jwtTokens) { case (user -> loginRequest -> jwtToken) =>
-      val plainPassword = PlainPassword.notValidatedFromString(loginRequest.password)
+      val plainPassword = PlainPassword.makeUnsafeFromString(loginRequest.password)
       for
         authenticator <- makeAuthenticator(
           signee = user -> plainPassword,
@@ -62,7 +62,7 @@ class AuthRoutesSpec
 
   test("login with wrong password fails with 401 Unauthorized status"):
     forAllF(loginRequests, jwtTokens) { case (user -> loginRequest -> jwtToken) =>
-      val plainPassword = PlainPassword.notValidatedFromString(loginRequest.password)
+      val plainPassword = PlainPassword.makeUnsafeFromString(loginRequest.password)
       for
         authenticator <- makeAuthenticator(
           signee = user -> plainPassword,
@@ -86,7 +86,7 @@ class AuthRoutesSpec
 
   test("login with unknown username fails with 401 Unauthorized status"):
     forAllF(loginRequests, jwtTokens) { case (user -> loginRequest -> jwtToken) =>
-      val plainPassword = PlainPassword.notValidatedFromString(loginRequest.password)
+      val plainPassword = PlainPassword.makeUnsafeFromString(loginRequest.password)
       for
         authenticator <- makeAuthenticator(
           signee = user -> plainPassword,
@@ -110,7 +110,7 @@ class AuthRoutesSpec
 
   test("login with semantically invalid username or password fails with 422 Unprocessable Entity"):
     forAllF(invalidInputs, jwtTokens) { case (user -> loginRequest -> jwtToken) =>
-      val plainPassword = PlainPassword.notValidatedFromString(loginRequest.password)
+      val plainPassword = PlainPassword.makeUnsafeFromString(loginRequest.password)
       for
         authenticator <- makeAuthenticator(
           signee = user -> plainPassword,
@@ -174,7 +174,7 @@ trait AuthRoutesSpecContext:
     for
       username <- oneOfUsernameInputErrors
       password <- oneOfPasswordInputErrors
-      user <- users.map { _.copy(username = Username.notValidatedFromString(username)) }
+      user <- users.map { _.copy(username = Username.makeUnsafeFromString(username)) }
     yield user -> LoginRequestPayload(username, password)
 
   def malformedInputs: Gen[String] =

@@ -13,7 +13,7 @@ class PlainPasswordSpec extends ScalaCheckSuite:
 
   test("accepts valid passwords"):
     forAll { (password: String) =>
-      PlainPassword.validated(password).rightOrFail == PlainPassword.notValidatedFromString(password)
+      PlainPassword.validated(password).rightOrFail.value == password
     }
 
   test("rejects short passwords"):

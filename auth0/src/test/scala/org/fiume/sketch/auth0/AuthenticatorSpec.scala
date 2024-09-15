@@ -153,10 +153,10 @@ class AuthenticatorSpec
 
 trait AuthenticatorSpecContext:
   extension (plainPassword: PlainPassword)
-    def shuffled: PlainPassword = PlainPassword.notValidatedFromString(plainPassword.value._shuffled)
+    def shuffled: PlainPassword = PlainPassword.makeUnsafeFromString(plainPassword.value._shuffled)
 
-  extension (username: Username) def shuffled: Username = Username.notValidatedFromString(username.value._shuffled)
+  extension (username: Username) def shuffled: Username = Username.makeUnsafeFromString(username.value._shuffled)
 
   extension (token: JwtToken)
-    def reversed: JwtToken = JwtToken.notValidatedFromString(token.value._reversed)
-    def tampered: JwtToken = JwtToken.notValidatedFromString(token.value.split('.').dropRight(1).mkString("."))
+    def reversed: JwtToken = JwtToken.makeUnsafeFromString(token.value._reversed)
+    def tampered: JwtToken = JwtToken.makeUnsafeFromString(token.value.split('.').dropRight(1).mkString("."))

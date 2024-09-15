@@ -81,10 +81,6 @@ Clean up needed:
  - Replace Instant by ZonedDateTime ?
  - Frozen time to facilitate test assertions
  - Error handling in DoobieMappings
- - Extract an OptionSyntax
- - Rename `notValidatedFromString` to `makeNotValidatedFromString`
- - Rename `makeJwtToken` to `make`
- - Rename `verifyJwtToken` to `verify`
 
  Next PR clean up, missing unit and acc tests, response payload (?), document with Postman collection
  Subsequent PR Admin can delete any user account

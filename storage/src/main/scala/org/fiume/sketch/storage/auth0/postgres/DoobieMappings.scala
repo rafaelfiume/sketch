@@ -12,11 +12,11 @@ import java.util.UUID
 
 private[storage] object DoobieMappings:
 
-  given Meta[HashedPassword] = Meta[String].timap(HashedPassword.notValidatedFromString)(_.base64Value)
+  given Meta[HashedPassword] = Meta[String].timap(HashedPassword.makeUnsafeFromString)(_.base64Value)
 
-  given Meta[Salt] = Meta[String].timap(Salt.notValidatedFromString)(_.base64Value)
+  given Meta[Salt] = Meta[String].timap(Salt.makeUnsafeFromString)(_.base64Value)
 
-  given Meta[Username] = Meta[String].timap(Username.notValidatedFromString)(_.value)
+  given Meta[Username] = Meta[String].timap(Username.makeUnsafeFromString)(_.value)
 
   given Meta[UserId] = Meta[UUID].timap(UserId(_))(_.value)
 

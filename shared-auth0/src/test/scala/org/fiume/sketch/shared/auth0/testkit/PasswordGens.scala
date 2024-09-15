@@ -10,7 +10,7 @@ import scala.util.Random
 object PasswordsGens:
 
   given Arbitrary[PlainPassword] = Arbitrary(validPlainPasswords)
-  def validPlainPasswords: Gen[PlainPassword] = plainPasswords.map(PlainPassword.notValidatedFromString)
+  def validPlainPasswords: Gen[PlainPassword] = plainPasswords.map(PlainPassword.makeUnsafeFromString)
 
   given Arbitrary[String] = Arbitrary(plainPasswords)
   def plainPasswords: Gen[String] =
@@ -100,7 +100,7 @@ object PasswordsGens:
   // a bcrypt hash approximation for efficience (store assumes correctness)
   given Arbitrary[HashedPassword] = Arbitrary(fakeHashedPasswords)
   def fakeHashedPasswords: Gen[HashedPassword] =
-    Gen.listOfN(60, bcryptBase64Char).map(_.mkString).map(HashedPassword.notValidatedFromString)
+    Gen.listOfN(60, bcryptBase64Char).map(_.mkString).map(HashedPassword.makeUnsafeFromString)
 
   private def whitespaces: Gen[Char] = Gen.oneOf(' ', '\t', '\n', '\r')
 

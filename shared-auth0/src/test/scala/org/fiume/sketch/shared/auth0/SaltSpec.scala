@@ -16,12 +16,6 @@ class SaltSpec extends CatsEffectSuite with ScalaCheckEffectSuite with ShrinkLow
       yield assertNotEquals(salt1, salt2)
     }
 
-  test("generates a salt from a string"):
-    forAllF(Gen.choose(1, 100)) { (_: Int) =>
-      for salt <- Salt.generate[IO]()
-      yield assertEquals(Salt.notValidatedFromString(salt.base64Value), salt)
-    }
-
   test("salt length is 29 characters"):
     forAllF(Gen.choose(1, 100)) { (_: Int) =>
       for salt <- Salt.generate[IO]()
@@ -35,3 +29,7 @@ class SaltSpec extends CatsEffectSuite with ScalaCheckEffectSuite with ShrinkLow
         _ <- IO.delay { new java.net.URI(s"https://artigiani.it/${salt.base64Value}").toURL() }
       yield ()
     }
+
+  test("generates a salt from a string"):
+    for salt <- Salt.generate[IO]()
+    yield assertEquals(Salt.makeUnsafeFromString(salt.base64Value), salt)

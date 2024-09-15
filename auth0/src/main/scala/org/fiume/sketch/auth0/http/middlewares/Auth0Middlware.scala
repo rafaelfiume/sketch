@@ -21,7 +21,7 @@ object Auth0Middleware:
       Sync[F].delay {
         for
           header <- req.headers.get[Authorization].toRight("Couldn't find an Authorization header")
-          token = JwtToken.notValidatedFromString(header.value.stripPrefix("Bearer "))
+          token = JwtToken.makeUnsafeFromString(header.value.stripPrefix("Bearer "))
           user <- authenticator.verify(token).leftMap(_.toString)
         yield user
       }

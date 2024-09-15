@@ -86,7 +86,7 @@ object Passwords:
         new PlainPassword(value) {}
       }.toEither
 
-    def notValidatedFromString(value: String): PlainPassword = new PlainPassword(value) {}
+    def makeUnsafeFromString(value: String): PlainPassword = new PlainPassword(value) {}
 
     given Show[PlainPassword] = Show.fromToString
     given Eq[WeakPasswordError] = Eq.fromUniversalEquals[WeakPasswordError]
@@ -101,7 +101,7 @@ object Passwords:
     def generate[F[_]: Sync](): F[Salt] =
       Sync[F].blocking { BCrypt.gensalt(logRounds) }.map(new Salt(_) {})
 
-    def notValidatedFromString(base64Value: String): Salt = new Salt(base64Value) {}
+    def makeUnsafeFromString(base64Value: String): Salt = new Salt(base64Value) {}
 
     given Show[Salt] = Show.show(_ => "********")
 
@@ -112,7 +112,7 @@ object Passwords:
     def hashPassword[F[_]: Sync](password: PlainPassword, salt: Salt): F[HashedPassword] =
       Sync[F].blocking { BCrypt.hashpw(password.value, salt.base64Value) }.map(new HashedPassword(_) {})
 
-    def notValidatedFromString(base64Value: String): HashedPassword = new HashedPassword(base64Value) {}
+    def makeUnsafeFromString(base64Value: String): HashedPassword = new HashedPassword(base64Value) {}
 
     def verifyPassword[F[_]: Sync](password: PlainPassword, hashedPassword: HashedPassword): F[Boolean] =
       Sync[F].blocking { BCrypt.checkpw(password.value, hashedPassword.base64Value) }

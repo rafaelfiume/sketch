@@ -34,7 +34,7 @@ object JwtError:
 
 private[auth0] object JwtToken:
   // offset: a shift in time from a reference point
-  def makeJwtToken[F[_]: FlatMap](privateKey: PrivateKey, user: User, now: Instant, expirationOffset: Duration): JwtToken =
+  def make[F[_]: FlatMap](privateKey: PrivateKey, user: User, now: Instant, expirationOffset: Duration): JwtToken =
     val content = Content(
       preferredUsername = user.username
     )
@@ -46,16 +46,16 @@ private[auth0] object JwtToken:
     )
     new JwtToken(value = JwtCirce.encode(claim, privateKey, JwtAlgorithm.ES256)) {}
 
-  def verifyJwtToken(token: JwtToken, publicKey: PublicKey): Either[JwtError, User] =
+  def verify(token: JwtToken, publicKey: PublicKey): Either[JwtError, User] =
     (for
       claims <- JwtCirce.decode(token.value, publicKey, Seq(JwtAlgorithm.ES256)).toEither
       uuid: UserId <- claims.subject
-        .toRight(JwtUnknownError("verifyJwtToken: subject is missing"))
+        .toRight(JwtUnknownError("verify: subject is missing"))
         .flatMap { _.parsed().leftMap(e => JwtUnknownError(e.message)) }
       content <- parse(claims.content).flatMap(_.as[Content])
     yield User(uuid, content.preferredUsername)).leftMap(mapJwtErrors)
 
-  def notValidatedFromString(value: String): JwtToken = new JwtToken(value) {}
+  def makeUnsafeFromString(value: String): JwtToken = new JwtToken(value) {}
 
   private def mapJwtErrors(jwtError: Throwable): JwtError =
     jwtError match
@@ -76,4 +76,4 @@ private[auth0] object JwtToken:
 
     given Decoder[Content] = new Decoder[Content]:
       final def apply(c: HCursor): Decoder.Result[Content] =
-        c.downField("preferred_username").as[String].map(value => Content(Username.notValidatedFromString(value)))
+        c.downField("preferred_username").as[String].map(value => Content(Username.makeUnsafeFromString(value)))

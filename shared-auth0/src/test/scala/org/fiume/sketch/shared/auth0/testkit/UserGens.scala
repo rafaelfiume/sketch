@@ -15,7 +15,7 @@ object UserGens:
 
   given Arbitrary[Username] = Arbitrary(validUsernames)
   def validUsernames: Gen[Username] =
-    usernames.map(Username.notValidatedFromString)
+    usernames.map(Username.makeUnsafeFromString)
       :| "usernames"
 
   def usernames: Gen[String] = Gen

@@ -62,12 +62,12 @@ object Authenticator:
                 .verifyPassword(password, account.credentials.hashedPassword)
                 .ifM(
                   ifTrue = clock.realTimeInstant.map { now =>
-                    JwtToken.makeJwtToken(privateKey, User(account.uuid, username), now, expirationOffset).asRight
+                    JwtToken.make(privateKey, User(account.uuid, username), now, expirationOffset).asRight
                   },
                   ifFalse = InvalidPasswordError.asLeft.pure[F]
                 )
         yield jwtToken
 
       override def verify(jwtToken: JwtToken): Either[JwtError, User] =
-        JwtToken.verifyJwtToken(jwtToken, publicKey)
+        JwtToken.verify(jwtToken, publicKey)
   }

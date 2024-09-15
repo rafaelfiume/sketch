@@ -27,7 +27,7 @@ object DocumentsGens:
 
   given Arbitrary[Name] = Arbitrary(validNames)
   def validNames: Gen[Name] =
-    names.map(Name.notValidatedFromString)
+    names.map(Name.makeUnsafeFromString)
       :| "names"
 
   def names: Gen[String] = Gen
