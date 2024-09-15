@@ -31,13 +31,14 @@ trait AccessControlContext:
   private object State:
     val empty = State(Map.empty, Map.empty)
 
-  def makeAccessControl(): IO[AccessControl[IO, IO]] = makeAccessControl(State.empty)
+  def makeAccessControl(): IO[AccessControl[IO, IO] & InspectAccessControl] = makeAccessControl(State.empty)
 
-  private def makeAccessControl[T <: Entity](state: State): IO[AccessControl[IO, IO]] =
+  private def makeAccessControl[T <: Entity](state: State): IO[AccessControl[IO, IO] & InspectAccessControl] =
     Ref.of[IO, State](state).map { ref =>
-      new AccessControl[IO, IO]:
+      new AccessControl[IO, IO] with InspectAccessControl:
 
-        override def canAccessGlobal(userId: UserId): IO[Boolean] = ref.get.map(_.getGlobalRole(userId).isDefined)
+        override def getGlobalRole(userId: UserId): IO[Option[GlobalRole]] =
+          ref.get.map(_.getGlobalRole(userId).map(_.designation))
 
         override def storeGlobalGrant(userId: UserId, role: GlobalRole): IO[Unit] =
           ref.update(_ +++ (userId, role))
@@ -69,3 +70,7 @@ trait AccessControlContext:
 
         override val commitStream: [A] => fs2.Stream[IO, A] => fs2.Stream[IO, A] = [A] => (action: fs2.Stream[IO, A]) => action
     }
+
+// This doesn't look very nice and should be temporary
+trait InspectAccessControl:
+  def getGlobalRole(userId: UserId): IO[Option[GlobalRole]]
