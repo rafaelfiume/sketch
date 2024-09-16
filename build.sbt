@@ -145,6 +145,7 @@ lazy val sharedAuth0 =
       name := "shared-auth0",
       libraryDependencies ++= Seq(
         Dependency.jbcrypt,
+        Dependency.http4sEmberClient,
         Dependency.http4sEmberServer % Test,
         Dependency.munitCatsEffect % Test,
         Dependency.munitScalaCheckEffect % Test
@@ -259,7 +260,7 @@ lazy val storage =
 lazy val testAcceptance =
    project.in(file("test-acceptance"))
      .dependsOn(auth0Scripts % Test)
-     .dependsOn(sharedAuth0 % "test->test")
+     .dependsOn(sharedAuth0 % "compile->compile;test->test")
      .dependsOn(sharedTestComponents % Test)
      .dependsOn(testContracts % "test->test")
      .disablePlugins(plugins.JUnitXmlReportPlugin)

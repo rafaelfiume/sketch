@@ -1,13 +1,13 @@
 package org.fiume.sketch.auth0
 
-import cats.{FlatMap, Show}
+import cats.FlatMap
 import cats.implicits.*
 import io.circe.{Decoder, Encoder, HCursor, Json, ParsingFailure}
 import io.circe.parser.parse
 import io.circe.syntax.*
-import org.fiume.sketch.auth0.JwtError.*
 import org.fiume.sketch.shared.app.EntityId.given
-import org.fiume.sketch.shared.auth0.{User, UserId}
+import org.fiume.sketch.shared.auth0.{JwtError, JwtToken, User, UserId}
+import org.fiume.sketch.shared.auth0.JwtError.*
 import org.fiume.sketch.shared.auth0.User.Username
 import pdi.jwt.{JwtAlgorithm, JwtCirce, JwtClaim}
 import pdi.jwt.exceptions.*
@@ -15,24 +15,8 @@ import pdi.jwt.exceptions.*
 import java.security.{PrivateKey, PublicKey}
 import java.time.Instant
 import scala.concurrent.duration.Duration
-import scala.util.control.NoStackTrace
 
-sealed abstract case class JwtToken(value: String)
-
-sealed trait JwtError extends Throwable with NoStackTrace:
-  def details: String
-  override def toString(): String = this.show
-
-object JwtError:
-  given Show[JwtError] = Show.show(error => s"${error.getClass.getSimpleName}(${error.details})")
-
-  case class JwtExpirationError(details: String) extends JwtError // Rename to conform to standards, e.g ExpiredToken
-  case class JwtEmptySignatureError(details: String) extends JwtError
-  case class JwtInvalidTokenError(details: String) extends JwtError
-  case class JwtValidationError(details: String) extends JwtError
-  case class JwtUnknownError(details: String) extends JwtError
-
-private[auth0] object JwtToken:
+private[auth0] object JwtIssuer:
   // offset: a shift in time from a reference point
   def make[F[_]: FlatMap](privateKey: PrivateKey, user: User, now: Instant, expirationOffset: Duration): JwtToken =
     val content = Content(
@@ -44,7 +28,7 @@ private[auth0] object JwtToken:
       issuedAt = now.getEpochSecond.some,
       expiration = now.plusSeconds(expirationOffset.toSeconds).getEpochSecond.some
     )
-    new JwtToken(value = JwtCirce.encode(claim, privateKey, JwtAlgorithm.ES256)) {}
+    JwtToken.makeUnsafeFromString(JwtCirce.encode(claim, privateKey, JwtAlgorithm.ES256))
 
   def verify(token: JwtToken, publicKey: PublicKey): Either[JwtError, User] =
     (for
@@ -54,8 +38,6 @@ private[auth0] object JwtToken:
         .flatMap { _.parsed().leftMap(e => JwtUnknownError(e.message)) }
       content <- parse(claims.content).flatMap(_.as[Content])
     yield User(uuid, content.preferredUsername)).leftMap(mapJwtErrors)
-
-  def makeUnsafeFromString(value: String): JwtToken = new JwtToken(value) {}
 
   private def mapJwtErrors(jwtError: Throwable): JwtError =
     jwtError match

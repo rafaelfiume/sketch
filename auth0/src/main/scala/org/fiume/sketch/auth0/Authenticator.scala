@@ -4,7 +4,7 @@ import cats.effect.{Clock, Sync}
 import cats.implicits.*
 import org.fiume.sketch.auth0.AuthenticationError.*
 import org.fiume.sketch.shared.app.syntax.StoreSyntax.*
-import org.fiume.sketch.shared.auth0.{AccountState, User}
+import org.fiume.sketch.shared.auth0.{AccountState, JwtError, JwtToken, User}
 import org.fiume.sketch.shared.auth0.Passwords.{HashedPassword, PlainPassword}
 import org.fiume.sketch.shared.auth0.User.Username
 import org.fiume.sketch.shared.auth0.algebras.UsersStore
@@ -62,12 +62,12 @@ object Authenticator:
                 .verifyPassword(password, account.credentials.hashedPassword)
                 .ifM(
                   ifTrue = clock.realTimeInstant.map { now =>
-                    JwtToken.make(privateKey, User(account.uuid, username), now, expirationOffset).asRight
+                    JwtIssuer.make(privateKey, User(account.uuid, username), now, expirationOffset).asRight
                   },
                   ifFalse = InvalidPasswordError.asLeft.pure[F]
                 )
         yield jwtToken
 
       override def verify(jwtToken: JwtToken): Either[JwtError, User] =
-        JwtToken.verify(jwtToken, publicKey)
+        JwtIssuer.verify(jwtToken, publicKey)
   }

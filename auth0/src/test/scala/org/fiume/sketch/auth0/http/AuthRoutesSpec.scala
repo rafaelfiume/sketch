@@ -4,10 +4,7 @@ import cats.effect.IO
 import cats.implicits.*
 import munit.{CatsEffectSuite, ScalaCheckEffectSuite}
 import munit.Assertions.*
-import org.fiume.sketch.auth0.http.AuthRoutes.Model.{LoginRequestPayload, LoginResponsePayload}
-import org.fiume.sketch.auth0.http.AuthRoutes.Model.json.given
 import org.fiume.sketch.auth0.testkit.AuthenticatorContext
-import org.fiume.sketch.auth0.testkit.JwtTokenGens.jwtTokens
 import org.fiume.sketch.shared.app.http4s.middlewares.{SemanticInputError, SemanticValidationMiddleware}
 import org.fiume.sketch.shared.app.troubleshooting.ErrorInfo
 import org.fiume.sketch.shared.app.troubleshooting.ErrorInfo.{ErrorDetails, ErrorMessage}
@@ -17,6 +14,9 @@ import org.fiume.sketch.shared.auth0.Passwords.PlainPassword.WeakPasswordError
 import org.fiume.sketch.shared.auth0.User
 import org.fiume.sketch.shared.auth0.User.Username
 import org.fiume.sketch.shared.auth0.User.Username.WeakUsernameError
+import org.fiume.sketch.shared.auth0.http.Model.{LoginRequestPayload, LoginResponsePayload}
+import org.fiume.sketch.shared.auth0.http.Model.json.given
+import org.fiume.sketch.shared.auth0.testkit.JwtTokenGens.jwtTokens
 import org.fiume.sketch.shared.auth0.testkit.PasswordsGens.*
 import org.fiume.sketch.shared.auth0.testkit.UserGens.*
 import org.fiume.sketch.shared.testkit.{ContractContext, Http4sTestingRoutesDsl}
