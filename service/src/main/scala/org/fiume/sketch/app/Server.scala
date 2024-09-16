@@ -5,7 +5,7 @@ import cats.implicits.*
 import com.comcast.ip4s.*
 import doobie.ConnectionIO
 import fs2.io.net.Network
-import org.fiume.sketch.auth0.http.AuthRoutes
+import org.fiume.sketch.auth0.http.{AuthRoutes, UsersRoutes}
 import org.fiume.sketch.auth0.http.middlewares.Auth0Middleware
 import org.fiume.sketch.http.{DocumentsRoutes, HealthStatusRoutes}
 import org.fiume.sketch.shared.app.http4s.middlewares.{SemanticValidationMiddleware, TraceAuditLogMiddleware, WorkerMiddleware}
@@ -55,11 +55,13 @@ object HttpApi:
     val authMiddleware = Auth0Middleware(res.authenticator)
 
     val authRoutes: HttpRoutes[F] = new AuthRoutes[F](res.authenticator).router()
+    val usersRoutes: HttpRoutes[F] = new UsersRoutes[F, ConnectionIO](authMiddleware, res.accessControl, res.usersStore).router()
     val documentsRoutes: HttpRoutes[F] =
-      new DocumentsRoutes[F, ConnectionIO](authMiddleware,
-                                           config.documents.documentBytesSizeLimit,
-                                           res.accessControl,
-                                           res.documentsStore
+      new DocumentsRoutes[F, ConnectionIO](
+        authMiddleware,
+        config.documents.documentBytesSizeLimit,
+        res.accessControl,
+        res.documentsStore
       ).router()
     val healthStatusRoutes: HttpRoutes[F] =
       new HealthStatusRoutes[F](res.versions, res.dbHealthCheck, res.rusticHealthCheck).router()
@@ -70,8 +72,9 @@ object HttpApi:
       .andThen(TraceAuditLogMiddleware[F](Slf4jLogger.getLogger[F], config.requestResponseLoggingEnabled))
     for
       cAuthRoutes <- corsMiddleware.httpRoutes[F](authRoutes)
+      cUsersRoutes <- corsMiddleware.httpRoutes[F](usersRoutes)
       cDocsRoutes <- corsMiddleware.httpRoutes[F](documentsRoutes)
       routes = middlewares(
-        healthStatusRoutes <+> cAuthRoutes <+> cDocsRoutes
+        healthStatusRoutes <+> cAuthRoutes <+> cUsersRoutes <+> cDocsRoutes
       )
     yield routes.orNotFound
