@@ -3,11 +3,11 @@ package org.fiume.sketch.auth0.http.middlewares
 import cats.data.{Kleisli, OptionT}
 import cats.effect.Sync
 import cats.implicits.*
-import org.fiume.sketch.auth0.{Authenticator, JwtToken}
+import org.fiume.sketch.auth0.Authenticator
 import org.fiume.sketch.shared.app.troubleshooting.ErrorInfo
 import org.fiume.sketch.shared.app.troubleshooting.ErrorInfo.{ErrorDetails, ErrorMessage}
 import org.fiume.sketch.shared.app.troubleshooting.ErrorInfo.json.given
-import org.fiume.sketch.shared.auth0.User
+import org.fiume.sketch.shared.auth0.{JwtToken, User}
 import org.http4s.{AuthedRoutes, Challenge, Request, Response, Status}
 import org.http4s.circe.CirceEntityEncoder.*
 import org.http4s.headers.{`WWW-Authenticate`, Authorization}
@@ -21,7 +21,7 @@ object Auth0Middleware:
       Sync[F].delay {
         for
           header <- req.headers.get[Authorization].toRight("Couldn't find an Authorization header")
-          token = JwtToken.notValidatedFromString(header.value.stripPrefix("Bearer "))
+          token = JwtToken.makeUnsafeFromString(header.value.stripPrefix("Bearer "))
           user <- authenticator.verify(token).leftMap(_.toString)
         yield user
       }

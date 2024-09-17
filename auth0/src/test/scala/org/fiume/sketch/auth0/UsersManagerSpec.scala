@@ -3,6 +3,7 @@ package org.fiume.sketch.auth0
 import cats.effect.IO
 import munit.{CatsEffectSuite, ScalaCheckEffectSuite}
 import munit.Assertions.*
+import org.fiume.sketch.authorisation.GlobalRole
 import org.fiume.sketch.authorisation.testkit.AccessControlContext
 import org.fiume.sketch.shared.auth0.Passwords.PlainPassword
 import org.fiume.sketch.shared.auth0.User.Username
@@ -23,6 +24,7 @@ class UsersManagerSpec
   override def scalaCheckTestParameters = super.scalaCheckTestParameters.withMinSuccessfulTests(1)
 
   test("user account creation succeeds with a unique username"):
+
     forAllF { (username: Username, password: PlainPassword, isSuperuser: Boolean) =>
       for
         usersStore <- makeUsersStore()
@@ -31,11 +33,12 @@ class UsersManagerSpec
 
         accountId <- usersManager.createAccount(username, password, isSuperuser)
 
-        account <- usersStore.fetchAccount(username).map(_.someOrFail)
-        canAccess <- accessControl.canAccess(accountId, accountId)
-        canAccessGlobal <- accessControl.canAccessGlobal(accountId)
+        account <- usersStore.fetchAccount(username)
+        userCanAccessHerOwnAccountDetails <- accessControl.canAccess(accountId, accountId)
+        userGlobalRole <- accessControl.getGlobalRole(accountId)
       yield
-        assert(account.isActive)
-        assert(canAccess)
-        assertEquals(canAccessGlobal, isSuperuser)
+        assert(account.someOrFail.isActive)
+        assert(userCanAccessHerOwnAccountDetails)
+        if isSuperuser then assertEquals(userGlobalRole.someOrFail, GlobalRole.Superuser)
+        else assert(userGlobalRole.isEmpty)
     }

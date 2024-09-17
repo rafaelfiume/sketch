@@ -33,12 +33,15 @@ class UsersRoutes[F[_]: Concurrent, Txn[_]: FlatMap](
         // TODO replace: `canAccess` by `canDelete`. Or make `canAccess` accept a `privilege` as param?
         // TODO make `Admin` able to delete any user
         // TODO Implement a version of canAccess that performs the check and performs the action?
+        isAccountActive <- store.fetchAccount(user.username).map { _.map(_.isActive).getOrElse(false) }.commit()
         res <- accessControl
           .canAccess(user.uuid, user.uuid)
           .commit()
+          .map(_ && isAccountActive)
           .ifM(
-            ifTrue = store.markForDeletion(user.uuid).commit() *> Ok(), // TODO Return response payload
-            ifFalse = Forbidden("You are not allowed to delete this user")
+            // TODO Return response payload
+            ifTrue = store.markForDeletion(user.uuid).commit() *> Ok(),
+            ifFalse = Forbidden()
           )
       yield res
     }

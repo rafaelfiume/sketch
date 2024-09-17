@@ -78,15 +78,8 @@ DELETE /users/{userId}
 the `/purge-user-entities` endpoint.
 
 Clean up needed:
- - Replace Instant by ZonedDateTime ?
- - Frozen time to facilitate test assertions
  - Error handling in DoobieMappings
- - Extract an OptionSyntax
- - Rename `notValidatedFromString` to `makeNotValidatedFromString`
- - Rename `makeJwtToken` to `make`
- - Rename `verifyJwtToken` to `verify`
 
- Next PR clean up, missing unit and acc tests, response payload (?), document with Postman collection
  Subsequent PR Admin can delete any user account
- 3rd PR Mark it to permanent deletion
+ 3rd PR Mark it to permanent deletion, response payload (?)
  4th PR clean up all entities upon permanent deletion

@@ -4,14 +4,16 @@ import cats.effect.IO
 import cats.effect.unsafe.IORuntime
 import io.gatling.core.Predef.*
 import io.gatling.http.Predef.{http, *}
-import org.fiume.sketch.acceptance.testkit.AuthenticationContext
+import org.fiume.sketch.acceptance.testkit.AccountSetUpAndLoginContext
 import org.fiume.sketch.shared.testkit.FileContentContext
+import org.fiume.sketch.shared.testkit.syntax.EitherSyntax.*
+import org.http4s.headers.Authorization
 
 import scala.annotation.nowarn
 import scala.concurrent.duration.*
 
 @nowarn
-class DocumentsSimulation extends Simulation with AuthenticationContext with DocumentsSimulationContext:
+class DocumentsSimulation extends Simulation with AccountSetUpAndLoginContext with DocumentsSimulationContext:
 
   private given IORuntime = IORuntime.global
 
@@ -55,13 +57,13 @@ class DocumentsSimulation extends Simulation with AuthenticationContext with Doc
     .exec(delete)
 
   private val httpProtocol =
-    val authenticated = loginAndGetAuthenticatedUser().unsafeRunSync()
-    val authorizationHeader = authenticated.authorization
+    val jwt = loginAndGetAuthenticatedUser().unsafeRunSync()
+    val authHeader = Authorization.parse(s"Bearer ${jwt.value}").rightOrFail
     http
       .baseUrl("http://localhost:8080")
       .acceptHeader("application/json")
       .contentTypeHeader("multipart/form-data")
-      .header("Authorization", authorizationHeader.credentials.toString)
+      .header("Authorization", authHeader.credentials.toString)
 
   setUp(
     documentsCrudScenario.inject(

@@ -69,7 +69,7 @@ object Document:
           .mapN((_, _, _) => new Name(value) {})
           .toEither
 
-      def notValidatedFromString(value: String): Name = new Name(value) {}
+      def makeUnsafeFromString(value: String): Name = new Name(value) {}
 
       given Eq[Name] = Eq.fromUniversalEquals
       given Eq[InvalidDocumentNameError] = Eq.fromUniversalEquals[InvalidDocumentNameError]

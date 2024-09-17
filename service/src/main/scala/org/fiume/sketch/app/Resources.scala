@@ -10,6 +10,7 @@ import org.fiume.sketch.rustic.RusticHealthCheck
 import org.fiume.sketch.shared.app.ServiceStatus.Dependency.*
 import org.fiume.sketch.shared.app.algebras.{HealthChecker, Versions}
 import org.fiume.sketch.shared.app.algebras.HealthChecker.*
+import org.fiume.sketch.shared.auth0.algebras.UsersStore
 import org.fiume.sketch.shared.domain.documents.algebras.DocumentsStore
 import org.fiume.sketch.storage.auth0.postgres.PostgresUsersStore
 import org.fiume.sketch.storage.authorisation.postgres.PostgresAccessControl
@@ -28,6 +29,7 @@ trait Resources[F[_]]:
   val versions: Versions[F]
   val authenticator: Authenticator[F]
   val accessControl: AccessControl[F, ConnectionIO]
+  val usersStore: UsersStore[F, ConnectionIO]
   val documentsStore: DocumentsStore[F, ConnectionIO]
 
 object Resources:
@@ -38,10 +40,10 @@ object Resources:
       dbHealthCheck0 <- PostgresHealthCheck.make[F](transactor)
       rusticHealthCheck0 <- RusticHealthCheck.make[F](config.rusticClient)
       versions0 <- SketchVersions.make[F](config.env, VersionFile("sketch.version"))
-      usersStore0 <- PostgresUsersStore.make[F](transactor)
+      usersStore0 <- PostgresUsersStore.make[F](transactor, Clock[F])
       authenticator0 <- Resource.liftK {
         Authenticator.make[F, ConnectionIO](
-          summon[Clock[F]],
+          Clock[F],
           usersStore0,
           config.keyPair.privateKey,
           config.keyPair.publicKey,
@@ -57,6 +59,7 @@ object Resources:
       override val versions: Versions[F] = versions0
       override val authenticator: Authenticator[F] = authenticator0
       override val accessControl: AccessControl[F, ConnectionIO] = accessControl0
+      override val usersStore: UsersStore[F, ConnectionIO] = usersStore0
       override val documentsStore: DocumentsStore[F, ConnectionIO] = documentsStore0
 
   private def newCustomWorkerThreadPool[F[_]: Sync]() = Resource

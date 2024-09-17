@@ -2,6 +2,7 @@ package org.fiume.sketch.auth0.scripts
 
 import cats.data.{EitherNec, Validated}
 import cats.effect.{ExitCode, IO, IOApp}
+import cats.effect.kernel.Clock
 import cats.effect.std.Console
 import cats.implicits.*
 import doobie.ConnectionIO
@@ -11,8 +12,8 @@ import org.fiume.sketch.shared.app.troubleshooting.{ErrorInfo, InvariantError}
 import org.fiume.sketch.shared.app.troubleshooting.ErrorInfo.ErrorMessage
 import org.fiume.sketch.shared.app.troubleshooting.ErrorInfo.given
 import org.fiume.sketch.shared.app.troubleshooting.InvariantErrorSyntax.asDetails
+import org.fiume.sketch.shared.auth0.{User, UserId}
 import org.fiume.sketch.shared.auth0.Passwords.PlainPassword
-import org.fiume.sketch.shared.auth0.User
 import org.fiume.sketch.shared.auth0.User.Username
 import org.fiume.sketch.storage.DatabaseConfig
 import org.fiume.sketch.storage.auth0.postgres.PostgresUsersStore
@@ -32,7 +33,7 @@ object UsersScript extends IOApp:
           IO.pure(scriptErrorCode)
 
   def makeScript(): IO[UsersScript] =
-    DatabaseConfig.envs[IO](dbPoolThreads = 2).load[IO].map(UsersScript(_))
+    DatabaseConfig.envs[IO](dbPoolThreads = 2).load[IO].map(UsersScript(_, Clock[IO]))
 
   object Args:
     def make(args: List[String]): Either[ErrorInfo, Args] =
@@ -58,16 +59,16 @@ object UsersScript extends IOApp:
 
   case class Args(username: Username, password: PlainPassword, isSuperuser: Boolean)
 
-class UsersScript private (private val config: DatabaseConfig):
-  def createUserAccount(args: Args): IO[Unit] =
+class UsersScript private (config: DatabaseConfig, clock: Clock[IO]):
+  def createUserAccount(args: Args): IO[UserId] =
     DbTransactor
       .make[IO](config)
       .flatMap { transactor =>
-        (PostgresUsersStore.make[IO](transactor), PostgresAccessControl.make[IO](transactor)).tupled
+        (PostgresUsersStore.make[IO](transactor, clock), PostgresAccessControl.make[IO](transactor)).tupled
       }
       .use { case (usersStore, accessControl) =>
         for
           usersManager <- UsersManager.make[IO, ConnectionIO](usersStore, accessControl)
-          _ <- usersManager.createAccount(args.username, args.password, args.isSuperuser)
-        yield ()
+          userId <- usersManager.createAccount(args.username, args.password, args.isSuperuser)
+        yield userId
       }

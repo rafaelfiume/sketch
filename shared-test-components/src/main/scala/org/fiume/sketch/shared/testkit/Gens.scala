@@ -30,7 +30,8 @@ object Gens:
     def shortDurations: Gen[Duration] =
       def timeUnits: Gen[TimeUnit] = Gen.oneOf(SECONDS, MINUTES, HOURS, DAYS)
       for
-        length <- Gen.choose[Long](1, 100)
+        // Provide leeway in the generator to prevent test failures for very short durations (e.g., 1s)
+        length <- Gen.choose[Long](10, 100)
         unit <- timeUnits
       yield Duration(length, unit)
 

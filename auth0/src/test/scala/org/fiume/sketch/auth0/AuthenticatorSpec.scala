@@ -4,9 +4,10 @@ import cats.effect.IO
 import munit.{CatsEffectSuite, ScalaCheckEffectSuite}
 import org.bouncycastle.jce.provider.BouncyCastleProvider
 import org.fiume.sketch.auth0.AuthenticationError.*
-import org.fiume.sketch.auth0.JwtError.*
 import org.fiume.sketch.auth0.testkit.EcKeysGens
-import org.fiume.sketch.shared.auth0.{Account, AccountState, User}
+import org.fiume.sketch.shared.auth0.{Account, AccountState, JwtToken, User}
+import org.fiume.sketch.shared.auth0.AccountState.SoftDeleted
+import org.fiume.sketch.shared.auth0.JwtError.*
 import org.fiume.sketch.shared.auth0.Passwords.PlainPassword
 import org.fiume.sketch.shared.auth0.User.Username
 import org.fiume.sketch.shared.auth0.testkit.{UserGens, UsersStoreContext}
@@ -19,7 +20,7 @@ import org.scalacheck.ShrinkLowPriority
 import org.scalacheck.effect.PropF.forAllF
 
 import java.security.Security
-import java.time.{Instant, ZonedDateTime}
+import java.time.Instant
 import scala.concurrent.duration.*
 
 class AuthenticatorSpec
@@ -75,23 +76,22 @@ class AuthenticatorSpec
   test("inactive account authentication fails"):
     forAllF(validCredentialsWithIdAndPlainPassword, ecKeyPairs, shortDurations) {
       case ((credentials, plainPassword), (privateKey, publicKey), expirationOffset) =>
+        val deletedAt = Instant.now()
         // The idea is to check all possible inactive states within the AccountState ADT here
-        val userAccount = Account(credentials.uuid, credentials, AccountState.SoftDeleted(Instant.now()))
+        val userAccount = Account(credentials.uuid, credentials, state = SoftDeleted(deletedAt))
         for
           store <- makeUsersStore(userAccount)
 
           authenticator <- Authenticator.make[IO, IO](makeAnytime(), store, privateKey, publicKey, expirationOffset)
           result <- authenticator.authenticate(credentials.username, plainPassword)
 //
-        yield result.leftOrFail match
-          case AccountNotActiveError(_) => assert(true)
-          case _                        => fail(s"Expected AccountNotActiveError, got: $result")
+        yield assertEquals(result.leftOrFail, AccountNotActiveError.make(SoftDeleted(deletedAt)))
     }
 
   test("expired token verification fails"):
     forAllF(validCredentialsWithIdAndPlainPassword, ecKeyPairs, shortDurations) {
       case ((credentials, plainPassword), (privateKey, publicKey), expirationOffset) =>
-        val frozenTime = makeFrozenTime(ZonedDateTime.now().minusSeconds(expirationOffset.toSeconds))
+        val frozenTime = makeFrozenTime(Instant.now().minusSeconds(expirationOffset.toSeconds))
         for
           store <- makeUsersStore(credentials)
           authenticator <- Authenticator.make[IO, IO](frozenTime, store, privateKey, publicKey, expirationOffset)
@@ -153,10 +153,10 @@ class AuthenticatorSpec
 
 trait AuthenticatorSpecContext:
   extension (plainPassword: PlainPassword)
-    def shuffled: PlainPassword = PlainPassword.notValidatedFromString(plainPassword.value._shuffled)
+    def shuffled: PlainPassword = PlainPassword.makeUnsafeFromString(plainPassword.value._shuffled)
 
-  extension (username: Username) def shuffled: Username = Username.notValidatedFromString(username.value._shuffled)
+  extension (username: Username) def shuffled: Username = Username.makeUnsafeFromString(username.value._shuffled)
 
   extension (token: JwtToken)
-    def reversed: JwtToken = JwtToken.notValidatedFromString(token.value._reversed)
-    def tampered: JwtToken = JwtToken.notValidatedFromString(token.value.split('.').dropRight(1).mkString("."))
+    def reversed: JwtToken = JwtToken.makeUnsafeFromString(token.value._reversed)
+    def tampered: JwtToken = JwtToken.makeUnsafeFromString(token.value.split('.').dropRight(1).mkString("."))

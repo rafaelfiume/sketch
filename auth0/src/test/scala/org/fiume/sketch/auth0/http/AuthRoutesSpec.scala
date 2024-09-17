@@ -4,10 +4,7 @@ import cats.effect.IO
 import cats.implicits.*
 import munit.{CatsEffectSuite, ScalaCheckEffectSuite}
 import munit.Assertions.*
-import org.fiume.sketch.auth0.http.AuthRoutes.Model.{LoginRequestPayload, LoginResponsePayload}
-import org.fiume.sketch.auth0.http.AuthRoutes.Model.json.given
 import org.fiume.sketch.auth0.testkit.AuthenticatorContext
-import org.fiume.sketch.auth0.testkit.JwtTokenGens.jwtTokens
 import org.fiume.sketch.shared.app.http4s.middlewares.{SemanticInputError, SemanticValidationMiddleware}
 import org.fiume.sketch.shared.app.troubleshooting.ErrorInfo
 import org.fiume.sketch.shared.app.troubleshooting.ErrorInfo.{ErrorDetails, ErrorMessage}
@@ -17,6 +14,9 @@ import org.fiume.sketch.shared.auth0.Passwords.PlainPassword.WeakPasswordError
 import org.fiume.sketch.shared.auth0.User
 import org.fiume.sketch.shared.auth0.User.Username
 import org.fiume.sketch.shared.auth0.User.Username.WeakUsernameError
+import org.fiume.sketch.shared.auth0.http.Model.{LoginRequestPayload, LoginResponsePayload}
+import org.fiume.sketch.shared.auth0.http.Model.json.given
+import org.fiume.sketch.shared.auth0.testkit.JwtTokenGens.jwtTokens
 import org.fiume.sketch.shared.auth0.testkit.PasswordsGens.*
 import org.fiume.sketch.shared.auth0.testkit.UserGens.*
 import org.fiume.sketch.shared.testkit.{ContractContext, Http4sTestingRoutesDsl}
@@ -42,7 +42,7 @@ class AuthRoutesSpec
 
   test("valid login request results in a jwt token"):
     forAllF(loginRequests, jwtTokens) { case (user -> loginRequest -> jwtToken) =>
-      val plainPassword = PlainPassword.notValidatedFromString(loginRequest.password)
+      val plainPassword = PlainPassword.makeUnsafeFromString(loginRequest.password)
       for
         authenticator <- makeAuthenticator(
           signee = user -> plainPassword,
@@ -62,7 +62,7 @@ class AuthRoutesSpec
 
   test("login with wrong password fails with 401 Unauthorized status"):
     forAllF(loginRequests, jwtTokens) { case (user -> loginRequest -> jwtToken) =>
-      val plainPassword = PlainPassword.notValidatedFromString(loginRequest.password)
+      val plainPassword = PlainPassword.makeUnsafeFromString(loginRequest.password)
       for
         authenticator <- makeAuthenticator(
           signee = user -> plainPassword,
@@ -86,7 +86,7 @@ class AuthRoutesSpec
 
   test("login with unknown username fails with 401 Unauthorized status"):
     forAllF(loginRequests, jwtTokens) { case (user -> loginRequest -> jwtToken) =>
-      val plainPassword = PlainPassword.notValidatedFromString(loginRequest.password)
+      val plainPassword = PlainPassword.makeUnsafeFromString(loginRequest.password)
       for
         authenticator <- makeAuthenticator(
           signee = user -> plainPassword,
@@ -110,7 +110,7 @@ class AuthRoutesSpec
 
   test("login with semantically invalid username or password fails with 422 Unprocessable Entity"):
     forAllF(invalidInputs, jwtTokens) { case (user -> loginRequest -> jwtToken) =>
-      val plainPassword = PlainPassword.notValidatedFromString(loginRequest.password)
+      val plainPassword = PlainPassword.makeUnsafeFromString(loginRequest.password)
       for
         authenticator <- makeAuthenticator(
           signee = user -> plainPassword,
@@ -174,7 +174,7 @@ trait AuthRoutesSpecContext:
     for
       username <- oneOfUsernameInputErrors
       password <- oneOfPasswordInputErrors
-      user <- users.map { _.copy(username = Username.notValidatedFromString(username)) }
+      user <- users.map { _.copy(username = Username.makeUnsafeFromString(username)) }
     yield user -> LoginRequestPayload(username, password)
 
   def malformedInputs: Gen[String] =

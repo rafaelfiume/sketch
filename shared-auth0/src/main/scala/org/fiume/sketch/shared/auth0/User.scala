@@ -78,10 +78,10 @@ object User:
       val hasNoReservedWords = Validated.condNec(!reservedWords.exists(value.contains(_)), (), ReservedWords)
       val hasNoExcessiveRepeatedChars = Validated.condNec(!hasExcessiveRepeatedChars(value, 0.7), (), ExcessiveRepeatedChars)
       (hasMinLength, hasMaxLength, hasNoInvalidChar, hasNoReservedWords, hasNoExcessiveRepeatedChars)
-        .mapN((_, _, _, _, _) => notValidatedFromString(value))
+        .mapN((_, _, _, _, _) => makeUnsafeFromString(value))
         .toEither
 
-    def notValidatedFromString(value: String): Username = new Username(value) {}
+    def makeUnsafeFromString(value: String): Username = new Username(value) {}
 
     private def hasExcessiveRepeatedChars(value: String, maxRepeatedCharsPercentage: Float): Boolean =
       val repeatedCharsCount = value.groupBy(identity).view.mapValues(_.length)

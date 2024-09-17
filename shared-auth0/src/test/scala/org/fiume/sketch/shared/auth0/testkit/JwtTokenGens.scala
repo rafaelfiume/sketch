@@ -1,7 +1,7 @@
-package org.fiume.sketch.auth0.testkit
+package org.fiume.sketch.shared.auth0.testkit
 
-import org.fiume.sketch.auth0.{JwtError, JwtToken}
-import org.fiume.sketch.auth0.JwtError.*
+import org.fiume.sketch.shared.auth0.{JwtError, JwtToken}
+import org.fiume.sketch.shared.auth0.JwtError.*
 import org.scalacheck.{Arbitrary, Gen}
 
 object JwtTokenGens:
@@ -11,7 +11,7 @@ object JwtTokenGens:
     .const(
       "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiaWF0IjoxNTE2MjM5MDIyfQ.SflKxwRJSMeKKF2QT4fwpMeJf36POk6yJV_adQssw5c"
     )
-    .map(JwtToken.notValidatedFromString)
+    .map(JwtToken.makeUnsafeFromString)
 
   given Arbitrary[JwtError] = Arbitrary(jwtErrors)
   def jwtErrors: Gen[JwtError] =

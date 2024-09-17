@@ -4,13 +4,14 @@ import cats.effect.IO
 import io.circe.Json
 import munit.Assertions.*
 import munit.CatsEffectSuite
-import org.fiume.sketch.acceptance.testkit.{AuthenticationContext, Http4sClientContext}
+import org.fiume.sketch.acceptance.testkit.{AccountSetUpAndLoginContext, Http4sClientContext}
 import org.fiume.sketch.shared.testkit.FileContentContext
+import org.fiume.sketch.shared.testkit.syntax.EitherSyntax.*
 import org.http4s.Status.*
 import org.http4s.circe.*
 import org.http4s.headers.Authorization
 
-class DocumentsAccSpec extends CatsEffectSuite with AuthenticationContext with DocumentsSpecContext:
+class DocumentsAccSpec extends CatsEffectSuite with AccountSetUpAndLoginContext with DocumentsSpecContext:
 
   val docName = "a-unique-name-for-altamural.jpg"
   val docDesc = "La bella Altamura in Puglia <3"
@@ -18,24 +19,23 @@ class DocumentsAccSpec extends CatsEffectSuite with AuthenticationContext with D
 
   test("store documents"):
     for
-      authenticated <- loginAndGetAuthenticatedUser()
-      authorizationHeader = authenticated.authorization
+      jwt <- loginAndGetAuthenticatedUser()
+      authHeader = Authorization.parse(s"Bearer ${jwt.value}").rightOrFail
       _ <- withHttp { client =>
         for
           metadataPayload <- payload(docName, docDesc)
           uuid <- client
-            .expect[Json](fileUploadRequest(metadataPayload, pathToFile, authorizationHeader))
+            .expect[Json](fileUploadRequest(metadataPayload, pathToFile, authHeader))
             .map(_.uuid)
 
-          _ <- client.expect[Json](s"http://localhost:8080/documents/$uuid/metadata".get.withHeaders(authorizationHeader)).map {
-            res =>
-              assertEquals(res.uuid, uuid)
-              assertEquals(res.docName, docName)
-              assertEquals(res.description, docDesc)
+          _ <- client.expect[Json](s"http://localhost:8080/documents/$uuid/metadata".get.withHeaders(authHeader)).map { res =>
+            assertEquals(res.uuid, uuid)
+            assertEquals(res.docName, docName)
+            assertEquals(res.description, docDesc)
           }
 
           content <- client
-            .stream(s"http://localhost:8080/documents/$uuid".get.withHeaders(authorizationHeader))
+            .stream(s"http://localhost:8080/documents/$uuid".get.withHeaders(authHeader))
             .flatMap(_.body)
             .compile
             .toList
@@ -46,26 +46,25 @@ class DocumentsAccSpec extends CatsEffectSuite with AuthenticationContext with D
 
   test("delete documents"):
     for
-      authenticated <- loginAndGetAuthenticatedUser()
-      authorizationHeader = authenticated.authorization
+      jwt <- loginAndGetAuthenticatedUser()
+      authHeader = Authorization.parse(s"Bearer ${jwt.value}").rightOrFail
       _ <- withHttp { client =>
         for
           metadataPayload <- payload(docName, docDesc)
           uuid <- client
-            .expect[Json](fileUploadRequest(metadataPayload, pathToFile, authorizationHeader))
+            .expect[Json](fileUploadRequest(metadataPayload, pathToFile, authHeader))
             .map(_.uuid)
 
-          _ <- client.status(s"http://localhost:8080/documents/$uuid".delete.withHeaders(authorizationHeader)).map { status =>
-            assertEquals(status, NoContent)
+          _ <- client.status(s"http://localhost:8080/documents/$uuid".delete.withHeaders(authHeader)).map {
+            assertEquals(_, NoContent)
           }
 
-          _ <- client.status(s"http://localhost:8080/documents/$uuid/metadata".get.withHeaders(authorizationHeader)).map {
-            status =>
-              assertEquals(status, Forbidden)
+          _ <- client.status(s"http://localhost:8080/documents/$uuid/metadata".get.withHeaders(authHeader)).map {
+            assertEquals(_, Forbidden)
           }
 
-          _ <- client.status(s"http://localhost:8080/documents/$uuid".get.withHeaders(authorizationHeader)).map { status =>
-            assertEquals(status, Forbidden)
+          _ <- client.status(s"http://localhost:8080/documents/$uuid".get.withHeaders(authHeader)).map {
+            assertEquals(_, Forbidden)
           }
         yield ()
       }
