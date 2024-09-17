@@ -12,7 +12,7 @@ import org.fiume.sketch.shared.testkit.syntax.OptionSyntax.*
 import org.http4s.Uri
 import org.scalacheck.Gen
 
-trait AuthenticationContext extends Http4sClientContext:
+trait AccountSetUpAndLoginContext extends Http4sClientContext:
 
   private def aUsername() = Gen.delay(validUsernames).sample.someOrFail
   private def aPassword() = Gen.delay(validPlainPasswords).sample.someOrFail

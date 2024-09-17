@@ -80,7 +80,6 @@ the `/purge-user-entities` endpoint.
 Clean up needed:
  - Error handling in DoobieMappings
 
- Next PR clean up, missing unit and acc tests, document with Postman collection
  Subsequent PR Admin can delete any user account
  3rd PR Mark it to permanent deletion, response payload (?)
  4th PR clean up all entities upon permanent deletion

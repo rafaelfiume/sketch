@@ -4,7 +4,7 @@ import cats.effect.IO
 import cats.effect.unsafe.IORuntime
 import io.gatling.core.Predef.*
 import io.gatling.http.Predef.{http, *}
-import org.fiume.sketch.acceptance.testkit.AuthenticationContext
+import org.fiume.sketch.acceptance.testkit.AccountSetUpAndLoginContext
 import org.fiume.sketch.shared.testkit.FileContentContext
 import org.fiume.sketch.shared.testkit.syntax.EitherSyntax.*
 import org.http4s.headers.Authorization
@@ -13,7 +13,7 @@ import scala.annotation.nowarn
 import scala.concurrent.duration.*
 
 @nowarn
-class DocumentsSimulation extends Simulation with AuthenticationContext with DocumentsSimulationContext:
+class DocumentsSimulation extends Simulation with AccountSetUpAndLoginContext with DocumentsSimulationContext:
 
   private given IORuntime = IORuntime.global
 

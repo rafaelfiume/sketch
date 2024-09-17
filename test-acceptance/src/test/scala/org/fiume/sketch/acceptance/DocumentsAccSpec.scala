@@ -4,14 +4,14 @@ import cats.effect.IO
 import io.circe.Json
 import munit.Assertions.*
 import munit.CatsEffectSuite
-import org.fiume.sketch.acceptance.testkit.{AuthenticationContext, Http4sClientContext}
+import org.fiume.sketch.acceptance.testkit.{AccountSetUpAndLoginContext, Http4sClientContext}
 import org.fiume.sketch.shared.testkit.FileContentContext
 import org.fiume.sketch.shared.testkit.syntax.EitherSyntax.*
 import org.http4s.Status.*
 import org.http4s.circe.*
 import org.http4s.headers.Authorization
 
-class DocumentsAccSpec extends CatsEffectSuite with AuthenticationContext with DocumentsSpecContext:
+class DocumentsAccSpec extends CatsEffectSuite with AccountSetUpAndLoginContext with DocumentsSpecContext:
 
   val docName = "a-unique-name-for-altamural.jpg"
   val docDesc = "La bella Altamura in Puglia <3"
