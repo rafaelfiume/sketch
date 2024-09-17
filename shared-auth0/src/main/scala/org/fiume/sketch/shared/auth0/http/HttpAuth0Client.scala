@@ -48,7 +48,7 @@ class HttpAuth0Client[F[_]: Async] private (client: Client[F], baseUri: Uri):
         .status(request)
         .map {
           case Ok        => Right(())
-          case Forbidden => Left("You are not allowed to delete this user")
+          case Forbidden => Left("")
           case status    => Left(s"Unexpected status code: $status")
         }
     yield response
