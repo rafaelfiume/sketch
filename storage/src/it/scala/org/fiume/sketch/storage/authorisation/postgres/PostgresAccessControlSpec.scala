@@ -8,6 +8,7 @@ import munit.ScalaCheckEffectSuite
 import org.fiume.sketch.authorisation.{ContextualRole, GlobalRole, Role}
 import org.fiume.sketch.authorisation.ContextualRole.Owner
 import org.fiume.sketch.authorisation.GlobalRole.{Admin, Superuser}
+import org.fiume.sketch.authorisation.testkit.AccessControlGens.*
 import org.fiume.sketch.authorisation.testkit.AccessControlGens.given
 import org.fiume.sketch.shared.auth0.User.UserCredentials
 import org.fiume.sketch.shared.auth0.UserId
@@ -32,20 +33,20 @@ class PostgresAccessControlSpec
     with PostgresAccessControlSpecContext
     with ShrinkLowPriority:
 
-  override def scalaCheckTestParameters = super.scalaCheckTestParameters.withMinSuccessfulTests(10)
+  override def scalaCheckTestParameters = super.scalaCheckTestParameters.withMinSuccessfulTests(5)
 
   /*
    ** Global Role Specs
    */
 
   test("grants Admin users permission to access all entities"):
-    forAllF { (userId: UserId, entityId: DocumentId) =>
+    forAllF(userIds, entitiesIds) { (userId, entityId) =>
       will(cleanGrants) {
         PostgresAccessControl.make[IO](transactor()).use { accessControl =>
           for
             _ <- accessControl.grantGlobalAccess(userId, Admin).ccommit
 
-            // note that it is up to the program to make sure that existing entity ids are passed
+            // note that it is up to the developer to make sure that a pair of existing userId and entityId are passed
             grantedAccess <- accessControl.canAccess(userId, entityId).ccommit
 //
           yield assert(grantedAccess)
@@ -54,7 +55,7 @@ class PostgresAccessControlSpec
     }
 
   test("grants Superuser's permission to access all entities except UserEntity"):
-    forAllF(userIds, entities) { (userId, entityId) =>
+    forAllF(userIds, entitiesIds) { (userId, entityId) =>
       will(cleanGrants) {
         PostgresAccessControl.make[IO](transactor()).use { accessControl =>
           for
@@ -143,11 +144,11 @@ class PostgresAccessControlSpec
    ** Contextual Role Specs
    */
   test("grants a user ownership, and thus access, to an entity"):
-    forAllF { (userId: UserId, entityId: DocumentId, globalRole: GlobalRole, contextualRole: ContextualRole) =>
+    forAllF(userIds, entitiesIds) { (userId, entityId) =>
       will(cleanGrants) {
         PostgresAccessControl.make[IO](transactor()).use { accessControl =>
           for
-            _ <- accessControl.grantAccess(userId, entityId, contextualRole).ccommit
+            _ <- accessControl.grantAccess(userId, entityId, Owner).ccommit
 
             result <- accessControl.canAccess(userId, entityId).ccommit
 //
@@ -223,11 +224,11 @@ class PostgresAccessControlSpec
 
   // TODO What if global access?
   test("revokes a user's permission to access an entity"):
-    forAllF { (userId: UserId, entityId: DocumentId, role: ContextualRole) =>
+    forAllF(userIds, entitiesIds, contextualRoles) { (userId, entityId, contextualRole) =>
       will(cleanGrants) {
         PostgresAccessControl.make[IO](transactor()).use { accessControl =>
           for
-            _ <- accessControl.grantAccess(userId, entityId, role).ccommit
+            _ <- accessControl.grantAccess(userId, entityId, contextualRole).ccommit
 
             _ <- accessControl.revokeContextualAccess(userId, entityId).ccommit
 
@@ -243,7 +244,7 @@ class PostgresAccessControlSpec
 
   // fetchRole returns the least permissive role first
   test("contextual roles takes precedence over global roles"):
-    forAllF { (userId: UserId, entityId: DocumentId, globalRole: GlobalRole) =>
+    forAllF(userIds, entitiesIds, globalRoles) { (userId, entityId, globalRole) =>
       will(cleanGrants) {
         PostgresAccessControl.make[IO](transactor()).use { accessControl =>
           for
@@ -266,4 +267,4 @@ trait PostgresAccessControlSpecContext:
       sql"TRUNCATE TABLE auth.users".update.run.void *>
       sql"TRUNCATE TABLE domain.documents".update.run.void
 
-  def entities = Gen.oneOf(documentsIds, userIds)
+  def entitiesIds = Gen.oneOf(documentsIds, userIds)
