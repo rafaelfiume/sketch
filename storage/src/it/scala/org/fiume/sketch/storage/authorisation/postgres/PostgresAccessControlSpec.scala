@@ -1,26 +1,28 @@
 package org.fiume.sketch.storage.authorisation.postgres
 
-import cats.effect.IO
+import cats.effect.{Clock, IO}
 import cats.implicits.*
 import doobie.ConnectionIO
 import doobie.implicits.*
 import munit.ScalaCheckEffectSuite
 import org.fiume.sketch.authorisation.{ContextualRole, GlobalRole, Role}
-import org.fiume.sketch.authorisation.GlobalRole.Superuser
-import org.fiume.sketch.authorisation.GlobalRole.Admin
+import org.fiume.sketch.authorisation.ContextualRole.Owner
+import org.fiume.sketch.authorisation.GlobalRole.{Admin, Superuser}
 import org.fiume.sketch.authorisation.testkit.AccessControlGens.given
+import org.fiume.sketch.shared.auth0.User.UserCredentials
 import org.fiume.sketch.shared.auth0.UserId
+import org.fiume.sketch.shared.auth0.testkit.UserGens.*
 import org.fiume.sketch.shared.auth0.testkit.UserGens.given
 import org.fiume.sketch.shared.auth0.testkit.UsersStoreContext
 import org.fiume.sketch.shared.domain.documents.{DocumentEntity, DocumentId, DocumentWithIdAndStream}
+import org.fiume.sketch.shared.domain.testkit.DocumentsGens.*
 import org.fiume.sketch.shared.domain.testkit.DocumentsGens.given
 import org.fiume.sketch.shared.testkit.syntax.EitherSyntax.*
+import org.fiume.sketch.storage.auth0.postgres.PostgresUsersStore
 import org.fiume.sketch.storage.documents.postgres.PostgresDocumentsStore
 import org.fiume.sketch.storage.testkit.DockerPostgresSuite
 import org.scalacheck.ShrinkLowPriority
 import org.scalacheck.effect.PropF.forAllF
-import org.fiume.sketch.shared.domain.testkit.DocumentsGens.*
-import org.fiume.sketch.shared.auth0.testkit.UserGens.*
 
 class PostgresAccessControlSpec
     extends ScalaCheckEffectSuite
@@ -66,28 +68,32 @@ class PostgresAccessControlSpec
 
   test("fetches all authorised entity ids for a global role"):
     forAllF {
-      (fstUserId: UserId,
+      (fstUser: UserCredentials,
+       globalRole: GlobalRole,
        fstDocument: DocumentWithIdAndStream[IO],
        sndDocument: DocumentWithIdAndStream[IO],
-       sndUserId: UserId,
+       sndUser: UserCredentials,
        trdDocument: DocumentWithIdAndStream[IO]
       ) =>
         will(cleanGrants) {
           (
             PostgresAccessControl.make[IO](transactor()),
-            PostgresDocumentsStore.make[IO](transactor())
-          ).tupled.use { case (accessControl, documentStore) =>
+            PostgresDocumentsStore.make[IO](transactor()),
+            PostgresUsersStore.make[IO](transactor(), Clock[IO])
+          ).tupled.use { case (accessControl, docStore, usersStore) =>
             for
-              _ <- accessControl.grantGlobalAccess(fstUserId, Superuser).ccommit
-              fstDocumentId <- accessControl
-                .ensureAccess(fstUserId, ContextualRole.Owner) { documentStore.store(fstDocument) }
+              fstUserId <- usersStore
+                .store(fstUser)
+                .flatTap { userId => accessControl.grantAccess(userId, userId, Owner) }
                 .ccommit
-              sndDocumentId <- accessControl
-                .ensureAccess(sndUserId, ContextualRole.Owner) { documentStore.store(sndDocument) }
+              sndUserId <- usersStore
+                .store(sndUser)
+                .flatTap { userId => accessControl.grantAccess(userId, userId, Owner) }
                 .ccommit
-              trdDocumentId <- accessControl
-                .ensureAccess(sndUserId, ContextualRole.Owner) { documentStore.store(trdDocument) }
-                .ccommit
+              fstDocId <- accessControl.ensureAccess(fstUserId, Owner) { docStore.store(fstDocument) }.ccommit
+              sndDocId <- accessControl.ensureAccess(sndUserId, Owner) { docStore.store(sndDocument) }.ccommit
+              trdDocId <- accessControl.ensureAccess(sndUserId, Owner) { docStore.store(trdDocument) }.ccommit
+              _ <- accessControl.grantGlobalAccess(fstUserId, globalRole).ccommit
 
               result <- accessControl
                 .fetchAllAuthorisedEntityIds(fstUserId, "DocumentEntity")
@@ -95,10 +101,44 @@ class PostgresAccessControlSpec
                 .compile
                 .toList
 //
-            yield assertEquals(result, List(fstDocumentId, sndDocumentId, trdDocumentId))
+            yield assertEquals(result, List(fstDocId, sndDocId, trdDocId))
           }
         }
     }
+
+  // User Entities are special in that they are extremely sensitive
+  test("only Admins are authorised to access all UserEntities"):
+    forAllF { (fstUser: UserCredentials, globalRole: GlobalRole, sndUser: UserCredentials) =>
+      will(cleanGrants) {
+        (
+          PostgresAccessControl.make[IO](transactor()),
+          PostgresUsersStore.make[IO](transactor(), Clock[IO])
+        ).tupled.use { case (accessControl, usersStore) =>
+          for
+            fstUserId <- usersStore
+              .store(fstUser)
+              .flatTap { userId => accessControl.grantAccess(userId, userId, Owner) }
+              .ccommit
+            sndUserId <- usersStore
+              .store(sndUser)
+              .flatTap { userId => accessControl.grantAccess(userId, userId, Owner) }
+              .ccommit
+            _ <- accessControl.grantGlobalAccess(fstUserId, globalRole).ccommit
+
+            result: List[UserId] <- accessControl
+              .fetchAllAuthorisedEntityIds(fstUserId, "UserEntity")
+              .ccommitStream
+              .compile
+              .toList
+//
+          yield
+            if globalRole == Superuser then assertEquals(result, List(fstUserId))
+            if globalRole == Admin then assertEquals(result, List(fstUserId, sndUserId))
+        }
+      }
+    }
+
+  // fetchts all authorised ids for owner
 
   /*
    ** Contextual Role Specs
@@ -214,6 +254,8 @@ trait PostgresAccessControlSpecContext:
 
   def cleanGrants: ConnectionIO[Unit] =
     sql"TRUNCATE TABLE auth.access_control".update.run.void *>
-      sql"TRUNCATE TABLE auth.global_access_control".update.run.void
+      sql"TRUNCATE TABLE auth.global_access_control".update.run.void *>
+      sql"TRUNCATE TABLE auth.users".update.run.void *>
+      sql"TRUNCATE TABLE domain.documents".update.run.void
 
   def entities = Gen.oneOf(documentsIds, userIds)
