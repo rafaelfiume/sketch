@@ -110,6 +110,7 @@ private object Statements:
          |LIMIT 1
     """.stripMargin.query
 
+  // TODO Not currently in use
   def deleteGrant[T <: Entity](userId: UserId, entityId: EntityId[T]): Update0 =
     sql"""
          |DELETE FROM auth.access_control

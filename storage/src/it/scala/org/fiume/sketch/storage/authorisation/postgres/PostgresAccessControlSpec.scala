@@ -18,6 +18,7 @@ import org.fiume.sketch.shared.domain.documents.{DocumentEntity, DocumentId, Doc
 import org.fiume.sketch.shared.domain.testkit.DocumentsGens.*
 import org.fiume.sketch.shared.domain.testkit.DocumentsGens.given
 import org.fiume.sketch.shared.testkit.syntax.EitherSyntax.*
+import org.fiume.sketch.shared.testkit.syntax.OptionSyntax.someOrFail
 import org.fiume.sketch.storage.auth0.postgres.PostgresUsersStore
 import org.fiume.sketch.storage.documents.postgres.PostgresDocumentsStore
 import org.fiume.sketch.storage.testkit.DockerPostgresSuite
@@ -232,6 +233,24 @@ class PostgresAccessControlSpec
 
             grantRemoved <- accessControl.canAccess(userId, entityId).map(!_).ccommit
           yield assert(grantRemoved)
+        }
+      }
+    }
+
+  /*
+   ** Roles precedence
+   */
+
+  test("contextual roles takes precedence over global roles"):
+    forAllF { (userId: UserId, entityId: DocumentId, globalRole: GlobalRole) =>
+      will(cleanGrants) {
+        PostgresAccessControl.make[IO](transactor()).use { accessControl =>
+          for
+            _ <- accessControl.grantGlobalAccess(userId, globalRole).ccommit
+            _ <- accessControl.grantAccess(userId, entityId, Owner).ccommit
+
+            result <- accessControl.fetchRole(userId, entityId).ccommit
+          yield assertEquals(result.someOrFail, Role.Contextual(Owner))
         }
       }
     }

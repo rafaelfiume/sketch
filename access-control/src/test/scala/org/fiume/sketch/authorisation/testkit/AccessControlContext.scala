@@ -59,7 +59,9 @@ trait AccessControlContext:
           )
 
         override def fetchRole[T <: Entity](userId: UserId, entityId: EntityId[T]): IO[Option[Role]] =
-          ref.get.map(_.getContextualRole(userId))
+          // miminics the behaviour of fetchRole in PostgresAccessControl
+          // where less permissive contextual roles take precedence over global roles
+          ref.get.map(state => state.getContextualRole(userId).orElse(state.getGlobalRole(userId)))
 
         override def deleteGrant[T <: Entity](userId: UserId, entityId: EntityId[T]): IO[Unit] =
           ref.update(_ -- userId)

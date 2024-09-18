@@ -9,17 +9,6 @@ import org.fiume.sketch.shared.app.{Entity, EntityId}
 import org.fiume.sketch.shared.app.algebras.Store
 import org.fiume.sketch.shared.auth0.UserId
 
-/*
- * Privilegies: there's currently no distinction on what a user can once it obtain access to an entity,
- * but only which users can access certain entities.
- *
- * In other words, once a user has access to an entity, she is authorised to read, write and delete it.
- * There is currently no restrictions on creation aside from the requiring an authenticated user.
- *
- * The former should change when introducing contributors, which should be only allowed to edit and possibly
- * create entities. The latter could change with, for instance, limiting the number of entities of a certain
- * kind a user is authorised to create.
- */
 trait AccessControl[F[_], Txn[_]: Monad] extends Store[F, Txn]:
   type Unauthorised = String
 
