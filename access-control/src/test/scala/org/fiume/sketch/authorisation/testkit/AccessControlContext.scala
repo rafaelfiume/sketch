@@ -63,7 +63,7 @@ trait AccessControlContext:
           // where less permissive contextual roles take precedence over global roles
           ref.get.map(state => state.getContextualRole(userId).orElse(state.getGlobalRole(userId)))
 
-        override def deleteGrant[T <: Entity](userId: UserId, entityId: EntityId[T]): IO[Unit] =
+        override def deleteContextualGrant[T <: Entity](userId: UserId, entityId: EntityId[T]): IO[Unit] =
           ref.update(_ -- userId)
 
         override val lift: [A] => IO[A] => IO[A] = [A] => (action: IO[A]) => action

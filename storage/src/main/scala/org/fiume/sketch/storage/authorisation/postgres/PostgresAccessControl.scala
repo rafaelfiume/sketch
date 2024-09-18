@@ -38,8 +38,8 @@ private class PostgresAccessControl[F[_]: Async] private (l: F ~> ConnectionIO, 
   override def fetchRole[T <: Entity](userId: UserId, entityId: EntityId[T]): ConnectionIO[Option[Role]] =
     Statements.selectRole(userId, entityId).option
 
-  override def deleteGrant[T <: Entity](userId: UserId, entityId: EntityId[T]): ConnectionIO[Unit] =
-    Statements.deleteGrant[T](userId, entityId).run.void
+  override def deleteContextualGrant[T <: Entity](userId: UserId, entityId: EntityId[T]): ConnectionIO[Unit] =
+    Statements.deleteContextualGrant[T](userId, entityId).run.void
 
 private object Statements:
   private val logger = LoggerFactory.getLogger(Statements.getClass)
@@ -110,8 +110,7 @@ private object Statements:
          |LIMIT 1
     """.stripMargin.query
 
-  // TODO Not currently in use
-  def deleteGrant[T <: Entity](userId: UserId, entityId: EntityId[T]): Update0 =
+  def deleteContextualGrant[T <: Entity](userId: UserId, entityId: EntityId[T]): Update0 =
     sql"""
          |DELETE FROM auth.access_control
          |WHERE user_id = $userId AND entity_id = $entityId

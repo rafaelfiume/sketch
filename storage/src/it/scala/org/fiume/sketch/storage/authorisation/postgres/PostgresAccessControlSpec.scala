@@ -229,7 +229,7 @@ class PostgresAccessControlSpec
           for
             _ <- accessControl.grantAccess(userId, entityId, role).ccommit
 
-            _ <- accessControl.revokeAccess(userId, entityId).ccommit
+            _ <- accessControl.revokeContextualAccess(userId, entityId).ccommit
 
             grantRemoved <- accessControl.canAccess(userId, entityId).map(!_).ccommit
           yield assert(grantRemoved)
@@ -241,6 +241,7 @@ class PostgresAccessControlSpec
    ** Roles precedence
    */
 
+  // fetchRole returns the least permissive role first
   test("contextual roles takes precedence over global roles"):
     forAllF { (userId: UserId, entityId: DocumentId, globalRole: GlobalRole) =>
       will(cleanGrants) {
@@ -250,6 +251,7 @@ class PostgresAccessControlSpec
             _ <- accessControl.grantAccess(userId, entityId, Owner).ccommit
 
             result <- accessControl.fetchRole(userId, entityId).ccommit
+//
           yield assertEquals(result.someOrFail, Role.Contextual(Owner))
         }
       }

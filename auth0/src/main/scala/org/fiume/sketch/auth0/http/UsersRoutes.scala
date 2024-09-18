@@ -26,13 +26,9 @@ class UsersRoutes[F[_]: Concurrent, Txn[_]: FlatMap](
 
   def router(): HttpRoutes[F] = Router(prefix -> authMiddleware(authedRoutes))
 
-  // TODO Add to acceptance or load test
   private val authedRoutes: AuthedRoutes[User, F] =
     AuthedRoutes.of { case DELETE -> Root / "users" / UserIdVar(uuid) as user =>
       for
-        // TODO replace: `canAccess` by `canDelete`. Or make `canAccess` accept a `privilege` as param?
-        // TODO make `Admin` able to delete any user
-        // TODO Implement a version of canAccess that performs the check and performs the action?
         isAccountActive <- store.fetchAccount(user.username).map { _.map(_.isActive).getOrElse(false) }.commit()
         res <- accessControl
           .canAccess(user.uuid, user.uuid)

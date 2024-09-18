@@ -98,7 +98,7 @@ class DocumentsRoutes[F[_]: Concurrent, Txn[_]: FlatMap](
         for
           document <- accessControl
             .attemptWithAuthorisation(user.uuid, uuid) { store.delete }
-            .flatTap { _ => accessControl.revokeAccess(user.uuid, uuid) }
+            .flatTap { _ => accessControl.revokeContextualAccess(user.uuid, uuid) }
             .commit()
           res <- document match
             case Right(document)    => NoContent()
