@@ -38,11 +38,9 @@ trait AccessControl[F[_], Txn[_]: Monad] extends Store[F, Txn]:
       ifFalse = Left("Unauthorised").pure[Txn]
     )
 
-  // This needs to respect the same rules as `canAccess`
+  // It needs to respect the same rules as `canAccess`
   def fetchAllAuthorisedEntityIds[T <: Entity](userId: UserId, entityType: String): fs2.Stream[Txn, EntityId[T]]
-  // if it is admin, access anything
 
-  // Should revoke access work for global roles?
   def revokeContextualAccess[T <: Entity](userId: UserId, entityId: EntityId[T]): Txn[Unit] =
     deleteContextualGrant(userId, entityId)
 

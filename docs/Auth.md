@@ -59,7 +59,7 @@ Step-by-step:
   * Make sure user with deleted account is unable to login
   * Users can delete their own account
   * Admin can delete other users' account
-1) Mark soft deleted account it to permanent deletion
+1) Mark soft deleted account to permanent deletion
 1) Schedule job to permanently delete user account after n days
 1) Use callback to delete all entities of user with deleted account
     (search for '1. REST-based Event Notifications (Webhook-Style)')
@@ -81,5 +81,17 @@ Clean up needed:
  - Error handling in DoobieMappings
 
  Subsequent PR Admin can delete any user account
+ Define process to enable Admin to reactivate an account
  3rd PR Mark it to permanent deletion, response payload (?)
- 4th PR clean up all entities upon permanent deletion
+ 4th PR clean up all entities upon permanent deletion 
+    (secure call to callback, it needs to be authenticated; make it atomic; retries; log and track (metrics) failed attempts)
+
+```
+CREATE TABLE deletion_jobs (
+    job_id UUID PRIMARY KEY,
+    user_id UUID REFERENCES users(user_id) ON DELETE CASCADE,   -- Ensure deletion cascade
+    scheduled_permanent_deletion_time TIMESTAMP NOT NULL,       -- When the permanent deletion should occur
+    callback_uri VARCHAR(255),                                  -- URI to notify external services
+    created_at TIMESTAMP DEFAULT NOW()
+);
+```
