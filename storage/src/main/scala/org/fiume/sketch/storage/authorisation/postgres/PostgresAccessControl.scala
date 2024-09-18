@@ -38,8 +38,8 @@ private class PostgresAccessControl[F[_]: Async] private (l: F ~> ConnectionIO, 
   override def fetchRole[T <: Entity](userId: UserId, entityId: EntityId[T]): ConnectionIO[Option[Role]] =
     Statements.selectRole(userId, entityId).option
 
-  override def deleteGrant[T <: Entity](userId: UserId, entityId: EntityId[T]): ConnectionIO[Unit] =
-    Statements.deleteGrant[T](userId, entityId).run.void
+  override def deleteContextualGrant[T <: Entity](userId: UserId, entityId: EntityId[T]): ConnectionIO[Unit] =
+    Statements.deleteContextualGrant[T](userId, entityId).run.void
 
 private object Statements:
   private val logger = LoggerFactory.getLogger(Statements.getClass)
@@ -74,7 +74,7 @@ private object Statements:
     logger.debug(s"Fetching all authorised entity ids for user $userId and entity type $entityType")
     // using common table expression (cte)
     sql"""
-         |WITH global_access_check AS (
+         |WITH global_access_role AS (
          |  SELECT role
          |  FROM auth.global_access_control
          |  WHERE user_id = $userId
@@ -84,8 +84,11 @@ private object Statements:
          |FROM auth.access_control
          |WHERE entity_type = $entityType
          |AND (
-         |    EXISTS (SELECT 1 FROM global_access_check)
-         |    OR (user_id = $userId)
+         |  (SELECT role FROM global_access_role) = 'Admin'
+         |
+         |  OR (SELECT role FROM global_access_role) = 'Superuser' AND entity_type != 'UserEntity'
+         |
+         |  OR (user_id = $userId)
          |)
     """.stripMargin.query
 
@@ -107,7 +110,7 @@ private object Statements:
          |LIMIT 1
     """.stripMargin.query
 
-  def deleteGrant[T <: Entity](userId: UserId, entityId: EntityId[T]): Update0 =
+  def deleteContextualGrant[T <: Entity](userId: UserId, entityId: EntityId[T]): Update0 =
     sql"""
          |DELETE FROM auth.access_control
          |WHERE user_id = $userId AND entity_id = $entityId

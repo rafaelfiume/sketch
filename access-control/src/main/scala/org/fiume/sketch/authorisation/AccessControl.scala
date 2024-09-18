@@ -2,6 +2,9 @@ package org.fiume.sketch.authorisation
 
 import cats.Monad
 import cats.implicits.*
+import org.fiume.sketch.authorisation.ContextualRole.*
+import org.fiume.sketch.authorisation.GlobalRole.*
+import org.fiume.sketch.authorisation.Role.{Contextual, Global}
 import org.fiume.sketch.shared.app.{Entity, EntityId}
 import org.fiume.sketch.shared.app.algebras.Store
 import org.fiume.sketch.shared.auth0.UserId
@@ -9,20 +12,23 @@ import org.fiume.sketch.shared.auth0.UserId
 trait AccessControl[F[_], Txn[_]: Monad] extends Store[F, Txn]:
   type Unauthorised = String
 
-  def grantGlobalAccess(userId: UserId, role: GlobalRole): Txn[Unit] =
-    storeGlobalGrant(userId, role)
+  def grantGlobalAccess(userId: UserId, role: GlobalRole): Txn[Unit] = storeGlobalGrant(userId, role)
 
   def grantAccess[T <: Entity](userId: UserId, entityId: EntityId[T], role: ContextualRole): Txn[Unit] =
     storeGrant(userId, entityId, role)
 
   def ensureAccess[T <: Entity](userId: UserId, role: ContextualRole)(entityIdTxn: => Txn[EntityId[T]]): Txn[EntityId[T]] =
-    entityIdTxn.flatMap { entityId =>
-      grantAccess(userId, entityId, role).as(entityId)
-    }
+    entityIdTxn.flatTap { grantAccess(userId, _, role) }
 
   def canAccess[T <: Entity](userId: UserId, entityId: EntityId[T]): Txn[Boolean] =
-    // a simplistic implementation that works since currently there is only one global and one contextual roles
-    fetchRole(userId, entityId).map(_.isDefined)
+    fetchRole(userId, entityId).map { role =>
+      (role, entityId.entityType) match
+        case (None, _)                                    => false
+        case (Some(Role.Contextual(Owner)), _)            => true
+        case (Some(Role.Global(Superuser)), "UserEntity") => false
+        case (Some(Role.Global(Superuser)), _)            => true
+        case (Some(Role.Global(Admin)), _)                => true
+    }
 
   def attemptWithAuthorisation[T <: Entity, A](userId: UserId, entityId: EntityId[T])(
     ops: EntityId[T] => Txn[A]
@@ -32,11 +38,11 @@ trait AccessControl[F[_], Txn[_]: Monad] extends Store[F, Txn]:
       ifFalse = Left("Unauthorised").pure[Txn]
     )
 
-  // TODO Return role as well as ids?
+  // It needs to respect the same rules as `canAccess`
   def fetchAllAuthorisedEntityIds[T <: Entity](userId: UserId, entityType: String): fs2.Stream[Txn, EntityId[T]]
 
-  def revokeAccess[T <: Entity](userId: UserId, entityId: EntityId[T]): Txn[Unit] =
-    deleteGrant(userId, entityId)
+  def revokeContextualAccess[T <: Entity](userId: UserId, entityId: EntityId[T]): Txn[Unit] =
+    deleteContextualGrant(userId, entityId)
 
   protected def fetchRole[T <: Entity](userId: UserId, entityId: EntityId[T]): Txn[Option[Role]]
 
@@ -44,4 +50,4 @@ trait AccessControl[F[_], Txn[_]: Monad] extends Store[F, Txn]:
 
   protected def storeGrant[T <: Entity](userId: UserId, entityId: EntityId[T], role: ContextualRole): Txn[Unit]
 
-  protected def deleteGrant[T <: Entity](userId: UserId, entityId: EntityId[T]): Txn[Unit]
+  protected def deleteContextualGrant[T <: Entity](userId: UserId, entityId: EntityId[T]): Txn[Unit]
