@@ -55,6 +55,7 @@ trait AccessControl[F[_], Txn[_]: Monad] extends Store[F, Txn]:
   def fetchAllAuthorisedEntityIds[T <: Entity](userId: UserId, entityType: String): fs2.Stream[Txn, EntityId[T]]
   // if it is admin, access anything
 
+  // Should revoke access work for global roles?
   def revokeAccess[T <: Entity](userId: UserId, entityId: EntityId[T]): Txn[Unit] = deleteGrant(userId, entityId)
 
   protected def fetchRole[T <: Entity](userId: UserId, entityId: EntityId[T]): Txn[Option[Role]]

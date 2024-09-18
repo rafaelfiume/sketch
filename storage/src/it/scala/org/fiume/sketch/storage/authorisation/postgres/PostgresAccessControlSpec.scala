@@ -37,7 +37,7 @@ class PostgresAccessControlSpec
    ** Global Role Specs
    */
 
-  test("grants an Admin permission to access all entities"):
+  test("grants Admin users permission to access all entities"):
     forAllF { (userId: UserId, entityId: DocumentId) =>
       will(cleanGrants) {
         PostgresAccessControl.make[IO](transactor()).use { accessControl =>
@@ -52,7 +52,7 @@ class PostgresAccessControlSpec
       }
     }
 
-  test("grants a Superuser permission to access all entities except UserEntity"):
+  test("grants Superuser's permission to access all entities except UserEntity"):
     forAllF(userIds, entities) { (userId, entityId) =>
       will(cleanGrants) {
         PostgresAccessControl.make[IO](transactor()).use { accessControl =>
@@ -66,7 +66,7 @@ class PostgresAccessControlSpec
       }
     }
 
-  test("fetches all authorised entity ids for a global role"):
+  test("fetches all existent entity ids if user is Admin"):
     forAllF {
       (fstUser: UserCredentials,
        globalRole: GlobalRole,
@@ -106,8 +106,8 @@ class PostgresAccessControlSpec
         }
     }
 
-  // User Entities are special in that they are extremely sensitive
-  test("only Admins are authorised to access all UserEntities"):
+  // UserEntity is special in that it is extremely sensitive
+  test("fetches all existent entity ids, except non-owned UserEntity, if user is Superuser"):
     forAllF { (fstUser: UserCredentials, globalRole: GlobalRole, sndUser: UserCredentials) =>
       will(cleanGrants) {
         (
@@ -138,18 +138,14 @@ class PostgresAccessControlSpec
       }
     }
 
-  // fetchts all authorised ids for owner
-
   /*
    ** Contextual Role Specs
    */
-  test("grants a user permission to access an entity"):
+  test("grants a user ownership, and thus access, to an entity"):
     forAllF { (userId: UserId, entityId: DocumentId, globalRole: GlobalRole, contextualRole: ContextualRole) =>
       will(cleanGrants) {
         PostgresAccessControl.make[IO](transactor()).use { accessControl =>
           for
-            // TODO check property where contextual role takes precedence over global role
-            _ <- accessControl.grantGlobalAccess(userId, globalRole).ccommit
             _ <- accessControl.grantAccess(userId, entityId, contextualRole).ccommit
 
             result <- accessControl.canAccess(userId, entityId).ccommit
@@ -159,52 +155,42 @@ class PostgresAccessControlSpec
       }
     }
 
-  test("stores an entity and ensures the user has access to it"):
+  test("stores an entity and ensures that the user is its owner"):
     forAllF { (userId: UserId, document: DocumentWithIdAndStream[IO], role: ContextualRole) =>
       will(cleanGrants) {
         (
           PostgresAccessControl.make[IO](transactor()),
           PostgresDocumentsStore.make[IO](transactor())
-        ).tupled.use { case (accessControl, documentStore) =>
+        ).tupled.use { case (accessControl, docStore) =>
           for
-            documentId <- accessControl
-              .ensureAccess(userId, role) { documentStore.store(document) }
-              .ccommit
+            docId <- accessControl.ensureAccess(userId, role) { docStore.store(document) }.ccommit
 
-            result <- accessControl
-              .attemptWithAuthorisation(userId, documentId) {
-                documentStore.fetchDocument
-              }
-              .ccommit
+            result <- accessControl.attemptWithAuthorisation(userId, docId) { docStore.fetchDocument }.ccommit
 //
           yield assertEquals(result.rightOrFail, document.some)
         }
       }
     }
 
-  test("does not fetch an entity if the user does not have access to it"):
+  test("does not perform operation on entity if the user is not authorized to access it"):
     forAllF { (userId: UserId, document: DocumentWithIdAndStream[IO], role: Role) =>
       will(cleanGrants) {
         (
           PostgresAccessControl.make[IO](transactor()),
           PostgresDocumentsStore.make[IO](transactor())
-        ).tupled.use { case (accessControl, documentStore) =>
+        ).tupled.use { case (accessControl, docStore) =>
           for
-            // not granting access to the user
-            documentId <- documentStore.store(document).ccommit
+            // no granting access to the user
+            docId <- docStore.store(document).ccommit
 
-            result <- accessControl
-              .attemptWithAuthorisation(userId, documentId) {
-                documentStore.fetchDocument
-              }
-              .ccommit
+            result <- accessControl.attemptWithAuthorisation(userId, docId) { docStore.fetchDocument }.ccommit
 //
           yield assertEquals(result.leftOrFail, "Unauthorised")
         }
       }
     }
 
-  test("fetches all authorised entity ids"):
+  test("fetches all entity ids of entities owned by the user"):
     forAllF {
       (fstUserId: UserId,
        fstDocument: DocumentWithIdAndStream[IO],
@@ -234,6 +220,7 @@ class PostgresAccessControlSpec
         }
     }
 
+  // TODO What if global access?
   test("revokes a user's permission to access an entity"):
     forAllF { (userId: UserId, entityId: DocumentId, role: ContextualRole) =>
       will(cleanGrants) {
