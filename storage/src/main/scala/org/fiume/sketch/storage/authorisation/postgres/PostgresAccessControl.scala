@@ -74,7 +74,7 @@ private object Statements:
     logger.debug(s"Fetching all authorised entity ids for user $userId and entity type $entityType")
     // using common table expression (cte)
     sql"""
-         |WITH global_access_check AS (
+         |WITH global_access_role AS (
          |  SELECT role
          |  FROM auth.global_access_control
          |  WHERE user_id = $userId
@@ -84,8 +84,11 @@ private object Statements:
          |FROM auth.access_control
          |WHERE entity_type = $entityType
          |AND (
-         |    EXISTS (SELECT 1 FROM global_access_check)
-         |    OR (user_id = $userId)
+         |  (SELECT role FROM global_access_role) = 'Admin'
+         |
+         |  OR (SELECT role FROM global_access_role) = 'Superuser' AND entity_type != 'UserEntity'
+         |
+         |  OR (user_id = $userId)
          |)
     """.stripMargin.query
 

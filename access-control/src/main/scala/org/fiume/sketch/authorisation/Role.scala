@@ -14,11 +14,11 @@ enum Role:
   case Contextual(designation: ContextualRole)
 
 enum GlobalRole:
+  case Admin
   case Superuser
 
 enum ContextualRole:
   case Owner
-  // case Contributor (?) // coming soon(ish)
 
 object Role:
   given AsString[Role] = new AsString[Role]:

@@ -39,19 +39,17 @@
 #### Docker:
 
  - `docker build -t sketch:dev .`
- - `docker run --rm -p8080:8080 sketch:dev`
- - `docker stop $(docker ps -a -q)`
+ - `docker compose -f tools/stack/docker-compose.yml up sketch-postgres`
+ - `docker exec -it <container-id> /bin/bash`
+ - `docker logs <container-id>`
+ - `docker network prune`
+ - `docker ps -a`
  - `docker rm $(docker ps -a -q)`
  - `docker rmi $(docker images -a -q)`
- - `docker ps -a`
- - `docker logs <container-id>`
- - `docker exec -it <container-id> /bin/bash`
- - `docker network prune`
+ - `docker run --rm -p8080:8080 sketch:dev`
+ - `docker stop $(docker ps -a -q)`
  - `docker volume ls`
- - `docker volume rm my_database_volume`
  - `docker volume prune`
+ - `docker volume rm my_database_volume`
 
 Check postgres connection with: `lsof -nP -iTCP:5433 | grep LISTEN`
-
-
-Feito com ❤️ por Artigiani.

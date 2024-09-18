@@ -7,6 +7,7 @@ import doobie.implicits.*
 import munit.ScalaCheckEffectSuite
 import org.fiume.sketch.authorisation.{ContextualRole, GlobalRole, Role}
 import org.fiume.sketch.authorisation.GlobalRole.Superuser
+import org.fiume.sketch.authorisation.GlobalRole.Admin
 import org.fiume.sketch.authorisation.testkit.AccessControlGens.given
 import org.fiume.sketch.shared.auth0.UserId
 import org.fiume.sketch.shared.auth0.testkit.UserGens.given
@@ -18,6 +19,8 @@ import org.fiume.sketch.storage.documents.postgres.PostgresDocumentsStore
 import org.fiume.sketch.storage.testkit.DockerPostgresSuite
 import org.scalacheck.ShrinkLowPriority
 import org.scalacheck.effect.PropF.forAllF
+import org.fiume.sketch.shared.domain.testkit.DocumentsGens.*
+import org.fiume.sketch.shared.auth0.testkit.UserGens.*
 
 class PostgresAccessControlSpec
     extends ScalaCheckEffectSuite
@@ -32,17 +35,31 @@ class PostgresAccessControlSpec
    ** Global Role Specs
    */
 
-  test("grants a Superuser permission to access all entities"):
-    forAllF { (userId: UserId, entityId: DocumentId, role: GlobalRole) =>
+  test("grants an Admin permission to access all entities"):
+    forAllF { (userId: UserId, entityId: DocumentId) =>
       will(cleanGrants) {
         PostgresAccessControl.make[IO](transactor()).use { accessControl =>
           for
-            _ <- accessControl.grantGlobalAccess(userId, role).ccommit
+            _ <- accessControl.grantGlobalAccess(userId, Admin).ccommit
 
-            // always true for a Superuser even if entityId doesn't exist
+            // note that it is up to the program to make sure that existing entity ids are passed
             grantedAccess <- accessControl.canAccess(userId, entityId).ccommit
 //
           yield assert(grantedAccess)
+        }
+      }
+    }
+
+  test("grants a Superuser permission to access all entities except UserEntity"):
+    forAllF(userIds, entities) { (userId, entityId) =>
+      will(cleanGrants) {
+        PostgresAccessControl.make[IO](transactor()).use { accessControl =>
+          for
+            _ <- accessControl.grantGlobalAccess(userId, Superuser).ccommit
+
+            grantedAccess <- accessControl.canAccess(userId, entityId).ccommit
+//
+          yield if entityId.entityType =!= "UserEntity" then assert(grantedAccess) else assert(!grantedAccess)
         }
       }
     }
@@ -193,7 +210,10 @@ class PostgresAccessControlSpec
     }
 
 trait PostgresAccessControlSpecContext:
+  import org.scalacheck.Gen
 
   def cleanGrants: ConnectionIO[Unit] =
     sql"TRUNCATE TABLE auth.access_control".update.run.void *>
       sql"TRUNCATE TABLE auth.global_access_control".update.run.void
+
+  def entities = Gen.oneOf(documentsIds, userIds)

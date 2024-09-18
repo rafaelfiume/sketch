@@ -42,7 +42,7 @@ CREATE TRIGGER set_users_updated_at
 -- Store Role-base (global) roles
 CREATE TABLE auth.global_access_control (
     user_id UUID NOT NULL,
-    role VARCHAR(20) NOT NULL CHECK (role IN ('Superuser')),
+    role VARCHAR(20) NOT NULL CHECK (role IN ('Admin', 'Superuser')),
     PRIMARY KEY (user_id)
     --FOREIGN KEY (user_id) REFERENCES users(user_id)
 );

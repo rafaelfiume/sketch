@@ -11,6 +11,13 @@ A global `Superuser` role is available to enable system-wide authorisation for c
 Access to entities is granted based on ownership of the entity, making it contextual.
 A user can be a contributor to one document, the owner of another, and unable to access others.
 
+### Access
+
+`Admin`s can fetch all entities, regardless of ownership.
+
+`Superuser`s can fetch all entities except UserEntity, for which they can only fetch if they are the owner.
+
+`Owner`s can fetch only the entities they own.
 
 ## Future Considerations
 
