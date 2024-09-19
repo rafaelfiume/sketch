@@ -64,7 +64,7 @@ object Resources:
 
   private def newCustomWorkerThreadPool[F[_]: Sync]() = Resource
     .make(
-      Sync[F].delay(
+      Sync[F].delay {
         Executors.newCachedThreadPool(
           new ThreadFactory:
             private val counter = new AtomicLong(0L)
@@ -74,6 +74,6 @@ object Resources:
               th.setDaemon(true)
               th
         )
-      )
-    )(tp => Sync[F].delay(tp.shutdown()))
+      }
+    )(tp => Sync[F].delay { tp.shutdown() })
     .map(ExecutionContext.fromExecutorService)

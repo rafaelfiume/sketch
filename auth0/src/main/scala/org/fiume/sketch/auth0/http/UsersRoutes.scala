@@ -9,11 +9,13 @@ import org.fiume.sketch.shared.app.EntityId.given
 import org.fiume.sketch.shared.app.syntax.StoreSyntax.*
 import org.fiume.sketch.shared.auth0.{User, UserId}
 import org.fiume.sketch.shared.auth0.algebras.UsersStore
+import org.fiume.sketch.shared.auth0.config.AccountConfig
 import org.http4s.{HttpRoutes, *}
 import org.http4s.dsl.Http4sDsl
 import org.http4s.server.{AuthMiddleware, Router}
 
 class UsersRoutes[F[_]: Concurrent, Txn[_]: FlatMap](
+  config: AccountConfig,
   authMiddleware: AuthMiddleware[F, User],
   accessControl: AccessControl[F, Txn],
   store: UsersStore[F, Txn]
@@ -36,7 +38,7 @@ class UsersRoutes[F[_]: Concurrent, Txn[_]: FlatMap](
           .map(_ && isAccountActive)
           .ifM(
             // TODO Return response payload
-            ifTrue = store.markForDeletion(user.uuid).commit() *> Ok(),
+            ifTrue = store.markForDeletion(user.uuid, config.timeUntilPermanentDeletion).commit() *> Ok(),
             ifFalse = Forbidden()
           )
       yield res

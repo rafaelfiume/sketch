@@ -69,7 +69,7 @@ DELETE /users/{userId}
 {
   "message": "User account has been soft deleted.",
   "deletionDate": "2024-09-13T12:00:00Z",
-  "permanentDeletionDate": "2024-12-13T12:00:00Z"
+  "permanentDeletionAt": "2024-12-13T12:00:00Z"
 }
 ```
 

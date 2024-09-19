@@ -6,19 +6,20 @@ import doobie.util.Write
 import org.fiume.sketch.shared.auth0.{Account, AccountState, User, UserId}
 import org.fiume.sketch.shared.auth0.Passwords.{HashedPassword, Salt}
 import org.fiume.sketch.shared.auth0.User.*
+import org.fiume.sketch.shared.auth0.jobs.JobId
 
 import java.time.Instant
 import java.util.UUID
 
 private[storage] object DoobieMappings:
 
+  given Meta[UserId] = Meta[UUID].timap(UserId(_))(_.value)
+
   given Meta[HashedPassword] = Meta[String].timap(HashedPassword.makeUnsafeFromString)(_.base64Value)
 
   given Meta[Salt] = Meta[String].timap(Salt.makeUnsafeFromString)(_.base64Value)
 
   given Meta[Username] = Meta[String].timap(Username.makeUnsafeFromString)(_.value)
-
-  given Meta[UserId] = Meta[UUID].timap(UserId(_))(_.value)
 
   given Read[UserCredentialsWithId] =
     Read[(UserId, Username, HashedPassword, Salt)].map { case (uuid, username, password, salt) =>
@@ -41,3 +42,5 @@ private[storage] object DoobieMappings:
   given Read[Account] = Read[(UserCredentialsWithId, AccountState)].map { case (creds, state) =>
     Account(creds.uuid, creds, state)
   }
+
+  given Meta[JobId] = Meta[UUID].timap(JobId(_))(_.value)

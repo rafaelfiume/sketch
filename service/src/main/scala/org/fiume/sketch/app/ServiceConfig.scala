@@ -7,24 +7,27 @@ import com.comcast.ip4s.{Host, Port}
 import org.fiume.sketch.auth0.KeyStringifier
 import org.fiume.sketch.rustic.RusticClientConfig
 import org.fiume.sketch.shared.app.Version.Environment
+import org.fiume.sketch.shared.auth0.config.AccountConfig
 import org.fiume.sketch.storage.DatabaseConfig
 import org.http4s.headers.Origin
 
 import java.security.interfaces.{ECPrivateKey, ECPublicKey}
+import scala.concurrent.duration.*
 
 case class ServiceConfig(
   env: Environment,
   endpoints: EndpointsConfig,
   keyPair: EcKeyPairConfig,
   db: DatabaseConfig,
-  rusticClient: RusticClientConfig
+  rusticClient: RusticClientConfig,
+  account: AccountConfig,
+  documents: DocumentsConfig
 )
 
 case class EndpointsConfig(
   port: Port,
   cors: CorsAllowOrigins,
-  requestResponseLoggingEnabled: Boolean,
-  documents: DocumentsConfig
+  requestResponseLoggingEnabled: Boolean
 )
 
 case class CorsAllowOrigins(allowedOrigins: Set[Origin])
@@ -52,12 +55,13 @@ object ServiceConfig:
       endpoints = EndpointsConfig(
         port,
         cors = CorsAllowOrigins(allowedOrigins),
-        requestResponseLoggingEnabled,
-        documents = DocumentsConfig(documentMbSizeLimit)
+        requestResponseLoggingEnabled
       ),
       keyPair = EcKeyPairConfig(privateKey, publicKey),
       db = databaseConfig,
-      rusticClient = RusticClientConfig(rusticHost, rusticPort)
+      rusticClient = RusticClientConfig(rusticHost, rusticPort),
+      account = AccountConfig(timeUntilPermanentDeletion = 90.days),
+      documents = DocumentsConfig(documentMbSizeLimit)
     )).load[F]
 
   given ConfigDecoder[String, Environment] = ConfigDecoder[String].map(Environment.apply)

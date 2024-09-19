@@ -12,6 +12,7 @@ import org.fiume.sketch.shared.auth0.{Account, Passwords, User, UserId}
 import org.fiume.sketch.shared.auth0.Passwords.{HashedPassword, Salt}
 import org.fiume.sketch.shared.auth0.User.*
 import org.fiume.sketch.shared.auth0.algebras.UsersStore
+import org.fiume.sketch.shared.auth0.jobs.{JobId, PermanentAccountDeletionJob}
 import org.fiume.sketch.storage.auth0.postgres.DoobieMappings.given
 import org.fiume.sketch.storage.auth0.postgres.Statements.*
 import org.fiume.sketch.storage.postgres.AbstractPostgresStore
@@ -20,17 +21,14 @@ import java.time.Instant
 
 object PostgresUsersStore:
   def make[F[_]: Async](tx: Transactor[F], clock: Clock[F]): Resource[F, PostgresUsersStore[F]] =
-    WeakAsync.liftK[F, ConnectionIO].map(l => new PostgresUsersStore[F](l, tx, clock))
+    WeakAsync.liftK[F, ConnectionIO].map(lift => new PostgresUsersStore[F](lift, tx, clock))
 
-private class PostgresUsersStore[F[_]: Async] private (l: F ~> ConnectionIO, tx: Transactor[F], clock: Clock[F])
-    extends AbstractPostgresStore[F](l, tx)
+private class PostgresUsersStore[F[_]: Async] private (lift: F ~> ConnectionIO, tx: Transactor[F], clock: Clock[F])
+    extends AbstractPostgresStore[F](lift, tx)
     with UsersStore[F, ConnectionIO]:
 
   override def store(credentials: UserCredentials): ConnectionIO[UserId] =
     insertUserCredentials(credentials.username, credentials.hashedPassword, credentials.salt)
-      .withUniqueGeneratedKeys[UserId](
-        "uuid"
-      )
 
   override def fetchAccount(username: Username): ConnectionIO[Option[Account]] =
     Statements.selectUserAccount(username).option
@@ -41,11 +39,30 @@ private class PostgresUsersStore[F[_]: Async] private (l: F ~> ConnectionIO, tx:
   override def updatePassword(uuid: UserId, password: HashedPassword): ConnectionIO[Unit] =
     Statements.updatePassword(uuid, password).run.void
 
-  override def markForDeletion(uuid: UserId): ConnectionIO[Unit] =
-    l(clock.realTimeInstant).flatMap { Statements.updateSoftDeletion(uuid, _).run.void }
+  override protected def softDeleteAccount(uuid: UserId): ConnectionIO[Instant] =
+    lift(clock.realTimeInstant).flatTap { Statements.updateSoftDeletion(uuid, _).run.void }
+
+  override protected def schedulePermanentDeletion(
+    userId: UserId,
+    permanentDeletionAt: Instant
+  ): ConnectionIO[PermanentAccountDeletionJob] =
+    JobStatements.insertPermanentDeletionJob(userId, permanentDeletionAt)
+
+private object JobStatements:
+  def insertPermanentDeletionJob(uuid: UserId, permanentDeletionAt: Instant): ConnectionIO[PermanentAccountDeletionJob] =
+    sql"""
+         |INSERT INTO auth.account_deletion_jobs (
+         |  user_id,
+         |  scheduled_permanent_deletion_at
+         |) VALUES (
+         |  $uuid,
+         |  $permanentDeletionAt
+         |)
+    """.stripMargin.update
+      .withUniqueGeneratedKeys[PermanentAccountDeletionJob]("job_id", "user_id", "scheduled_permanent_deletion_at")
 
 private object Statements:
-  def insertUserCredentials(username: Username, password: HashedPassword, salt: Salt): Update0 =
+  def insertUserCredentials(username: Username, password: HashedPassword, salt: Salt): ConnectionIO[UserId] =
     sql"""
          |INSERT INTO auth.users (
          |  username,
@@ -56,7 +73,7 @@ private object Statements:
          |  $password,
          |  $salt
          |)
-    """.stripMargin.update
+    """.stripMargin.update.withUniqueGeneratedKeys[UserId]("uuid")
 
   def selectUserAccount(username: Username): Query0[Account] =
     sql"""

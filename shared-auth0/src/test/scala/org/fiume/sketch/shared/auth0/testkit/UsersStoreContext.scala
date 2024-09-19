@@ -6,6 +6,7 @@ import org.fiume.sketch.shared.auth0.{Account, AccountState, User, UserId}
 import org.fiume.sketch.shared.auth0.Passwords.HashedPassword
 import org.fiume.sketch.shared.auth0.User.{UserCredentials, UserCredentialsWithId, Username}
 import org.fiume.sketch.shared.auth0.algebras.UsersStore
+import org.fiume.sketch.shared.auth0.jobs.PermanentAccountDeletionJob
 
 import java.time.Instant
 
@@ -45,15 +46,23 @@ trait UsersStoreContext:
 
         override def updatePassword(uuid: UserId, newPassword: HashedPassword): IO[Unit] = ???
 
-        override def markForDeletion(uuid: UserId): IO[Unit] =
-          storage.update {
-            _.updatedWith(uuid) {
-              case Some(account) =>
-                val softDeletion = AccountState.SoftDeleted(deletedAt = Instant.now())
-                account.copy(state = softDeletion).some
-              case None => none
+        override protected def softDeleteAccount(uuid: UserId): IO[Instant] =
+          val deletedAt = Instant.now()
+          storage
+            .update {
+              _.updatedWith(uuid) {
+                case Some(account) =>
+                  val softDeletion = AccountState.SoftDeleted(deletedAt)
+                  account.copy(state = softDeletion).some
+                case None => none
+              }
             }
-          }
+            .as(deletedAt)
+
+        override protected def schedulePermanentDeletion(
+          uuid: UserId,
+          permanentDeletionAt: Instant
+        ): IO[PermanentAccountDeletionJob] = ???
 
         override val lift: [A] => IO[A] => IO[A] = [A] => (action: IO[A]) => action
 

@@ -15,10 +15,10 @@ import org.fiume.sketch.storage.postgres.AbstractPostgresStore
 
 object PostgresDocumentsStore:
   def make[F[_]: Async](tx: Transactor[F]): Resource[F, PostgresDocumentsStore[F]] =
-    WeakAsync.liftK[F, ConnectionIO].map(l => new PostgresDocumentsStore[F](l, tx))
+    WeakAsync.liftK[F, ConnectionIO].map(lift => new PostgresDocumentsStore[F](lift, tx))
 
-private class PostgresDocumentsStore[F[_]: Async] private (l: F ~> ConnectionIO, tx: Transactor[F])
-    extends AbstractPostgresStore[F](l, tx)
+private class PostgresDocumentsStore[F[_]: Async] private (lift: F ~> ConnectionIO, tx: Transactor[F])
+    extends AbstractPostgresStore[F](lift, tx)
     with DocumentsStore[F, ConnectionIO]:
 
   override def store(document: DocumentWithStream[F]): ConnectionIO[DocumentId] =
@@ -30,9 +30,8 @@ private class PostgresDocumentsStore[F[_]: Async] private (l: F ~> ConnectionIO,
       bytes <- lift { Async[F].cede *> document.stream.compile.toVector.map(_.toArray) <* Async[F].cede }
       uuid <- Statements
         .insertDocument(document.metadata, bytes)
-        .withUniqueGeneratedKeys[DocumentId](
-          "uuid"
-        )
+        // Move this to Statements?
+        .withUniqueGeneratedKeys[DocumentId]("uuid")
     yield uuid
 
   override def fetchDocument(uuid: DocumentId): ConnectionIO[Option[DocumentWithId]] =

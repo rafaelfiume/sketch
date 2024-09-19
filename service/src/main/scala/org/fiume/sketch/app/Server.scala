@@ -24,18 +24,16 @@ object Server:
     (for
       config <- Resource.eval(ServiceConfig.load[F])
       resources <- Resources.make(config)
-      server <- httpServer[F](config.endpoints, resources)
+      server <- httpServer[F](config, resources)
     yield server)
       .use { server =>
         logger.info(s"Server has started at ${server.address}") >>
           Async[F].never.as(ExitCode.Success)
       }
-      .onError { case ex =>
-        logger.error(s"The service has failed with $ex")
-      }
+      .onError { case ex => logger.error(s"The service has failed with $ex") }
 
   private def httpServer[F[_]: Async: Network: LoggerFactory](
-    config: EndpointsConfig,
+    config: ServiceConfig,
     resources: Resources[F]
   ): Resource[F, Server] =
     val server =
@@ -43,7 +41,7 @@ object Server:
         EmberServerBuilder
           .default[F]
           .withHost(host"0.0.0.0")
-          .withPort(config.port)
+          .withPort(config.endpoints.port)
           .withHttpApp(httpApp)
       }
     Resource.suspend(server.map(_.build))
@@ -51,11 +49,17 @@ object Server:
 object HttpApi:
   import org.http4s.server.middleware.*
 
-  def httpApp[F[_]: Async: LoggerFactory](config: EndpointsConfig, res: Resources[F]): F[HttpApp[F]] =
+  def httpApp[F[_]: Async: LoggerFactory](config: ServiceConfig, res: Resources[F]): F[HttpApp[F]] =
     val authMiddleware = Auth0Middleware(res.authenticator)
 
     val authRoutes: HttpRoutes[F] = new AuthRoutes[F](res.authenticator).router()
-    val usersRoutes: HttpRoutes[F] = new UsersRoutes[F, ConnectionIO](authMiddleware, res.accessControl, res.usersStore).router()
+    val usersRoutes: HttpRoutes[F] = new UsersRoutes[F, ConnectionIO](
+      // UsersRoutes is different than the others in the sense that it takes the whole config as param instead of individual fields (?)
+      config.account,
+      authMiddleware,
+      res.accessControl,
+      res.usersStore
+    ).router()
     val documentsRoutes: HttpRoutes[F] =
       new DocumentsRoutes[F, ConnectionIO](
         authMiddleware,
@@ -66,10 +70,10 @@ object HttpApi:
     val healthStatusRoutes: HttpRoutes[F] =
       new HealthStatusRoutes[F](res.versions, res.dbHealthCheck, res.rusticHealthCheck).router()
 
-    val corsMiddleware: CORSPolicy = CORS.policy.withAllowOriginHeader(config.cors.allowedOrigins)
+    val corsMiddleware: CORSPolicy = CORS.policy.withAllowOriginHeader(config.endpoints.cors.allowedOrigins)
     val middlewares = WorkerMiddleware[F](res.customWorkerThreadPool)
       .andThen(SemanticValidationMiddleware.apply)
-      .andThen(TraceAuditLogMiddleware[F](Slf4jLogger.getLogger[F], config.requestResponseLoggingEnabled))
+      .andThen(TraceAuditLogMiddleware[F](Slf4jLogger.getLogger[F], config.endpoints.requestResponseLoggingEnabled))
     for
       cAuthRoutes <- corsMiddleware.httpRoutes[F](authRoutes)
       cUsersRoutes <- corsMiddleware.httpRoutes[F](usersRoutes)

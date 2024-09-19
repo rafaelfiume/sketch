@@ -8,6 +8,7 @@ import org.fiume.sketch.authorisation.ContextualRole.Owner
 import org.fiume.sketch.authorisation.testkit.AccessControlContext
 import org.fiume.sketch.shared.auth0.User
 import org.fiume.sketch.shared.auth0.User.UserCredentials
+import org.fiume.sketch.shared.auth0.config.AccountConfig
 import org.fiume.sketch.shared.auth0.testkit.{AuthMiddlewareContext, UserGens, UsersStoreContext}
 import org.fiume.sketch.shared.auth0.testkit.UserGens.given
 import org.fiume.sketch.shared.testkit.Http4sTestingRoutesDsl
@@ -18,6 +19,8 @@ import org.http4s.dsl.io.*
 import org.scalacheck.ShrinkLowPriority
 import org.scalacheck.effect.PropF.forAllF
 
+import scala.concurrent.duration.*
+
 class UsersRoutesSpec
     extends CatsEffectSuite
     with ScalaCheckSuite
@@ -25,6 +28,7 @@ class UsersRoutesSpec
     with AuthMiddlewareContext
     with AccessControlContext
     with UsersStoreContext
+    with UsersRoutesSpecContext
     with ShrinkLowPriority:
 
   test("marks user for deletion") {
@@ -35,7 +39,7 @@ class UsersRoutesSpec
         userId <- store.store(user).flatTap { id => accessControl.grantAccess(id, id, Owner) }
         request = DELETE(Uri.unsafeFromString(s"/users/${userId.value}"))
         authMiddleware = makeAuthMiddleware(authenticated = User(userId, user.username))
-        usersRoutes = new UsersRoutes[IO, IO](authMiddleware, accessControl, store)
+        usersRoutes = new UsersRoutes[IO, IO](config, authMiddleware, accessControl, store)
 
         _ <- send(request)
           .to(usersRoutes.router())
@@ -59,7 +63,7 @@ class UsersRoutesSpec
           if anotherUserExists then store.store(maybeAnotherUser).flatTap { id => accessControl.grantAccess(id, id, Owner) }
           else UserGens.userIds.sample.someOrFail.pure[IO]
         authMiddleware = makeAuthMiddleware(authenticated = User(authedUserId, authedUser.username))
-        usersRoutes = new UsersRoutes[IO, IO](authMiddleware, accessControl, store)
+        usersRoutes = new UsersRoutes[IO, IO](config, authMiddleware, accessControl, store)
         request = DELETE(Uri.unsafeFromString(s"/users/${anotherUserId.value}"))
 
         _ <- send(request)
@@ -71,3 +75,6 @@ class UsersRoutesSpec
   }
 
   // TODO Test response payload contract
+
+trait UsersRoutesSpecContext:
+  val config = AccountConfig(timeUntilPermanentDeletion = 30.days)
