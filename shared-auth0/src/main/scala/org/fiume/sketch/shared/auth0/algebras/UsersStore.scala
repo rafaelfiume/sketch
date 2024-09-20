@@ -28,7 +28,4 @@ trait UsersStore[F[_], Txn[_]: FlatMap] extends Store[F, Txn]:
 
   protected def softDeleteAccount(uuid: UserId): Txn[Instant]
 
-  protected def schedulePermanentDeletion(
-    uuid: UserId,
-    permanentDeletionAt: Instant
-  ): Txn[PermanentAccountDeletionJob]
+  protected def schedulePermanentDeletion(uuid: UserId, permanentDeletionAt: Instant): Txn[PermanentAccountDeletionJob]

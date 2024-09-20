@@ -40,9 +40,10 @@ trait UsersStoreContext:
   ): IO[UsersStore[IO, IO]] =
     makeUsersStore(Map(account.uuid -> account), clock, delayUntilPermanentDeletion)
 
-  private def makeUsersStore(state: Map[UserId, Account],
-                             clock: Clock[IO],
-                             delayUntilPermanentDeletion: Duration
+  private def makeUsersStore(
+    state: Map[UserId, Account],
+    clock: Clock[IO],
+    delayUntilPermanentDeletion: Duration
   ): IO[UsersStore[IO, IO]] =
     Ref.of[IO, Map[UserId, Account]](state).map { storage =>
       new UsersStore[IO, IO]:

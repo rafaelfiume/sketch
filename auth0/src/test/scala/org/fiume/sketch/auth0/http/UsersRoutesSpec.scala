@@ -54,12 +54,12 @@ class UsersRoutesSpec
         result <- send(request)
           .to(usersRoutes.router())
 //
-          .expectJsonResponseWith(Status.Ok) // TODO Test response payload contract
+          .expectJsonResponseWith(Status.Ok)
         account <- store.fetchAccount(user.username).map(_.someOrFail)
         grantRemoved <- accessControl.canAccess(userId, userId).map(!_)
         scheduledJob = result.as[ScheduledForPermanentDeletionResponse].rightOrFail
       yield
-        assert(!account.isActive) // TODO Check SoftDeleted state
+        assert(!account.isActive)
         assert(grantRemoved)
         assertEquals(
           scheduledJob,
