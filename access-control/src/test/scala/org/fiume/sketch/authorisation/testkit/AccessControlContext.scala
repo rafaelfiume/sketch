@@ -3,7 +3,7 @@ package org.fiume.sketch.authorisation.testkit
 import cats.effect.{IO, Ref}
 import org.fiume.sketch.authorisation.{AccessControl, ContextualRole, GlobalRole, Role}
 import org.fiume.sketch.shared.app.{Entity, EntityId}
-import org.fiume.sketch.shared.auth0.UserId
+import org.fiume.sketch.shared.auth0.domain.UserId
 
 import java.util.UUID
 

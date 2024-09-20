@@ -5,8 +5,8 @@ import munit.{CatsEffectSuite, ScalaCheckEffectSuite}
 import munit.Assertions.*
 import org.fiume.sketch.authorisation.GlobalRole
 import org.fiume.sketch.authorisation.testkit.AccessControlContext
-import org.fiume.sketch.shared.auth0.Passwords.PlainPassword
-import org.fiume.sketch.shared.auth0.User.Username
+import org.fiume.sketch.shared.auth0.domain.Passwords.PlainPassword
+import org.fiume.sketch.shared.auth0.domain.User.Username
 import org.fiume.sketch.shared.auth0.testkit.PasswordsGens.given
 import org.fiume.sketch.shared.auth0.testkit.UserGens.given
 import org.fiume.sketch.shared.auth0.testkit.UsersStoreContext

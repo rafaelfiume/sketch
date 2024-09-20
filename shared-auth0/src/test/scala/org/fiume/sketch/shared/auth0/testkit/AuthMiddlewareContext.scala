@@ -6,7 +6,7 @@ import cats.implicits.*
 import org.fiume.sketch.shared.app.troubleshooting.ErrorInfo
 import org.fiume.sketch.shared.app.troubleshooting.ErrorInfo.{ErrorDetails, ErrorMessage}
 import org.fiume.sketch.shared.app.troubleshooting.ErrorInfo.json.given
-import org.fiume.sketch.shared.auth0.User
+import org.fiume.sketch.shared.auth0.domain.User
 import org.fiume.sketch.shared.auth0.testkit.UserGens.*
 import org.fiume.sketch.shared.testkit.syntax.OptionSyntax.*
 import org.http4s.{AuthedRoutes, Challenge, Request, Response, Status}

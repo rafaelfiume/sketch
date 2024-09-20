@@ -3,9 +3,9 @@ package org.fiume.sketch.shared.auth0.algebras
 import cats.FlatMap
 import cats.implicits.*
 import org.fiume.sketch.shared.app.algebras.Store
-import org.fiume.sketch.shared.auth0.{Account, User, UserId}
-import org.fiume.sketch.shared.auth0.Passwords.HashedPassword
-import org.fiume.sketch.shared.auth0.User.*
+import org.fiume.sketch.shared.auth0.domain.{Account, User, UserId}
+import org.fiume.sketch.shared.auth0.domain.Passwords.HashedPassword
+import org.fiume.sketch.shared.auth0.domain.User.*
 import org.fiume.sketch.shared.auth0.jobs.PermanentAccountDeletionJob
 
 import java.time.Instant

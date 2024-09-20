@@ -1,4 +1,4 @@
-package org.fiume.sketch.shared.auth0.config
+package org.fiume.sketch.shared.auth0
 
 import scala.concurrent.duration.Duration
 

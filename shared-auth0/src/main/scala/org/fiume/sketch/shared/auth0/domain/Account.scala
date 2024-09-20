@@ -1,6 +1,6 @@
-package org.fiume.sketch.shared.auth0
+package org.fiume.sketch.shared.auth0.domain
 
-import org.fiume.sketch.shared.auth0.User.UserCredentials
+import org.fiume.sketch.shared.auth0.domain.User.UserCredentials
 
 import java.time.Instant
 

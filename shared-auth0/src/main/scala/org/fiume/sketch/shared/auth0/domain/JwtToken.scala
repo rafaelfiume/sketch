@@ -1,4 +1,4 @@
-package org.fiume.sketch.shared.auth0
+package org.fiume.sketch.shared.auth0.domain
 
 import cats.Show
 import cats.implicits.*

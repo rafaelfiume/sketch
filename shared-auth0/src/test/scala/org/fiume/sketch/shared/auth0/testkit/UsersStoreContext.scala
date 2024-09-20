@@ -3,10 +3,10 @@ package org.fiume.sketch.shared.auth0.testkit
 import cats.effect.{IO, Ref}
 import cats.effect.kernel.Clock
 import cats.implicits.*
-import org.fiume.sketch.shared.auth0.{Account, AccountState, User, UserId}
-import org.fiume.sketch.shared.auth0.Passwords.HashedPassword
-import org.fiume.sketch.shared.auth0.User.{UserCredentials, UserCredentialsWithId, Username}
 import org.fiume.sketch.shared.auth0.algebras.UsersStore
+import org.fiume.sketch.shared.auth0.domain.{Account, AccountState, User, UserId}
+import org.fiume.sketch.shared.auth0.domain.Passwords.HashedPassword
+import org.fiume.sketch.shared.auth0.domain.User.{UserCredentials, UserCredentialsWithId, Username}
 import org.fiume.sketch.shared.auth0.jobs.{JobId, PermanentAccountDeletionJob}
 import org.fiume.sketch.shared.testkit.syntax.OptionSyntax.*
 

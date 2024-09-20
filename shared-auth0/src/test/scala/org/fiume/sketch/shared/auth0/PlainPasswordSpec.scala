@@ -2,8 +2,8 @@ package org.fiume.sketch.shared.auth0
 
 import cats.syntax.all.*
 import munit.ScalaCheckSuite
-import org.fiume.sketch.shared.auth0.Passwords.PlainPassword
-import org.fiume.sketch.shared.auth0.Passwords.PlainPassword.WeakPasswordError
+import org.fiume.sketch.shared.auth0.domain.Passwords.PlainPassword
+import org.fiume.sketch.shared.auth0.domain.Passwords.PlainPassword.WeakPasswordError
 import org.fiume.sketch.shared.auth0.testkit.PasswordsGens.*
 import org.fiume.sketch.shared.auth0.testkit.PasswordsGens.given
 import org.fiume.sketch.shared.testkit.syntax.EitherSyntax.*

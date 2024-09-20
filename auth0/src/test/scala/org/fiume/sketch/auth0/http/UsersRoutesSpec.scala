@@ -9,9 +9,9 @@ import org.fiume.sketch.authorisation.ContextualRole
 import org.fiume.sketch.authorisation.ContextualRole.Owner
 import org.fiume.sketch.authorisation.testkit.AccessControlContext
 import org.fiume.sketch.shared.app.http4s.JsonCodecs.given
-import org.fiume.sketch.shared.auth0.{User, UserId}
-import org.fiume.sketch.shared.auth0.User.UserCredentials
-import org.fiume.sketch.shared.auth0.config.AccountConfig
+import org.fiume.sketch.shared.auth0.AccountConfig
+import org.fiume.sketch.shared.auth0.domain.{User, UserId}
+import org.fiume.sketch.shared.auth0.domain.User.UserCredentials
 import org.fiume.sketch.shared.auth0.testkit.{AuthMiddlewareContext, UserGens, UsersStoreContext}
 import org.fiume.sketch.shared.auth0.testkit.UserGens.given
 import org.fiume.sketch.shared.testkit.{ClockContext, Http4sRoutesContext}

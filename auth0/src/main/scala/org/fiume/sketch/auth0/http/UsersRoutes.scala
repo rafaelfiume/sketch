@@ -11,9 +11,9 @@ import org.fiume.sketch.authorisation.AccessControl
 import org.fiume.sketch.shared.app.EntityId.given
 import org.fiume.sketch.shared.app.http4s.JsonCodecs.given
 import org.fiume.sketch.shared.app.syntax.StoreSyntax.*
-import org.fiume.sketch.shared.auth0.{User, UserId}
+import org.fiume.sketch.shared.auth0.AccountConfig
 import org.fiume.sketch.shared.auth0.algebras.UsersStore
-import org.fiume.sketch.shared.auth0.config.AccountConfig
+import org.fiume.sketch.shared.auth0.domain.{User, UserId}
 import org.fiume.sketch.shared.auth0.jobs.PermanentAccountDeletionJob
 import org.http4s.{HttpRoutes, *}
 import org.http4s.circe.CirceEntityEncoder.*

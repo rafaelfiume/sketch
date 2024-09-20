@@ -2,7 +2,6 @@ package org.fiume.sketch.storage.postgres
 
 import cats.effect.Sync
 import cats.implicits.*
-import org.fiume.sketch.storage.DatabaseConfig
 import org.flywaydb.core.Flyway
 import org.typelevel.log4cats.slf4j.Slf4jLogger
 

@@ -5,8 +5,8 @@ import cats.implicits.*
 import org.fiume.sketch.shared.app.http4s.middlewares.SemanticInputError
 import org.fiume.sketch.shared.app.troubleshooting.ErrorInfo
 import org.fiume.sketch.shared.app.troubleshooting.InvariantErrorSyntax.asDetails
-import org.fiume.sketch.shared.auth0.Passwords.PlainPassword
-import org.fiume.sketch.shared.auth0.User.Username
+import org.fiume.sketch.shared.auth0.domain.Passwords.PlainPassword
+import org.fiume.sketch.shared.auth0.domain.User.Username
 import org.http4s.circe.CirceEntityEncoder.*
 
 object Model:

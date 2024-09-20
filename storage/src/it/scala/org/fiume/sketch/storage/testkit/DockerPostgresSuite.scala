@@ -8,8 +8,7 @@ import doobie.hikari.HikariTransactor
 import doobie.implicits.*
 import doobie.util.log.{LogEvent, LogHandler}
 import munit.CatsEffectSuite
-import org.fiume.sketch.storage.DatabaseConfig
-import org.fiume.sketch.storage.postgres.SchemaMigration
+import org.fiume.sketch.storage.postgres.{DatabaseConfig, SchemaMigration}
 import org.testcontainers.containers.PostgreSQLContainer as JavaPostgreSQLContainer
 import org.testcontainers.utility.DockerImageName
 

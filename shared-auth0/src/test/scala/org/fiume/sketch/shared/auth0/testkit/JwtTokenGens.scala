@@ -1,7 +1,7 @@
 package org.fiume.sketch.shared.auth0.testkit
 
-import org.fiume.sketch.shared.auth0.{JwtError, JwtToken}
-import org.fiume.sketch.shared.auth0.JwtError.*
+import org.fiume.sketch.shared.auth0.domain.{JwtError, JwtToken}
+import org.fiume.sketch.shared.auth0.domain.JwtError.*
 import org.scalacheck.{Arbitrary, Gen}
 
 object JwtTokenGens:

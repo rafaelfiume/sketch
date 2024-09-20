@@ -2,7 +2,7 @@ package org.fiume.sketch.shared.auth0.testkit
 
 import cats.effect.IO
 import cats.effect.unsafe.IORuntime
-import org.fiume.sketch.shared.auth0.Passwords.{HashedPassword, PlainPassword, Salt}
+import org.fiume.sketch.shared.auth0.domain.Passwords.{HashedPassword, PlainPassword, Salt}
 import org.scalacheck.{Arbitrary, Gen}
 
 import scala.util.Random

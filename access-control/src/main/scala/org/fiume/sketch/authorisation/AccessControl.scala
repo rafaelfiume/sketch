@@ -7,7 +7,7 @@ import org.fiume.sketch.authorisation.GlobalRole.*
 import org.fiume.sketch.authorisation.Role.{Contextual, Global}
 import org.fiume.sketch.shared.app.{Entity, EntityId}
 import org.fiume.sketch.shared.app.algebras.Store
-import org.fiume.sketch.shared.auth0.UserId
+import org.fiume.sketch.shared.auth0.domain.UserId
 
 trait AccessControl[F[_], Txn[_]: Monad] extends Store[F, Txn]:
   type Unauthorised = String
