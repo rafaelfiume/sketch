@@ -15,25 +15,28 @@ import java.util.UUID
  */
 trait AccessControlContext:
 
-  private case class State(global: Map[UserId, GlobalRole], contextual: Map[UserId, (UUID, ContextualRole)]):
+  private case class State(
+    global: Map[UserId, GlobalRole],
+    contextual: Map[(UserId, UUID), ContextualRole]
+  ):
     def +++(userId: UserId, role: GlobalRole): State = copy(global = global + (userId -> role))
 
     def getGlobalRole(userId: UserId): Option[Role.Global] = global.get(userId).map(Role.Global(_))
 
     def ++(userId: UserId, entityId: UUID, role: ContextualRole): State =
-      copy(contextual = contextual + (userId -> (entityId, role)))
+      copy(contextual = contextual + ((userId, entityId) -> role))
 
-    def --(userId: UserId): State = copy(contextual = contextual - userId)
+    def --(userId: UserId, entityId: UUID): State = copy(contextual = contextual - (userId -> entityId))
 
-    // TODO Improve this and key it by userId and entityId?
-    def getContextualRole(userId: UserId): Option[Role.Contextual] = contextual.get(userId).map(_._2).map(Role.Contextual(_))
+    def getContextualRole(userId: UserId, entityId: UUID): Option[Role.Contextual] =
+      contextual.get(userId -> entityId).map(Role.Contextual(_))
 
   private object State:
     val empty = State(Map.empty, Map.empty)
 
   def makeAccessControl(): IO[AccessControl[IO, IO] & InspectAccessControl] = makeAccessControl(State.empty)
 
-  private def makeAccessControl[T <: Entity](state: State): IO[AccessControl[IO, IO] & InspectAccessControl] =
+  private def makeAccessControl(state: State): IO[AccessControl[IO, IO] & InspectAccessControl] =
     Ref.of[IO, State](state).map { ref =>
       new AccessControl[IO, IO] with InspectAccessControl:
 
@@ -52,7 +55,7 @@ trait AccessControlContext:
             ref.get.map(
               _.contextual
                 .collect {
-                  case (u, (id, _)) if u == userId => EntityId[T](id)
+                  case ((u -> id), _) if u == userId => EntityId[T](id)
                 }
                 .toSeq
             )
@@ -61,10 +64,10 @@ trait AccessControlContext:
         override def fetchRole[T <: Entity](userId: UserId, entityId: EntityId[T]): IO[Option[Role]] =
           // miminics the behaviour of fetchRole in PostgresAccessControl
           // where the least permissive contextual role take precedence over global roles
-          ref.get.map(state => state.getContextualRole(userId).orElse(state.getGlobalRole(userId)))
+          ref.get.map(state => state.getContextualRole(userId, entityId.value).orElse(state.getGlobalRole(userId)))
 
         override def deleteContextualGrant[T <: Entity](userId: UserId, entityId: EntityId[T]): IO[Unit] =
-          ref.update(_ -- userId)
+          ref.update(_ -- (userId, entityId.value))
 
         override val lift: [A] => IO[A] => IO[A] = [A] => (action: IO[A]) => action
 

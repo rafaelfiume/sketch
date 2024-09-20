@@ -60,7 +60,7 @@ object ServiceConfig:
       keyPair = EcKeyPairConfig(privateKey, publicKey),
       db = databaseConfig,
       rusticClient = RusticClientConfig(rusticHost, rusticPort),
-      account = AccountConfig(timeUntilPermanentDeletion = 90.days),
+      account = AccountConfig(delayUntilPermanentDeletion = 90.days),
       documents = DocumentsConfig(documentMbSizeLimit)
     )).load[F]
 

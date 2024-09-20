@@ -13,6 +13,7 @@ import org.http4s.{HttpApp, HttpRoutes}
 import org.http4s.ember.server.EmberServerBuilder
 import org.http4s.implicits.*
 import org.http4s.server.Server
+import org.http4s.server.middleware.*
 import org.typelevel.log4cats.LoggerFactory
 import org.typelevel.log4cats.slf4j.{Slf4jFactory, Slf4jLogger}
 
@@ -47,8 +48,6 @@ object Server:
     Resource.suspend(server.map(_.build))
 
 object HttpApi:
-  import org.http4s.server.middleware.*
-
   def httpApp[F[_]: Async: LoggerFactory](config: ServiceConfig, res: Resources[F]): F[HttpApp[F]] =
     val authMiddleware = Auth0Middleware(res.authenticator)
 
