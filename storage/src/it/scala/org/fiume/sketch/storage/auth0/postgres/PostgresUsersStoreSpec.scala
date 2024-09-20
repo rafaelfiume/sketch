@@ -116,6 +116,21 @@ class PostgresUsersStoreSpec
       }
     }
 
+  test("deletes user account"):
+    forAllF { (credentials: UserCredentials) =>
+      will(cleanStorage) {
+        PostgresUsersStore.make[IO](transactor(), makeFrozenClock()).use { store =>
+          for
+            uuid <- store.store(credentials).ccommit
+
+            _ <- store.delete(uuid).ccommit
+
+            account <- store.fetchAccount(credentials.username).ccommit
+          yield assert(account.isEmpty)
+        }
+      }
+    }
+
   test("timestamps createdAt and updatedAt upon storage"):
     forAllF { (credentials: UserCredentials) =>
       will(cleanStorage) {

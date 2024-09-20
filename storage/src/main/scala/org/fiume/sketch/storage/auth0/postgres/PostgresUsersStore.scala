@@ -39,6 +39,8 @@ private class PostgresUsersStore[F[_]: Async] private (lift: F ~> ConnectionIO, 
   override def updatePassword(uuid: UserId, password: HashedPassword): ConnectionIO[Unit] =
     Statements.updatePassword(uuid, password).run.void
 
+  override def delete(uuid: UserId): ConnectionIO[Unit] = Statements.delete(uuid).run.void
+
   override protected def softDeleteAccount(uuid: UserId): ConnectionIO[Instant] =
     lift(clock.realTimeInstant).flatTap { Statements.updateSoftDeletion(uuid, _).run.void }
 
@@ -47,19 +49,6 @@ private class PostgresUsersStore[F[_]: Async] private (lift: F ~> ConnectionIO, 
     permanentDeletionAt: Instant
   ): ConnectionIO[PermanentAccountDeletionJob] =
     JobStatements.insertPermanentDeletionJob(userId, permanentDeletionAt)
-
-private object JobStatements:
-  def insertPermanentDeletionJob(uuid: UserId, permanentDeletionAt: Instant): ConnectionIO[PermanentAccountDeletionJob] =
-    sql"""
-         |INSERT INTO auth.account_deletion_jobs (
-         |  user_id,
-         |  scheduled_permanent_deletion_at
-         |) VALUES (
-         |  $uuid,
-         |  $permanentDeletionAt
-         |)
-    """.stripMargin.update
-      .withUniqueGeneratedKeys[PermanentAccountDeletionJob]("job_id", "user_id", "scheduled_permanent_deletion_at")
 
 private object Statements:
   def insertUserCredentials(username: Username, password: HashedPassword, salt: Salt): ConnectionIO[UserId] =
@@ -115,3 +104,19 @@ private object Statements:
          |  deleted_at = $deletedAt
          |WHERE uuid = $uuid
     """.stripMargin.update
+
+  def delete(uuid: UserId): Update0 =
+    sql"DELETE FROM auth.users WHERE uuid = $uuid".update
+
+private object JobStatements:
+  def insertPermanentDeletionJob(uuid: UserId, permanentDeletionAt: Instant): ConnectionIO[PermanentAccountDeletionJob] =
+    sql"""
+         |INSERT INTO auth.account_deletion_jobs (
+         |  user_id,
+         |  scheduled_permanent_deletion_at
+         |) VALUES (
+         |  $uuid,
+         |  $permanentDeletionAt
+         |)
+    """.stripMargin.update
+      .withUniqueGeneratedKeys[PermanentAccountDeletionJob]("job_id", "user_id", "scheduled_permanent_deletion_at")

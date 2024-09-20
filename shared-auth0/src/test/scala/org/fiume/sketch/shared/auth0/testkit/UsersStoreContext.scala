@@ -67,6 +67,8 @@ trait UsersStoreContext:
 
         override def updatePassword(uuid: UserId, newPassword: HashedPassword): IO[Unit] = ???
 
+        override def delete(uuid: UserId): IO[Unit] = storage.update { _.removed(uuid) }.void
+
         override protected def softDeleteAccount(uuid: UserId): IO[Instant] =
           clock.realTimeInstant.flatMap { deletedAt =>
             storage
