@@ -16,14 +16,14 @@ import org.fiume.sketch.shared.app.http4s.JsonCodecs.given
 import org.fiume.sketch.shared.app.http4s.middlewares.{SemanticInputError, SemanticValidationMiddleware}
 import org.fiume.sketch.shared.app.troubleshooting.ErrorInfo
 import org.fiume.sketch.shared.app.troubleshooting.ErrorInfo.json.given
-import org.fiume.sketch.shared.auth0.User
+import org.fiume.sketch.shared.auth0.domain.User
 import org.fiume.sketch.shared.auth0.testkit.AuthMiddlewareContext
 import org.fiume.sketch.shared.auth0.testkit.UserGens.given
 import org.fiume.sketch.shared.domain.documents.{Document, DocumentId, DocumentWithIdAndStream, DocumentWithStream}
 import org.fiume.sketch.shared.domain.documents.algebras.DocumentsStore
 import org.fiume.sketch.shared.domain.testkit.DocumentsGens.*
 import org.fiume.sketch.shared.domain.testkit.DocumentsGens.given
-import org.fiume.sketch.shared.testkit.{ContractContext, Http4sTestingRoutesDsl}
+import org.fiume.sketch.shared.testkit.{ContractContext, Http4sRoutesContext}
 import org.fiume.sketch.shared.testkit.syntax.EitherSyntax.*
 import org.fiume.sketch.shared.testkit.syntax.OptionSyntax.*
 import org.http4s.{MediaType, *}
@@ -39,7 +39,7 @@ import org.scalacheck.effect.PropF.forAllF
 class DocumentsRoutesSpec
     extends CatsEffectSuite
     with ScalaCheckEffectSuite
-    with Http4sTestingRoutesDsl
+    with Http4sRoutesContext
     with AuthMiddlewareContext
     with AccessControlContext
     with DocumentsStoreContext
@@ -68,11 +68,10 @@ class DocumentsRoutesSpec
         result <- send(request)
           .to(documentsRoutes.router())
 //
-          .expectJsonResponseWith(Status.Created)
-        createdDocId = result.as[DocumentIdResponsePayload].rightOrFail
-        stored <- store.fetchDocument(createdDocId.value)
-        grantedAccessToUser <- accessControl.canAccess(user.uuid, createdDocId.value)
-        noGrantedAccessToRandomUser <- accessControl.canAccess(randomUser.uuid, createdDocId.value).map(!_)
+          .expectJsonResponseWith[DocumentIdResponsePayload](Status.Created)
+        stored <- store.fetchDocument(result.value)
+        grantedAccessToUser <- accessControl.canAccess(user.uuid, result.value)
+        noGrantedAccessToRandomUser <- accessControl.canAccess(randomUser.uuid, result.value).map(!_)
       yield
         assertEquals(stored.map(_.metadata), metadata.some)
         assert(grantedAccessToUser)
@@ -92,8 +91,8 @@ class DocumentsRoutesSpec
         result <- send(request)
           .to(documentsRoutes.router())
 //
-          .expectJsonResponseWith(Status.Ok)
-      yield assertEquals(result.as[DocumentResponsePayload].rightOrFail, document.asResponsePayload)
+          .expectJsonResponseWith[DocumentResponsePayload](Status.Ok)
+      yield assertEquals(result, document.asResponsePayload)
     }
 
   test("retrieves content bytes of stored document"):
@@ -128,8 +127,8 @@ class DocumentsRoutesSpec
         result <- send(request)
           .to(documentsRoutes.router())
 //
-          .expectJsonResponseWith(Status.Ok)
-      yield assertEquals(result.as[DocumentResponsePayload].rightOrFail, sndDoc.asResponsePayload)
+          .expectJsonResponseWith[DocumentResponsePayload](Status.Ok)
+      yield assertEquals(result, sndDoc.asResponsePayload)
     }
 
   test("deletes stored document"):
@@ -225,8 +224,7 @@ class DocumentsRoutesSpec
         request = POST(uri"/documents").withEntity(multipart).withHeaders(multipart.headers)
         result <- send(request)
           .to(SemanticValidationMiddleware(documentsRoutes.router()))
-          .expectJsonResponseWith(Status.UnprocessableEntity)
-          .map(_.as[ErrorInfo].rightOrFail)
+          .expectJsonResponseWith[ErrorInfo](Status.UnprocessableEntity)
 //
       yield
         assertEquals(result.message, SemanticInputError.message)
@@ -249,8 +247,7 @@ class DocumentsRoutesSpec
         request = POST(uri"/documents").withEntity(multipart).withHeaders(multipart.headers)
         result <- send(request)
           .to(SemanticValidationMiddleware(documentsRoutes.router()))
-          .expectJsonResponseWith(Status.UnprocessableEntity)
-          .map(_.as[ErrorInfo].rightOrFail)
+          .expectJsonResponseWith[ErrorInfo](Status.UnprocessableEntity)
 //
       yield
         assertEquals(result.message, SemanticInputError.message)

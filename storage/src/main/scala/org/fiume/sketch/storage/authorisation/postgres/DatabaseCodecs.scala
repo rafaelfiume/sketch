@@ -9,7 +9,7 @@ import org.fiume.sketch.shared.app.{Entity, EntityId}
 
 import java.util.UUID
 
-private[storage] object DoobieMappings:
+private[storage] object DatabaseCodecs:
 
   given Meta[GlobalRole] = Meta[String].timap(GlobalRole.valueOf(_))(_.toString)
 

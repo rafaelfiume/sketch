@@ -4,10 +4,10 @@ import cats.effect.{Clock, Sync}
 import cats.implicits.*
 import org.fiume.sketch.auth0.AuthenticationError.*
 import org.fiume.sketch.shared.app.syntax.StoreSyntax.*
-import org.fiume.sketch.shared.auth0.{AccountState, JwtError, JwtToken, User}
-import org.fiume.sketch.shared.auth0.Passwords.{HashedPassword, PlainPassword}
-import org.fiume.sketch.shared.auth0.User.Username
 import org.fiume.sketch.shared.auth0.algebras.UsersStore
+import org.fiume.sketch.shared.auth0.domain.{AccountState, JwtError, JwtToken, User}
+import org.fiume.sketch.shared.auth0.domain.Passwords.{HashedPassword, PlainPassword}
+import org.fiume.sketch.shared.auth0.domain.User.Username
 
 import java.security.{PrivateKey, PublicKey}
 import scala.concurrent.duration.Duration

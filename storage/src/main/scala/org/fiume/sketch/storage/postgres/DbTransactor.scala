@@ -4,7 +4,6 @@ import cats.effect.{Async, Resource}
 import doobie.hikari.HikariTransactor
 import doobie.util.log.{LogEvent, LogHandler}
 import doobie.util.transactor.Transactor
-import org.fiume.sketch.storage.DatabaseConfig
 
 import java.util.concurrent.{Executors, ThreadFactory}
 import java.util.concurrent.atomic.AtomicLong

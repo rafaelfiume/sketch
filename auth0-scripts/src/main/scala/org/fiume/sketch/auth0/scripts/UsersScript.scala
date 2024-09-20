@@ -12,13 +12,12 @@ import org.fiume.sketch.shared.app.troubleshooting.{ErrorInfo, InvariantError}
 import org.fiume.sketch.shared.app.troubleshooting.ErrorInfo.ErrorMessage
 import org.fiume.sketch.shared.app.troubleshooting.ErrorInfo.given
 import org.fiume.sketch.shared.app.troubleshooting.InvariantErrorSyntax.asDetails
-import org.fiume.sketch.shared.auth0.{User, UserId}
-import org.fiume.sketch.shared.auth0.Passwords.PlainPassword
-import org.fiume.sketch.shared.auth0.User.Username
-import org.fiume.sketch.storage.DatabaseConfig
+import org.fiume.sketch.shared.auth0.domain.{User, UserId}
+import org.fiume.sketch.shared.auth0.domain.Passwords.PlainPassword
+import org.fiume.sketch.shared.auth0.domain.User.Username
 import org.fiume.sketch.storage.auth0.postgres.PostgresUsersStore
 import org.fiume.sketch.storage.authorisation.postgres.PostgresAccessControl
-import org.fiume.sketch.storage.postgres.DbTransactor
+import org.fiume.sketch.storage.postgres.{DatabaseConfig, DbTransactor}
 
 object UsersScript extends IOApp:
 

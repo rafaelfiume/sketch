@@ -6,9 +6,9 @@ import io.circe.{Decoder, Encoder, HCursor, Json, ParsingFailure}
 import io.circe.parser.parse
 import io.circe.syntax.*
 import org.fiume.sketch.shared.app.EntityId.given
-import org.fiume.sketch.shared.auth0.{JwtError, JwtToken, User, UserId}
-import org.fiume.sketch.shared.auth0.JwtError.*
-import org.fiume.sketch.shared.auth0.User.Username
+import org.fiume.sketch.shared.auth0.domain.{JwtError, JwtToken, User, UserId}
+import org.fiume.sketch.shared.auth0.domain.JwtError.*
+import org.fiume.sketch.shared.auth0.domain.User.Username
 import pdi.jwt.{JwtAlgorithm, JwtCirce, JwtClaim}
 import pdi.jwt.exceptions.*
 

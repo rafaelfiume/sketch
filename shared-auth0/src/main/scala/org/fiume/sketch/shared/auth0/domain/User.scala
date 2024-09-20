@@ -1,14 +1,14 @@
-package org.fiume.sketch.shared.auth0
+package org.fiume.sketch.shared.auth0.domain
 
 import cats.{Eq, Show}
 import cats.data.{EitherNec, Validated}
 import cats.implicits.*
 import org.fiume.sketch.shared.app.{Entity, EntityId, WithUuid}
 import org.fiume.sketch.shared.app.troubleshooting.InvariantError
-import org.fiume.sketch.shared.auth0.Passwords.{HashedPassword, Salt}
-import org.fiume.sketch.shared.auth0.User.Username
-import org.fiume.sketch.shared.auth0.User.Username.WeakUsernameError
-import org.fiume.sketch.shared.auth0.User.Username.WeakUsernameError.*
+import org.fiume.sketch.shared.auth0.domain.Passwords.{HashedPassword, Salt}
+import org.fiume.sketch.shared.auth0.domain.User.Username
+import org.fiume.sketch.shared.auth0.domain.User.Username.WeakUsernameError
+import org.fiume.sketch.shared.auth0.domain.User.Username.WeakUsernameError.*
 
 import java.util.UUID
 

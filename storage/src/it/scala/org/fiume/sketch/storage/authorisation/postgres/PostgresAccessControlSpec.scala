@@ -10,8 +10,8 @@ import org.fiume.sketch.authorisation.ContextualRole.Owner
 import org.fiume.sketch.authorisation.GlobalRole.{Admin, Superuser}
 import org.fiume.sketch.authorisation.testkit.AccessControlGens.*
 import org.fiume.sketch.authorisation.testkit.AccessControlGens.given
-import org.fiume.sketch.shared.auth0.User.UserCredentials
-import org.fiume.sketch.shared.auth0.UserId
+import org.fiume.sketch.shared.auth0.domain.User.UserCredentials
+import org.fiume.sketch.shared.auth0.domain.UserId
 import org.fiume.sketch.shared.auth0.testkit.UserGens.*
 import org.fiume.sketch.shared.auth0.testkit.UserGens.given
 import org.fiume.sketch.shared.auth0.testkit.UsersStoreContext

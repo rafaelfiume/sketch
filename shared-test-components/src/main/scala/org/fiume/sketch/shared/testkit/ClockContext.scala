@@ -9,11 +9,11 @@ import scala.concurrent.duration.*
 
 trait ClockContext:
 
-  def makeAnytime(): Clock[IO] = makeFrozenTime(ZonedDateTime.now(ZoneOffset.UTC))
+  def makeFrozenClock(): Clock[IO] = makeFrozenClock(ZonedDateTime.now(ZoneOffset.UTC))
 
-  def makeFrozenTime(zdt: ZonedDateTime): Clock[IO] = makeFrozenTime(zdt.toInstant)
+  def makeFrozenClock(zdt: ZonedDateTime): Clock[IO] = makeFrozenClock(zdt.toInstant)
 
-  def makeFrozenTime(instant: Instant): Clock[IO] =
+  def makeFrozenClock(instant: Instant): Clock[IO] =
     new Clock[IO]:
 
       override def applicative: cats.Applicative[IO] = Applicative.apply

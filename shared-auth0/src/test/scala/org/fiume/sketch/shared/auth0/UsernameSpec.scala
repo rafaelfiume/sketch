@@ -1,8 +1,8 @@
 package org.fiume.sketch.shared.auth0
 
 import munit.ScalaCheckSuite
-import org.fiume.sketch.shared.auth0.User.Username
-import org.fiume.sketch.shared.auth0.User.Username.WeakUsernameError
+import org.fiume.sketch.shared.auth0.domain.User.Username
+import org.fiume.sketch.shared.auth0.domain.User.Username.WeakUsernameError
 import org.fiume.sketch.shared.auth0.testkit.UserGens.*
 import org.fiume.sketch.shared.auth0.testkit.UserGens.given
 import org.fiume.sketch.shared.testkit.syntax.EitherSyntax.*

@@ -7,7 +7,7 @@ import org.fiume.sketch.auth0.Authenticator
 import org.fiume.sketch.shared.app.troubleshooting.ErrorInfo
 import org.fiume.sketch.shared.app.troubleshooting.ErrorInfo.{ErrorDetails, ErrorMessage}
 import org.fiume.sketch.shared.app.troubleshooting.ErrorInfo.json.given
-import org.fiume.sketch.shared.auth0.{JwtToken, User}
+import org.fiume.sketch.shared.auth0.domain.{JwtToken, User}
 import org.http4s.{AuthedRoutes, Challenge, Request, Response, Status}
 import org.http4s.circe.CirceEntityEncoder.*
 import org.http4s.headers.{`WWW-Authenticate`, Authorization}

@@ -2,9 +2,9 @@ package org.fiume.sketch.shared.auth0.http
 
 import cats.effect.Async
 import cats.implicits.*
-import org.fiume.sketch.shared.auth0.{JwtToken, UserId}
-import org.fiume.sketch.shared.auth0.Passwords.PlainPassword
-import org.fiume.sketch.shared.auth0.User.Username
+import org.fiume.sketch.shared.auth0.domain.{JwtToken, UserId}
+import org.fiume.sketch.shared.auth0.domain.Passwords.PlainPassword
+import org.fiume.sketch.shared.auth0.domain.User.Username
 import org.fiume.sketch.shared.auth0.http.Model.{LoginRequestPayload, LoginResponsePayload}
 import org.fiume.sketch.shared.auth0.http.Model.json.given
 import org.http4s.{Request, Uri}
