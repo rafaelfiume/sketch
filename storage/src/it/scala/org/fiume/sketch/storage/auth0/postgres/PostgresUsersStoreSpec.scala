@@ -15,7 +15,7 @@ import org.fiume.sketch.shared.auth0.testkit.PasswordsGens.given
 import org.fiume.sketch.shared.auth0.testkit.UserGens.given
 import org.fiume.sketch.shared.testkit.ClockContext
 import org.fiume.sketch.shared.testkit.syntax.OptionSyntax.*
-import org.fiume.sketch.storage.auth0.postgres.DoobieMappings.given
+import org.fiume.sketch.storage.auth0.postgres.DatabaseCodecs.given
 import org.fiume.sketch.storage.testkit.DockerPostgresSuite
 import org.scalacheck.ShrinkLowPriority
 import org.scalacheck.effect.PropF.forAllF
@@ -36,7 +36,7 @@ class PostgresUsersStoreSpec
   test("stores credentials"):
     forAllF { (credentials: UserCredentials) =>
       will(cleanStorage) {
-        PostgresUsersStore.make[IO](transactor(), makeAnytime()).use { store =>
+        PostgresUsersStore.make[IO](transactor(), makeFrozenClock()).use { store =>
           for
             uuid <- store.store(credentials).ccommit
 
@@ -47,10 +47,10 @@ class PostgresUsersStoreSpec
       }
     }
 
-  test("fetches user account"):
+  test("fetches user account".only):
     forAllF { (credentials: UserCredentials) =>
       will(cleanStorage) {
-        PostgresUsersStore.make[IO](transactor(), makeAnytime()).use { store =>
+        PostgresUsersStore.make[IO](transactor(), makeFrozenClock()).use { store =>
           for
             uuid <- store.store(credentials).ccommit
 
@@ -69,7 +69,7 @@ class PostgresUsersStoreSpec
   test("updates user password"):
     forAllF { (credentials: UserCredentials, newPassword: HashedPassword) =>
       will(cleanStorage) {
-        PostgresUsersStore.make[IO](transactor(), makeAnytime()).use { store =>
+        PostgresUsersStore.make[IO](transactor(), makeFrozenClock()).use { store =>
           for
             uuid <- store.store(credentials).ccommit
 
@@ -85,9 +85,9 @@ class PostgresUsersStoreSpec
     forAllF { (fstCreds: UserCredentials, sndCreds: UserCredentials) =>
       will(cleanStorage) {
         val deletedAt = Instant.now()
-        val frozenTime = makeFrozenTime(deletedAt)
+        val frozenClock = makeFrozenClock(deletedAt)
         val permantDeletionDelay = 1.second
-        PostgresUsersStore.make[IO](transactor(), frozenTime).use { store =>
+        PostgresUsersStore.make[IO](transactor(), frozenClock).use { store =>
           for
             fstUserId <- store.store(fstCreds).ccommit
             sndUserId <- store.store(sndCreds).ccommit
@@ -119,7 +119,7 @@ class PostgresUsersStoreSpec
   test("timestamps createdAt and updatedAt upon storage"):
     forAllF { (credentials: UserCredentials) =>
       will(cleanStorage) {
-        PostgresUsersStore.make[IO](transactor(), makeAnytime()).use { store =>
+        PostgresUsersStore.make[IO](transactor(), makeFrozenClock()).use { store =>
           for
             uuid <- store.store(credentials).ccommit
 
@@ -134,7 +134,7 @@ class PostgresUsersStoreSpec
   test("timestamps updatedAt upon update"):
     forAllF { (credentials: UserCredentials, newPassword: HashedPassword) =>
       will(cleanStorage) {
-        PostgresUsersStore.make[IO](transactor(), makeAnytime()).use { store =>
+        PostgresUsersStore.make[IO](transactor(), makeFrozenClock()).use { store =>
           for
             uuid <- store.store(credentials).ccommit
 

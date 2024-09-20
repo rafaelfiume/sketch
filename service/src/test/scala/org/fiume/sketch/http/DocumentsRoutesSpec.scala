@@ -23,7 +23,7 @@ import org.fiume.sketch.shared.domain.documents.{Document, DocumentId, DocumentW
 import org.fiume.sketch.shared.domain.documents.algebras.DocumentsStore
 import org.fiume.sketch.shared.domain.testkit.DocumentsGens.*
 import org.fiume.sketch.shared.domain.testkit.DocumentsGens.given
-import org.fiume.sketch.shared.testkit.{ContractContext, Http4sTestingRoutesDsl}
+import org.fiume.sketch.shared.testkit.{ContractContext, Http4sRoutesContext}
 import org.fiume.sketch.shared.testkit.syntax.EitherSyntax.*
 import org.fiume.sketch.shared.testkit.syntax.OptionSyntax.*
 import org.http4s.{MediaType, *}
@@ -39,7 +39,7 @@ import org.scalacheck.effect.PropF.forAllF
 class DocumentsRoutesSpec
     extends CatsEffectSuite
     with ScalaCheckEffectSuite
-    with Http4sTestingRoutesDsl
+    with Http4sRoutesContext
     with AuthMiddlewareContext
     with AccessControlContext
     with DocumentsStoreContext

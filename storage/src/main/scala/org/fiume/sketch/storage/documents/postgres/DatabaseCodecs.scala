@@ -9,7 +9,7 @@ import org.fiume.sketch.shared.domain.documents.Document.Metadata.*
 
 import java.util.UUID
 
-private[storage] object DoobieMappings:
+private[storage] object DatabaseCodecs:
   given Meta[DocumentId] = Meta[UUID].timap(DocumentId(_))(_.value)
   given Meta[Name] = Meta[String].timap(Name.makeUnsafeFromString)(_.value)
   given Meta[Description] = Meta[String].timap(Description.apply)(_.value)

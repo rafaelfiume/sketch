@@ -19,7 +19,7 @@ import org.fiume.sketch.shared.auth0.http.Model.json.given
 import org.fiume.sketch.shared.auth0.testkit.JwtTokenGens.jwtTokens
 import org.fiume.sketch.shared.auth0.testkit.PasswordsGens.*
 import org.fiume.sketch.shared.auth0.testkit.UserGens.*
-import org.fiume.sketch.shared.testkit.{ContractContext, Http4sTestingRoutesDsl}
+import org.fiume.sketch.shared.testkit.{ContractContext, Http4sRoutesContext}
 import org.fiume.sketch.shared.testkit.syntax.OptionSyntax.*
 import org.fiume.sketch.shared.testkit.syntax.StringSyntax.*
 import org.http4s.Method.*
@@ -35,7 +35,7 @@ class AuthRoutesSpec
     with ScalaCheckEffectSuite
     with AuthRoutesSpecContext
     with AuthenticatorContext
-    with Http4sTestingRoutesDsl
+    with Http4sRoutesContext
     with ContractContext
     with ShrinkLowPriority:
 

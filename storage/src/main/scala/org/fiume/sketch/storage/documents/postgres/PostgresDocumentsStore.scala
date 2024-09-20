@@ -10,7 +10,7 @@ import doobie.implicits.*
 import org.fiume.sketch.shared.domain.documents.{Document, DocumentId, DocumentWithId, DocumentWithStream}
 import org.fiume.sketch.shared.domain.documents.Document.Metadata
 import org.fiume.sketch.shared.domain.documents.algebras.DocumentsStore
-import org.fiume.sketch.storage.documents.postgres.DoobieMappings.given
+import org.fiume.sketch.storage.documents.postgres.DatabaseCodecs.given
 import org.fiume.sketch.storage.postgres.AbstractPostgresStore
 
 object PostgresDocumentsStore:

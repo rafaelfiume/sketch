@@ -8,7 +8,7 @@ import org.http4s.{HttpRoutes, MalformedMessageBodyFailure, Request, Status}
 import org.http4s.circe.CirceEntityDecoder.*
 import org.http4s.implicits.*
 
-trait Http4sTestingRoutesDsl extends Assertions:
+trait Http4sRoutesContext extends Assertions:
 
   def send(request: Request[IO]): To = new To(request) {}
 

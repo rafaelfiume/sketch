@@ -49,7 +49,6 @@ trait AccessControlContext:
         override def storeGrant[T <: Entity](userId: UserId, entityId: EntityId[T], role: ContextualRole): IO[Unit] =
           ref.update(_ ++ (userId, entityId.value, role))
 
-        // TODO This is a simplified version of fetchAllAuthorisedEntityIds that only supports a single entity type
         override def fetchAllAuthorisedEntityIds[T <: Entity](userId: UserId, entityType: String): fs2.Stream[IO, EntityId[T]] =
           fs2.Stream.evals(
             ref.get.map(

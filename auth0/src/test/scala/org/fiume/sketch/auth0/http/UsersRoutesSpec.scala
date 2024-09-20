@@ -14,7 +14,7 @@ import org.fiume.sketch.shared.auth0.User.UserCredentials
 import org.fiume.sketch.shared.auth0.config.AccountConfig
 import org.fiume.sketch.shared.auth0.testkit.{AuthMiddlewareContext, UserGens, UsersStoreContext}
 import org.fiume.sketch.shared.auth0.testkit.UserGens.given
-import org.fiume.sketch.shared.testkit.{ClockContext, Http4sTestingRoutesDsl}
+import org.fiume.sketch.shared.testkit.{ClockContext, Http4sRoutesContext}
 import org.fiume.sketch.shared.testkit.syntax.OptionSyntax.*
 import org.http4s.*
 import org.http4s.client.dsl.io.*
@@ -29,7 +29,7 @@ import scala.concurrent.duration.*
 class UsersRoutesSpec
     extends CatsEffectSuite
     with ScalaCheckEffectSuite
-    with Http4sTestingRoutesDsl
+    with Http4sRoutesContext
     with AuthMiddlewareContext
     with AccessControlContext
     with UsersStoreContext
@@ -40,10 +40,9 @@ class UsersRoutesSpec
   test("marks user for deletion") {
     forAllF { (user: UserCredentials) =>
       val deletedAt = Instant.now()
-      val frozenTime = makeFrozenTime(deletedAt)
       val permantDeletionDelay = 1.second
       for
-        store <- makeEmptyUsersStore(clock = frozenTime, permantDeletionDelay)
+        store <- makeEmptyUsersStore(makeFrozenClock(deletedAt), permantDeletionDelay)
         accessControl <- makeAccessControl()
         userId <- store.store(user).flatTap { id => accessControl.grantAccess(id, id, Owner) }
         request = DELETE(Uri.unsafeFromString(s"/users/${userId.value}"))

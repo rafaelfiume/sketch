@@ -12,7 +12,7 @@ import org.fiume.sketch.shared.domain.testkit.DocumentsGens.given
 import org.fiume.sketch.shared.domain.testkit.syntax.DocumentSyntax.*
 import org.fiume.sketch.shared.testkit.FileContentContext
 import org.fiume.sketch.shared.testkit.syntax.OptionSyntax.*
-import org.fiume.sketch.storage.documents.postgres.DoobieMappings.given
+import org.fiume.sketch.storage.documents.postgres.DatabaseCodecs.given
 import org.fiume.sketch.storage.testkit.DockerPostgresSuite
 import org.scalacheck.ShrinkLowPriority
 import org.scalacheck.effect.PropF.forAllF

@@ -11,7 +11,7 @@ import org.fiume.sketch.shared.auth0.jobs.JobId
 import java.time.Instant
 import java.util.UUID
 
-private[storage] object DoobieMappings:
+private[storage] object DatabaseCodecs:
 
   given Meta[UserId] = Meta[UUID].timap(UserId(_))(_.value)
 
@@ -31,8 +31,7 @@ private[storage] object DoobieMappings:
   given Read[AccountState] = Read[(String, Instant, Option[Instant])].map {
     case ("Active", createdAt, _)                => AccountState.Active(createdAt)
     case ("PendingDeletion", _, Some(deletedAt)) => AccountState.SoftDeleted(deletedAt)
-    // TODO Error handling?
-    case _ => ???
+    case other                                   => throw new IllegalStateException(s"Unexpected account state: $other")
   }
   given Write[AccountState] = Write[String].contramap {
     case AccountState.Active(_)      => "Active"

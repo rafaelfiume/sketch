@@ -10,7 +10,7 @@ import org.fiume.sketch.shared.app.ServiceStatus.Dependency.*
 import org.fiume.sketch.shared.app.ServiceStatus.json.given
 import org.fiume.sketch.shared.app.algebras.{HealthChecker, Versions}
 import org.fiume.sketch.shared.app.testkit.VersionGens.versions
-import org.fiume.sketch.shared.testkit.Http4sTestingRoutesDsl
+import org.fiume.sketch.shared.testkit.Http4sRoutesContext
 import org.fiume.sketch.shared.testkit.syntax.OptionSyntax.*
 import org.http4s.Method.*
 import org.http4s.Status
@@ -22,7 +22,7 @@ import scala.language.reflectiveCalls
 
 class HealthStatusRoutesSpec
     extends CatsEffectSuite
-    with Http4sTestingRoutesDsl
+    with Http4sRoutesContext
     with VersionsContext
     with HealthCheckContext
     with HealthStatusRoutesSpecContext

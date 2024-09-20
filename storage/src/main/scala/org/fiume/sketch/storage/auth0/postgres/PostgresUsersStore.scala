@@ -13,7 +13,7 @@ import org.fiume.sketch.shared.auth0.Passwords.{HashedPassword, Salt}
 import org.fiume.sketch.shared.auth0.User.*
 import org.fiume.sketch.shared.auth0.algebras.UsersStore
 import org.fiume.sketch.shared.auth0.jobs.{JobId, PermanentAccountDeletionJob}
-import org.fiume.sketch.storage.auth0.postgres.DoobieMappings.given
+import org.fiume.sketch.storage.auth0.postgres.DatabaseCodecs.given
 import org.fiume.sketch.storage.auth0.postgres.Statements.*
 import org.fiume.sketch.storage.postgres.AbstractPostgresStore
 

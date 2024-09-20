@@ -42,7 +42,7 @@ class AuthenticatorSpec
         for
           store <- makeUsersStore(credentials)
 
-          authenticator <- Authenticator.make[IO, IO](makeAnytime(), store, privateKey, publicKey, expirationOffset)
+          authenticator <- Authenticator.make[IO, IO](makeFrozenClock(), store, privateKey, publicKey, expirationOffset)
           result <- authenticator.authenticate(credentials.username, plainPassword)
 
           user = authenticator.verify(result.rightOrFail)
@@ -54,7 +54,7 @@ class AuthenticatorSpec
       case ((credentials, plainPassword), (privateKey, publicKey), expirationOffset) =>
         for
           store <- makeUsersStore(credentials)
-          authenticator <- Authenticator.make[IO, IO](makeAnytime(), store, privateKey, publicKey, expirationOffset)
+          authenticator <- Authenticator.make[IO, IO](makeFrozenClock(), store, privateKey, publicKey, expirationOffset)
 
           result <- authenticator.authenticate(credentials.username, plainPassword.shuffled)
 //
@@ -67,7 +67,7 @@ class AuthenticatorSpec
         for
           store <- makeUsersStore(credentials)
 
-          authenticator <- Authenticator.make[IO, IO](makeAnytime(), store, privateKey, publicKey, expirationOffset)
+          authenticator <- Authenticator.make[IO, IO](makeFrozenClock(), store, privateKey, publicKey, expirationOffset)
           result <- authenticator.authenticate(credentials.username.shuffled, plainPassword)
 //
         yield assertEquals(result.leftOrFail, UserNotFoundError)
@@ -82,7 +82,7 @@ class AuthenticatorSpec
         for
           store <- makeUsersStoreForAccount(userAccount)
 
-          authenticator <- Authenticator.make[IO, IO](makeAnytime(), store, privateKey, publicKey, expirationOffset)
+          authenticator <- Authenticator.make[IO, IO](makeFrozenClock(), store, privateKey, publicKey, expirationOffset)
           result <- authenticator.authenticate(credentials.username, plainPassword)
 //
         yield assertEquals(result.leftOrFail, AccountNotActiveError.make(SoftDeleted(deletedAt)))
@@ -91,10 +91,10 @@ class AuthenticatorSpec
   test("expired token verification fails"):
     forAllF(validCredentialsWithIdAndPlainPassword, ecKeyPairs, shortDurations) {
       case ((credentials, plainPassword), (privateKey, publicKey), expirationOffset) =>
-        val frozenTime = makeFrozenTime(Instant.now().minusSeconds(expirationOffset.toSeconds))
+        val frozenClock = makeFrozenClock(Instant.now().minusSeconds(expirationOffset.toSeconds))
         for
           store <- makeUsersStore(credentials)
-          authenticator <- Authenticator.make[IO, IO](frozenTime, store, privateKey, publicKey, expirationOffset)
+          authenticator <- Authenticator.make[IO, IO](frozenClock, store, privateKey, publicKey, expirationOffset)
           jwtToken <- authenticator.authenticate(credentials.username, plainPassword).map(_.rightOrFail)
 
           result = authenticator.verify(jwtToken)
@@ -109,7 +109,7 @@ class AuthenticatorSpec
       case ((credentials, plainPassword), (privateKey, publicKey), expirationOffset) =>
         for
           store <- makeUsersStore(credentials)
-          authenticator <- Authenticator.make[IO, IO](makeAnytime(), store, privateKey, publicKey, expirationOffset)
+          authenticator <- Authenticator.make[IO, IO](makeFrozenClock(), store, privateKey, publicKey, expirationOffset)
           token <- authenticator.authenticate(credentials.username, plainPassword).map(_.rightOrFail)
 
           result = authenticator.verify(token.tampered)
@@ -125,7 +125,7 @@ class AuthenticatorSpec
       case ((credentials, plainPassword), (privateKey, publicKey), expirationOffset) =>
         for
           store <- makeUsersStore(credentials)
-          authenticator <- Authenticator.make[IO, IO](makeAnytime(), store, privateKey, publicKey, expirationOffset)
+          authenticator <- Authenticator.make[IO, IO](makeFrozenClock(), store, privateKey, publicKey, expirationOffset)
           jwtToken <- authenticator.authenticate(credentials.username, plainPassword).map(_.rightOrFail)
 
           result = authenticator.verify(jwtToken.reversed)
@@ -140,7 +140,7 @@ class AuthenticatorSpec
       case ((credentials, plainPassword), (privateKey, _), (_, strangePublicKey), expirationOffset) =>
         for
           store <- makeUsersStore(credentials)
-          authenticator <- Authenticator.make[IO, IO](makeAnytime(), store, privateKey, strangePublicKey, expirationOffset)
+          authenticator <- Authenticator.make[IO, IO](makeFrozenClock(), store, privateKey, strangePublicKey, expirationOffset)
           jwtToken <- authenticator.authenticate(credentials.username, plainPassword).map(_.rightOrFail)
 
           result = authenticator.verify(jwtToken)
