@@ -80,7 +80,7 @@ class AuthenticatorSpec
         // The idea is to check all possible inactive states within the AccountState ADT here
         val userAccount = Account(credentials.uuid, credentials, state = SoftDeleted(deletedAt))
         for
-          store <- makeUsersStore(userAccount)
+          store <- makeUsersStoreForAccount(userAccount)
 
           authenticator <- Authenticator.make[IO, IO](makeAnytime(), store, privateKey, publicKey, expirationOffset)
           result <- authenticator.authenticate(credentials.username, plainPassword)

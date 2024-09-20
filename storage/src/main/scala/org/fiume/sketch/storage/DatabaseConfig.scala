@@ -1,4 +1,5 @@
 package org.fiume.sketch.storage
+// TODO Move it to config or postgres package?
 
 import ciris.*
 import org.http4s.Uri

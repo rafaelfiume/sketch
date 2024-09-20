@@ -21,6 +21,7 @@ trait Http4sTestingRoutesDsl extends Assertions:
           .run(request)
           .flatMap { res => IO(assertEquals(res.status, expected)) }
 
+      // TODO Why not make it return the decoded Json?
       def expectJsonResponseWith(expected: Status, debug: Boolean = false): IO[Json] =
         routes.orNotFound
           .run(request)

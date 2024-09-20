@@ -41,7 +41,7 @@ class PostgresAccessControlSpec
 
   test("grants Admin users permission to access all entities"):
     forAllF(userIds, entitiesIds) { (userId, entityId) =>
-      will(cleanGrants) {
+      will(cleanStorage) {
         PostgresAccessControl.make[IO](transactor()).use { accessControl =>
           for
             _ <- accessControl.grantGlobalAccess(userId, Admin).ccommit
@@ -56,7 +56,7 @@ class PostgresAccessControlSpec
 
   test("grants Superuser's permission to access all entities except UserEntity"):
     forAllF(userIds, entitiesIds) { (userId, entityId) =>
-      will(cleanGrants) {
+      will(cleanStorage) {
         PostgresAccessControl.make[IO](transactor()).use { accessControl =>
           for
             _ <- accessControl.grantGlobalAccess(userId, Superuser).ccommit
@@ -77,7 +77,7 @@ class PostgresAccessControlSpec
        sndUser: UserCredentials,
        trdDocument: DocumentWithIdAndStream[IO]
       ) =>
-        will(cleanGrants) {
+        will(cleanStorage) {
           (
             PostgresAccessControl.make[IO](transactor()),
             PostgresDocumentsStore.make[IO](transactor()),
@@ -111,7 +111,7 @@ class PostgresAccessControlSpec
   // UserEntity is special in that it is extremely sensitive
   test("fetches all existent entity ids, except non-owned UserEntity, if user is Superuser"):
     forAllF { (fstUser: UserCredentials, globalRole: GlobalRole, sndUser: UserCredentials) =>
-      will(cleanGrants) {
+      will(cleanStorage) {
         (
           PostgresAccessControl.make[IO](transactor()),
           PostgresUsersStore.make[IO](transactor(), Clock[IO])
@@ -145,7 +145,7 @@ class PostgresAccessControlSpec
    */
   test("grants a user ownership, and thus access, to an entity"):
     forAllF(userIds, entitiesIds) { (userId, entityId) =>
-      will(cleanGrants) {
+      will(cleanStorage) {
         PostgresAccessControl.make[IO](transactor()).use { accessControl =>
           for
             _ <- accessControl.grantAccess(userId, entityId, Owner).ccommit
@@ -159,7 +159,7 @@ class PostgresAccessControlSpec
 
   test("stores an entity and ensures that the user is its owner"):
     forAllF { (userId: UserId, document: DocumentWithIdAndStream[IO], role: ContextualRole) =>
-      will(cleanGrants) {
+      will(cleanStorage) {
         (
           PostgresAccessControl.make[IO](transactor()),
           PostgresDocumentsStore.make[IO](transactor())
@@ -176,7 +176,7 @@ class PostgresAccessControlSpec
 
   test("does not perform operation on entity if the user is not authorized to access it"):
     forAllF { (userId: UserId, document: DocumentWithIdAndStream[IO], role: Role) =>
-      will(cleanGrants) {
+      will(cleanStorage) {
         (
           PostgresAccessControl.make[IO](transactor()),
           PostgresDocumentsStore.make[IO](transactor())
@@ -201,7 +201,7 @@ class PostgresAccessControlSpec
        trdDocument: DocumentWithIdAndStream[IO],
        role: ContextualRole
       ) =>
-        will(cleanGrants) {
+        will(cleanStorage) {
           (
             PostgresAccessControl.make[IO](transactor()),
             PostgresDocumentsStore.make[IO](transactor())
@@ -225,7 +225,7 @@ class PostgresAccessControlSpec
   // TODO What if global access?
   test("revokes a user's permission to access an entity"):
     forAllF(userIds, entitiesIds, contextualRoles) { (userId, entityId, contextualRole) =>
-      will(cleanGrants) {
+      will(cleanStorage) {
         PostgresAccessControl.make[IO](transactor()).use { accessControl =>
           for
             _ <- accessControl.grantAccess(userId, entityId, contextualRole).ccommit
@@ -245,7 +245,7 @@ class PostgresAccessControlSpec
   // fetchRole returns the least permissive role first
   test("contextual roles takes precedence over global roles"):
     forAllF(userIds, entitiesIds, globalRoles) { (userId, entityId, globalRole) =>
-      will(cleanGrants) {
+      will(cleanStorage) {
         PostgresAccessControl.make[IO](transactor()).use { accessControl =>
           for
             _ <- accessControl.grantGlobalAccess(userId, globalRole).ccommit
@@ -261,10 +261,13 @@ class PostgresAccessControlSpec
 trait PostgresAccessControlSpecContext:
   import org.scalacheck.Gen
 
-  def cleanGrants: ConnectionIO[Unit] =
-    sql"TRUNCATE TABLE auth.access_control".update.run.void *>
-      sql"TRUNCATE TABLE auth.global_access_control".update.run.void *>
-      sql"TRUNCATE TABLE auth.users".update.run.void *>
-      sql"TRUNCATE TABLE domain.documents".update.run.void
+  def cleanStorage: ConnectionIO[Unit] =
+    sql"""|TRUNCATE TABLE
+          |  auth.access_control,
+          |  auth.global_access_control,
+          |  auth.account_deletion_jobs,
+          |  auth.users,
+          |  domain.documents
+      """.stripMargin.update.run.void
 
   def entitiesIds = Gen.oneOf(documentsIds, userIds)

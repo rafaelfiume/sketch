@@ -17,10 +17,10 @@ import org.slf4j.LoggerFactory
 
 object PostgresAccessControl:
   def make[F[_]: Async](tx: Transactor[F]): effect.Resource[F, PostgresAccessControl[F]] =
-    WeakAsync.liftK[F, ConnectionIO].map(l => PostgresAccessControl(l, tx))
+    WeakAsync.liftK[F, ConnectionIO].map(lift => PostgresAccessControl(lift, tx))
 
-private class PostgresAccessControl[F[_]: Async] private (l: F ~> ConnectionIO, tx: Transactor[F])
-    extends AbstractPostgresStore[F](l, tx)
+private class PostgresAccessControl[F[_]: Async] private (lift: F ~> ConnectionIO, tx: Transactor[F])
+    extends AbstractPostgresStore[F](lift, tx)
     with AccessControl[F, ConnectionIO]:
 
   override def storeGlobalGrant(userId: UserId, role: GlobalRole): ConnectionIO[Unit] =

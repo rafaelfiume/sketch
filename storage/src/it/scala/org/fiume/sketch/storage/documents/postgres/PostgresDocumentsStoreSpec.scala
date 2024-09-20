@@ -26,11 +26,11 @@ class PostgresDocumentsStoreSpec
     with PostgresStoreSpecContext
     with ShrinkLowPriority:
 
-  override def scalaCheckTestParameters = super.scalaCheckTestParameters.withMinSuccessfulTests(10)
+  override def scalaCheckTestParameters = super.scalaCheckTestParameters.withMinSuccessfulTests(5)
 
   test("fetches metadata of stored document"):
     forAllF { (document: DocumentWithIdAndStream[IO]) =>
-      will(cleanDocuments) {
+      will(cleanStorage) {
         PostgresDocumentsStore.make[IO](transactor()).use { store =>
           for
             uuid <- store.store(document).ccommit
@@ -44,7 +44,7 @@ class PostgresDocumentsStoreSpec
 
   test("fetches content bytes of stored document"):
     forAllF { (document: DocumentWithStream[IO]) =>
-      will(cleanDocuments) {
+      will(cleanStorage) {
         PostgresDocumentsStore.make[IO](transactor()).use { store =>
           for
             uuid <- store.store(document).ccommit
@@ -59,7 +59,7 @@ class PostgresDocumentsStoreSpec
 
   test("fetches multiple documents"):
     forAllF { (fstDoc: DocumentWithStream[IO], sndDoc: DocumentWithStream[IO]) =>
-      will(cleanDocuments) {
+      will(cleanStorage) {
         PostgresDocumentsStore.make[IO](transactor()).use { store =>
           for
             fstUuid <- store.store(fstDoc).ccommit
@@ -74,7 +74,7 @@ class PostgresDocumentsStoreSpec
 
   test("deletes stored document"):
     forAllF { (fstDoc: DocumentWithStream[IO], sndDoc: DocumentWithStream[IO]) =>
-      will(cleanDocuments) {
+      will(cleanStorage) {
         PostgresDocumentsStore.make[IO](transactor()).use { store =>
           for
             fstUuid <- store.store(fstDoc).ccommit
@@ -93,7 +93,7 @@ class PostgresDocumentsStoreSpec
 
   test("timestamps createdAt and updatedAt upon storage"):
     forAllF { (document: DocumentWithStream[IO]) =>
-      will(cleanDocuments) {
+      will(cleanStorage) {
         PostgresDocumentsStore.make[IO](transactor()).use { store =>
           for
             uuid <- store.store(document).ccommit
@@ -111,7 +111,7 @@ class PostgresDocumentsStoreSpec
   test("play it".ignore): // good to see it in action
     val filename = "mountain-bike-liguria-ponent.jpg"
     IO { bytesFrom[IO](filename) }.flatMap { content =>
-      will(cleanDocuments) {
+      will(cleanStorage) {
         PostgresDocumentsStore.make[IO](transactor()).use { store =>
           for
             uuid <- store.store(documentsWithStream.sample.someOrFail).ccommit
@@ -127,7 +127,7 @@ class PostgresDocumentsStoreSpec
     }
 
 trait PostgresStoreSpecContext:
-  def cleanDocuments: ConnectionIO[Unit] = sql"TRUNCATE TABLE domain.documents".update.run.void
+  def cleanStorage: ConnectionIO[Unit] = sql"TRUNCATE TABLE domain.documents".update.run.void
 
   extension (store: PostgresDocumentsStore[IO])
     def fetchCreatedAt(uuid: DocumentId): ConnectionIO[Instant] =

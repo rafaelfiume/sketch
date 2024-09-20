@@ -39,7 +39,7 @@ CREATE TRIGGER set_users_updated_at
   FOR EACH ROW
   EXECUTE FUNCTION update_updated_at();
 
--- Store Role-base (global) roles
+-- Stores global roles
 CREATE TABLE auth.global_access_control (
     user_id UUID NOT NULL,
     role VARCHAR(20) NOT NULL CHECK (role IN ('Admin', 'Superuser')),
@@ -47,7 +47,7 @@ CREATE TABLE auth.global_access_control (
     --FOREIGN KEY (user_id) REFERENCES users(user_id)
 );
 
--- Store Ownership-based (contextual) roles
+-- Stores contextual roles
 CREATE TABLE auth.access_control (
     user_id UUID NOT NULL,
     entity_id UUID NOT NULL,
@@ -61,3 +61,10 @@ CREATE TABLE auth.access_control (
 
 -- TODO Create index to improve performance of selectAllAuthorisedEntityIds
 -- CREATE INDEX idx_user_entity_type ON auth.access_control (user_id, entity_type);
+
+CREATE TABLE auth.account_deletion_jobs (
+    job_id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
+    user_id UUID NOT NULL REFERENCES auth.users(uuid) ON DELETE CASCADE,
+    scheduled_permanent_deletion_at TIMESTAMPTZ NOT NULL
+    --callback_uri VARCHAR(255)                -- URI to notify external services
+);
