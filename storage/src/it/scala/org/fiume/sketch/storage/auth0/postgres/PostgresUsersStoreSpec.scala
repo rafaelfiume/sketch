@@ -47,7 +47,7 @@ class PostgresUsersStoreSpec
       }
     }
 
-  test("fetches user account".only):
+  test("fetches user account"):
     forAllF { (credentials: UserCredentials) =>
       will(cleanStorage) {
         PostgresUsersStore.make[IO](transactor(), makeFrozenClock()).use { store =>
