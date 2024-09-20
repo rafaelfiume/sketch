@@ -14,7 +14,7 @@ import org.fiume.sketch.shared.auth0.User.UserCredentials
 import org.fiume.sketch.shared.auth0.config.AccountConfig
 import org.fiume.sketch.shared.auth0.testkit.{AuthMiddlewareContext, UserGens, UsersStoreContext}
 import org.fiume.sketch.shared.auth0.testkit.UserGens.given
-import org.fiume.sketch.shared.testkit.Http4sTestingRoutesDsl
+import org.fiume.sketch.shared.testkit.{ClockContext, Http4sTestingRoutesDsl}
 import org.fiume.sketch.shared.testkit.syntax.EitherSyntax.*
 import org.fiume.sketch.shared.testkit.syntax.OptionSyntax.*
 import org.http4s.*
@@ -24,6 +24,7 @@ import org.scalacheck.ShrinkLowPriority
 import org.scalacheck.effect.PropF.forAllF
 
 import java.time.Instant
+import java.time.temporal.ChronoUnit.MILLIS
 import scala.concurrent.duration.*
 
 class UsersRoutesSpec
@@ -33,13 +34,17 @@ class UsersRoutesSpec
     with AuthMiddlewareContext
     with AccessControlContext
     with UsersStoreContext
+    with ClockContext
     with UsersRoutesSpecContext
     with ShrinkLowPriority:
 
   test("marks user for deletion") {
     forAllF { (user: UserCredentials) =>
+      val deletedAt = Instant.now()
+      val frozenTime = makeFrozenTime(deletedAt)
+      val permantDeletionDelay = 1.second
       for
-        store <- makeUsersStore()
+        store <- makeEmptyUsersStore(clock = frozenTime, permantDeletionDelay)
         accessControl <- makeAccessControl()
         userId <- store.store(user).flatTap { id => accessControl.grantAccess(id, id, Owner) }
         request = DELETE(Uri.unsafeFromString(s"/users/${userId.value}"))
@@ -52,12 +57,13 @@ class UsersRoutesSpec
           .expectJsonResponseWith(Status.Ok) // TODO Test response payload contract
         account <- store.fetchAccount(user.username).map(_.someOrFail)
         grantRemoved <- accessControl.canAccess(userId, userId).map(!_)
+        scheduledJob = result.as[ScheduledForPermanentDeletionResponse].rightOrFail
       yield
         assert(!account.isActive) // TODO Check SoftDeleted state
         assert(grantRemoved)
         assertEquals(
-          result.as[ScheduledForPermanentDeletionResponse].rightOrFail.userId,
-          userId
+          scheduledJob,
+          ScheduledForPermanentDeletionResponse(userId, deletedAt.plusSeconds(permantDeletionDelay.toSeconds).truncatedTo(MILLIS))
         )
     }
   }
@@ -65,7 +71,7 @@ class UsersRoutesSpec
   test("returns 403 when user lacks permission to delete account or account does not exist") {
     forAllF { (authedUser: UserCredentials, maybeAnotherUser: UserCredentials, anotherUserExists: Boolean) =>
       for
-        store <- makeUsersStore()
+        store <- makeEmptyUsersStore()
         accessControl <- makeAccessControl()
         authedUserId <- store.store(authedUser).flatTap { id => accessControl.grantAccess(id, id, Owner) }
         anotherUserId <-
@@ -83,7 +89,7 @@ class UsersRoutesSpec
     }
   }
 
-  // TODO Test response payload contract
+  // Note: Skipping contract tests to speed up development
 
 trait UsersRoutesSpecContext:
   val config = AccountConfig(delayUntilPermanentDeletion = 30.days)

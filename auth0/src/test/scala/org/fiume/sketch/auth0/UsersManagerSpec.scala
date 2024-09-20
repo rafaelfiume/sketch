@@ -27,7 +27,7 @@ class UsersManagerSpec
 
     forAllF { (username: Username, password: PlainPassword, isSuperuser: Boolean) =>
       for
-        usersStore <- makeUsersStore()
+        usersStore <- makeEmptyUsersStore()
         accessControl <- makeAccessControl()
         usersManager <- UsersManager.make[IO, IO](usersStore, accessControl)
 

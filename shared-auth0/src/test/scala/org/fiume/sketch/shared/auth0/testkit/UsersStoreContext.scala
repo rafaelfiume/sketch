@@ -15,7 +15,10 @@ import scala.concurrent.duration.*
 
 trait UsersStoreContext:
 
-  def makeUsersStore(): IO[UsersStore[IO, IO]] = makeUsersStore(Map.empty, Clock[IO], 1.second)
+  def makeEmptyUsersStore(
+    clock: Clock[IO] = Clock[IO],
+    delayUntilPermanentDeletion: Duration = 1.second
+  ): IO[UsersStore[IO, IO]] = makeUsersStore(Map.empty, clock, delayUntilPermanentDeletion)
 
   def makeUsersStore(
     credentials: UserCredentialsWithId,
