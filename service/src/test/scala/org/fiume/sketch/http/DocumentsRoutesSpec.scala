@@ -68,11 +68,10 @@ class DocumentsRoutesSpec
         result <- send(request)
           .to(documentsRoutes.router())
 //
-          .expectJsonResponseWith(Status.Created)
-        createdDocId = result.as[DocumentIdResponsePayload].rightOrFail
-        stored <- store.fetchDocument(createdDocId.value)
-        grantedAccessToUser <- accessControl.canAccess(user.uuid, createdDocId.value)
-        noGrantedAccessToRandomUser <- accessControl.canAccess(randomUser.uuid, createdDocId.value).map(!_)
+          .expectJsonResponseWith[DocumentIdResponsePayload](Status.Created)
+        stored <- store.fetchDocument(result.value)
+        grantedAccessToUser <- accessControl.canAccess(user.uuid, result.value)
+        noGrantedAccessToRandomUser <- accessControl.canAccess(randomUser.uuid, result.value).map(!_)
       yield
         assertEquals(stored.map(_.metadata), metadata.some)
         assert(grantedAccessToUser)
@@ -92,8 +91,8 @@ class DocumentsRoutesSpec
         result <- send(request)
           .to(documentsRoutes.router())
 //
-          .expectJsonResponseWith(Status.Ok)
-      yield assertEquals(result.as[DocumentResponsePayload].rightOrFail, document.asResponsePayload)
+          .expectJsonResponseWith[DocumentResponsePayload](Status.Ok)
+      yield assertEquals(result, document.asResponsePayload)
     }
 
   test("retrieves content bytes of stored document"):
@@ -128,8 +127,8 @@ class DocumentsRoutesSpec
         result <- send(request)
           .to(documentsRoutes.router())
 //
-          .expectJsonResponseWith(Status.Ok)
-      yield assertEquals(result.as[DocumentResponsePayload].rightOrFail, sndDoc.asResponsePayload)
+          .expectJsonResponseWith[DocumentResponsePayload](Status.Ok)
+      yield assertEquals(result, sndDoc.asResponsePayload)
     }
 
   test("deletes stored document"):
@@ -225,8 +224,7 @@ class DocumentsRoutesSpec
         request = POST(uri"/documents").withEntity(multipart).withHeaders(multipart.headers)
         result <- send(request)
           .to(SemanticValidationMiddleware(documentsRoutes.router()))
-          .expectJsonResponseWith(Status.UnprocessableEntity)
-          .map(_.as[ErrorInfo].rightOrFail)
+          .expectJsonResponseWith[ErrorInfo](Status.UnprocessableEntity)
 //
       yield
         assertEquals(result.message, SemanticInputError.message)
@@ -249,8 +247,7 @@ class DocumentsRoutesSpec
         request = POST(uri"/documents").withEntity(multipart).withHeaders(multipart.headers)
         result <- send(request)
           .to(SemanticValidationMiddleware(documentsRoutes.router()))
-          .expectJsonResponseWith(Status.UnprocessableEntity)
-          .map(_.as[ErrorInfo].rightOrFail)
+          .expectJsonResponseWith[ErrorInfo](Status.UnprocessableEntity)
 //
       yield
         assertEquals(result.message, SemanticInputError.message)

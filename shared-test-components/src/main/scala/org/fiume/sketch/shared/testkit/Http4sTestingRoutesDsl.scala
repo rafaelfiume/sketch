@@ -1,8 +1,9 @@
 package org.fiume.sketch.shared.testkit
 
 import cats.effect.IO
-import io.circe.Json
+import io.circe.{Decoder, Json}
 import munit.Assertions
+import org.fiume.sketch.shared.testkit.syntax.EitherSyntax.*
 import org.http4s.{HttpRoutes, MalformedMessageBodyFailure, Request, Status}
 import org.http4s.circe.CirceEntityDecoder.*
 import org.http4s.implicits.*
@@ -21,13 +22,13 @@ trait Http4sTestingRoutesDsl extends Assertions:
           .run(request)
           .flatMap { res => IO(assertEquals(res.status, expected)) }
 
-      // TODO Why not make it return the decoded Json?
-      def expectJsonResponseWith(expected: Status, debug: Boolean = false): IO[Json] =
+      def expectJsonResponseWith[A](expected: Status, debug: Boolean = false)(using Decoder[A]): IO[A] =
         routes.orNotFound
           .run(request)
           .flatTap { res => IO(assertEquals(res.status, expected)) }
           .flatMap { _.as[Json] }
           .flatTap { jsonBody => IO { if debug then debugJson(jsonBody) else () } }
+          .map { _.as[A].rightOrFail }
           .handleErrorWith {
             case error: MalformedMessageBodyFailure if error.message.contains("JSON") && error.message.contains("empty") =>
               IO.delay { fail("expected a JSON body in the response, but received an empty one") }

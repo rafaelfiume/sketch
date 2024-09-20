@@ -11,7 +11,6 @@ import org.fiume.sketch.shared.app.ServiceStatus.json.given
 import org.fiume.sketch.shared.app.algebras.{HealthChecker, Versions}
 import org.fiume.sketch.shared.app.testkit.VersionGens.versions
 import org.fiume.sketch.shared.testkit.Http4sTestingRoutesDsl
-import org.fiume.sketch.shared.testkit.syntax.EitherSyntax.*
 import org.fiume.sketch.shared.testkit.syntax.OptionSyntax.*
 import org.http4s.Method.*
 import org.http4s.Status
@@ -39,9 +38,9 @@ class HealthStatusRoutesSpec
 
       result <- send(GET(uri"/ping"))
         .to(routes.router())
-        .expectJsonResponseWith(Status.Ok)
+        .expectJsonResponseWith[String](Status.Ok)
 //
-    yield assertEquals(result.as[String].rightOrFail, "pong")
+    yield assertEquals(result, "pong")
   }
 
   test("healthy status succeeds when dependencies are healthy") {
@@ -54,10 +53,10 @@ class HealthStatusRoutesSpec
 
       result <- send(GET(uri"/status"))
         .to(routes.router())
-        .expectJsonResponseWith(Status.Ok)
+        .expectJsonResponseWith[ServiceStatus](Status.Ok)
 //
     yield assertEquals(
-      result.as[ServiceStatus].rightOrFail,
+      result,
       ServiceStatus.make(version, List(healthyDatabase, healthyRustic))
     )
   }
@@ -72,10 +71,10 @@ class HealthStatusRoutesSpec
 
       result <- send(GET(uri"/status"))
         .to(routes.router())
-        .expectJsonResponseWith(Status.Ok)
+        .expectJsonResponseWith[ServiceStatus](Status.Ok)
 //
     yield assertEquals(
-      result.as[ServiceStatus].rightOrFail,
+      result,
       ServiceStatus.make(version, List(faultyDatabase, healthyRustic))
     )
   }

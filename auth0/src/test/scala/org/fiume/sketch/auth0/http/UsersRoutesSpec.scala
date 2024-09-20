@@ -15,7 +15,6 @@ import org.fiume.sketch.shared.auth0.config.AccountConfig
 import org.fiume.sketch.shared.auth0.testkit.{AuthMiddlewareContext, UserGens, UsersStoreContext}
 import org.fiume.sketch.shared.auth0.testkit.UserGens.given
 import org.fiume.sketch.shared.testkit.{ClockContext, Http4sTestingRoutesDsl}
-import org.fiume.sketch.shared.testkit.syntax.EitherSyntax.*
 import org.fiume.sketch.shared.testkit.syntax.OptionSyntax.*
 import org.http4s.*
 import org.http4s.client.dsl.io.*
@@ -57,12 +56,11 @@ class UsersRoutesSpec
           .expectJsonResponseWith(Status.Ok)
         account <- store.fetchAccount(user.username).map(_.someOrFail)
         grantRemoved <- accessControl.canAccess(userId, userId).map(!_)
-        scheduledJob = result.as[ScheduledForPermanentDeletionResponse].rightOrFail
       yield
         assert(!account.isActive)
         assert(grantRemoved)
         assertEquals(
-          scheduledJob,
+          result,
           ScheduledForPermanentDeletionResponse(userId, deletedAt.plusSeconds(permantDeletionDelay.toSeconds).truncatedTo(MILLIS))
         )
     }
