@@ -12,7 +12,7 @@ import org.fiume.sketch.shared.auth0.algebras.UsersStore
 import org.fiume.sketch.shared.auth0.domain.{Account, Passwords, User, UserId}
 import org.fiume.sketch.shared.auth0.domain.Passwords.{HashedPassword, Salt}
 import org.fiume.sketch.shared.auth0.domain.User.*
-import org.fiume.sketch.shared.auth0.jobs.{JobId, PermanentAccountDeletionJob}
+import org.fiume.sketch.shared.auth0.jobs.{JobId, ScheduledAccountDeletion}
 import org.fiume.sketch.storage.auth0.postgres.DatabaseCodecs.given
 import org.fiume.sketch.storage.auth0.postgres.Statements.*
 import org.fiume.sketch.storage.postgres.AbstractPostgresStore
@@ -47,7 +47,7 @@ private class PostgresUsersStore[F[_]: Async] private (lift: F ~> ConnectionIO, 
   override protected def schedulePermanentDeletion(
     userId: UserId,
     permanentDeletionAt: Instant
-  ): ConnectionIO[PermanentAccountDeletionJob] =
+  ): ConnectionIO[ScheduledAccountDeletion] =
     JobStatements.insertPermanentDeletionJob(userId, permanentDeletionAt)
 
 private object Statements:
@@ -109,7 +109,7 @@ private object Statements:
     sql"DELETE FROM auth.users WHERE uuid = $uuid".update
 
 private object JobStatements:
-  def insertPermanentDeletionJob(uuid: UserId, permanentDeletionAt: Instant): ConnectionIO[PermanentAccountDeletionJob] =
+  def insertPermanentDeletionJob(uuid: UserId, permanentDeletionAt: Instant): ConnectionIO[ScheduledAccountDeletion] =
     sql"""
          |INSERT INTO auth.account_deletion_jobs (
          |  user_id,
@@ -119,4 +119,4 @@ private object JobStatements:
          |  $permanentDeletionAt
          |)
     """.stripMargin.update
-      .withUniqueGeneratedKeys[PermanentAccountDeletionJob]("job_id", "user_id", "scheduled_permanent_deletion_at")
+      .withUniqueGeneratedKeys[ScheduledAccountDeletion]("job_id", "user_id", "scheduled_permanent_deletion_at")
