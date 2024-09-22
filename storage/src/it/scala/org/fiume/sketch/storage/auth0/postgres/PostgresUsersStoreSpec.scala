@@ -31,7 +31,7 @@ class PostgresUsersStoreSpec
     with PostgresUsersStoreSpecContext
     with ShrinkLowPriority:
 
-  override def scalaCheckTestParameters = super.scalaCheckTestParameters.withMinSuccessfulTests(1)
+  override def scalaCheckTestParameters = super.scalaCheckTestParameters.withMinSuccessfulTests(3)
 
   test("stores credentials"):
     forAllF { (credentials: UserCredentials) =>
@@ -132,21 +132,24 @@ class PostgresUsersStoreSpec
     }
 
   test("claim next job from the queue"):
-    forAllF { (fstUser: UserCredentials, sndUser: UserCredentials, trdUser: UserCredentials) =>
+    forAllF { (fstUser: UserCredentials, sndUser: UserCredentials, trdUser: UserCredentials, fthUser: UserCredentials) =>
       will(cleanStorage) {
         PostgresUsersStore.make[IO](transactor(), makeFrozenClock()).use { store =>
-          def markForDeletion(user: UserCredentials): IO[ScheduledAccountDeletion] =
-            val permanentDeletionAt = Instant.now()
+          def markForDeletion(user: UserCredentials, permanentDeletionAt: Instant): IO[ScheduledAccountDeletion] =
             store
               .store(user)
               .flatMap { store.schedulePermanentDeletion(_, permanentDeletionAt) }
               .ccommit
               .flatTap { id => IO.println(s"New job id: ${id.uuid}") }
+          val futureDate = Instant.now().plusSeconds(2 * 60)
+          // given
           for
-            fstScheduledDeletion <- markForDeletion(fstUser)
-            sndScheduledDeletion <- markForDeletion(sndUser)
-            trdScheduledDeletion <- markForDeletion(trdUser)
+            fstScheduledDeletion <- markForDeletion(fstUser, permanentDeletionAt = Instant.now())
+            _ <- markForDeletion(fthUser, permanentDeletionAt = futureDate)
+            sndScheduledDeletion <- markForDeletion(sndUser, permanentDeletionAt = Instant.now())
+            trdScheduledDeletion <- markForDeletion(trdUser, permanentDeletionAt = Instant.now())
 
+            // when
             result <-
               fs2.Stream
                 .repeatEval { store.claimNextJob().ccommit }
@@ -156,7 +159,8 @@ class PostgresUsersStoreSpec
                 .take(3)
                 .compile
                 .toList
-//
+
+          // then
           yield assertEquals(
             result,
             List(fstScheduledDeletion, sndScheduledDeletion, trdScheduledDeletion)
