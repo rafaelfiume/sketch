@@ -39,12 +39,14 @@ private class PostgresUsersStore[F[_]: Async] private (lift: F ~> ConnectionIO, 
   override def updatePassword(uuid: UserId, password: HashedPassword): ConnectionIO[Unit] =
     Statements.updatePassword(uuid, password).run.void
 
+  def claimNextJob(): ConnectionIO[Option[ScheduledAccountDeletion]] = JobStatements.lockAndRemoveNextJob().option
+
   override def delete(uuid: UserId): ConnectionIO[Unit] = Statements.delete(uuid).run.void
 
   override protected def softDeleteAccount(uuid: UserId): ConnectionIO[Instant] =
     lift(clock.realTimeInstant).flatTap { Statements.updateSoftDeletion(uuid, _).run.void }
 
-  override protected def schedulePermanentDeletion(
+  override protected[postgres] def schedulePermanentDeletion(
     userId: UserId,
     permanentDeletionAt: Instant
   ): ConnectionIO[ScheduledAccountDeletion] =
@@ -111,12 +113,26 @@ private object Statements:
 private object JobStatements:
   def insertPermanentDeletionJob(uuid: UserId, permanentDeletionAt: Instant): ConnectionIO[ScheduledAccountDeletion] =
     sql"""
-         |INSERT INTO auth.account_deletion_jobs (
+         |INSERT INTO auth.scheduled_account_permanent_deletion_queue (
          |  user_id,
-         |  scheduled_permanent_deletion_at
+         |  permanent_deletion_at
          |) VALUES (
          |  $uuid,
          |  $permanentDeletionAt
          |)
     """.stripMargin.update
-      .withUniqueGeneratedKeys[ScheduledAccountDeletion]("job_id", "user_id", "scheduled_permanent_deletion_at")
+      .withUniqueGeneratedKeys[ScheduledAccountDeletion]("uuid", "user_id", "permanent_deletion_at")
+
+  def lockAndRemoveNextJob(): Query0[ScheduledAccountDeletion] =
+    // Writing the same query with CTE would be equally doable
+    sql"""
+         |DELETE FROM auth.scheduled_account_permanent_deletion_queue
+         |WHERE uuid = (
+         |  SELECT uuid
+         |  FROM auth.scheduled_account_permanent_deletion_queue
+         |  WHERE permanent_deletion_at < now()
+         |  FOR UPDATE SKIP LOCKED
+         |  LIMIT 1
+         |)
+         |RETURNING *
+    """.stripMargin.query[ScheduledAccountDeletion]

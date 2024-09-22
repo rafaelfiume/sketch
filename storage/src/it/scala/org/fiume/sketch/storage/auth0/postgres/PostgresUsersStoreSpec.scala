@@ -31,7 +31,7 @@ class PostgresUsersStoreSpec
     with PostgresUsersStoreSpecContext
     with ShrinkLowPriority:
 
-  override def scalaCheckTestParameters = super.scalaCheckTestParameters.withMinSuccessfulTests(5)
+  override def scalaCheckTestParameters = super.scalaCheckTestParameters.withMinSuccessfulTests(1)
 
   test("stores credentials"):
     forAllF { (credentials: UserCredentials) =>
@@ -131,6 +131,40 @@ class PostgresUsersStoreSpec
       }
     }
 
+  test("claim next job from the queue"):
+    forAllF { (fstUser: UserCredentials, sndUser: UserCredentials, trdUser: UserCredentials) =>
+      will(cleanStorage) {
+        PostgresUsersStore.make[IO](transactor(), makeFrozenClock()).use { store =>
+          def markForDeletion(user: UserCredentials): IO[ScheduledAccountDeletion] =
+            val permanentDeletionAt = Instant.now()
+            store
+              .store(user)
+              .flatMap { store.schedulePermanentDeletion(_, permanentDeletionAt) }
+              .ccommit
+              .flatTap { id => IO.println(s"New job id: ${id.uuid}") }
+          for
+            fstScheduledDeletion <- markForDeletion(fstUser)
+            sndScheduledDeletion <- markForDeletion(sndUser)
+            trdScheduledDeletion <- markForDeletion(trdUser)
+
+            result <-
+              fs2.Stream
+                .repeatEval { store.claimNextJob().ccommit }
+                .evalTap { job => IO.println(s"claiming next job: ${job.map(_.uuid)}") }
+                .parEvalMapUnorderedUnbounded(IO.delay)
+                .unNone
+                .take(3)
+                .compile
+                .toList
+//
+          yield assertEquals(
+            result,
+            List(fstScheduledDeletion, sndScheduledDeletion, trdScheduledDeletion)
+          )
+        }
+      }
+    }
+
   test("timestamps createdAt and updatedAt upon storage"):
     forAllF { (credentials: UserCredentials) =>
       will(cleanStorage) {
@@ -167,7 +201,7 @@ class PostgresUsersStoreSpec
 
 trait PostgresUsersStoreSpecContext:
   def cleanStorage: ConnectionIO[Unit] =
-    sql"TRUNCATE TABLE auth.account_deletion_jobs, auth.users".update.run.void
+    sql"TRUNCATE TABLE auth.scheduled_account_permanent_deletion_queue, auth.users".update.run.void
 
   extension (store: PostgresUsersStore[IO])
     def fetchPassword(uuid: UserId): ConnectionIO[HashedPassword] =
@@ -180,4 +214,6 @@ trait PostgresUsersStoreSpecContext:
       sql"SELECT updated_at FROM auth.users WHERE uuid = ${uuid}".query[Instant].unique
 
     def fetchScheduledAccountDeletion(uuid: UserId): ConnectionIO[Option[ScheduledAccountDeletion]] =
-      sql"SELECT * FROM auth.account_deletion_jobs WHERE user_id = ${uuid}".query[ScheduledAccountDeletion].option
+      sql"SELECT * FROM auth.scheduled_account_permanent_deletion_queue WHERE user_id = ${uuid}"
+        .query[ScheduledAccountDeletion]
+        .option

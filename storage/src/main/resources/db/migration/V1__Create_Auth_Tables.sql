@@ -62,9 +62,9 @@ CREATE TABLE auth.access_control (
 -- TODO Create index to improve performance of selectAllAuthorisedEntityIds
 -- CREATE INDEX idx_user_entity_type ON auth.access_control (user_id, entity_type);
 
-CREATE TABLE auth.account_deletion_jobs (
-    job_id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
+CREATE TABLE auth.scheduled_account_permanent_deletion_queue (
+    uuid UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
     user_id UUID NOT NULL REFERENCES auth.users(uuid) ON DELETE CASCADE,
-    scheduled_permanent_deletion_at TIMESTAMPTZ NOT NULL
+    permanent_deletion_at TIMESTAMPTZ NOT NULL
     --callback_uri VARCHAR(255)                -- URI to notify external services
 );
