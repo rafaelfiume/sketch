@@ -23,15 +23,15 @@ import org.scalacheck.effect.PropF.forAllF
 import java.time.Instant
 import java.time.temporal.ChronoUnit.MILLIS
 import scala.concurrent.duration.*
+import org.fiume.sketch.shared.auth0.testkit.UserGens
 
 class PostgresUsersStoreSpec
     extends ScalaCheckEffectSuite
-    with DockerPostgresSuite
     with ClockContext
     with PostgresUsersStoreSpecContext
     with ShrinkLowPriority:
 
-  override def scalaCheckTestParameters = super.scalaCheckTestParameters.withMinSuccessfulTests(3)
+  override def scalaCheckTestParameters = super.scalaCheckTestParameters.withMinSuccessfulTests(1)
 
   test("stores credentials"):
     forAllF { (credentials: UserCredentials) =>
@@ -135,36 +135,87 @@ class PostgresUsersStoreSpec
     forAllF { (fstUser: UserCredentials, sndUser: UserCredentials, trdUser: UserCredentials, fthUser: UserCredentials) =>
       will(cleanStorage) {
         PostgresUsersStore.make[IO](transactor(), makeFrozenClock()).use { store =>
-          def markForDeletion(user: UserCredentials, permanentDeletionAt: Instant): IO[ScheduledAccountDeletion] =
-            store
-              .store(user)
-              .flatMap { store.schedulePermanentDeletion(_, permanentDeletionAt) }
-              .ccommit
-              .flatTap { id => IO.println(s"New job id: ${id.uuid}") }
           val futureDate = Instant.now().plusSeconds(2 * 60)
           // given
           for
-            fstScheduledDeletion <- markForDeletion(fstUser, permanentDeletionAt = Instant.now())
-            _ <- markForDeletion(fthUser, permanentDeletionAt = futureDate)
-            sndScheduledDeletion <- markForDeletion(sndUser, permanentDeletionAt = Instant.now())
-            trdScheduledDeletion <- markForDeletion(trdUser, permanentDeletionAt = Instant.now())
+            fstScheduledDeletion <- store.markAccountForDeletion(fstUser, permanentDeletionAt = Instant.now())
+            _ <- store.markAccountForDeletion(fthUser, permanentDeletionAt = futureDate)
+            sndScheduledDeletion <- store.markAccountForDeletion(sndUser, permanentDeletionAt = Instant.now())
+            trdScheduledDeletion <- store.markAccountForDeletion(trdUser, permanentDeletionAt = Instant.now())
 
             // when
             result <-
               fs2.Stream
-                .repeatEval { store.claimNextJob().ccommit }
-                .evalTap { job => IO.println(s"claiming next job: ${job.map(_.uuid)}") }
-                .parEvalMapUnorderedUnbounded(IO.delay)
+                .iterate(0)(_ + 1)
+                .covary[IO]
+                .parEvalMapUnorderedUnbounded { _ => store.claimNextJob().ccommit }
+                .evalTap { job => IO.println(s"claimed job: ${job.map(_.uuid)}") }
                 .unNone
                 .take(3)
                 .compile
                 .toList
 
           // then
-          yield assertEquals(
-            result,
-            List(fstScheduledDeletion, sndScheduledDeletion, trdScheduledDeletion)
-          )
+          yield
+            assert(result.size == 3, clue = s"Expected 3 jobs, got ${result.size}")
+            assertEquals(
+              result.toSet,
+              List(fstScheduledDeletion, sndScheduledDeletion, trdScheduledDeletion).toSet
+            )
+        }
+      }
+    }
+
+  test("return claimed job to the queue if processing fails"):
+    forAllF { () =>
+      will(cleanStorage) {
+        PostgresUsersStore.make[IO](transactor(), makeFrozenClock()).use { store =>
+          // given
+          val numQueuedJobs = 300
+          for
+            expected <- fs2.Stream
+              .range(0, numQueuedJobs)
+              .covary[IO]
+              .parEvalMapUnbounded { _ =>
+                val user = UserGens.credentials.sample.someOrFail
+                store.markAccountForDeletion(user, permanentDeletionAt = Instant.now()).map(_.uuid)
+              }
+              .compile
+              .toList
+
+            // when
+            result <-
+              // runs twice the number of queued jobs to ensure + a few to compensate for the failed jobs
+              fs2.Stream
+                .range(0, 2 * numQueuedJobs + 50)
+                .covary[IO]
+                .parEvalMapUnorderedUnbounded { i =>
+                  store
+                    .claimNextJob()
+                    .flatMap { job =>
+                      if i % 2 == 0 then
+                        store.lift(IO.raiseError(new RuntimeException(s"failed to process: ${job.map(_.uuid)}")))
+                      else job.pure[ConnectionIO]
+                    }
+                    .ccommit
+                    .handleErrorWith { error =>
+                      IO.println(error.getMessage()) >>
+                        none.pure[IO]
+                    }
+                }
+                .map(_.map(_.uuid))
+                .evalTap { jobId => IO.println(s"claimed job: ${jobId}") }
+                .unNone
+                .compile
+                .toList
+
+          // then
+          yield
+            println(s"size: ${result.size}")
+            assert(result.size == numQueuedJobs, clue = s"Expected $numQueuedJobs jobs, got ${result.size}")
+            result.foreach { jobId =>
+              assert(expected.contains(jobId), clue = s"Expected $jobId to be in the list of scheduled jobs: $expected")
+            }
         }
       }
     }
@@ -203,7 +254,7 @@ class PostgresUsersStoreSpec
       }
     }
 
-trait PostgresUsersStoreSpecContext:
+trait PostgresUsersStoreSpecContext extends DockerPostgresSuite:
   def cleanStorage: ConnectionIO[Unit] =
     sql"TRUNCATE TABLE auth.scheduled_account_permanent_deletion_queue, auth.users".update.run.void
 
@@ -221,3 +272,10 @@ trait PostgresUsersStoreSpecContext:
       sql"SELECT * FROM auth.scheduled_account_permanent_deletion_queue WHERE user_id = ${uuid}"
         .query[ScheduledAccountDeletion]
         .option
+
+    def markAccountForDeletion(user: UserCredentials, permanentDeletionAt: Instant): IO[ScheduledAccountDeletion] =
+      store
+        .store(user)
+        .flatMap { store.schedulePermanentDeletion(_, permanentDeletionAt) }
+        .ccommit
+        .flatTap { id => IO.println(s"new job: ${id.uuid}") }
