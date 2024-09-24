@@ -10,10 +10,11 @@ import org.fiume.sketch.shared.auth0.domain.{AccountState, Passwords, User, User
 import org.fiume.sketch.shared.auth0.domain.AccountState.SoftDeleted
 import org.fiume.sketch.shared.auth0.domain.Passwords.HashedPassword
 import org.fiume.sketch.shared.auth0.domain.User.*
-import org.fiume.sketch.shared.auth0.jobs.{JobId, ScheduledAccountDeletion}
+import org.fiume.sketch.shared.auth0.jobs.ScheduledAccountDeletion
 import org.fiume.sketch.shared.auth0.testkit.PasswordsGens.given
 import org.fiume.sketch.shared.auth0.testkit.UserGens
 import org.fiume.sketch.shared.auth0.testkit.UserGens.given
+import org.fiume.sketch.shared.jobs.JobId
 import org.fiume.sketch.shared.testkit.ClockContext
 import org.fiume.sketch.shared.testkit.syntax.OptionSyntax.*
 import org.fiume.sketch.storage.auth0.postgres.DatabaseCodecs.given

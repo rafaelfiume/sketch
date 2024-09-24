@@ -7,7 +7,8 @@ import org.fiume.sketch.shared.auth0.algebras.UsersStore
 import org.fiume.sketch.shared.auth0.domain.{Account, AccountState, User, UserId}
 import org.fiume.sketch.shared.auth0.domain.Passwords.HashedPassword
 import org.fiume.sketch.shared.auth0.domain.User.{UserCredentials, UserCredentialsWithId, Username}
-import org.fiume.sketch.shared.auth0.jobs.{JobId, ScheduledAccountDeletion}
+import org.fiume.sketch.shared.auth0.jobs.ScheduledAccountDeletion
+import org.fiume.sketch.shared.jobs.JobId
 import org.fiume.sketch.shared.testkit.syntax.OptionSyntax.*
 
 import java.time.Instant

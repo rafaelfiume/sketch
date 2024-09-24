@@ -1,4 +1,4 @@
-package org.fiume.sketch.shared.auth0.jobs
+package org.fiume.sketch.shared.jobs
 
 import org.fiume.sketch.shared.app.{Entity, EntityId}
 
