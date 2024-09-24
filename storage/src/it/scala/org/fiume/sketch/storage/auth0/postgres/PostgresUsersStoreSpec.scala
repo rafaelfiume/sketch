@@ -132,7 +132,7 @@ class PostgresUsersStoreSpec
       }
     }
 
-  test("claim next job and return it to the queue if processing fails"):
+  test("claims next job and return it to the queue if processing fails"):
     forAllF { () =>
       will(cleanStorage) {
         PostgresUsersStore.make[IO](transactor(), makeFrozenClock()).use { store =>
@@ -183,7 +183,7 @@ class PostgresUsersStoreSpec
       }
     }
 
-  test("skip job if permanent deletion is not yet due"):
+  test("skips job if permanent deletion is not yet due"):
     forAllF { (fstUser: UserCredentials, sndUser: UserCredentials, trdUser: UserCredentials, fthUser: UserCredentials) =>
       will(cleanStorage) {
         PostgresUsersStore.make[IO](transactor(), makeFrozenClock()).use { store =>
