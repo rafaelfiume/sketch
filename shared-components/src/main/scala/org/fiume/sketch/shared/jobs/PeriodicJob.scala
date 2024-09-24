@@ -11,26 +11,28 @@ object PeriodicJob:
   private val logger = LoggerFactory.getLogger(PeriodicJob.getClass)
 
   trait JobErrorHandler[F[_], A]:
-   /*
-    * It must recover from error by returning an instance of `A` or simply `None`.
-    */
+    /*
+     * It must recover from error by returning an instance of `A` or simply `None`.
+     */
     val handleJobError: Throwable => F[Option[A]]
 
-  def makeWithDefaultJobErrorHandler[F[_]: Applicative: Temporal, A](interval: FiniteDuration, job: F[A]): fs2.Stream[F, Option[A]] =
-    make(interval, job, makeJobErrorLogger())
+  def makeWithDefaultJobErrorHandler[F[_]: Applicative: Temporal, A](
+    interval: FiniteDuration,
+    job: Job[F, A]
+  ): fs2.Stream[F, Option[A]] = make(interval, job, makeJobErrorLogger())
 
   def make[F[_]: Temporal, A](
     period: FiniteDuration,
-    job: F[A], // TODO Extract a type Job
+    job: Job[F, A],
     errorHandler: JobErrorHandler[F, A]
   ): fs2.Stream[F, Option[A]] =
     fs2.Stream
       .awakeEvery[F](period)
       .evalMap { _ =>
-        logger.info(s"Running job $job") // TODO job is just F[A], so not necessariy meaningful.
-        job.attempt.flatMap {
+        logger.info(s"Running job: ${job.description}")
+        job.run().attempt.flatMap {
           case Right(a) => a.some.pure[F]
-          case Left(e)  =>
+          case Left(e) =>
             logger.warn("Job failed", e)
             errorHandler.handleJobError(e)
         }
