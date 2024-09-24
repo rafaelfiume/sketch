@@ -12,6 +12,7 @@ import org.fiume.sketch.shared.auth0.domain.Passwords.HashedPassword
 import org.fiume.sketch.shared.auth0.domain.User.*
 import org.fiume.sketch.shared.auth0.jobs.{JobId, ScheduledAccountDeletion}
 import org.fiume.sketch.shared.auth0.testkit.PasswordsGens.given
+import org.fiume.sketch.shared.auth0.testkit.UserGens
 import org.fiume.sketch.shared.auth0.testkit.UserGens.given
 import org.fiume.sketch.shared.testkit.ClockContext
 import org.fiume.sketch.shared.testkit.syntax.OptionSyntax.*
@@ -23,7 +24,6 @@ import org.scalacheck.effect.PropF.forAllF
 import java.time.Instant
 import java.time.temporal.ChronoUnit.MILLIS
 import scala.concurrent.duration.*
-import org.fiume.sketch.shared.auth0.testkit.UserGens
 
 class PostgresUsersStoreSpec
     extends ScalaCheckEffectSuite
@@ -131,70 +131,35 @@ class PostgresUsersStoreSpec
       }
     }
 
-  test("claim next job from the queue"):
-    forAllF { (fstUser: UserCredentials, sndUser: UserCredentials, trdUser: UserCredentials, fthUser: UserCredentials) =>
-      will(cleanStorage) {
-        PostgresUsersStore.make[IO](transactor(), makeFrozenClock()).use { store =>
-          val futureDate = Instant.now().plusSeconds(2 * 60)
-          // given
-          for
-            fstScheduledDeletion <- store.markAccountForDeletion(fstUser, permanentDeletionAt = Instant.now())
-            _ <- store.markAccountForDeletion(fthUser, permanentDeletionAt = futureDate)
-            sndScheduledDeletion <- store.markAccountForDeletion(sndUser, permanentDeletionAt = Instant.now())
-            trdScheduledDeletion <- store.markAccountForDeletion(trdUser, permanentDeletionAt = Instant.now())
-
-            // when
-            result <-
-              fs2.Stream
-                .iterate(0)(_ + 1)
-                .covary[IO]
-                .parEvalMapUnorderedUnbounded { _ => store.claimNextJob().ccommit }
-                .evalTap { job => IO.println(s"claimed job: ${job.map(_.uuid)}") }
-                .unNone
-                .take(3)
-                .compile
-                .toList
-
-          // then
-          yield
-            assert(result.size == 3, clue = s"Expected 3 jobs, got ${result.size}")
-            assertEquals(
-              result.toSet,
-              List(fstScheduledDeletion, sndScheduledDeletion, trdScheduledDeletion).toSet
-            )
-        }
-      }
-    }
-
-  test("return claimed job to the queue if processing fails"):
+  test("claim next job and return it to the queue if processing fails"):
     forAllF { () =>
       will(cleanStorage) {
         PostgresUsersStore.make[IO](transactor(), makeFrozenClock()).use { store =>
           // given
-          val numQueuedJobs = 300
+          val numQueuedJobs = 1000
           for
-            expected <- fs2.Stream
+            queuedJobs <- fs2.Stream
               .range(0, numQueuedJobs)
               .covary[IO]
               .parEvalMapUnbounded { _ =>
                 val user = UserGens.credentials.sample.someOrFail
                 store.markAccountForDeletion(user, permanentDeletionAt = Instant.now()).map(_.uuid)
               }
+              .evalTap { jobId => IO.println(s"new job: $jobId") }
               .compile
               .toList
 
             // when
             result <-
-              // runs twice the number of queued jobs to ensure + a few to compensate for the failed jobs
               fs2.Stream
+                // runs twice the number of queued jobs to ensure + a few to compensate for the failed jobs
                 .range(0, 2 * numQueuedJobs + 50)
                 .covary[IO]
                 .parEvalMapUnorderedUnbounded { i =>
                   store
                     .claimNextJob()
                     .flatMap { job =>
-                      if i % 2 == 0 then
-                        store.lift(IO.raiseError(new RuntimeException(s"failed to process: ${job.map(_.uuid)}")))
+                      if i % 2 == 0 then store.lift { RuntimeException(s"failed: ${job.map(_.uuid)}").raiseError }
                       else job.pure[ConnectionIO]
                     }
                     .ccommit
@@ -211,11 +176,26 @@ class PostgresUsersStoreSpec
 
           // then
           yield
-            println(s"size: ${result.size}")
             assert(result.size == numQueuedJobs, clue = s"Expected $numQueuedJobs jobs, got ${result.size}")
-            result.foreach { jobId =>
-              assert(expected.contains(jobId), clue = s"Expected $jobId to be in the list of scheduled jobs: $expected")
-            }
+            assertEquals(result.toSet, queuedJobs.toSet)
+        }
+      }
+    }
+
+  test("skip job if permanent deletion is not yet due"):
+    forAllF { (fstUser: UserCredentials, sndUser: UserCredentials, trdUser: UserCredentials, fthUser: UserCredentials) =>
+      will(cleanStorage) {
+        PostgresUsersStore.make[IO](transactor(), makeFrozenClock()).use { store =>
+          val futureDate = Instant.now().plusSeconds(60)
+          for
+            _ <- store.markAccountForDeletion(fstUser, permanentDeletionAt = futureDate)
+            _ <- store.markAccountForDeletion(sndUser, permanentDeletionAt = futureDate)
+            trdScheduledDeletion <- store.markAccountForDeletion(trdUser, permanentDeletionAt = Instant.now())
+            _ <- store.markAccountForDeletion(fthUser, permanentDeletionAt = futureDate)
+
+            result <- fs2.Stream.repeatEval { store.claimNextJob().ccommit }.unNone.take(1).compile.toList
+//
+          yield assertEquals(result.toSet, List(trdScheduledDeletion).toSet)
         }
       }
     }
@@ -278,4 +258,3 @@ trait PostgresUsersStoreSpecContext extends DockerPostgresSuite:
         .store(user)
         .flatMap { store.schedulePermanentDeletion(_, permanentDeletionAt) }
         .ccommit
-        .flatTap { id => IO.println(s"new job: ${id.uuid}") }
