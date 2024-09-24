@@ -2,14 +2,77 @@ package org.fiume.sketch.shared.jobs
 
 import cats.effect.IO
 import cats.effect.kernel.Ref
+import cats.implicits.*
 import munit.CatsEffectSuite
+import org.fiume.sketch.shared.jobs.PeriodicJob.JobErrorHandler
 
 import scala.concurrent.duration.*
 
-class PeriodicJobSpec extends CatsEffectSuite:
-  test("runs a job periodically"):
+class PeriodicJobSpec extends CatsEffectSuite with JobErrorHandlerContext:
+
+  test("runs job periodically, even after encountering errors"):
+    // given
+    def makeBrokenJob(): IO[(Ref[IO, Int], IO[Unit])] = Ref.of[IO, Int](0).map { counter =>
+      counter -> counter.flatModify { i =>
+        val jobNumber = i + 1
+        if jobNumber % 2 == 0 then (jobNumber, RuntimeException("boom").raiseError)
+        else (jobNumber, IO.unit)
+      }
+    }
     for
-      counter <- Ref.of[IO, Int](0)
-      _ <- PeriodicJob.make(counter.update(_ + 1), 50.millis).interruptAfter(170.millis).compile.drain
-      jobsRun <- counter.get
-    yield assert(jobsRun == 3, clue = s"Expected at least 3 jobs to run, but only $jobsRun ran")
+      (jobsCounter, brokenJob) <- makeBrokenJob()
+      jobErrorTracker <- makeJobErrorTracker()
+      period = 50.millis
+      pipelineDuration = 170.millis
+
+      // when
+      _ <- PeriodicJob
+        .make(period, brokenJob, jobErrorTracker)
+        .interruptAfter(pipelineDuration)
+        .compile
+        .drain
+
+      // then
+      totalJobsRun <- jobsCounter.get
+      expectedTotalJobsRun = (pipelineDuration / period).toInt
+      totalErrorsHandled <- jobErrorTracker.countJobErrors()
+      expectedTotalErrorsHandled = totalJobsRun / 2
+    yield
+      assert(
+        totalJobsRun == expectedTotalJobsRun,
+        clue = s"Expected $expectedTotalJobsRun jobs to run, but $totalJobsRun ran"
+      )
+      assert(
+        totalErrorsHandled == expectedTotalErrorsHandled,
+        clue = s"Expected $expectedTotalErrorsHandled errors, but $totalErrorsHandled occurred"
+      )
+
+  test("stops running jobs when interrupted"):
+    for
+      jobCounter <- Ref.of[IO, Int](0)
+      fiber <- PeriodicJob
+        .makeWithDefaultJobErrorHandler(50.millis, jobCounter.update(_ + 1))
+        .interruptAfter(170.millis)
+        .compile
+        .drain
+        .start
+      _ <- IO.sleep(110.millis) // let the jobs run fow a while
+
+      numberOfJobsRun <- jobCounter.get
+      _ <- if numberOfJobsRun == 2 then fiber.cancel else IO.unit
+      _ <- fiber.join
+//
+    yield assert(numberOfJobsRun == 2, clue = s"Expected 2 jobs to run, but $numberOfJobsRun ran")
+
+trait JobErrorHandlerContext:
+
+  def makeJobErrorTracker(): IO[JobErrorHandler[IO, Unit] & Inspect] = Ref.of[IO, Int](0).map { state =>
+    new JobErrorHandler[IO, Unit] with Inspect:
+      override val handleJobError: Throwable => IO[Option[Unit]] =
+        _ => state.update { _ |+| 1 }.as(none[Unit])
+
+      override def countJobErrors(): IO[Int] = state.get
+  }
+
+  trait Inspect:
+    def countJobErrors(): IO[Int]
