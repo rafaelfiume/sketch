@@ -3,7 +3,7 @@ package org.fiume.sketch.shared.jobs
 import cats.effect.{IO, Ref}
 import cats.implicits.*
 import munit.CatsEffectSuite
-import org.fiume.sketch.shared.jobs.PeriodicJob.JobErrorHandler
+import org.fiume.sketch.shared.testkit.JobErrorHandlerContext
 
 import scala.concurrent.duration.*
 
@@ -37,7 +37,7 @@ class PeriodicJobSpec extends CatsEffectSuite with JobErrorHandlerContext:
       // then
       totalJobsRun <- jobsCounter.get
       expectedTotalJobsRun = (pipelineDuration / period).toInt
-      totalErrorsHandled <- jobErrorTracker.countJobErrors()
+      totalErrorsHandled <- jobErrorTracker.countHandledJobErrors()
       expectedTotalErrorsHandled = totalJobsRun / 2
       expectedEmittedOutput = (1 to totalJobsRun by 2).toList
     yield
@@ -68,16 +68,3 @@ class PeriodicJobSpec extends CatsEffectSuite with JobErrorHandlerContext:
       _ <- fiber.join
 //
     yield assert(numberOfJobsRun == 2, clue = s"Expected 2 jobs to run, but $numberOfJobsRun ran")
-
-trait JobErrorHandlerContext:
-
-  def makeJobErrorTracker(): IO[JobErrorHandler[IO] & Inspect] = Ref.of[IO, Int](0).map { state =>
-    new JobErrorHandler[IO] with Inspect:
-      override val handleJobError: Throwable => IO[Unit] =
-        _ => state.update { _ |+| 1 }
-
-      override def countJobErrors(): IO[Int] = state.get
-  }
-
-  trait Inspect:
-    def countJobErrors(): IO[Int]

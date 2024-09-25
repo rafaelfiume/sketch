@@ -1,7 +1,6 @@
 package org.fiume.sketch.shared.jobs
 
-import cats.effect.Temporal
-import cats.effect.kernel.Sync
+import cats.effect.{Sync, Temporal}
 import cats.implicits.*
 import org.slf4j.LoggerFactory
 
@@ -10,13 +9,10 @@ import scala.concurrent.duration.FiniteDuration
 object PeriodicJob:
   private val logger = LoggerFactory.getLogger(PeriodicJob.getClass)
 
-  trait JobErrorHandler[F[_]]:
-    val handleJobError: Throwable => F[Unit]
-
   def makeWithDefaultJobErrorHandler[F[_]: Sync: Temporal, A](
     interval: FiniteDuration,
     job: Job[F, A]
-  ): fs2.Stream[F, A] = make(interval, job, makeJobErrorLogger())
+  ): fs2.Stream[F, A] = make(interval, job, JobErrorLogger.make())
 
   def make[F[_]: Temporal, A](
     period: FiniteDuration,
@@ -37,7 +33,3 @@ object PeriodicJob:
             errorHandler.handleJobError(e)
           }
       }
-
-  private def makeJobErrorLogger[F[_]: Sync]() = new JobErrorHandler[F]:
-    override val handleJobError: Throwable => F[Unit] = error =>
-      Sync[F].delay { logger.warn(s"job failed with: ${error.getMessage()}") }
