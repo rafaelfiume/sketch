@@ -10,8 +10,8 @@ object JobId:
 sealed trait JobEntity extends Entity
 
 trait Job[F[_], A]:
-  def run(): F[A]
   val description: String
+  def run(): F[A]
 
 case class JobWrapper[F[_], A](
   effect: F[A],

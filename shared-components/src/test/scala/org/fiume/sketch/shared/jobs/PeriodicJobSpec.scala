@@ -1,7 +1,6 @@
 package org.fiume.sketch.shared.jobs
 
-import cats.effect.IO
-import cats.effect.kernel.Ref
+import cats.effect.{IO, Ref}
 import cats.implicits.*
 import munit.CatsEffectSuite
 import org.fiume.sketch.shared.jobs.PeriodicJob.JobErrorHandler
@@ -12,12 +11,12 @@ class PeriodicJobSpec extends CatsEffectSuite with JobErrorHandlerContext:
 
   test("runs job periodically, even after encountering errors"):
     // given
-    def makeBrokenJob(): IO[(Ref[IO, Int], Job[IO, Unit])] = Ref.of[IO, Int](0).map { counter =>
+    def makeBrokenJob(): IO[(Ref[IO, Int], Job[IO, Int])] = Ref.of[IO, Int](0).map { counter =>
       counter -> JobWrapper(
         effect = counter.flatModify { i =>
           val jobNumber = i + 1
           if jobNumber % 2 == 0 then (jobNumber, RuntimeException("boom").raiseError)
-          else (jobNumber, IO.unit)
+          else (jobNumber, jobNumber.pure[IO])
         },
         description = "broken job"
       )
@@ -29,17 +28,18 @@ class PeriodicJobSpec extends CatsEffectSuite with JobErrorHandlerContext:
       pipelineDuration = 190.millis
 
       // when
-      _ <- PeriodicJob
+      result <- PeriodicJob
         .make(period, brokenJob, jobErrorTracker)
         .interruptAfter(pipelineDuration)
         .compile
-        .drain
+        .toList
 
       // then
       totalJobsRun <- jobsCounter.get
       expectedTotalJobsRun = (pipelineDuration / period).toInt
       totalErrorsHandled <- jobErrorTracker.countJobErrors()
       expectedTotalErrorsHandled = totalJobsRun / 2
+      expectedEmittedOutput = (1 to totalJobsRun by 2).toList
     yield
       assert(
         totalJobsRun == expectedTotalJobsRun,
@@ -49,6 +49,7 @@ class PeriodicJobSpec extends CatsEffectSuite with JobErrorHandlerContext:
         totalErrorsHandled == expectedTotalErrorsHandled,
         clue = s"Expected $expectedTotalErrorsHandled errors, but $totalErrorsHandled occurred"
       )
+      assertEquals(result, expectedEmittedOutput)
 
   test("stops running jobs when interrupted"):
     for
@@ -70,10 +71,10 @@ class PeriodicJobSpec extends CatsEffectSuite with JobErrorHandlerContext:
 
 trait JobErrorHandlerContext:
 
-  def makeJobErrorTracker(): IO[JobErrorHandler[IO, Unit] & Inspect] = Ref.of[IO, Int](0).map { state =>
-    new JobErrorHandler[IO, Unit] with Inspect:
-      override val handleJobError: Throwable => IO[Option[Unit]] =
-        _ => state.update { _ |+| 1 }.as(none[Unit])
+  def makeJobErrorTracker(): IO[JobErrorHandler[IO] & Inspect] = Ref.of[IO, Int](0).map { state =>
+    new JobErrorHandler[IO] with Inspect:
+      override val handleJobError: Throwable => IO[Unit] =
+        _ => state.update { _ |+| 1 }
 
       override def countJobErrors(): IO[Int] = state.get
   }
