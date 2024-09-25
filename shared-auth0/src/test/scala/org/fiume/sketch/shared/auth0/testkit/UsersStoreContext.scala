@@ -97,6 +97,8 @@ trait UsersStoreContext:
               .plusSeconds(delayUntilPermanentDeletion.toSeconds)
           yield ScheduledAccountDeletion(jobId, userId, permanentDeletionAt)
 
+        override def claimNextJob(): IO[Option[ScheduledAccountDeletion]] = ???
+
         override val lift: [A] => IO[A] => IO[A] = [A] => (action: IO[A]) => action
 
         override val commit: [A] => IO[A] => IO[A] = [A] => (action: IO[A]) => action
