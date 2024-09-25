@@ -26,7 +26,7 @@ class PeriodicJobSpec extends CatsEffectSuite with JobErrorHandlerContext:
       (jobsCounter, brokenJob) <- makeBrokenJob()
       jobErrorTracker <- makeJobErrorTracker()
       period = 50.millis
-      pipelineDuration = 170.millis
+      pipelineDuration = 190.millis
 
       // when
       _ <- PeriodicJob
@@ -56,7 +56,7 @@ class PeriodicJobSpec extends CatsEffectSuite with JobErrorHandlerContext:
       job = JobWrapper(jobCounter.update(_ + 1), "increments a counter")
       fiber <- PeriodicJob
         .makeWithDefaultJobErrorHandler(50.millis, job)
-        .interruptAfter(170.millis)
+        .interruptAfter(190.millis)
         .compile
         .drain
         .start
