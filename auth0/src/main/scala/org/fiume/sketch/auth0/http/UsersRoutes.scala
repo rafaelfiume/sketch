@@ -11,7 +11,6 @@ import org.fiume.sketch.authorisation.AccessControl
 import org.fiume.sketch.shared.app.EntityId.given
 import org.fiume.sketch.shared.app.http4s.JsonCodecs.given
 import org.fiume.sketch.shared.app.syntax.StoreSyntax.*
-import org.fiume.sketch.shared.auth0.AccountConfig
 import org.fiume.sketch.shared.auth0.algebras.UsersStore
 import org.fiume.sketch.shared.auth0.domain.{User, UserId}
 import org.fiume.sketch.shared.auth0.jobs.ScheduledAccountDeletion
@@ -21,12 +20,13 @@ import org.http4s.dsl.Http4sDsl
 import org.http4s.server.{AuthMiddleware, Router}
 
 import java.time.Instant
+import scala.concurrent.duration.Duration
 
 class UsersRoutes[F[_]: Concurrent, Txn[_]: Sync](
-  config: AccountConfig,
   authMiddleware: AuthMiddleware[F, User],
   accessControl: AccessControl[F, Txn],
-  store: UsersStore[F, Txn]
+  store: UsersStore[F, Txn],
+  delayUntilPermanentDeletion: Duration
 ) extends Http4sDsl[F]:
 
   private val prefix = "/"
@@ -53,7 +53,7 @@ class UsersRoutes[F[_]: Concurrent, Txn[_]: Sync](
 
   private def doMarkForDeletion(userId: UserId): F[ScheduledAccountDeletion] =
     store
-      .markForDeletion(userId, config.delayUntilPermanentDeletion)
+      .markForDeletion(userId, delayUntilPermanentDeletion)
       .flatTap { _ => accessControl.revokeContextualAccess(userId, userId) }
       .commit()
 
