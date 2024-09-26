@@ -7,7 +7,8 @@ import org.fiume.sketch.shared.auth0.algebras.UsersStore
 import org.fiume.sketch.shared.auth0.domain.{Account, AccountState, User, UserId}
 import org.fiume.sketch.shared.auth0.domain.Passwords.HashedPassword
 import org.fiume.sketch.shared.auth0.domain.User.{UserCredentials, UserCredentialsWithId, Username}
-import org.fiume.sketch.shared.auth0.jobs.{JobId, PermanentAccountDeletionJob}
+import org.fiume.sketch.shared.auth0.jobs.ScheduledAccountDeletion
+import org.fiume.sketch.shared.jobs.JobId
 import org.fiume.sketch.shared.testkit.syntax.OptionSyntax.*
 
 import java.time.Instant
@@ -67,6 +68,8 @@ trait UsersStoreContext:
 
         override def updatePassword(uuid: UserId, newPassword: HashedPassword): IO[Unit] = ???
 
+        override def delete(uuid: UserId): IO[Unit] = storage.update { _.removed(uuid) }.void
+
         override protected def softDeleteAccount(uuid: UserId): IO[Instant] =
           clock.realTimeInstant.flatMap { deletedAt =>
             storage
@@ -84,7 +87,7 @@ trait UsersStoreContext:
         override protected def schedulePermanentDeletion(
           userId: UserId,
           permanentDeletionAt: Instant
-        ): IO[PermanentAccountDeletionJob] =
+        ): IO[ScheduledAccountDeletion] =
           for
             jobId <- IO.randomUUID.map(JobId(_))
             account <- fetchAccountByUserId(userId).map(_.someOrFail)
@@ -92,7 +95,9 @@ trait UsersStoreContext:
               .asInstanceOf[AccountState.SoftDeleted]
               .deletedAt
               .plusSeconds(delayUntilPermanentDeletion.toSeconds)
-          yield PermanentAccountDeletionJob(jobId, userId, permanentDeletionAt)
+          yield ScheduledAccountDeletion(jobId, userId, permanentDeletionAt)
+
+        override def claimNextJob(): IO[Option[ScheduledAccountDeletion]] = ???
 
         override val lift: [A] => IO[A] => IO[A] = [A] => (action: IO[A]) => action
 

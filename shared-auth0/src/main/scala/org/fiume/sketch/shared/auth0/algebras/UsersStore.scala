@@ -6,7 +6,7 @@ import org.fiume.sketch.shared.app.algebras.Store
 import org.fiume.sketch.shared.auth0.domain.{Account, User, UserId}
 import org.fiume.sketch.shared.auth0.domain.Passwords.HashedPassword
 import org.fiume.sketch.shared.auth0.domain.User.*
-import org.fiume.sketch.shared.auth0.jobs.PermanentAccountDeletionJob
+import org.fiume.sketch.shared.auth0.jobs.ScheduledAccountDeletion
 
 import java.time.Instant
 import scala.concurrent.duration.Duration
@@ -20,12 +20,16 @@ trait UsersStore[F[_], Txn[_]: FlatMap] extends Store[F, Txn]:
 
   def updatePassword(uuid: UserId, password: HashedPassword): Txn[Unit]
 
-  def markForDeletion(uuid: UserId, timeUntilPermanentDeletion: Duration): Txn[PermanentAccountDeletionJob] =
+  def markForDeletion(uuid: UserId, timeUntilPermanentDeletion: Duration): Txn[ScheduledAccountDeletion] =
     softDeleteAccount(uuid).flatMap { deletedAt =>
       val permanentDeletionAt = deletedAt.plusSeconds(timeUntilPermanentDeletion.toSeconds)
       schedulePermanentDeletion(uuid, permanentDeletionAt)
     }
 
+  def delete(uuid: UserId): Txn[Unit]
+
+  def claimNextJob(): Txn[Option[ScheduledAccountDeletion]]
+
   protected def softDeleteAccount(uuid: UserId): Txn[Instant]
 
-  protected def schedulePermanentDeletion(uuid: UserId, permanentDeletionAt: Instant): Txn[PermanentAccountDeletionJob]
+  protected def schedulePermanentDeletion(uuid: UserId, permanentDeletionAt: Instant): Txn[ScheduledAccountDeletion]

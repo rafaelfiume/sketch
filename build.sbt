@@ -58,6 +58,7 @@ lazy val auth0 =
      .dependsOn(accessControl % "compile->compile;test->test")
      .dependsOn(sharedAuth0 % "compile->compile;test->test")
      .dependsOn(sharedTestComponents % Test)
+     .dependsOn(storage)
      .disablePlugins(plugins.JUnitXmlReportPlugin)
      .settings(commonSettings: _*)
      .settings(
@@ -74,13 +75,6 @@ lazy val auth0 =
          Dependency.munitScalaCheckEffect % Test
        )
      )
-
-lazy val auth0Scripts =
-   project.in(file("auth0-scripts"))
-     .dependsOn(auth0)
-     .dependsOn(storage)
-     .disablePlugins(plugins.JUnitXmlReportPlugin)
-     .settings(commonSettings: _*)
 
 lazy val service =
    project.in(file("service"))
@@ -165,6 +159,8 @@ lazy val sharedComponents =
         Dependency.circeCore,
         Dependency.http4sCirce,
         Dependency.http4sDsl,
+        Dependency.log4catsSlf4j,
+        Dependency.slf4jSimple,
         Dependency.munit % Test,
         Dependency.munitCatsEffect % Test,
         Dependency.munitScalaCheck % Test,
@@ -215,7 +211,6 @@ lazy val sketch =
     .settings(commonSettings: _*)
     .aggregate(accessControl)
     .aggregate(auth0)
-    .aggregate(auth0Scripts)
     .aggregate(service)
     .aggregate(sharedAuth0)
     .aggregate(sharedComponents)
@@ -259,7 +254,7 @@ lazy val storage =
 
 lazy val testAcceptance =
    project.in(file("test-acceptance"))
-     .dependsOn(auth0Scripts % Test)
+     .dependsOn(auth0 % Test)
      .dependsOn(sharedAuth0 % "compile->compile;test->test")
      .dependsOn(sharedTestComponents % Test)
      .dependsOn(testContracts % "test->test")

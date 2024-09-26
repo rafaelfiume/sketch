@@ -9,7 +9,6 @@ import org.fiume.sketch.authorisation.ContextualRole
 import org.fiume.sketch.authorisation.ContextualRole.Owner
 import org.fiume.sketch.authorisation.testkit.AccessControlContext
 import org.fiume.sketch.shared.app.http4s.JsonCodecs.given
-import org.fiume.sketch.shared.auth0.AccountConfig
 import org.fiume.sketch.shared.auth0.domain.{User, UserId}
 import org.fiume.sketch.shared.auth0.domain.User.UserCredentials
 import org.fiume.sketch.shared.auth0.testkit.{AuthMiddlewareContext, UserGens, UsersStoreContext}
@@ -47,7 +46,7 @@ class UsersRoutesSpec
         userId <- store.store(user).flatTap { id => accessControl.grantAccess(id, id, Owner) }
         request = DELETE(Uri.unsafeFromString(s"/users/${userId.value}"))
         authMiddleware = makeAuthMiddleware(authenticated = User(userId, user.username))
-        usersRoutes = new UsersRoutes[IO, IO](config, authMiddleware, accessControl, store)
+        usersRoutes = new UsersRoutes[IO, IO](authMiddleware, accessControl, store, delayUntilPermanentDeletion)
 
         result <- send(request)
           .to(usersRoutes.router())
@@ -75,7 +74,7 @@ class UsersRoutesSpec
           if anotherUserExists then store.store(maybeAnotherUser).flatTap { id => accessControl.grantAccess(id, id, Owner) }
           else UserGens.userIds.sample.someOrFail.pure[IO]
         authMiddleware = makeAuthMiddleware(authenticated = User(authedUserId, authedUser.username))
-        usersRoutes = new UsersRoutes[IO, IO](config, authMiddleware, accessControl, store)
+        usersRoutes = new UsersRoutes[IO, IO](authMiddleware, accessControl, store, delayUntilPermanentDeletion)
         request = DELETE(Uri.unsafeFromString(s"/users/${anotherUserId.value}"))
 
         _ <- send(request)
@@ -89,7 +88,7 @@ class UsersRoutesSpec
   // Note: Skipping contract tests to speed up development
 
 trait UsersRoutesSpecContext:
-  val config = AccountConfig(delayUntilPermanentDeletion = 30.days)
+  val delayUntilPermanentDeletion = 30.days
 
   given Decoder[ScheduledForPermanentDeletionResponse] = new Decoder[ScheduledForPermanentDeletionResponse]:
     override def apply(c: HCursor): Decoder.Result[ScheduledForPermanentDeletionResponse] =

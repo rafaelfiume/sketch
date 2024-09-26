@@ -7,8 +7,10 @@ import doobie.ConnectionIO
 import fs2.io.net.Network
 import org.fiume.sketch.auth0.http.{AuthRoutes, UsersRoutes}
 import org.fiume.sketch.auth0.http.middlewares.Auth0Middleware
+import org.fiume.sketch.auth0.jobs.ScheduledAccountDeletionJob
 import org.fiume.sketch.http.{DocumentsRoutes, HealthStatusRoutes}
 import org.fiume.sketch.shared.app.http4s.middlewares.{SemanticValidationMiddleware, TraceAuditLogMiddleware, WorkerMiddleware}
+import org.fiume.sketch.shared.jobs.PeriodicJob
 import org.http4s.{HttpApp, HttpRoutes}
 import org.http4s.ember.server.EmberServerBuilder
 import org.http4s.implicits.*
@@ -22,15 +24,30 @@ object Server:
   def run[F[_]: Async: Network](): F[ExitCode] =
     given LoggerFactory[F] = Slf4jFactory.create[F]
     val logger = Slf4jLogger.getLogger[F]
-    (for
+
+    val serviceStream = for
       config <- Resource.eval(ServiceConfig.load[F])
       resources <- Resources.make(config)
-      server <- httpServer[F](config, resources)
-    yield server)
-      .use { server =>
-        logger.info(s"Server has started at ${server.address}") >>
-          Async[F].never.as(ExitCode.Success)
-      }
+      server = httpServer[F](config, resources)
+
+      httpServiceStream = {
+        fs2.Stream
+          .resource(server)
+          .flatTap { server => fs2.Stream.eval(logger.info(s"Server has started at ${server.address}")) } >>
+          fs2.Stream.never
+      }.drain
+
+      accountPermanentDeletionStream = PeriodicJob.makeWithDefaultJobErrorHandler(
+        interval = config.account.permanentDeletionJobInterval,
+        job = ScheduledAccountDeletionJob.make[F, ConnectionIO](resources.usersStore)
+      )
+
+      stream = httpServiceStream
+        .concurrently(accountPermanentDeletionStream)
+    yield stream
+
+    serviceStream
+      .use { _.compile.drain.as(ExitCode.Success) }
       .onError { case ex => logger.error(s"The service has failed with $ex") }
 
   private def httpServer[F[_]: Async: Network: LoggerFactory](
@@ -53,11 +70,10 @@ object HttpApi:
 
     val authRoutes: HttpRoutes[F] = new AuthRoutes[F](res.authenticator).router()
     val usersRoutes: HttpRoutes[F] = new UsersRoutes[F, ConnectionIO](
-      // UsersRoutes is different than the others in the sense that it takes the whole config as param instead of individual fields (?)
-      config.account,
       authMiddleware,
       res.accessControl,
-      res.usersStore
+      res.usersStore,
+      config.account.delayUntilPermanentDeletion
     ).router()
     val documentsRoutes: HttpRoutes[F] =
       new DocumentsRoutes[F, ConnectionIO](

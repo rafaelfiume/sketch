@@ -73,7 +73,7 @@ function main() {
   load_env_vars "$environments_dir" "$env_name"
 
   local app_name="org.fiume.sketch.auth0.scripts.UsersScript"
-  sbt_subproject_run_main "auth0Scripts" "$app_name" "$username" "$password" "$isSuperuser"
+  sbt_subproject_run_main "auth0" "$app_name" "$username" "$password" "$isSuperuser"
 
   info "Tell '$username' he or she is ready to go in '$env_name' environment!"
 }
