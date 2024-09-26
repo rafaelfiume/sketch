@@ -265,7 +265,7 @@ trait PostgresAccessControlSpecContext:
     sql"""|TRUNCATE TABLE
           |  auth.access_control,
           |  auth.global_access_control,
-          |  auth.scheduled_account_permanent_deletion_queue,
+          |  auth.account_permanent_deletion_queue,
           |  auth.users,
           |  domain.documents
       """.stripMargin.update.run.void

@@ -63,8 +63,9 @@ class PeriodicJobSpec extends CatsEffectSuite with JobErrorHandlerContext:
         .start
       _ <- IO.sleep(110.millis) // let the jobs run fow a while
 
+      _ <- fiber.cancel
+      _ <- IO.sleep(90.millis)
       numberOfJobsRun <- jobCounter.get
-      _ <- if numberOfJobsRun == 2 then fiber.cancel else IO.unit
-      _ <- fiber.join
+
 //
     yield assert(numberOfJobsRun == 2, clue = s"Expected 2 jobs to run, but $numberOfJobsRun ran")

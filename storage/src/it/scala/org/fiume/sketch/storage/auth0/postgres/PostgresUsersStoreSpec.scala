@@ -153,7 +153,7 @@ class PostgresUsersStoreSpec
             // when
             result <-
               fs2.Stream
-                // runs twice the number of queued jobs to ensure + a few to compensate for the failed jobs
+                // runs twice the number of queued jobs + a few to compensate for the failures
                 .range(0, 2 * numQueuedJobs + 50)
                 .covary[IO]
                 .parEvalMapUnorderedUnbounded { i =>
@@ -237,7 +237,7 @@ class PostgresUsersStoreSpec
 
 trait PostgresUsersStoreSpecContext extends DockerPostgresSuite:
   def cleanStorage: ConnectionIO[Unit] =
-    sql"TRUNCATE TABLE auth.scheduled_account_permanent_deletion_queue, auth.users".update.run.void
+    sql"TRUNCATE TABLE auth.account_permanent_deletion_queue, auth.users".update.run.void
 
   extension (store: PostgresUsersStore[IO])
     def fetchPassword(uuid: UserId): ConnectionIO[HashedPassword] =
@@ -250,7 +250,7 @@ trait PostgresUsersStoreSpecContext extends DockerPostgresSuite:
       sql"SELECT updated_at FROM auth.users WHERE uuid = ${uuid}".query[Instant].unique
 
     def fetchScheduledAccountDeletion(uuid: UserId): ConnectionIO[Option[ScheduledAccountDeletion]] =
-      sql"SELECT * FROM auth.scheduled_account_permanent_deletion_queue WHERE user_id = ${uuid}"
+      sql"SELECT * FROM auth.account_permanent_deletion_queue WHERE user_id = ${uuid}"
         .query[ScheduledAccountDeletion]
         .option
 

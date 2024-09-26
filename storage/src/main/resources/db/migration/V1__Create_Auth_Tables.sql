@@ -62,7 +62,7 @@ CREATE TABLE auth.access_control (
 -- TODO Create index to improve performance of selectAllAuthorisedEntityIds
 -- CREATE INDEX idx_user_entity_type ON auth.access_control (user_id, entity_type);
 
-CREATE TABLE auth.scheduled_account_permanent_deletion_queue (
+CREATE TABLE auth.account_permanent_deletion_queue (
     uuid UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
     user_id UUID NOT NULL REFERENCES auth.users(uuid) ON DELETE CASCADE,
     permanent_deletion_at TIMESTAMPTZ NOT NULL

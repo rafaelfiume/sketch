@@ -114,7 +114,7 @@ private object Statements:
 private object JobStatements:
   def insertPermanentDeletionJob(uuid: UserId, permanentDeletionAt: Instant): ConnectionIO[ScheduledAccountDeletion] =
     sql"""
-         |INSERT INTO auth.scheduled_account_permanent_deletion_queue (
+         |INSERT INTO auth.account_permanent_deletion_queue (
          |  user_id,
          |  permanent_deletion_at
          |) VALUES (
@@ -127,10 +127,10 @@ private object JobStatements:
   def lockAndRemoveNextJob(): Query0[ScheduledAccountDeletion] =
     // Writing the same query with CTE would be equally doable
     sql"""
-         |DELETE FROM auth.scheduled_account_permanent_deletion_queue
+         |DELETE FROM auth.account_permanent_deletion_queue
          |WHERE uuid = (
          |  SELECT uuid
-         |  FROM auth.scheduled_account_permanent_deletion_queue
+         |  FROM auth.account_permanent_deletion_queue
          |  WHERE permanent_deletion_at < now()
          |  FOR UPDATE SKIP LOCKED
          |  LIMIT 1
