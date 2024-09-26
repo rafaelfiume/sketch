@@ -39,7 +39,7 @@
 #### Docker:
 
  - `docker build -t sketch:dev .`
- - `docker compose -f tools/stack/docker-compose.yml up sketch-postgres`
+ - `docker compose -f tools/stack/docker-compose.yml up sketch-database`
  - `docker exec -it <container-id> /bin/bash`
  - `docker logs <container-id>`
  - `docker network prune`
