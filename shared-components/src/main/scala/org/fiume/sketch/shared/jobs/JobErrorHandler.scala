@@ -9,13 +9,16 @@ trait JobErrorHandler[F[_]]:
   val handleJobError: Throwable => F[Unit]
 
 object JobErrorHandler:
+  def make[F[_]](handler: Throwable => F[Unit]): JobErrorHandler[F] =
+    new JobErrorHandler[F]:
+      override val handleJobError: Throwable => F[Unit] = handler
   /*
    * Note: Do not rely on the order of execution of the handlers, as it is not guaranteed.
    */
   def combine[F[_]: Apply](fst: JobErrorHandler[F], snd: JobErrorHandler[F]): JobErrorHandler[F] =
-    new JobErrorHandler[F]:
-      override val handleJobError: Throwable => F[Unit] =
-        error => fst.handleJobError(error) *> snd.handleJobError(error)
+    JobErrorHandler.make[F] { error =>
+      fst.handleJobError(error) *> snd.handleJobError(error)
+    }
 
   def combineAll[F[_]: Applicative](handlers: List[JobErrorHandler[F]]): JobErrorHandler[F] =
     handlers.foldLeft(NoOpJobErrorLogger.make[F]())(combine)
@@ -26,12 +29,10 @@ object JobErrorHandler:
       def composeAll(others: List[JobErrorHandler[F]]): JobErrorHandler[F] = JobErrorHandler.combineAll(thisHandler :: others)
 
 object JobErrorLogger:
-  def make[F[_]: Sync]() =
+  def make[F[_]: Sync]() = JobErrorHandler.make[F] { error =>
     val logger = Slf4jLogger.getLogger[F]
-    new JobErrorHandler[F]:
-      override val handleJobError: Throwable => F[Unit] =
-        error => logger.warn(s"job failed with: ${error.getMessage()}")
+    logger.warn(s"job failed with: ${error.getMessage()}")
+  }
 
 object NoOpJobErrorLogger:
-  def make[F[_]: Applicative]() = new JobErrorHandler[F]:
-    override val handleJobError: Throwable => F[Unit] = _ => Applicative[F].unit
+  def make[F[_]: Applicative]() = JobErrorHandler.make[F](_ => Applicative[F].unit)
