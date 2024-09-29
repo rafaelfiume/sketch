@@ -39,17 +39,20 @@ class UsersRoutes[F[_]: Concurrent, Txn[_]: Sync](
   private val authedRoutes: AuthedRoutes[User, F] =
     AuthedRoutes.of { case DELETE -> Root / "users" / UserIdVar(uuid) as user =>
       for
-        canDelete <- isAuthorised(user, uuid)
+        canMarkForDeletion <- canAuthedUserMarkForDeletion(user, uuid)
         res <-
-          if canDelete then Ok(doMarkForDeletion(uuid).map(_.asResponsePayload))
+          if canMarkForDeletion then Ok(doMarkForDeletion(uuid).map(_.asResponsePayload))
           else Forbidden()
       yield res
     }
 
-  private def isAuthorised(authenticated: User, accountForDeletionId: UserId): F[Boolean] = (
-    store.fetchAccount(authenticated.username).map { _.map(_.isActive).getOrElse(false) },
-    accessControl.canAccess(authenticated.uuid, accountForDeletionId)
-  ).mapN(_ && _).commit()
+  private def canAuthedUserMarkForDeletion(authenticated: User, accountForDeletionId: UserId): F[Boolean] =
+    // TODO: Consider to move this fn to UsersStore
+    def isActiveUserAccount(account: User) = store.fetchAccount(account.username).map { _.map(_.isActive).getOrElse(false) }
+    (
+      isActiveUserAccount(authenticated),
+      accessControl.canAccess(authenticated.uuid, accountForDeletionId)
+    ).mapN(_ && _).commit()
 
   private def doMarkForDeletion(userId: UserId): F[ScheduledAccountDeletion] =
     store
