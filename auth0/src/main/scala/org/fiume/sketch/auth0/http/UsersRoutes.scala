@@ -7,6 +7,7 @@ import io.circe.syntax.*
 import org.fiume.sketch.auth0.http.UsersRoutes.Model.asResponsePayload
 import org.fiume.sketch.auth0.http.UsersRoutes.Model.json.given
 import org.fiume.sketch.auth0.http.UsersRoutes.UserIdVar
+import org.fiume.sketch.auth0.http.UsersRoutes.UsersStoreSyntax.*
 import org.fiume.sketch.authorisation.AccessControl
 import org.fiume.sketch.shared.app.EntityId.given
 import org.fiume.sketch.shared.app.algebras.Store.syntax.*
@@ -37,28 +38,29 @@ class UsersRoutes[F[_]: Concurrent, Txn[_]: Sync](
   def router(): HttpRoutes[F] = Router(prefix -> authMiddleware(authedRoutes))
 
   private val authedRoutes: AuthedRoutes[User, F] =
-    AuthedRoutes.of { case DELETE -> Root / "users" / UserIdVar(uuid) as user =>
-      for
-        canMarkForDeletion <- canAuthedUserMarkForDeletion(user, uuid)
-        res <-
-          if canMarkForDeletion then Ok(doMarkForDeletion(uuid).map(_.asResponsePayload))
-          else Forbidden()
-      yield res
+    AuthedRoutes.of {
+      case DELETE -> Root / "users" / UserIdVar(uuid) as authed =>
+        for
+          outcome <- canAuthedUserMarkAccountForDeletion(authed, uuid)
+            .ifM(
+              ifTrue = doMarkForDeletion(uuid).map(_.asResponsePayload).map(_.some),
+              ifFalse = none.pure[Txn]
+            )
+            .commit()
+          res <- outcome.fold(Forbidden())(Ok(_))
+        yield res
     }
 
-  private def canAuthedUserMarkForDeletion(authenticated: User, accountForDeletionId: UserId): F[Boolean] =
-    // TODO: Consider to move this fn to UsersStore
-    def isActiveUserAccount(account: User) = store.fetchAccount(account.username).map { _.map(_.isActive).getOrElse(false) }
+  private def canAuthedUserMarkAccountForDeletion(authenticated: User, accountForDeletionId: UserId): Txn[Boolean] =
     (
-      isActiveUserAccount(authenticated),
+      store.isActiveAccount(authenticated), // for when the user deactivates his own account
       accessControl.canAccess(authenticated.uuid, accountForDeletionId)
-    ).mapN(_ && _).commit()
+    ).mapN(_ && _)
 
-  private def doMarkForDeletion(userId: UserId): F[ScheduledAccountDeletion] =
+  private def doMarkForDeletion(userId: UserId): Txn[ScheduledAccountDeletion] =
     store
       .markForDeletion(userId, delayUntilPermanentDeletion)
       .flatTap { _ => accessControl.revokeContextualAccess(userId, userId) }
-      .commit()
 
 private[http] object UsersRoutes:
   object UserIdVar:
@@ -79,3 +81,10 @@ private[http] object UsersRoutes:
             "userId" -> a.userId.asJson,
             "permanentDeletionAt" -> a.permanentDeletionAt.asJson
           )
+
+  private[http] object UsersStoreSyntax:
+    extension [F[_], Txn[_]: Sync](store: UsersStore[F, Txn])
+      // TODO: Consider to move this fn to UsersStore
+      def isActiveAccount(account: User) =
+        store.fetchAccount(account.username).map { _.map(_.isActive).getOrElse(false) }
+
