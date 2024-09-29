@@ -10,16 +10,17 @@ import org.fiume.sketch.authorisation.ContextualRole.Owner
 import org.fiume.sketch.authorisation.GlobalRole.Admin
 import org.fiume.sketch.authorisation.testkit.AccessControlContext
 import org.fiume.sketch.shared.app.http4s.JsonCodecs.given
-import org.fiume.sketch.shared.auth0.domain.{User, UserId}
+import org.fiume.sketch.shared.auth0.domain.{Account, AccountState, User, UserId}
 import org.fiume.sketch.shared.auth0.domain.User.UserCredentials
 import org.fiume.sketch.shared.auth0.testkit.{AuthMiddlewareContext, UserGens, UsersStoreContext}
+import org.fiume.sketch.shared.auth0.testkit.AccountGens.given
 import org.fiume.sketch.shared.auth0.testkit.UserGens.given
 import org.fiume.sketch.shared.testkit.{ClockContext, Http4sRoutesContext}
 import org.fiume.sketch.shared.testkit.syntax.OptionSyntax.*
 import org.http4s.*
 import org.http4s.client.dsl.io.*
 import org.http4s.dsl.io.*
-import org.scalacheck.ShrinkLowPriority
+import org.scalacheck.{Arbitrary, Gen, ShrinkLowPriority}
 import org.scalacheck.effect.PropF.forAllF
 
 import java.time.Instant
@@ -87,23 +88,25 @@ class UsersRoutesSpec
   }
 
   test("restores user account"):
-    forAllF { (authed: UserCredentials, another: UserCredentials) =>
+    val now = Instant.now()
+    given Arbitrary[AccountState] = Arbitrary(restorableAccountStates)
+    def restorableAccountStates: Gen[AccountState] = Gen.oneOf(AccountState.Active(now), AccountState.SoftDeleted(now))
+    forAllF { (authed: UserCredentials, userToBeRestored: Account, validState: AccountState) =>
       for
-        store <- makeEmptyUsersStore()
+        store <- makeUsersStoreForAccount(userToBeRestored.copy(state = validState))
+        _ <- store.markForDeletion(userToBeRestored.uuid, 1.day)
         accessControl <- makeAccessControl()
-        authedId <- store.store(authed).flatTap { id => accessControl.grantGlobalAccess(id, Admin) } // Admin
+        authedId <- store.store(authed).flatTap { id => accessControl.grantGlobalAccess(id, Admin) }
         authMiddleware = makeAuthMiddleware(authenticated = User(authedId, authed.username))
-        userId <- store.store(another)
-        _ <- store.markForDeletion(userId, 1.day)
-
-        request = PUT(Uri.unsafeFromString(s"/users/${userId.value}/restore"))
+        request = PUT(Uri.unsafeFromString(s"/users/${userToBeRestored.uuid.value}/restore"))
         usersRoutes = new UsersRoutes[IO, IO](authMiddleware, accessControl, store, delayUntilPermanentDeletion)
 
         result <- send(request)
           .to(usersRoutes.router())
           //
           .expectEmptyResponseWith(Status.NoContent)
-        account <- store.fetchAccount(userId).map(_.someOrFail)
+        account <- store.fetchAccount(userToBeRestored.uuid).map(_.someOrFail)
+      // TODO Check there is no scheduled job to permanent delete account
       yield assert(account.isActive)
     }
 
