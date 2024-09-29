@@ -14,6 +14,10 @@ case class Account(
     case AccountState.Active(_) => true
     case _                      => false
 
+  def isMarkedForDeletion: Boolean = state match
+    case AccountState.SoftDeleted(_) => true
+    case _                           => false
+
 enum AccountState:
   case Active(createdAt: Instant)
   // case Deactivated(reason: String)            // For instance, too many failed login attempts

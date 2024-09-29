@@ -55,6 +55,8 @@ trait UsersStoreContext:
             _ <- storage.update { _.updated(uuid, account) }
           yield uuid
 
+        override def fetchAccount(uuid: UserId): IO[Option[Account]] = storage.get.map(_.get(uuid))
+
         override def fetchAccount(username: Username): IO[Option[Account]] =
           storage.get.map(_.collectFirst {
             case (_, account) if account.credentials.username == username => account
@@ -65,6 +67,16 @@ trait UsersStoreContext:
             case (uuid, account) if account.credentials.username == username =>
               UserCredentials.make(uuid, account.credentials)
           })
+
+        override def activateAccount(uuid: UserId): IO[Instant] =
+          clock.realTimeInstant.flatTap { now =>
+            storage.update {
+              _.updatedWith(uuid) {
+                case Some(account) if !account.isActive => account.copy(state = AccountState.Active(now)).some
+                case unexpected => throw new AssertionError(s"expected inactive account to exist; got $unexpected")
+              }
+            }
+          }
 
         override def updatePassword(uuid: UserId, newPassword: HashedPassword): IO[Unit] = ???
 
@@ -90,7 +102,7 @@ trait UsersStoreContext:
         ): IO[ScheduledAccountDeletion] =
           for
             jobId <- IO.randomUUID.map(JobId(_))
-            account <- fetchAccountByUserId(userId).map(_.someOrFail)
+            account <- fetchAccount(userId).map(_.someOrFail)
             permanentDeletionAt = account.state
               .asInstanceOf[AccountState.SoftDeleted]
               .deletedAt
@@ -104,6 +116,4 @@ trait UsersStoreContext:
         override val commit: [A] => IO[A] => IO[A] = [A] => (action: IO[A]) => action
 
         override val commitStream: [A] => fs2.Stream[IO, A] => fs2.Stream[IO, A] = [A] => (action: fs2.Stream[IO, A]) => action
-
-        private def fetchAccountByUserId(userId: UserId): IO[Option[Account]] = storage.get.map(_.get(userId))
     }

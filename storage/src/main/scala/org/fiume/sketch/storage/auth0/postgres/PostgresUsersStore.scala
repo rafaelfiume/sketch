@@ -31,6 +31,8 @@ private class PostgresUsersStore[F[_]: Async] private (lift: F ~> ConnectionIO, 
   override def store(credentials: UserCredentials): ConnectionIO[UserId] =
     insertUserCredentials(credentials.username, credentials.hashedPassword, credentials.salt)
 
+  override def fetchAccount(uuid: UserId): ConnectionIO[Option[Account]] = ???
+
   override def fetchAccount(username: Username): ConnectionIO[Option[Account]] =
     Statements.selectUserAccount(username).option
 
@@ -40,9 +42,11 @@ private class PostgresUsersStore[F[_]: Async] private (lift: F ~> ConnectionIO, 
   override def updatePassword(uuid: UserId, password: HashedPassword): ConnectionIO[Unit] =
     Statements.updatePassword(uuid, password).run.void
 
-  override def claimNextJob(): ConnectionIO[Option[ScheduledAccountDeletion]] = JobStatements.lockAndRemoveNextJob().option
-
   override def delete(uuid: UserId): ConnectionIO[Unit] = Statements.delete(uuid).run.void
+
+  override def activateAccount(uuid: UserId): ConnectionIO[Instant] = ???
+
+  override def claimNextJob(): ConnectionIO[Option[ScheduledAccountDeletion]] = JobStatements.lockAndRemoveNextJob().option
 
   override protected def softDeleteAccount(uuid: UserId): ConnectionIO[Instant] =
     lift(clock.realTimeInstant).flatTap { Statements.updateSoftDeletion(uuid, _).run.void }

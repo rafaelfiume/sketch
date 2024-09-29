@@ -7,13 +7,14 @@ import io.circe.syntax.*
 import org.fiume.sketch.auth0.http.UsersRoutes.Model.asResponsePayload
 import org.fiume.sketch.auth0.http.UsersRoutes.Model.json.given
 import org.fiume.sketch.auth0.http.UsersRoutes.UserIdVar
-import org.fiume.sketch.auth0.http.UsersRoutes.UsersStoreSyntax.*
 import org.fiume.sketch.authorisation.AccessControl
 import org.fiume.sketch.shared.app.EntityId.given
 import org.fiume.sketch.shared.app.algebras.Store.syntax.*
 import org.fiume.sketch.shared.app.http4s.JsonCodecs.given
 import org.fiume.sketch.shared.auth0.algebras.UsersStore
-import org.fiume.sketch.shared.auth0.domain.{User, UserId}
+import org.fiume.sketch.shared.auth0.algebras.UsersStore.ActivateAccountError
+import org.fiume.sketch.shared.auth0.algebras.UsersStore.ActivateAccountError.AccountAlreadyActive
+import org.fiume.sketch.shared.auth0.domain.{Account, User, UserId}
 import org.fiume.sketch.shared.auth0.jobs.ScheduledAccountDeletion
 import org.http4s.{HttpRoutes, *}
 import org.http4s.circe.CirceEntityEncoder.*
@@ -49,11 +50,28 @@ class UsersRoutes[F[_]: Concurrent, Txn[_]: Sync](
             .commit()
           res <- outcome.fold(Forbidden())(Ok(_))
         yield res
+
+      case PUT -> Root / "users" / UserIdVar(uuid) / "restore" as authed =>
+        val outcome =
+          for outcome <- canAccountBeRestored(authed, uuid)
+              .ifM(
+                ifTrue = store.restoreAccount(uuid),
+                ifFalse = Left(ActivateAccountError.Other(reason = "Unauthorised")).pure[Txn]
+              )
+          yield outcome
+        outcome.commit().flatMap {
+          case Right(_)                                         => NoContent()
+          case Left(AccountAlreadyActive)                       => NoContent()
+          case Left(ActivateAccountError.Other("Unauthorised")) => Forbidden()
+          case Left(error)                                      => InternalServerError(error.toString)
+        }
+      // TODO Remove scheduled job (make sure job validates state before deletion)
     }
 
   private def canAuthedUserMarkAccountForDeletion(authenticated: User, accountForDeletionId: UserId): Txn[Boolean] =
+    def isActiveAccount(uuid: UserId) = store.fetchAccountWith(uuid) { _.fold(false)(_.isActive) }
     (
-      store.isActiveAccount(authenticated), // for when the user deactivates his own account
+      isActiveAccount(authenticated.uuid), // for when the user deactivates his own account
       accessControl.canAccess(authenticated.uuid, accountForDeletionId)
     ).mapN(_ && _)
 
@@ -61,6 +79,9 @@ class UsersRoutes[F[_]: Concurrent, Txn[_]: Sync](
     store
       .markForDeletion(userId, delayUntilPermanentDeletion)
       .flatTap { _ => accessControl.revokeContextualAccess(userId, userId) }
+
+  private def canAccountBeRestored(authenticated: User, accountToBeRestoredId: UserId): Txn[Boolean] =
+    accessControl.canAccess(authenticated.uuid, accountToBeRestoredId)
 
 private[http] object UsersRoutes:
   object UserIdVar:
@@ -81,10 +102,3 @@ private[http] object UsersRoutes:
             "userId" -> a.userId.asJson,
             "permanentDeletionAt" -> a.permanentDeletionAt.asJson
           )
-
-  private[http] object UsersStoreSyntax:
-    extension [F[_], Txn[_]: Sync](store: UsersStore[F, Txn])
-      // TODO: Consider to move this fn to UsersStore
-      def isActiveAccount(account: User) =
-        store.fetchAccount(account.username).map { _.map(_.isActive).getOrElse(false) }
-

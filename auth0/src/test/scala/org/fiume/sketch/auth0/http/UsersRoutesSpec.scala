@@ -5,8 +5,9 @@ import cats.implicits.*
 import io.circe.{Decoder, HCursor}
 import munit.{CatsEffectSuite, ScalaCheckEffectSuite}
 import org.fiume.sketch.auth0.http.UsersRoutes.Model.ScheduledForPermanentDeletionResponse
-import org.fiume.sketch.authorisation.ContextualRole
+import org.fiume.sketch.authorisation.{ContextualRole, GlobalRole}
 import org.fiume.sketch.authorisation.ContextualRole.Owner
+import org.fiume.sketch.authorisation.GlobalRole.Admin
 import org.fiume.sketch.authorisation.testkit.AccessControlContext
 import org.fiume.sketch.shared.app.http4s.JsonCodecs.given
 import org.fiume.sketch.shared.auth0.domain.{User, UserId}
@@ -84,6 +85,27 @@ class UsersRoutesSpec
       yield ()
     }
   }
+
+  test("restores user account"):
+    forAllF { (authed: UserCredentials, another: UserCredentials) =>
+      for
+        store <- makeEmptyUsersStore()
+        accessControl <- makeAccessControl()
+        authedId <- store.store(authed).flatTap { id => accessControl.grantGlobalAccess(id, Admin) } // Admin
+        authMiddleware = makeAuthMiddleware(authenticated = User(authedId, authed.username))
+        userId <- store.store(another)
+        _ <- store.markForDeletion(userId, 1.day)
+
+        request = PUT(Uri.unsafeFromString(s"/users/${userId.value}/restore"))
+        usersRoutes = new UsersRoutes[IO, IO](authMiddleware, accessControl, store, delayUntilPermanentDeletion)
+
+        result <- send(request)
+          .to(usersRoutes.router())
+          //
+          .expectEmptyResponseWith(Status.NoContent)
+        account <- store.fetchAccount(userId).map(_.someOrFail)
+      yield assert(account.isActive)
+    }
 
   // Note: Skipping contract tests to speed up development
 
