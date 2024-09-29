@@ -14,9 +14,9 @@ import org.fiume.sketch.http.DocumentsRoutes.{DocumentIdVar, Line, Linebreak, Ne
 import org.fiume.sketch.http.DocumentsRoutes.Model.*
 import org.fiume.sketch.http.DocumentsRoutes.Model.json.given
 import org.fiume.sketch.shared.app.EntityId.given
+import org.fiume.sketch.shared.app.algebras.Store.syntax.*
 import org.fiume.sketch.shared.app.http4s.JsonCodecs.given
 import org.fiume.sketch.shared.app.http4s.middlewares.SemanticInputError
-import org.fiume.sketch.shared.app.syntax.StoreSyntax.*
 import org.fiume.sketch.shared.app.troubleshooting.ErrorInfo.ErrorDetails
 import org.fiume.sketch.shared.app.troubleshooting.InvariantErrorSyntax.asDetails
 import org.fiume.sketch.shared.auth0.domain.User

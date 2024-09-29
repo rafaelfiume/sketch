@@ -9,8 +9,8 @@ import org.fiume.sketch.auth0.http.UsersRoutes.Model.json.given
 import org.fiume.sketch.auth0.http.UsersRoutes.UserIdVar
 import org.fiume.sketch.authorisation.AccessControl
 import org.fiume.sketch.shared.app.EntityId.given
+import org.fiume.sketch.shared.app.algebras.Store.syntax.*
 import org.fiume.sketch.shared.app.http4s.JsonCodecs.given
-import org.fiume.sketch.shared.app.syntax.StoreSyntax.*
 import org.fiume.sketch.shared.auth0.algebras.UsersStore
 import org.fiume.sketch.shared.auth0.domain.{User, UserId}
 import org.fiume.sketch.shared.auth0.jobs.ScheduledAccountDeletion
