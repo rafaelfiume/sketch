@@ -34,20 +34,6 @@ class PostgresUsersStoreSpec
 
   override def scalaCheckTestParameters = super.scalaCheckTestParameters.withMinSuccessfulTests(1)
 
-  test("stores credentials"):
-    forAllF { (credentials: UserCredentials) =>
-      will(cleanStorage) {
-        PostgresUsersStore.make[IO](transactor(), makeFrozenClock()).use { store =>
-          for
-            uuid <- store.store(credentials).ccommit
-
-            result <- store.fetchCredentials(credentials.username).ccommit
-//
-          yield assertEquals(result.someOrFail, UserCredentials.make(uuid, credentials))
-        }
-      }
-    }
-
   test("fetches user account"):
     forAllF { (credentials: UserCredentials) =>
       will(cleanStorage) {

@@ -36,9 +36,6 @@ private class PostgresUsersStore[F[_]: Async] private (lift: F ~> ConnectionIO, 
   override def fetchAccount(username: Username): ConnectionIO[Option[Account]] =
     Statements.selectUserAccount(username).option
 
-  override def fetchCredentials(username: Username): ConnectionIO[Option[UserCredentialsWithId]] =
-    Statements.selectUserCredential(username).option
-
   override def updatePassword(uuid: UserId, password: HashedPassword): ConnectionIO[Unit] =
     Statements.updatePassword(uuid, password).run.void
 

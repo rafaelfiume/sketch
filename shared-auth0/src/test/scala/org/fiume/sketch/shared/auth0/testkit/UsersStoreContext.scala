@@ -62,12 +62,6 @@ trait UsersStoreContext:
             case (_, account) if account.credentials.username == username => account
           })
 
-        override def fetchCredentials(username: Username): IO[Option[UserCredentialsWithId]] =
-          storage.get.map(_.collectFirst {
-            case (uuid, account) if account.credentials.username == username =>
-              UserCredentials.make(uuid, account.credentials)
-          })
-
         override def activateAccount(uuid: UserId): IO[Instant] =
           clock.realTimeInstant.flatTap { now =>
             storage.update {
