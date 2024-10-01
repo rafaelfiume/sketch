@@ -27,7 +27,7 @@ object UsersManager:
 
           val setUpAccount = for
             creds <- store.lift { credentials }
-            userId <- store.store(creds)
+            userId <- store.createAccount(creds)
             _ <- accessControl.grantAccess(userId, userId, ContextualRole.Owner)
             _ <- accessControl.grantGlobalAccess(userId, GlobalRole.Superuser).whenA(isSuperuser)
           yield userId

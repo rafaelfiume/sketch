@@ -39,7 +39,7 @@ class PostgresUsersStoreSpec
       will(cleanStorage) {
         PostgresUsersStore.make[IO](transactor(), makeFrozenClock()).use { store =>
           for
-            uuid <- store.store(credentials).ccommit
+            uuid <- store.createAccount(credentials).ccommit
 
             result <- store.fetchAccount(credentials.username).ccommit.map(_.someOrFail)
 //
@@ -58,7 +58,7 @@ class PostgresUsersStoreSpec
       will(cleanStorage) {
         PostgresUsersStore.make[IO](transactor(), makeFrozenClock()).use { store =>
           for
-            uuid <- store.store(credentials).ccommit
+            uuid <- store.createAccount(credentials).ccommit
 
             _ <- store.updatePassword(uuid, newPassword).ccommit
 
@@ -76,8 +76,8 @@ class PostgresUsersStoreSpec
         val permantDeletionDelay = 1.second
         PostgresUsersStore.make[IO](transactor(), frozenClock).use { store =>
           for
-            fstUserId <- store.store(fstCreds).ccommit
-            sndUserId <- store.store(sndCreds).ccommit
+            fstUserId <- store.createAccount(fstCreds).ccommit
+            sndUserId <- store.createAccount(sndCreds).ccommit
 
             _ <- store.markForDeletion(fstUserId, permantDeletionDelay).ccommit
 
@@ -108,7 +108,7 @@ class PostgresUsersStoreSpec
       will(cleanStorage) {
         PostgresUsersStore.make[IO](transactor(), makeFrozenClock()).use { store =>
           for
-            userId <- store.store(credentials).ccommit
+            userId <- store.createAccount(credentials).ccommit
             _ <- store.markForDeletion(userId, 1.day).ccommit
 
             _ <- store.restoreAccount(userId).ccommit
@@ -127,7 +127,7 @@ class PostgresUsersStoreSpec
       will(cleanStorage) {
         PostgresUsersStore.make[IO](transactor(), makeFrozenClock()).use { store =>
           for
-            userId <- store.store(credentials).ccommit
+            userId <- store.createAccount(credentials).ccommit
 
             _ <- store.delete(userId).ccommit
 
@@ -211,7 +211,7 @@ class PostgresUsersStoreSpec
       will(cleanStorage) {
         PostgresUsersStore.make[IO](transactor(), makeFrozenClock()).use { store =>
           for
-            uuid <- store.store(credentials).ccommit
+            uuid <- store.createAccount(credentials).ccommit
 
             createdAt <- store.fetchCreatedAt(uuid).ccommit
             updatedAt <- store.fetchUpdatedAt(uuid).ccommit
@@ -226,7 +226,7 @@ class PostgresUsersStoreSpec
       will(cleanStorage) {
         PostgresUsersStore.make[IO](transactor(), makeFrozenClock()).use { store =>
           for
-            uuid <- store.store(credentials).ccommit
+            uuid <- store.createAccount(credentials).ccommit
 
             _ <- store.updatePassword(uuid, newPassword).ccommit
 
@@ -261,6 +261,6 @@ trait PostgresUsersStoreSpecContext extends DockerPostgresSuite:
 
     def markAccountForDeletion(user: UserCredentials, permanentDeletionAt: Instant): IO[ScheduledAccountDeletion] =
       store
-        .store(user)
+        .createAccount(user)
         .flatMap { store.schedulePermanentDeletion(_, permanentDeletionAt) }
         .ccommit

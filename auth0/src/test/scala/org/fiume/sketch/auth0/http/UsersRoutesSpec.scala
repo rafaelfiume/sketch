@@ -45,7 +45,7 @@ class UsersRoutesSpec
       for
         store <- makeEmptyUsersStore(makeFrozenClock(deletedAt), permantDeletionDelay)
         accessControl <- makeAccessControl()
-        userId <- store.store(user).flatTap { id => accessControl.grantAccess(id, id, Owner) }
+        userId <- store.createAccount(user).flatTap { id => accessControl.grantAccess(id, id, Owner) }
         request = DELETE(Uri.unsafeFromString(s"/users/${userId.value}"))
         authMiddleware = makeAuthMiddleware(authenticated = User(userId, user.username))
         usersRoutes = new UsersRoutes[IO, IO](authMiddleware, accessControl, store, delayUntilPermanentDeletion)
@@ -71,9 +71,10 @@ class UsersRoutesSpec
       for
         store <- makeEmptyUsersStore()
         accessControl <- makeAccessControl()
-        authedUserId <- store.store(authedUser).flatTap { id => accessControl.grantAccess(id, id, Owner) }
+        authedUserId <- store.createAccount(authedUser).flatTap { id => accessControl.grantAccess(id, id, Owner) }
         anotherUserId <-
-          if anotherUserExists then store.store(maybeAnotherUser).flatTap { id => accessControl.grantAccess(id, id, Owner) }
+          if anotherUserExists then
+            store.createAccount(maybeAnotherUser).flatTap { id => accessControl.grantAccess(id, id, Owner) }
           else UserGens.userIds.sample.someOrFail.pure[IO]
         authMiddleware = makeAuthMiddleware(authenticated = User(authedUserId, authedUser.username))
         usersRoutes = new UsersRoutes[IO, IO](authMiddleware, accessControl, store, delayUntilPermanentDeletion)
@@ -93,7 +94,7 @@ class UsersRoutesSpec
         store <- makeUsersStoreForAccount(userToBeRestored.copy(state = Active(Instant.now())))
         _ <- store.markForDeletion(userToBeRestored.uuid, 1.day).whenA(!isActive)
         accessControl <- makeAccessControl()
-        authedId <- store.store(authed).flatTap { id => accessControl.grantGlobalAccess(id, Admin) }
+        authedId <- store.createAccount(authed).flatTap { id => accessControl.grantGlobalAccess(id, Admin) }
         authMiddleware = makeAuthMiddleware(authenticated = User(authedId, authed.username))
         request = PUT(Uri.unsafeFromString(s"/users/${userToBeRestored.uuid.value}/restore"))
         usersRoutes = new UsersRoutes[IO, IO](authMiddleware, accessControl, store, delayUntilPermanentDeletion)
@@ -111,7 +112,7 @@ class UsersRoutesSpec
       for
         store <- makeUsersStoreForAccount(userToBeRestored.copy(state = SoftDeleted(Instant.now())))
         accessControl <- makeAccessControl()
-        authedId <- store.store(authed).flatTap { id =>
+        authedId <- store.createAccount(authed).flatTap { id =>
           accessControl.grantGlobalAccess(id, GlobalRole.Superuser).whenA(isSuperuser)
         }
         authMiddleware = makeAuthMiddleware(authenticated = User(authedId, authed.username))

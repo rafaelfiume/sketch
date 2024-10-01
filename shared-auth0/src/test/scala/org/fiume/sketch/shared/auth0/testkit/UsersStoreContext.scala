@@ -74,22 +74,22 @@ trait UsersStoreContext:
   ): IO[UsersStore[IO, IO]] =
     Ref.of[IO, State](state).map { storage =>
       new UsersStore[IO, IO]:
-        override def store(credentials: UserCredentials): IO[UserId] =
+        override def createAccount(credentials: UserCredentials): IO[UserId] =
           for
             uuid <- IO.randomUUID.map(UserId(_))
             account <- clock.realTimeInstant.map { now => Account(uuid, credentials, AccountState.Active(now)) }
             _ <- storage.update { _.++(account) }
           yield uuid
 
-        override def fetchAccount(uuid: UserId): IO[Option[Account]] = storage.get.map(_.getAccount(uuid))
+        override def fetchAccount(userId: UserId): IO[Option[Account]] = storage.get.map(_.getAccount(userId))
 
         override def fetchAccount(username: Username): IO[Option[Account]] = storage.get.map(_.getAccount(username))
 
-        override def activateAccount(uuid: UserId): IO[Unit] =
+        override def activateAccount(userId: UserId): IO[Unit] =
           clock.realTimeInstant.flatMap { now =>
             storage.update { state =>
               // TODO There seems to be quite a lot of state machine logic in here. Also see softDeleteAccount
-              val updatedAccount = state.accounts.updatedWith(uuid) {
+              val updatedAccount = state.accounts.updatedWith(userId) {
                 case Some(account) if !account.isActive => account.copy(state = AccountState.Active(now)).some
                 case unexpected => throw new AssertionError(s"expected inactive account to exist; got $unexpected")
               }
@@ -97,15 +97,15 @@ trait UsersStoreContext:
             }
           }
 
-        override def updatePassword(uuid: UserId, newPassword: HashedPassword): IO[Unit] = ???
+        override def updatePassword(userId: UserId, newPassword: HashedPassword): IO[Unit] = ???
 
-        override def delete(uuid: UserId): IO[Unit] = storage.update { _.--(uuid) }.void
+        override def delete(userId: UserId): IO[Unit] = storage.update { _.--(userId) }.void
 
-        override protected def softDeleteAccount(uuid: UserId): IO[Instant] =
+        override protected def softDeleteAccount(userId: UserId): IO[Instant] =
           clock.realTimeInstant.flatMap { deletedAt =>
             storage
               .update { state =>
-                val updatedAccount = state.accounts.updatedWith(uuid) {
+                val updatedAccount = state.accounts.updatedWith(userId) {
                   case Some(account) =>
                     val softDeation = AccountState.SoftDeleted(deletedAt)
                     account.copy(state = softDeation).some

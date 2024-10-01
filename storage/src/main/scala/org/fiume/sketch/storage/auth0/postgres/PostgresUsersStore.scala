@@ -28,19 +28,19 @@ private class PostgresUsersStore[F[_]: Async] private (lift: F ~> ConnectionIO, 
     extends AbstractPostgresStore[F](lift, tx)
     with UsersStore[F, ConnectionIO]:
 
-  override def store(credentials: UserCredentials): ConnectionIO[UserId] =
+  override def createAccount(credentials: UserCredentials): ConnectionIO[UserId] =
     insertUserCredentials(credentials.username, credentials.hashedPassword, credentials.salt)
 
-  override def fetchAccount(uuid: UserId): ConnectionIO[Option[Account]] =
-    Statements.selectUserAccount(uuid).option
+  override def fetchAccount(userId: UserId): ConnectionIO[Option[Account]] =
+    Statements.selectUserAccount(userId).option
 
   override def fetchAccount(username: Username): ConnectionIO[Option[Account]] =
     Statements.selectUserAccount(username).option
 
-  override def updatePassword(uuid: UserId, password: HashedPassword): ConnectionIO[Unit] =
-    Statements.updatePassword(uuid, password).run.void
+  override def updatePassword(userId: UserId, password: HashedPassword): ConnectionIO[Unit] =
+    Statements.updatePassword(userId, password).run.void
 
-  override def delete(uuid: UserId): ConnectionIO[Unit] = Statements.delete(uuid).run.void
+  override def delete(userId: UserId): ConnectionIO[Unit] = Statements.delete(userId).run.void
 
   override def claimNextJob(): ConnectionIO[Option[ScheduledAccountDeletion]] = JobStatements.lockAndRemoveNextJob().option
 
@@ -73,7 +73,7 @@ private object Statements:
          |)
     """.stripMargin.update.withUniqueGeneratedKeys[UserId]("uuid")
 
-  def selectUserAccount(uuid: UserId): Query0[Account] =
+  def selectUserAccount(userId: UserId): Query0[Account] =
     sql"""
          |SELECT
          |  uuid,
@@ -84,7 +84,7 @@ private object Statements:
          |  created_at,
          |  deleted_at
          |FROM auth.users
-         |WHERE uuid = $uuid
+         |WHERE uuid = $userId
     """.stripMargin.query
 
   def selectUserAccount(username: Username): Query0[Account] =
@@ -112,42 +112,42 @@ private object Statements:
          |WHERE username = $username
     """.stripMargin.query
 
-  def updatePassword(uuid: UserId, password: HashedPassword): Update0 =
+  def updatePassword(userId: UserId, password: HashedPassword): Update0 =
     sql"""
          |UPDATE auth.users
          |SET password_hash = $password
-         |WHERE uuid = $uuid
+         |WHERE uuid = $userId
     """.stripMargin.update
 
-  def setSoftDeletedState(uuid: UserId, deletedAt: Instant): Update0 =
+  def setSoftDeletedState(userId: UserId, deletedAt: Instant): Update0 =
     sql"""
          |UPDATE auth.users
          |SET
          |  state = 'PendingDeletion',
          |  deleted_at = $deletedAt
-         |WHERE uuid = $uuid
+         |WHERE uuid = $userId
     """.stripMargin.update
 
-  def setActiveState(uuid: UserId): Update0 =
+  def setActiveState(userId: UserId): Update0 =
     sql"""
          |UPDATE auth.users
          |SET
          |  state = 'Active',
          |  deleted_at = NULL
-         |WHERE uuid = $uuid
+         |WHERE uuid = $userId
     """.stripMargin.update
 
-  def delete(uuid: UserId): Update0 =
-    sql"DELETE FROM auth.users WHERE uuid = $uuid".update
+  def delete(userId: UserId): Update0 =
+    sql"DELETE FROM auth.users WHERE uuid = $userId".update
 
 private object JobStatements:
-  def insertPermanentDeletionJob(uuid: UserId, permanentDeletionAt: Instant): ConnectionIO[ScheduledAccountDeletion] =
+  def insertPermanentDeletionJob(userId: UserId, permanentDeletionAt: Instant): ConnectionIO[ScheduledAccountDeletion] =
     sql"""
          |INSERT INTO auth.account_permanent_deletion_queue (
          |  user_id,
          |  permanent_deletion_at
          |) VALUES (
-         |  $uuid,
+         |  $userId,
          |  $permanentDeletionAt
          |)
     """.stripMargin.update

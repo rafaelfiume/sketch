@@ -14,17 +14,17 @@ import java.time.Instant
 import scala.concurrent.duration.Duration
 
 trait UsersStore[F[_], Txn[_]: Monad] extends Store[F, Txn]:
-  def store(credentials: UserCredentials): Txn[UserId]
+  def createAccount(credentials: UserCredentials): Txn[UserId]
 
-  def fetchAccount(uuid: UserId): Txn[Option[Account]]
+  def fetchAccount(userId: UserId): Txn[Option[Account]]
 
-  def fetchAccountWith[T](uuid: UserId)(f: Option[Account] => T): Txn[T] = fetchAccount(uuid).map(f)
+  def fetchAccountWith[T](userId: UserId)(f: Option[Account] => T): Txn[T] = fetchAccount(userId).map(f)
 
   def fetchAccount(username: Username): Txn[Option[Account]]
 
-  def updatePassword(uuid: UserId, password: HashedPassword): Txn[Unit]
+  def updatePassword(userId: UserId, password: HashedPassword): Txn[Unit]
 
-  def delete(uuid: UserId): Txn[Unit]
+  def delete(userId: UserId): Txn[Unit]
 
   // TODO Make it return Either[MarkForDeletionError, ScheduledAccountDeletion]
   def markForDeletion(userId: UserId, timeUntilPermanentDeletion: Duration): Txn[ScheduledAccountDeletion] =
@@ -46,8 +46,8 @@ trait UsersStore[F[_], Txn[_]: Monad] extends Store[F, Txn]:
 
   def claimNextJob(): Txn[Option[ScheduledAccountDeletion]]
 
-  protected def softDeleteAccount(uuid: UserId): Txn[Instant]
-  protected def activateAccount(uuid: UserId): Txn[Unit]
+  protected def softDeleteAccount(userId: UserId): Txn[Instant]
+  protected def activateAccount(userId: UserId): Txn[Unit]
 
   protected def schedulePermanentDeletion(userId: UserId, permanentDeletionAt: Instant): Txn[ScheduledAccountDeletion]
   protected def unschedulePermanentDeletion(userId: UserId): Txn[Unit]
