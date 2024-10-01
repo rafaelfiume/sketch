@@ -31,7 +31,8 @@ private class PostgresUsersStore[F[_]: Async] private (lift: F ~> ConnectionIO, 
   override def store(credentials: UserCredentials): ConnectionIO[UserId] =
     insertUserCredentials(credentials.username, credentials.hashedPassword, credentials.salt)
 
-  override def fetchAccount(uuid: UserId): ConnectionIO[Option[Account]] = ???
+  override def fetchAccount(uuid: UserId): ConnectionIO[Option[Account]] =
+    Statements.selectUserAccount(uuid).option
 
   override def fetchAccount(username: Username): ConnectionIO[Option[Account]] =
     Statements.selectUserAccount(username).option
@@ -67,6 +68,20 @@ private object Statements:
          |  $salt
          |)
     """.stripMargin.update.withUniqueGeneratedKeys[UserId]("uuid")
+
+  def selectUserAccount(uuid: UserId): Query0[Account] =
+    sql"""
+         |SELECT
+         |  uuid,
+         |  username,
+         |  password_hash,
+         |  salt,
+         |  state,
+         |  created_at,
+         |  deleted_at
+         |FROM auth.users
+         |WHERE uuid = $uuid
+    """.stripMargin.query
 
   def selectUserAccount(username: Username): Query0[Account] =
     sql"""

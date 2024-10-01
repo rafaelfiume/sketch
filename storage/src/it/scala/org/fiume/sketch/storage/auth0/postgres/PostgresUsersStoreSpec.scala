@@ -34,7 +34,7 @@ class PostgresUsersStoreSpec
 
   override def scalaCheckTestParameters = super.scalaCheckTestParameters.withMinSuccessfulTests(1)
 
-  test("fetches user account"):
+  test("creates account and fetches it by username"):
     forAllF { (credentials: UserCredentials) =>
       will(cleanStorage) {
         PostgresUsersStore.make[IO](transactor(), makeFrozenClock()).use { store =>
@@ -81,9 +81,9 @@ class PostgresUsersStoreSpec
 
             _ <- store.markForDeletion(fstUserId, permantDeletionDelay).ccommit
 
-            fstAccount <- store.fetchAccount(fstCreds.username).ccommit.map(_.someOrFail)
+            fstAccount <- store.fetchAccount(fstUserId).ccommit.map(_.someOrFail)
             fstScheduledAccountDeletion <- store.fetchScheduledAccountDeletion(fstUserId).ccommit.map(_.someOrFail)
-            sndAccount <- store.fetchAccount(sndCreds.username).ccommit.map(_.someOrFail)
+            sndAccount <- store.fetchAccount(sndUserId).ccommit.map(_.someOrFail)
             sndScheduledAccountDeletion <- store.fetchScheduledAccountDeletion(sndUserId).ccommit
           yield
             assert(!fstAccount.isActive)
@@ -108,11 +108,11 @@ class PostgresUsersStoreSpec
       will(cleanStorage) {
         PostgresUsersStore.make[IO](transactor(), makeFrozenClock()).use { store =>
           for
-            uuid <- store.store(credentials).ccommit
+            userId <- store.store(credentials).ccommit
 
-            _ <- store.delete(uuid).ccommit
+            _ <- store.delete(userId).ccommit
 
-            account <- store.fetchAccount(credentials.username).ccommit
+            account <- store.fetchAccount(userId).ccommit
           yield assert(account.isEmpty)
         }
       }
@@ -156,7 +156,7 @@ class PostgresUsersStoreSpec
                     }
                 }
                 .map(_.map(_.uuid))
-                .evalTap { jobId => IO.println(s"claimed job: ${jobId}") }
+                // .evalTap { jobId => IO.println(s"claimed job: ${jobId}") } // uncomment to debug
                 .unNone
                 .compile
                 .toList

@@ -54,7 +54,7 @@ class UsersRoutesSpec
           .to(usersRoutes.router())
 //
           .expectJsonResponseWith[ScheduledForPermanentDeletionResponse](Status.Ok)
-        account <- store.fetchAccount(user.username).map(_.someOrFail)
+        account <- store.fetchAccount(userId).map(_.someOrFail)
         grantRemoved <- accessControl.canAccess(userId, userId).map(!_)
       yield
         assert(!account.isActive)
@@ -127,7 +127,6 @@ class UsersRoutesSpec
       yield assert(account.isMarkedForDeletion, clue = "account should remain marked for deletion")
     }
 
-  // TODO Check valid state transition and idempotence
   // Note: Skipping contract tests to speed up development
 
 trait UsersRoutesSpecContext:
