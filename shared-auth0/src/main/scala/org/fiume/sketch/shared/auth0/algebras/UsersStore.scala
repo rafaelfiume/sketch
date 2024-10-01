@@ -27,26 +27,32 @@ trait UsersStore[F[_], Txn[_]: Monad] extends Store[F, Txn]:
   def delete(uuid: UserId): Txn[Unit]
 
   // TODO Make it return Either[MarkForDeletionError, ScheduledAccountDeletion]
-  def markForDeletion(uuid: UserId, timeUntilPermanentDeletion: Duration): Txn[ScheduledAccountDeletion] =
-    softDeleteAccount(uuid).flatMap { deletedAt =>
+  def markForDeletion(userId: UserId, timeUntilPermanentDeletion: Duration): Txn[ScheduledAccountDeletion] =
+    // TODO Validate transition
+    softDeleteAccount(userId).flatMap { deletedAt =>
       val permanentDeletionAt = deletedAt.plusSeconds(timeUntilPermanentDeletion.toSeconds)
-      schedulePermanentDeletion(uuid, permanentDeletionAt)
+      schedulePermanentDeletion(userId, permanentDeletionAt)
     }
 
-  def restoreAccount(uuid: UserId): Txn[Either[ActivateAccountError, Account]] =
-    val accountMarkedForDeletion = fetchAccountWith(uuid) { _.fold(AccountNotFound.asLeft)(validateMarkedForDeletion(_)) }
+  def restoreAccount(userId: UserId): Txn[Either[ActivateAccountError, Account]] =
+    val accountMarkedForDeletion = fetchAccountWith(userId) { _.fold(AccountNotFound.asLeft)(validateMarkedForDeletion(_)) }
     accountMarkedForDeletion.flatMap {
-      case Right(account) => activateAccount(account.uuid).as(account.asRight)
-      case error          => error.pure[Txn]
+      case Right(account) =>
+        activateAccount(account.uuid)
+          .flatTap { _ => unschedulePermanentDeletion(account.uuid) }
+          .as(account.asRight)
+      case error => error.pure[Txn]
     }
 
   def claimNextJob(): Txn[Option[ScheduledAccountDeletion]]
 
   protected def softDeleteAccount(uuid: UserId): Txn[Instant]
-  protected def activateAccount(uuid: UserId): Txn[Instant]
+  protected def activateAccount(uuid: UserId): Txn[Unit]
 
-  protected def schedulePermanentDeletion(uuid: UserId, permanentDeletionAt: Instant): Txn[ScheduledAccountDeletion]
+  protected def schedulePermanentDeletion(userId: UserId, permanentDeletionAt: Instant): Txn[ScheduledAccountDeletion]
+  protected def unschedulePermanentDeletion(userId: UserId): Txn[Unit]
 
+  // TODO Rename: This is effectively checking if state machine can transition from MarkedForDeletion to Active
   private def validateMarkedForDeletion(account: Account): Either[ActivateAccountError, Account] =
     account match
       case account if account.isMarkedForDeletion => account.asRight[ActivateAccountError]

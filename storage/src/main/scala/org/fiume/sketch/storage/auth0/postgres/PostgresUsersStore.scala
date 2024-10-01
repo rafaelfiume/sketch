@@ -42,18 +42,22 @@ private class PostgresUsersStore[F[_]: Async] private (lift: F ~> ConnectionIO, 
 
   override def delete(uuid: UserId): ConnectionIO[Unit] = Statements.delete(uuid).run.void
 
-  override def activateAccount(uuid: UserId): ConnectionIO[Instant] = ???
-
   override def claimNextJob(): ConnectionIO[Option[ScheduledAccountDeletion]] = JobStatements.lockAndRemoveNextJob().option
 
-  override protected def softDeleteAccount(uuid: UserId): ConnectionIO[Instant] =
-    lift(clock.realTimeInstant).flatTap { Statements.updateSoftDeletion(uuid, _).run.void }
+  override protected def softDeleteAccount(userId: UserId): ConnectionIO[Instant] =
+    lift(clock.realTimeInstant).flatTap { Statements.setSoftDeletedState(userId, _).run.void }
+
+  override def activateAccount(userId: UserId): ConnectionIO[Unit] =
+    Statements.setActiveState(userId).run.void
 
   override protected[postgres] def schedulePermanentDeletion(
     userId: UserId,
     permanentDeletionAt: Instant
   ): ConnectionIO[ScheduledAccountDeletion] =
     JobStatements.insertPermanentDeletionJob(userId, permanentDeletionAt)
+
+  override protected def unschedulePermanentDeletion(userId: UserId): ConnectionIO[Unit] =
+    JobStatements.deleteJob(userId).run.void
 
 private object Statements:
   def insertUserCredentials(username: Username, password: HashedPassword, salt: Salt): ConnectionIO[UserId] =
@@ -115,12 +119,21 @@ private object Statements:
          |WHERE uuid = $uuid
     """.stripMargin.update
 
-  def updateSoftDeletion(uuid: UserId, deletedAt: Instant): Update0 =
+  def setSoftDeletedState(uuid: UserId, deletedAt: Instant): Update0 =
     sql"""
          |UPDATE auth.users
          |SET
          |  state = 'PendingDeletion',
          |  deleted_at = $deletedAt
+         |WHERE uuid = $uuid
+    """.stripMargin.update
+
+  def setActiveState(uuid: UserId): Update0 =
+    sql"""
+         |UPDATE auth.users
+         |SET
+         |  state = 'Active',
+         |  deleted_at = NULL
          |WHERE uuid = $uuid
     """.stripMargin.update
 
@@ -153,3 +166,6 @@ private object JobStatements:
          |)
          |RETURNING *
     """.stripMargin.query[ScheduledAccountDeletion]
+
+  def deleteJob(userId: UserId): Update0 =
+    sql"DELETE FROM auth.account_permanent_deletion_queue WHERE user_id = $userId".update

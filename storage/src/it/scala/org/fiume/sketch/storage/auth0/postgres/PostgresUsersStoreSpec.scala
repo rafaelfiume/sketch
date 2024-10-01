@@ -86,7 +86,7 @@ class PostgresUsersStoreSpec
             sndAccount <- store.fetchAccount(sndUserId).ccommit.map(_.someOrFail)
             sndScheduledAccountDeletion <- store.fetchScheduledAccountDeletion(sndUserId).ccommit
           yield
-            assert(!fstAccount.isActive)
+            assert(fstAccount.isMarkedForDeletion)
             assertEquals(fstAccount.state, SoftDeleted(deletedAt.truncatedTo(MILLIS)))
             val permanentDeletionAt = deletedAt.plusSeconds(permantDeletionDelay.toSeconds).truncatedTo(MILLIS)
             assertEquals(
@@ -99,6 +99,25 @@ class PostgresUsersStoreSpec
             )
             assert(sndAccount.isActive)
             assert(sndScheduledAccountDeletion.isEmpty, clue = "Expected no scheduled deletion for the second account")
+        }
+      }
+    }
+
+  test("restores account"):
+    forAllF { (credentials: UserCredentials) =>
+      will(cleanStorage) {
+        PostgresUsersStore.make[IO](transactor(), makeFrozenClock()).use { store =>
+          for
+            userId <- store.store(credentials).ccommit
+            _ <- store.markForDeletion(userId, 1.day).ccommit
+
+            _ <- store.restoreAccount(userId).ccommit
+
+            fstAccount <- store.fetchAccount(userId).ccommit.map(_.someOrFail)
+            scheduledAccountDeletion <- store.fetchScheduledAccountDeletion(userId).ccommit
+          yield
+            assert(fstAccount.isActive)
+            assert(scheduledAccountDeletion.isEmpty, clue = "Expected no scheduled deletion for the restored account")
         }
       }
     }
