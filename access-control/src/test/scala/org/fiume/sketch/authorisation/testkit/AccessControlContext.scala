@@ -5,8 +5,6 @@ import org.fiume.sketch.authorisation.{AccessControl, ContextualRole, GlobalRole
 import org.fiume.sketch.shared.app.{Entity, EntityId}
 import org.fiume.sketch.shared.auth0.domain.UserId
 
-import java.util.UUID
-
 /*
  * Note that this is a > simplified < version of AccessControlContext that provides support
  * for a single entity type.
@@ -17,18 +15,18 @@ trait AccessControlContext:
 
   private case class State(
     global: Map[UserId, GlobalRole],
-    contextual: Map[(UserId, UUID), ContextualRole]
+    contextual: Map[(UserId, EntityId[?]), ContextualRole]
   ):
     def +++(userId: UserId, role: GlobalRole): State = copy(global = global + (userId -> role))
 
     def getGlobalRole(userId: UserId): Option[Role.Global] = global.get(userId).map(Role.Global(_))
 
-    def ++(userId: UserId, entityId: UUID, role: ContextualRole): State =
+    def ++(userId: UserId, entityId: EntityId[?], role: ContextualRole): State =
       copy(contextual = contextual + ((userId, entityId) -> role))
 
-    def --(userId: UserId, entityId: UUID): State = copy(contextual = contextual - (userId -> entityId))
+    def --(userId: UserId, entityId: EntityId[?]): State = copy(contextual = contextual - (userId -> entityId))
 
-    def getContextualRole(userId: UserId, entityId: UUID): Option[Role.Contextual] =
+    def getContextualRole(userId: UserId, entityId: EntityId[?]): Option[Role.Contextual] =
       contextual.get(userId -> entityId).map(Role.Contextual(_))
 
   private object State:
@@ -47,14 +45,14 @@ trait AccessControlContext:
           ref.update(_ +++ (userId, role))
 
         override def storeGrant[T <: Entity](userId: UserId, entityId: EntityId[T], role: ContextualRole): IO[Unit] =
-          ref.update(_ ++ (userId, entityId.value, role))
+          ref.update(_ ++ (userId, entityId, role))
 
         override def fetchAllAuthorisedEntityIds[T <: Entity](userId: UserId, entityType: String): fs2.Stream[IO, EntityId[T]] =
           fs2.Stream.evals(
             ref.get.map(
               _.contextual
                 .collect {
-                  case ((u -> id), _) if u == userId => EntityId[T](id)
+                  case ((u -> id), _) if u == userId => id.asInstanceOf[EntityId[T]]
                 }
                 .toSeq
             )
@@ -63,10 +61,10 @@ trait AccessControlContext:
         override def fetchRole[T <: Entity](userId: UserId, entityId: EntityId[T]): IO[Option[Role]] =
           // miminics the behaviour of fetchRole in PostgresAccessControl
           // where the least permissive contextual role take precedence over global roles
-          ref.get.map(state => state.getContextualRole(userId, entityId.value).orElse(state.getGlobalRole(userId)))
+          ref.get.map(state => state.getContextualRole(userId, entityId).orElse(state.getGlobalRole(userId)))
 
         override def deleteContextualGrant[T <: Entity](userId: UserId, entityId: EntityId[T]): IO[Unit] =
-          ref.update(_ -- (userId, entityId.value))
+          ref.update(_ -- (userId, entityId))
 
         override val lift: [A] => IO[A] => IO[A] = [A] => (action: IO[A]) => action
 

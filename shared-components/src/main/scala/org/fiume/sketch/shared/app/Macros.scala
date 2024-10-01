@@ -15,5 +15,9 @@ object Macros:
   def entityIdApplyMacro[T <: Entity: Type](value: Expr[UUID])(using Quotes): Expr[EntityId[T]] =
     '{
       new EntityId[T]($value):
-        def entityType: String = Macros.typeName[T]
+        val entityType: String =
+          val name = Macros.typeName[T]
+          if name == "T"
+          then throw new IllegalStateException("compiler was unable to determine `entityType` of `EntityId`")
+          else name
     }

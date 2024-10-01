@@ -21,12 +21,18 @@ object EntityId:
   given [T <: Entity]: AsString[EntityId[T]] = new AsString[EntityId[T]]:
     extension (id: EntityId[T]) override def asString(): String = id.value.toString
 
-  given [T <: Entity]: FromString[InvalidUuid, EntityId[T]] = new FromString[InvalidUuid, EntityId[T]]:
-    extension (id: String)
-      override def parsed() =
-        Try(UUID.fromString(id)).toEither.map(EntityId[T](_)).leftMap(_ => UnparsableUuid(id))
+  object FromString:
+    def forEntityId[T <: Entity](factory: UUID => EntityId[T]): FromString[InvalidUuid, EntityId[T]] =
+      new FromString[InvalidUuid, EntityId[T]]:
+        extension (id: String)
+          override def parsed(): Either[InvalidUuid, EntityId[T]] =
+            Try(UUID.fromString(id)).toEither
+              .map(factory)
+              .leftMap(_ => UnparsableUuid(id))
 
-  given [T <: Entity]: Eq[EntityId[T]] = Eq.fromUniversalEquals[EntityId[T]]
+  given [T <: Entity]: Eq[EntityId[T]] = Eq.instance { (thiss, other) =>
+    (thiss.value === other.value) && (thiss.entityType === other.entityType)
+  }
 
 trait Entity
 

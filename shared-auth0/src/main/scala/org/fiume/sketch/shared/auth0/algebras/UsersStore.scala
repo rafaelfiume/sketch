@@ -1,6 +1,6 @@
 package org.fiume.sketch.shared.auth0.algebras
 
-import cats.FlatMap
+import cats.Monad
 import cats.implicits.*
 import org.fiume.sketch.shared.app.algebras.Store
 import org.fiume.sketch.shared.auth0.algebras.UsersStore.ActivateAccountError
@@ -13,7 +13,7 @@ import org.fiume.sketch.shared.auth0.jobs.ScheduledAccountDeletion
 import java.time.Instant
 import scala.concurrent.duration.Duration
 
-trait UsersStore[F[_], Txn[_]: FlatMap] extends Store[F, Txn]:
+trait UsersStore[F[_], Txn[_]: Monad] extends Store[F, Txn]:
   def store(credentials: UserCredentials): Txn[UserId]
 
   def fetchAccount(uuid: UserId): Txn[Option[Account]]
@@ -35,7 +35,10 @@ trait UsersStore[F[_], Txn[_]: FlatMap] extends Store[F, Txn]:
 
   def restoreAccount(uuid: UserId): Txn[Either[ActivateAccountError, Account]] =
     val accountMarkedForDeletion = fetchAccountWith(uuid) { _.fold(AccountNotFound.asLeft)(validateMarkedForDeletion(_)) }
-    accountMarkedForDeletion.flatTap { _ => activateAccount(uuid) }
+    accountMarkedForDeletion.flatMap {
+      case Right(account) => activateAccount(account.uuid).as(account.asRight)
+      case error          => error.pure[Txn]
+    }
 
   def claimNextJob(): Txn[Option[ScheduledAccountDeletion]]
 

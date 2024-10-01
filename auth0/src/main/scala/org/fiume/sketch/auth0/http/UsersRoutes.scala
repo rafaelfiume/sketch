@@ -8,7 +8,6 @@ import org.fiume.sketch.auth0.http.UsersRoutes.Model.asResponsePayload
 import org.fiume.sketch.auth0.http.UsersRoutes.Model.json.given
 import org.fiume.sketch.auth0.http.UsersRoutes.UserIdVar
 import org.fiume.sketch.authorisation.AccessControl
-import org.fiume.sketch.shared.app.EntityId.given
 import org.fiume.sketch.shared.app.algebras.Store.syntax.*
 import org.fiume.sketch.shared.app.http4s.JsonCodecs.given
 import org.fiume.sketch.shared.auth0.algebras.UsersStore
@@ -85,6 +84,8 @@ class UsersRoutes[F[_]: Concurrent, Txn[_]: Sync](
 
 private[http] object UsersRoutes:
   object UserIdVar:
+
+    import org.fiume.sketch.shared.auth0.domain.UserId.given
     def unapply(uuid: String): Option[UserId] = uuid.parsed().toOption
 
   object Model:

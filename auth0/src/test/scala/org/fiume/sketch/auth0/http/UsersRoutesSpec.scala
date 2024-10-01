@@ -9,8 +9,8 @@ import org.fiume.sketch.authorisation.{ContextualRole, GlobalRole}
 import org.fiume.sketch.authorisation.ContextualRole.Owner
 import org.fiume.sketch.authorisation.GlobalRole.Admin
 import org.fiume.sketch.authorisation.testkit.AccessControlContext
-import org.fiume.sketch.shared.app.http4s.JsonCodecs.given
 import org.fiume.sketch.shared.auth0.domain.{Account, AccountState, User, UserId}
+import org.fiume.sketch.shared.auth0.domain.AccountState.*
 import org.fiume.sketch.shared.auth0.domain.User.UserCredentials
 import org.fiume.sketch.shared.auth0.testkit.{AuthMiddlewareContext, UserGens, UsersStoreContext}
 import org.fiume.sketch.shared.auth0.testkit.AccountGens.given
@@ -20,7 +20,7 @@ import org.fiume.sketch.shared.testkit.syntax.OptionSyntax.*
 import org.http4s.*
 import org.http4s.client.dsl.io.*
 import org.http4s.dsl.io.*
-import org.scalacheck.{Arbitrary, Gen, ShrinkLowPriority}
+import org.scalacheck.{Arbitrary, ShrinkLowPriority}
 import org.scalacheck.effect.PropF.forAllF
 
 import java.time.Instant
@@ -53,7 +53,7 @@ class UsersRoutesSpec
         result <- send(request)
           .to(usersRoutes.router())
 //
-          .expectJsonResponseWith(Status.Ok)
+          .expectJsonResponseWith[ScheduledForPermanentDeletionResponse](Status.Ok)
         account <- store.fetchAccount(user.username).map(_.someOrFail)
         grantRemoved <- accessControl.canAccess(userId, userId).map(!_)
       yield
@@ -66,7 +66,7 @@ class UsersRoutesSpec
     }
   }
 
-  test("returns 403 when user lacks permission to delete account or account does not exist") {
+  test("attempt to delete a non-existent account or with lack of permission results in 403") {
     forAllF { (authedUser: UserCredentials, maybeAnotherUser: UserCredentials, anotherUserExists: Boolean) =>
       for
         store <- makeEmptyUsersStore()
@@ -87,34 +87,54 @@ class UsersRoutesSpec
     }
   }
 
-  test("restores user account"):
-    val now = Instant.now()
-    given Arbitrary[AccountState] = Arbitrary(restorableAccountStates)
-    def restorableAccountStates: Gen[AccountState] = Gen.oneOf(AccountState.Active(now), AccountState.SoftDeleted(now))
-    forAllF { (authed: UserCredentials, userToBeRestored: Account, validState: AccountState) =>
+  test("only users with Admin role can restore user accounts"):
+    forAllF { (authed: UserCredentials, userToBeRestored: Account, isActive: Boolean) =>
       for
-        store <- makeUsersStoreForAccount(userToBeRestored.copy(state = validState))
-        _ <- store.markForDeletion(userToBeRestored.uuid, 1.day)
+        store <- makeUsersStoreForAccount(userToBeRestored.copy(state = Active(Instant.now())))
+        _ <- store.markForDeletion(userToBeRestored.uuid, 1.day).whenA(!isActive)
         accessControl <- makeAccessControl()
         authedId <- store.store(authed).flatTap { id => accessControl.grantGlobalAccess(id, Admin) }
         authMiddleware = makeAuthMiddleware(authenticated = User(authedId, authed.username))
         request = PUT(Uri.unsafeFromString(s"/users/${userToBeRestored.uuid.value}/restore"))
         usersRoutes = new UsersRoutes[IO, IO](authMiddleware, accessControl, store, delayUntilPermanentDeletion)
 
-        result <- send(request)
-          .to(usersRoutes.router())
-          //
-          .expectEmptyResponseWith(Status.NoContent)
+        _ <- send(request).to(usersRoutes.router()).expectEmptyResponseWith(Status.NoContent)
+
+        // idempotence
+        _ <- send(request).to(usersRoutes.router()).expectEmptyResponseWith(Status.NoContent)
         account <- store.fetchAccount(userToBeRestored.uuid).map(_.someOrFail)
       // TODO Check there is no scheduled job to permanent delete account
       yield assert(account.isActive)
     }
 
+  test("attempt to restore an account without permission results in 403"):
+    forAllF { (authed: UserCredentials, userToBeRestored: Account, isSuperuser: Boolean) =>
+      for
+        store <- makeUsersStoreForAccount(userToBeRestored.copy(state = SoftDeleted(Instant.now())))
+        accessControl <- makeAccessControl()
+        authedId <- store.store(authed).flatTap { id =>
+          accessControl.grantGlobalAccess(id, GlobalRole.Superuser).whenA(isSuperuser)
+        }
+        authMiddleware = makeAuthMiddleware(authenticated = User(authedId, authed.username))
+        request = PUT(Uri.unsafeFromString(s"/users/${userToBeRestored.uuid.value}/restore"))
+        usersRoutes = new UsersRoutes[IO, IO](authMiddleware, accessControl, store, delayUntilPermanentDeletion)
+
+        _ <- send(request)
+          .to(usersRoutes.router())
+//
+          .expectEmptyResponseWith(Status.Forbidden)
+        account <- store.fetchAccount(userToBeRestored.uuid).map(_.someOrFail)
+      yield assert(account.isMarkedForDeletion, clue = "account should remain marked for deletion")
+    }
+
+  // TODO Check valid state transition and idempotence
   // Note: Skipping contract tests to speed up development
 
 trait UsersRoutesSpecContext:
   val delayUntilPermanentDeletion = 30.days
 
+  // TODO Define Encoders and Decoders in the same place?
+  given Decoder[UserId] = Decoder.decodeUUID.map(UserId(_))
   given Decoder[ScheduledForPermanentDeletionResponse] = new Decoder[ScheduledForPermanentDeletionResponse]:
     override def apply(c: HCursor): Decoder.Result[ScheduledForPermanentDeletionResponse] =
       for
