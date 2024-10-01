@@ -103,7 +103,6 @@ class UsersRoutesSpec
         // idempotence
         _ <- send(request).to(usersRoutes.router()).expectEmptyResponseWith(Status.NoContent)
         account <- store.fetchAccount(userToBeRestored.uuid).map(_.someOrFail)
-      // TODO Check there is no scheduled job to permanent delete account
       yield assert(account.isActive)
     }
 

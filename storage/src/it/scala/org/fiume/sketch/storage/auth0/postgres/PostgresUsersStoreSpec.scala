@@ -132,7 +132,7 @@ class PostgresUsersStoreSpec
                 val user = UserGens.credentials.sample.someOrFail
                 store.markAccountForDeletion(user, permanentDeletionAt = Instant.now()).map(_.uuid)
               }
-              .evalTap { jobId => IO.println(s"new job: $jobId") }
+              // .evalTap { jobId => IO.println(s"new job: $jobId") } // uncomment to debug
               .compile
               .toList
 
@@ -151,8 +151,8 @@ class PostgresUsersStoreSpec
                     }
                     .ccommit
                     .handleErrorWith { error =>
-                      IO.println(error.getMessage()) >>
-                        none.pure[IO]
+                      // IO.println(error.getMessage()) >> // uncomment to debug
+                      none.pure[IO]
                     }
                 }
                 .map(_.map(_.uuid))

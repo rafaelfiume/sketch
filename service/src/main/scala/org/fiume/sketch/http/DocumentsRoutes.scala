@@ -198,7 +198,6 @@ private[http] object DocumentsRoutes:
         }
 
     object json: // TODO Move it to its own high-level module?
-      // TODO Implement type derivation for encoders and decoders?
       given Encoder[Uri] = Encoder.encodeString.contramap(_.renderString)
       given Decoder[Uri] = Decoder.decodeString.emap { uri => Uri.fromString(uri).leftMap(_.getMessage) }
 

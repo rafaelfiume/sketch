@@ -10,8 +10,20 @@ import java.util.UUID
 import scala.util.Try
 import scala.util.control.NoStackTrace
 
-// A phantom type is a parameterised type whose parameters do not all appear on the right-hand side of its definition.
-// See https://wiki.haskell.org/Phantom_type
+/*
+ * A phantom type is a parameterised type whose parameters do not all appear on the right-hand side of its definition.
+ * See https://wiki.haskell.org/Phantom_type
+ *
+ * About EntityId Equality:
+ *
+ * val fst = OrderId(uuid)
+ * val snd = ItemId(uuid)
+ * fst === snd // boom! it won't compile
+ * fst == snd // true!!!!
+ *
+ * Whever possible, it is recommended to favour cats `Eq` over the standard `equals` function,
+ * since the former is based both on the UUID value _and_ entityType.
+ */
 abstract case class EntityId[T <: Entity](val value: UUID):
   def entityType: String
 

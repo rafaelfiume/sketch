@@ -42,38 +42,11 @@ This hybrid approach tries to strike a balance between security and usability.
 
 Please, check [this](https://github.com/rafaelfiume/sketch/pull/111) out for more details on Jwt token generation and verification.
 
-
 ## Account Deletion
 
-By the end of this stream:
-1) An account owner should be able to delete his/her own account
-1) A superuser should be able to delete any account
-1) Account deletion should be a soft deletion
-After n days (configurable), the user data should be permanently deleted
-1) All data (entities) from user should be deleted too, including authorisation/access_control data.
-
-Consider to anonymise use data after m days have passed, m < n.
-
-Step-by-step:
-1) Implement soft delete.
-  * Make sure user with deleted account is unable to login
-  * Users can delete their own account
-  * Admin can delete other users' account
-1) Mark soft deleted account to permanent deletion
-1) Schedule job to permanently delete user account after n days
-1) Use callback to delete all entities of user with deleted account
-    (search for '1. REST-based Event Notifications (Webhook-Style)')
-
-
-... Rest-based Event Notification (Webhook Style)...
-... use a temporary shared secret solution to authenticate the auth part of the service when invoking
-the `/purge-user-entities` endpoint.
-
-Clean up needed:
- - Error handling in DoobieMappings
-
- Subsequent PR Admin can delete any user account
- Define process to enable Admin to reactivate an account
- 3rd PR Mark it to permanent deletion, response payload (?)
- 4th PR clean up all entities upon permanent deletion 
-    (secure call to callback, it needs to be authenticated; make it atomic; retries; log and track (metrics) failed attempts)
+1) An account is first marked to deletion (soft deletion over a specified period)
+  1) Once that interval has passed (configurable), the user data should be permanently deleted
+1) An account 'Owner' is able to mark his/her own account for deletion
+1) An 'Admin' is able to mark any account for deletion
+1) All data (entities) from user should be deleted too upon permanent deletion,
+including authorisation/access_control data.
