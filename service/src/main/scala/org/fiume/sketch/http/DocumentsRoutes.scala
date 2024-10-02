@@ -5,9 +5,6 @@ import cats.data.EitherT
 import cats.effect.Concurrent
 import cats.implicits.*
 import fs2.Stream
-import io.circe.{Decoder, Encoder, HCursor, *}
-import io.circe.Decoder.Result
-import io.circe.Json as JJson
 import io.circe.syntax.*
 import org.fiume.sketch.authorisation.{AccessControl, ContextualRole}
 import org.fiume.sketch.http.DocumentsRoutes.{DocumentIdVar, Line, Linebreak, NewlineDelimitedJson, NewlineDelimitedJsonEncoder}
@@ -108,9 +105,10 @@ class DocumentsRoutes[F[_]: Concurrent, Txn[_]: FlatMap](
     }
 
 private[http] object DocumentsRoutes:
+  import io.circe.Json
 
   sealed trait NewlineDelimitedJson
-  case class Line(json: JJson) extends NewlineDelimitedJson
+  case class Line(json: Json) extends NewlineDelimitedJson
   case object Linebreak extends NewlineDelimitedJson
 
   object NewlineDelimitedJsonEncoder:
@@ -131,7 +129,7 @@ private[http] object DocumentsRoutes:
     case class MetadataRequestPayload(name: String, description: String)
     case class MetadataResponsePayload(name: String, description: String)
     case class DocumentResponsePayload(uuid: DocumentId, metadata: MetadataResponsePayload, byteStreamUri: Uri)
-    case class DocumentIdResponsePayload(value: DocumentId)
+    case class DocumentIdResponsePayload(uuid: DocumentId)
 
     extension (m: Metadata)
       private def asResponsePayload: MetadataResponsePayload =
@@ -197,29 +195,20 @@ private[http] object DocumentsRoutes:
             .map(_.body)
         }
 
-    object json: // TODO Move it to its own high-level module?
-      given Encoder[Uri] = Encoder.encodeString.contramap(_.renderString)
-      given Decoder[Uri] = Decoder.decodeString.emap { uri => Uri.fromString(uri).leftMap(_.getMessage) }
+    object json:
+      import io.circe.{Decoder, Encoder, Json, *}
+      import io.circe.generic.semiauto.*
+      import org.http4s.circe.*
 
-      given Decoder[MetadataRequestPayload] = new Decoder[MetadataRequestPayload]:
-        override def apply(c: HCursor): Result[MetadataRequestPayload] =
-          for
-            name <- c.downField("name").as[String]
-            description <- c.downField("description").as[String]
-          yield MetadataRequestPayload(name, description)
-
-      given Encoder[MetadataResponsePayload] = new Encoder[MetadataResponsePayload]:
-        override def apply(m: MetadataResponsePayload): JJson = JJson.obj(
-          "name" -> m.name.asJson,
-          "description" -> m.description.asJson
-        )
-
-      given Encoder[DocumentResponsePayload] = new Encoder[DocumentResponsePayload]:
-        override def apply(d: DocumentResponsePayload): JJson = JJson.obj(
-          "uuid" -> d.uuid.asJson,
-          "byteStreamUri" -> d.byteStreamUri.asJson,
-          "metadata" -> d.metadata.asJson
-        )
+      given Decoder[DocumentId] = Decoder.decodeUUID.map(DocumentId(_))
+      given Encoder[MetadataRequestPayload] = deriveEncoder
+      given Decoder[MetadataRequestPayload] = deriveDecoder
+      given Encoder[MetadataResponsePayload] = deriveEncoder
+      given Decoder[MetadataResponsePayload] = deriveDecoder
+      given Encoder[DocumentResponsePayload] = deriveEncoder
+      given Decoder[DocumentResponsePayload] = deriveDecoder
 
       given Encoder[DocumentIdResponsePayload] = new Encoder[DocumentIdResponsePayload]:
-        override def apply(uuid: DocumentIdResponsePayload): JJson = JJson.obj("uuid" -> uuid.value.asJson)
+        override def apply(uuid: DocumentIdResponsePayload): Json = Json.obj("uuid" -> uuid.uuid.asJson)
+
+      given Decoder[DocumentIdResponsePayload] = deriveDecoder

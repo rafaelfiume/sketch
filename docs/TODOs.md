@@ -1,9 +1,7 @@
 
 ### For the next Clean-up PR
 
-  * Favour derivedDecoders and derivedEncoders
   * Write contract tests to conver all request and response payloads
-  * Move decoders and encoders to a json.Codecs module
   * TODO Merge the following 3 tests?
   * TODO Make it return Either[MarkForDeletionError, ScheduledAccountDeletion]
   * TODO Explore auto-derivation?

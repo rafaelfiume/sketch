@@ -145,14 +145,11 @@ class AuthRoutesSpec
         assertEquals(result.details, ErrorDetails("input.semantic.error" -> "The request body was invalid.").some)
     }
 
-  /*
-   * ContractSpec
-   */
+  test("LoginRequestPayload encode and decode form a bijective relationship"):
+    assertBijectiveRelationshipBetweenEncoderAndDecoder[LoginRequestPayload]("auth0/login/request.json")
 
   test("LoginResponsePayload encode and decode form a bijective relationship"):
-    assertBijectiveRelationshipBetweenEncoderAndDecoder[LoginResponsePayload](
-      "contract/auth0/http/login.success.json"
-    )
+    assertBijectiveRelationshipBetweenEncoderAndDecoder[LoginResponsePayload]("auth0/login/response.json")
 
 trait AuthRoutesSpecContext:
   extension (loginRequest: LoginRequestPayload)

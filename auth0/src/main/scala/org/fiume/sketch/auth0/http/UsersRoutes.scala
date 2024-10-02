@@ -2,8 +2,7 @@ package org.fiume.sketch.auth0.http
 
 import cats.effect.{Concurrent, Sync}
 import cats.implicits.*
-import io.circe.{Encoder, Json}
-import io.circe.syntax.*
+import io.circe.{Decoder, Encoder}
 import org.fiume.sketch.auth0.http.UsersRoutes.Model.asResponsePayload
 import org.fiume.sketch.auth0.http.UsersRoutes.Model.json.given
 import org.fiume.sketch.auth0.http.UsersRoutes.UserIdVar
@@ -96,10 +95,7 @@ private[http] object UsersRoutes:
         ScheduledForPermanentDeletionResponse(job.userId, job.permanentDeletionAt)
 
     object json:
-
-      given Encoder[ScheduledForPermanentDeletionResponse] = new Encoder[ScheduledForPermanentDeletionResponse]:
-        def apply(a: ScheduledForPermanentDeletionResponse): Json =
-          Json.obj(
-            "userId" -> a.userId.asJson,
-            "permanentDeletionAt" -> a.permanentDeletionAt.asJson
-          )
+      import io.circe.generic.semiauto.*
+      given Decoder[UserId] = Decoder.decodeUUID.map(UserId(_))
+      given Encoder[ScheduledForPermanentDeletionResponse] = deriveEncoder
+      given Decoder[ScheduledForPermanentDeletionResponse] = deriveDecoder

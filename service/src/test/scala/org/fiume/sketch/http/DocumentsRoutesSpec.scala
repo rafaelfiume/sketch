@@ -2,8 +2,6 @@ package org.fiume.sketch.http
 
 import cats.effect.{IO, Ref}
 import cats.implicits.*
-import io.circe.{Decoder, Encoder, HCursor, Json}
-import io.circe.Decoder.Result
 import io.circe.syntax.*
 import munit.{CatsEffectSuite, ScalaCheckEffectSuite}
 import munit.Assertions.*
@@ -68,9 +66,9 @@ class DocumentsRoutesSpec
           .to(documentsRoutes.router())
 //
           .expectJsonResponseWith[DocumentIdResponsePayload](Status.Created)
-        stored <- store.fetchDocument(result.value)
-        grantedAccessToUser <- accessControl.canAccess(user.uuid, result.value)
-        noGrantedAccessToRandomUser <- accessControl.canAccess(randomUser.uuid, result.value).map(!_)
+        stored <- store.fetchDocument(result.uuid)
+        grantedAccessToUser <- accessControl.canAccess(user.uuid, result.uuid)
+        noGrantedAccessToRandomUser <- accessControl.canAccess(randomUser.uuid, result.uuid).map(!_)
       yield
         assertEquals(stored.map(_.metadata), metadata.some)
         assert(grantedAccessToUser)
@@ -256,18 +254,14 @@ class DocumentsRoutesSpec
         )
     }
 
-  /*
-   * Contracts
-   */
-
   test("MetadataRequestPayload encode and decode form a bijective relationship"):
-    assertBijectiveRelationshipBetweenEncoderAndDecoder[MetadataRequestPayload]("document/metadata.request.json")
+    assertBijectiveRelationshipBetweenEncoderAndDecoder[MetadataRequestPayload]("domain/document/metadata.request.json")
 
   test("DocumentResponsePayload encode and decode form a bijective relationship"):
-    assertBijectiveRelationshipBetweenEncoderAndDecoder[DocumentResponsePayload]("document/response.json")
+    assertBijectiveRelationshipBetweenEncoderAndDecoder[DocumentResponsePayload]("domain/document/response.json")
 
   test("DocumentIdResponsePayload encode and decode form a bijective relationship"):
-    assertBijectiveRelationshipBetweenEncoderAndDecoder[DocumentIdResponsePayload]("document/uuid.response.json")
+    assertBijectiveRelationshipBetweenEncoderAndDecoder[DocumentIdResponsePayload]("domain/document/uuid.response.json")
 
   test("validation accumulates") {
     /* Also see `given accumulatingParallel: cats.Parallel[EitherT[IO, String, *]] = EitherT.accumulatingParallel` */
@@ -278,7 +272,6 @@ class DocumentsRoutesSpec
       inputErrors.asInstanceOf[SemanticInputError].details.tips.size === 2,
       clue = inputErrors
     )
-
   }
 
 trait DocumentsRoutesSpecContext:
@@ -344,32 +337,6 @@ trait DocumentsRoutesSpecContext:
   extension (m: Document.Metadata)
     def asRequestPayload: MetadataRequestPayload =
       MetadataRequestPayload(m.name.value, m.description.value)
-
-  given Encoder[MetadataRequestPayload] = new Encoder[MetadataRequestPayload]:
-    override def apply(m: MetadataRequestPayload): Json = Json.obj(
-      "name" -> m.name.asJson,
-      "description" -> m.description.asJson
-    )
-
-  given Decoder[MetadataResponsePayload] = new Decoder[MetadataResponsePayload]:
-    override def apply(c: HCursor): Result[MetadataResponsePayload] =
-      for
-        name <- c.downField("name").as[String]
-        description <- c.downField("description").as[String]
-      yield MetadataResponsePayload(name, description)
-
-  given Decoder[DocumentResponsePayload] = new Decoder[DocumentResponsePayload]:
-    override def apply(c: HCursor): Result[DocumentResponsePayload] =
-      for
-        uuid <- c.downField("uuid").as[DocumentId]
-        contentLink <- c.downField("byteStreamUri").as[Uri]
-        metadata <- c.downField("metadata").as[MetadataResponsePayload]
-      yield DocumentResponsePayload(uuid, metadata, contentLink)
-
-  given Decoder[DocumentId] = Decoder.decodeUUID.map(DocumentId(_))
-  given Decoder[DocumentIdResponsePayload] = new Decoder[DocumentIdResponsePayload]:
-    override def apply(c: HCursor): Result[DocumentIdResponsePayload] =
-      c.downField("uuid").as[DocumentId].map(DocumentIdResponsePayload.apply)
 
 trait DocumentsStoreContext:
   import fs2.Stream

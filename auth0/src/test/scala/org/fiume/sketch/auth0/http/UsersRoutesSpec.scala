@@ -2,9 +2,9 @@ package org.fiume.sketch.auth0.http
 
 import cats.effect.IO
 import cats.implicits.*
-import io.circe.{Decoder, HCursor}
 import munit.{CatsEffectSuite, ScalaCheckEffectSuite}
 import org.fiume.sketch.auth0.http.UsersRoutes.Model.ScheduledForPermanentDeletionResponse
+import org.fiume.sketch.auth0.http.UsersRoutes.Model.json.given
 import org.fiume.sketch.authorisation.{ContextualRole, GlobalRole}
 import org.fiume.sketch.authorisation.ContextualRole.Owner
 import org.fiume.sketch.authorisation.GlobalRole.Admin
@@ -15,7 +15,7 @@ import org.fiume.sketch.shared.auth0.domain.User.UserCredentials
 import org.fiume.sketch.shared.auth0.testkit.{AuthMiddlewareContext, UserGens, UsersStoreContext}
 import org.fiume.sketch.shared.auth0.testkit.AccountGens.given
 import org.fiume.sketch.shared.auth0.testkit.UserGens.given
-import org.fiume.sketch.shared.testkit.{ClockContext, Http4sRoutesContext}
+import org.fiume.sketch.shared.testkit.{ClockContext, ContractContext, Http4sRoutesContext}
 import org.fiume.sketch.shared.testkit.syntax.OptionSyntax.*
 import org.http4s.*
 import org.http4s.client.dsl.io.*
@@ -35,6 +35,7 @@ class UsersRoutesSpec
     with AccessControlContext
     with UsersStoreContext
     with ClockContext
+    with ContractContext
     with UsersRoutesSpecContext
     with ShrinkLowPriority:
 
@@ -127,16 +128,10 @@ class UsersRoutesSpec
       yield assert(account.isMarkedForDeletion, clue = "account should remain marked for deletion")
     }
 
-  // Note: Skipping contract tests to speed up development
+  test("ScheduledForPermanentDeletionResponse encode and decode form a bijective relationship"):
+    assertBijectiveRelationshipBetweenEncoderAndDecoder[ScheduledForPermanentDeletionResponse](
+      "auth0/user/scheduled.deletion.response.json"
+    )
 
 trait UsersRoutesSpecContext:
   val delayUntilPermanentDeletion = 30.days
-
-  // TODO Define Encoders and Decoders in the same place?
-  given Decoder[UserId] = Decoder.decodeUUID.map(UserId(_))
-  given Decoder[ScheduledForPermanentDeletionResponse] = new Decoder[ScheduledForPermanentDeletionResponse]:
-    override def apply(c: HCursor): Decoder.Result[ScheduledForPermanentDeletionResponse] =
-      for
-        userId <- c.downField("userId").as[UserId]
-        permanentDeletionAt <- c.downField("permanentDeletionAt").as[Instant]
-      yield ScheduledForPermanentDeletionResponse(userId, permanentDeletionAt)

@@ -36,6 +36,7 @@ object Dependency {
   val cats                        = "org.typelevel"              %% "cats-core"                           % Version.cats
   val catsEffect                  = "org.typelevel"              %% "cats-effect"                         % Version.catsEffect
   val circeCore                   = "io.circe"                   %% "circe-core"                          % Version.circe
+  val circeGeneric                = "io.circe"                   %% "circe-generic"                       % Version.circe
   val circeParser                 = "io.circe"                   %% "circe-parser"                        % Version.circe
   val ciris                       = "is.cir"                     %% "ciris"                               % Version.ciris
   val doobieCirce                 = "org.tpolecat"               %% "doobie-postgres-circe"               % Version.doobie
