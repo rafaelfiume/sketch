@@ -10,7 +10,6 @@ import doobie.util.transactor.Transactor
 import org.fiume.sketch.authorisation.{AccessControl, ContextualRole, GlobalRole, Role}
 import org.fiume.sketch.shared.app.{Entity, EntityId}
 import org.fiume.sketch.shared.auth0.domain.UserId
-import org.fiume.sketch.storage.auth0.postgres.DatabaseCodecs.given
 import org.fiume.sketch.storage.authorisation.postgres.DatabaseCodecs.given
 import org.fiume.sketch.storage.postgres.AbstractPostgresStore
 import org.slf4j.LoggerFactory
@@ -80,7 +79,7 @@ private object Statements:
          |  WHERE user_id = $userId
          |)
          |
-         |SELECT entity_id
+         |SELECT entity_id, entity_type
          |FROM auth.access_control
          |WHERE entity_type = $entityType
          |AND (

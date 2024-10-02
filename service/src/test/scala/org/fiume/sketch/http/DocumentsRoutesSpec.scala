@@ -12,7 +12,6 @@ import org.fiume.sketch.authorisation.testkit.AccessControlContext
 import org.fiume.sketch.http.DocumentsRoutes.Model.*
 import org.fiume.sketch.http.DocumentsRoutes.Model.json.given
 import org.fiume.sketch.shared.app.WithUuid
-import org.fiume.sketch.shared.app.http4s.JsonCodecs.given
 import org.fiume.sketch.shared.app.http4s.middlewares.{SemanticInputError, SemanticValidationMiddleware}
 import org.fiume.sketch.shared.app.troubleshooting.ErrorInfo
 import org.fiume.sketch.shared.app.troubleshooting.ErrorInfo.json.given
@@ -158,7 +157,8 @@ class DocumentsRoutesSpec
    * Authorisation
    */
 
-  test("attempt to retrieve metadata of a document without access results in 403 Forbidden"):
+  // TODO Merge the following 3 tests?
+  test("attempt to retrieve metadata of a document without permission results in 403"):
     forAllF { (document: DocumentWithIdAndStream[IO], authenticated: User) =>
       val request = GET(Uri.unsafeFromString(s"/documents/${document.uuid.value}/metadata"))
       for
@@ -175,7 +175,7 @@ class DocumentsRoutesSpec
       yield ()
     }
 
-  test("attempt to retrieve content bytes of a document without access results in 403 Forbidden"):
+  test("attempt to retrieve content bytes of a document without permission results in 403"):
     forAllF { (document: DocumentWithIdAndStream[IO], authenticated: User) =>
       val request = GET(Uri.unsafeFromString(s"/documents/${document.uuid.value}"))
       for
@@ -192,7 +192,7 @@ class DocumentsRoutesSpec
       yield ()
     }
 
-  test("attempt to delete a document without access results in 403 Forbidden"):
+  test("attempt to delete a document without permission results in 403"):
     forAllF { (document: DocumentWithIdAndStream[IO], authenticated: User) =>
       val request = DELETE(Uri.unsafeFromString(s"/documents/${document.uuid.value}"))
       for
@@ -366,6 +366,7 @@ trait DocumentsRoutesSpecContext:
         metadata <- c.downField("metadata").as[MetadataResponsePayload]
       yield DocumentResponsePayload(uuid, metadata, contentLink)
 
+  given Decoder[DocumentId] = Decoder.decodeUUID.map(DocumentId(_))
   given Decoder[DocumentIdResponsePayload] = new Decoder[DocumentIdResponsePayload]:
     override def apply(c: HCursor): Result[DocumentIdResponsePayload] =
       c.downField("uuid").as[DocumentId].map(DocumentIdResponsePayload.apply)

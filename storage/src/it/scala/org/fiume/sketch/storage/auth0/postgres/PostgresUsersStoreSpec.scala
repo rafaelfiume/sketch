@@ -34,26 +34,12 @@ class PostgresUsersStoreSpec
 
   override def scalaCheckTestParameters = super.scalaCheckTestParameters.withMinSuccessfulTests(1)
 
-  test("stores credentials"):
+  test("creates account and fetches it by username"):
     forAllF { (credentials: UserCredentials) =>
       will(cleanStorage) {
         PostgresUsersStore.make[IO](transactor(), makeFrozenClock()).use { store =>
           for
-            uuid <- store.store(credentials).ccommit
-
-            result <- store.fetchCredentials(credentials.username).ccommit
-//
-          yield assertEquals(result.someOrFail, UserCredentials.make(uuid, credentials))
-        }
-      }
-    }
-
-  test("fetches user account"):
-    forAllF { (credentials: UserCredentials) =>
-      will(cleanStorage) {
-        PostgresUsersStore.make[IO](transactor(), makeFrozenClock()).use { store =>
-          for
-            uuid <- store.store(credentials).ccommit
+            uuid <- store.createAccount(credentials).ccommit
 
             result <- store.fetchAccount(credentials.username).ccommit.map(_.someOrFail)
 //
@@ -72,7 +58,7 @@ class PostgresUsersStoreSpec
       will(cleanStorage) {
         PostgresUsersStore.make[IO](transactor(), makeFrozenClock()).use { store =>
           for
-            uuid <- store.store(credentials).ccommit
+            uuid <- store.createAccount(credentials).ccommit
 
             _ <- store.updatePassword(uuid, newPassword).ccommit
 
@@ -90,17 +76,17 @@ class PostgresUsersStoreSpec
         val permantDeletionDelay = 1.second
         PostgresUsersStore.make[IO](transactor(), frozenClock).use { store =>
           for
-            fstUserId <- store.store(fstCreds).ccommit
-            sndUserId <- store.store(sndCreds).ccommit
+            fstUserId <- store.createAccount(fstCreds).ccommit
+            sndUserId <- store.createAccount(sndCreds).ccommit
 
             _ <- store.markForDeletion(fstUserId, permantDeletionDelay).ccommit
 
-            fstAccount <- store.fetchAccount(fstCreds.username).ccommit.map(_.someOrFail)
+            fstAccount <- store.fetchAccount(fstUserId).ccommit.map(_.someOrFail)
             fstScheduledAccountDeletion <- store.fetchScheduledAccountDeletion(fstUserId).ccommit.map(_.someOrFail)
-            sndAccount <- store.fetchAccount(sndCreds.username).ccommit.map(_.someOrFail)
+            sndAccount <- store.fetchAccount(sndUserId).ccommit.map(_.someOrFail)
             sndScheduledAccountDeletion <- store.fetchScheduledAccountDeletion(sndUserId).ccommit
           yield
-            assert(!fstAccount.isActive)
+            assert(fstAccount.isMarkedForDeletion)
             assertEquals(fstAccount.state, SoftDeleted(deletedAt.truncatedTo(MILLIS)))
             val permanentDeletionAt = deletedAt.plusSeconds(permantDeletionDelay.toSeconds).truncatedTo(MILLIS)
             assertEquals(
@@ -117,16 +103,35 @@ class PostgresUsersStoreSpec
       }
     }
 
+  test("restores account"):
+    forAllF { (credentials: UserCredentials) =>
+      will(cleanStorage) {
+        PostgresUsersStore.make[IO](transactor(), makeFrozenClock()).use { store =>
+          for
+            userId <- store.createAccount(credentials).ccommit
+            _ <- store.markForDeletion(userId, 1.day).ccommit
+
+            _ <- store.restoreAccount(userId).ccommit
+
+            account <- store.fetchAccount(userId).ccommit.map(_.someOrFail)
+            scheduledAccountDeletion <- store.fetchScheduledAccountDeletion(userId).ccommit
+          yield
+            assert(account.isActive)
+            assert(scheduledAccountDeletion.isEmpty, clue = "Expected no scheduled deletion for the restored account")
+        }
+      }
+    }
+
   test("deletes user account"):
     forAllF { (credentials: UserCredentials) =>
       will(cleanStorage) {
         PostgresUsersStore.make[IO](transactor(), makeFrozenClock()).use { store =>
           for
-            uuid <- store.store(credentials).ccommit
+            userId <- store.createAccount(credentials).ccommit
 
-            _ <- store.delete(uuid).ccommit
+            _ <- store.delete(userId).ccommit
 
-            account <- store.fetchAccount(credentials.username).ccommit
+            account <- store.fetchAccount(userId).ccommit
           yield assert(account.isEmpty)
         }
       }
@@ -146,7 +151,7 @@ class PostgresUsersStoreSpec
                 val user = UserGens.credentials.sample.someOrFail
                 store.markAccountForDeletion(user, permanentDeletionAt = Instant.now()).map(_.uuid)
               }
-              .evalTap { jobId => IO.println(s"new job: $jobId") }
+              // .evalTap { jobId => IO.println(s"new job: $jobId") } // uncomment to debug
               .compile
               .toList
 
@@ -165,12 +170,12 @@ class PostgresUsersStoreSpec
                     }
                     .ccommit
                     .handleErrorWith { error =>
-                      IO.println(error.getMessage()) >>
-                        none.pure[IO]
+                      // IO.println(error.getMessage()) >> // uncomment to debug
+                      none.pure[IO]
                     }
                 }
                 .map(_.map(_.uuid))
-                .evalTap { jobId => IO.println(s"claimed job: ${jobId}") }
+                // .evalTap { jobId => IO.println(s"claimed job: ${jobId}") } // uncomment to debug
                 .unNone
                 .compile
                 .toList
@@ -206,7 +211,7 @@ class PostgresUsersStoreSpec
       will(cleanStorage) {
         PostgresUsersStore.make[IO](transactor(), makeFrozenClock()).use { store =>
           for
-            uuid <- store.store(credentials).ccommit
+            uuid <- store.createAccount(credentials).ccommit
 
             createdAt <- store.fetchCreatedAt(uuid).ccommit
             updatedAt <- store.fetchUpdatedAt(uuid).ccommit
@@ -221,7 +226,7 @@ class PostgresUsersStoreSpec
       will(cleanStorage) {
         PostgresUsersStore.make[IO](transactor(), makeFrozenClock()).use { store =>
           for
-            uuid <- store.store(credentials).ccommit
+            uuid <- store.createAccount(credentials).ccommit
 
             _ <- store.updatePassword(uuid, newPassword).ccommit
 
@@ -256,6 +261,6 @@ trait PostgresUsersStoreSpecContext extends DockerPostgresSuite:
 
     def markAccountForDeletion(user: UserCredentials, permanentDeletionAt: Instant): IO[ScheduledAccountDeletion] =
       store
-        .store(user)
+        .createAccount(user)
         .flatMap { store.schedulePermanentDeletion(_, permanentDeletionAt) }
         .ccommit

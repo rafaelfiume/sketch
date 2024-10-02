@@ -31,11 +31,11 @@ class UsersManagerSpec
         accessControl <- makeAccessControl()
         usersManager <- UsersManager.make[IO, IO](usersStore, accessControl)
 
-        accountId <- usersManager.createAccount(username, password, isSuperuser)
+        userId <- usersManager.createAccount(username, password, isSuperuser)
 
-        account <- usersStore.fetchAccount(username)
-        userCanAccessHerOwnAccountDetails <- accessControl.canAccess(accountId, accountId)
-        userGlobalRole <- accessControl.getGlobalRole(accountId)
+        account <- usersStore.fetchAccount(userId)
+        userCanAccessHerOwnAccountDetails <- accessControl.canAccess(userId, userId)
+        userGlobalRole <- accessControl.getGlobalRole(userId)
       yield
         assert(account.someOrFail.isActive)
         assert(userCanAccessHerOwnAccountDetails)

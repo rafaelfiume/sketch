@@ -20,6 +20,7 @@ trait AccessControl[F[_], Txn[_]: Monad] extends Store[F, Txn]:
   def ensureAccess[T <: Entity](userId: UserId, role: ContextualRole)(entityIdTxn: => Txn[EntityId[T]]): Txn[EntityId[T]] =
     entityIdTxn.flatTap { grantAccess(userId, _, role) }
 
+  // Should canAccess return `Either`? For example, `Left(NotFound)`?
   def canAccess[T <: Entity](userId: UserId, entityId: EntityId[T]): Txn[Boolean] =
     fetchRole(userId, entityId).map { role =>
       (role, entityId.entityType) match

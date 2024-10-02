@@ -14,9 +14,9 @@ import org.fiume.sketch.http.DocumentsRoutes.{DocumentIdVar, Line, Linebreak, Ne
 import org.fiume.sketch.http.DocumentsRoutes.Model.*
 import org.fiume.sketch.http.DocumentsRoutes.Model.json.given
 import org.fiume.sketch.shared.app.EntityId.given
+import org.fiume.sketch.shared.app.algebras.Store.syntax.*
 import org.fiume.sketch.shared.app.http4s.JsonCodecs.given
 import org.fiume.sketch.shared.app.http4s.middlewares.SemanticInputError
-import org.fiume.sketch.shared.app.syntax.StoreSyntax.*
 import org.fiume.sketch.shared.app.troubleshooting.ErrorInfo.ErrorDetails
 import org.fiume.sketch.shared.app.troubleshooting.InvariantErrorSyntax.asDetails
 import org.fiume.sketch.shared.auth0.domain.User
@@ -124,6 +124,7 @@ private[http] object DocumentsRoutes:
         .withContentType(`Content-Type`(MediaType.application.json, Charset.`UTF-8`))
 
   object DocumentIdVar:
+    import org.fiume.sketch.shared.domain.documents.DocumentId.given
     def unapply(uuid: String): Option[DocumentId] = uuid.parsed().toOption
 
   object Model:
@@ -196,7 +197,7 @@ private[http] object DocumentsRoutes:
             .map(_.body)
         }
 
-    object json:
+    object json: // TODO Move it to its own high-level module?
       given Encoder[Uri] = Encoder.encodeString.contramap(_.renderString)
       given Decoder[Uri] = Decoder.decodeString.emap { uri => Uri.fromString(uri).leftMap(_.getMessage) }
 

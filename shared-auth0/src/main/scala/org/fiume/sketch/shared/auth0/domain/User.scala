@@ -3,18 +3,21 @@ package org.fiume.sketch.shared.auth0.domain
 import cats.{Eq, Show}
 import cats.data.{EitherNec, Validated}
 import cats.implicits.*
-import org.fiume.sketch.shared.app.{Entity, EntityId, WithUuid}
+import org.fiume.sketch.shared.app.{Entity, EntityId, InvalidUuid, WithUuid}
 import org.fiume.sketch.shared.app.troubleshooting.InvariantError
 import org.fiume.sketch.shared.auth0.domain.Passwords.{HashedPassword, Salt}
 import org.fiume.sketch.shared.auth0.domain.User.Username
 import org.fiume.sketch.shared.auth0.domain.User.Username.WeakUsernameError
 import org.fiume.sketch.shared.auth0.domain.User.Username.WeakUsernameError.*
+import org.fiume.sketch.shared.typeclasses.FromString
 
 import java.util.UUID
 
 type UserId = EntityId[UserEntity]
 object UserId:
   def apply(uuid: UUID): UserId = EntityId[UserEntity](uuid)
+  given FromString[InvalidUuid, UserId] = EntityId.FromString.forEntityId(UserId.apply)
+
 sealed trait UserEntity extends Entity
 
 // TODO Review this model

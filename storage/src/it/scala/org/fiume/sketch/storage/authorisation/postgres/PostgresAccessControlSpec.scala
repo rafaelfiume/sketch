@@ -85,11 +85,11 @@ class PostgresAccessControlSpec
           ).tupled.use { case (accessControl, docStore, usersStore) =>
             for
               fstUserId <- usersStore
-                .store(fstUser)
+                .createAccount(fstUser)
                 .flatTap { userId => accessControl.grantAccess(userId, userId, Owner) }
                 .ccommit
               sndUserId <- usersStore
-                .store(sndUser)
+                .createAccount(sndUser)
                 .flatTap { userId => accessControl.grantAccess(userId, userId, Owner) }
                 .ccommit
               fstDocId <- accessControl.ensureAccess(fstUserId, Owner) { docStore.store(fstDocument) }.ccommit
@@ -118,11 +118,11 @@ class PostgresAccessControlSpec
         ).tupled.use { case (accessControl, usersStore) =>
           for
             fstUserId <- usersStore
-              .store(fstUser)
+              .createAccount(fstUser)
               .flatTap { userId => accessControl.grantAccess(userId, userId, Owner) }
               .ccommit
             sndUserId <- usersStore
-              .store(sndUser)
+              .createAccount(sndUser)
               .flatTap { userId => accessControl.grantAccess(userId, userId, Owner) }
               .ccommit
             _ <- accessControl.grantGlobalAccess(fstUserId, globalRole).ccommit
