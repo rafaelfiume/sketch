@@ -52,7 +52,7 @@ class UsersRoutes[F[_]: Concurrent, Txn[_]: Sync](
 
       case PUT -> Root / "users" / UserIdVar(uuid) / "restore" as authed =>
         val outcome =
-          for outcome <- canAccountBeRestored(authed, uuid)
+          for outcome <- canRestoreAccount(authed, uuid)
               .ifM(
                 ifTrue = store.restoreAccount(uuid),
                 ifFalse = Left(ActivateAccountError.Other(reason = "Unauthorised")).pure[Txn]
@@ -79,7 +79,7 @@ class UsersRoutes[F[_]: Concurrent, Txn[_]: Sync](
       .markForDeletion(userId, delayUntilPermanentDeletion)
       .flatTap { _ => accessControl.revokeContextualAccess(userId, userId) }
 
-  private def canAccountBeRestored(authenticated: User, accountToBeRestoredId: UserId): Txn[Boolean] =
+  private def canRestoreAccount(authenticated: User, accountToBeRestoredId: UserId): Txn[Boolean] =
     accessControl.canAccess(authenticated.uuid, accountToBeRestoredId)
 
 private[http] object UsersRoutes:

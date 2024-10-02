@@ -92,7 +92,7 @@ class UsersRoutesSpec
     forAllF { (authed: UserCredentials, userToBeRestored: Account, isActive: Boolean) =>
       for
         store <- makeUsersStoreForAccount(userToBeRestored.copy(state = Active(Instant.now())))
-        _ <- store.markForDeletion(userToBeRestored.uuid, 1.day).whenA(!isActive)
+        _ <- store.markForDeletion(userToBeRestored.uuid, 1.day).whenA(isActive)
         accessControl <- makeAccessControl()
         authedId <- store.createAccount(authed).flatTap { id => accessControl.grantGlobalAccess(id, Admin) }
         authMiddleware = makeAuthMiddleware(authenticated = User(authedId, authed.username))

@@ -113,10 +113,10 @@ class PostgresUsersStoreSpec
 
             _ <- store.restoreAccount(userId).ccommit
 
-            fstAccount <- store.fetchAccount(userId).ccommit.map(_.someOrFail)
+            account <- store.fetchAccount(userId).ccommit.map(_.someOrFail)
             scheduledAccountDeletion <- store.fetchScheduledAccountDeletion(userId).ccommit
           yield
-            assert(fstAccount.isActive)
+            assert(account.isActive)
             assert(scheduledAccountDeletion.isEmpty, clue = "Expected no scheduled deletion for the restored account")
         }
       }

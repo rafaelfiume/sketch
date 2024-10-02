@@ -4,7 +4,6 @@ import cats.Eq
 import cats.data.{EitherNec, Validated}
 import cats.implicits.*
 import org.fiume.sketch.shared.app.{Entity, EntityId, InvalidUuid, WithUuid}
-import org.fiume.sketch.shared.app.InvalidUuid.UnparsableUuid
 import org.fiume.sketch.shared.app.troubleshooting.InvariantError
 import org.fiume.sketch.shared.domain.documents.Document.Metadata
 import org.fiume.sketch.shared.domain.documents.Document.Metadata.*
@@ -12,15 +11,11 @@ import org.fiume.sketch.shared.domain.documents.Document.Metadata.Name.InvalidDo
 import org.fiume.sketch.shared.typeclasses.FromString
 
 import java.util.UUID
-import scala.util.Try
 
 type DocumentId = EntityId[DocumentEntity]
 object DocumentId:
   def apply(uuid: UUID): DocumentId = EntityId[DocumentEntity](uuid)
-  given FromString[InvalidUuid, DocumentId] = new FromString[InvalidUuid, DocumentId]:
-    extension (id: String)
-      override def parsed() =
-        Try(UUID.fromString(id)).toEither.map(DocumentId(_)).leftMap(_ => UnparsableUuid(id))
+  given FromString[InvalidUuid, DocumentId] = EntityId.FromString.forEntityId(DocumentId.apply)
 
 sealed trait DocumentEntity extends Entity
 
