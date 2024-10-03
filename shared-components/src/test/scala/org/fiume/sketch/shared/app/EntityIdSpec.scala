@@ -3,8 +3,8 @@ package org.fiume.sketch.shared.app
 import cats.implicits.*
 import munit.ScalaCheckSuite
 import org.fiume.sketch.shared.app.EntityId.given
-import org.fiume.sketch.shared.app.Order.OrderId
-import org.fiume.sketch.shared.app.Order.OrderId.given
+import org.fiume.sketch.shared.app.OrderId
+import org.fiume.sketch.shared.app.OrderId.given
 import org.fiume.sketch.shared.testkit.syntax.EitherSyntax.*
 import org.fiume.sketch.shared.typeclasses.FromString
 import org.scalacheck.{Arbitrary, Gen, ShrinkLowPriority}
@@ -33,10 +33,8 @@ trait EntityIdSpecContext:
   given Arbitrary[OrderId] = Arbitrary(orderIds)
   def orderIds: Gen[OrderId] = Gen.uuid.map(OrderId(_))
 
-// TODO Explore auto-derivation?
-object Order:
-  type OrderId = EntityId[OrderEntity]
-  object OrderId:
-    def apply(uuid: UUID) = EntityId[OrderEntity](uuid)
-    given FromString[InvalidUuid, OrderId] = EntityId.FromString.forEntityId(OrderId.apply)
-  sealed trait OrderEntity extends Entity
+type OrderId = EntityId[OrderEntity]
+object OrderId:
+  def apply(uuid: UUID) = EntityId[OrderEntity](uuid)
+  given FromString[InvalidUuid, OrderId] = EntityId.FromString.forEntityId(OrderId.apply)
+sealed trait OrderEntity extends Entity
