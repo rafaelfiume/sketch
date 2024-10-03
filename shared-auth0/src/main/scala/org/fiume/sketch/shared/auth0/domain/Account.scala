@@ -29,7 +29,6 @@ enum AccountState:
   // case PendingVerification                    // User must verify their email or other requirements
 
 object AccountState:
-  // TODO Have a think on the name of these functions
   def transitionToActive(account: Account, activatedAt: Instant): Either[ActivateAccountError, Account] =
     account.state match
       case AccountState.Active(_) => AccountAlreadyActive.asLeft

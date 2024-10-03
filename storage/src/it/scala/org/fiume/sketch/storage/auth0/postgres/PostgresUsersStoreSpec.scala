@@ -228,7 +228,6 @@ trait PostgresUsersStoreSpecContext extends DockerPostgresSuite:
         .query[ScheduledAccountDeletion]
         .option
 
-    // TODO Rename it createAccountMarkedForDeletion
     def createAccountMarkedForDeletion(user: UserCredentials, timeUntilPermanentDeletion: Duration) =
       store
         .createAccount(user)

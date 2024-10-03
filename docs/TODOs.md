@@ -1,12 +1,10 @@
 
-### For the next Clean-up PR
 
-  * TODO Make it return Either[MarkForDeletionError, ScheduledAccountDeletion]
 
 ### Missing steps:
 
-1)  Define process to enable Admin to reactivate an account
-1) clean up all entities upon permanent deletion
+1) Define process to enable Admin to reactivate an account
+1) Clean up all entities upon permanent deletion
 
 Use callback to delete all entities of user with deleted account
     (search for '1. REST-based Event Notifications (Webhook-Style)')
