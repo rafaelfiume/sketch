@@ -59,6 +59,7 @@ lazy val auth0 =
      .dependsOn(sharedAuth0 % "compile->compile;test->test")
      .dependsOn(sharedTestComponents % Test)
      .dependsOn(storage)
+     .dependsOn(testContracts % "test->test")
      .disablePlugins(plugins.JUnitXmlReportPlugin)
      .settings(commonSettings: _*)
      .settings(
@@ -66,6 +67,7 @@ lazy val auth0 =
        libraryDependencies ++= Seq(
          Dependency.bouncycastle,
          Dependency.catsEffect,
+         Dependency.circeGeneric,
          Dependency.http4sEmberServer,
          Dependency.jwtCirce,
          Dependency.http4sEmberClient % Test,
@@ -97,6 +99,7 @@ lazy val service =
        name := "sketch",
        libraryDependencies ++= Seq(
          Dependency.catsEffect,
+         Dependency.circeGeneric,
          Dependency.ciris,
          Dependency.http4sDsl,
          Dependency.http4sEmberClient,
@@ -139,6 +142,7 @@ lazy val sharedAuth0 =
       name := "shared-auth0",
       libraryDependencies ++= Seq(
         Dependency.jbcrypt,
+        Dependency.circeGeneric,
         Dependency.http4sEmberClient,
         Dependency.http4sEmberServer % Test,
         Dependency.munitCatsEffect % Test,

@@ -1,9 +1,7 @@
 package org.fiume.sketch.http
 
-import cats.effect.{IO, Ref}
+import cats.effect.IO
 import cats.implicits.*
-import io.circe.{Decoder, Encoder, HCursor, Json}
-import io.circe.Decoder.Result
 import io.circe.syntax.*
 import munit.{CatsEffectSuite, ScalaCheckEffectSuite}
 import munit.Assertions.*
@@ -18,10 +16,11 @@ import org.fiume.sketch.shared.app.troubleshooting.ErrorInfo.json.given
 import org.fiume.sketch.shared.auth0.domain.User
 import org.fiume.sketch.shared.auth0.testkit.AuthMiddlewareContext
 import org.fiume.sketch.shared.auth0.testkit.UserGens.given
-import org.fiume.sketch.shared.domain.documents.{Document, DocumentId, DocumentWithIdAndStream, DocumentWithStream}
+import org.fiume.sketch.shared.domain.documents.{Document, DocumentId, DocumentWithIdAndStream}
 import org.fiume.sketch.shared.domain.documents.algebras.DocumentsStore
 import org.fiume.sketch.shared.domain.testkit.DocumentsGens.*
 import org.fiume.sketch.shared.domain.testkit.DocumentsGens.given
+import org.fiume.sketch.shared.domain.testkit.DocumentsStoreContext
 import org.fiume.sketch.shared.testkit.{ContractContext, Http4sRoutesContext}
 import org.fiume.sketch.shared.testkit.syntax.EitherSyntax.*
 import org.fiume.sketch.shared.testkit.syntax.OptionSyntax.*
@@ -32,7 +31,7 @@ import org.http4s.headers.`Content-Type`
 import org.http4s.implicits.*
 import org.http4s.multipart.{Boundary, Multipart, Part}
 import org.http4s.server.AuthMiddleware
-import org.scalacheck.{Gen, ShrinkLowPriority}
+import org.scalacheck.{Arbitrary, Gen, ShrinkLowPriority}
 import org.scalacheck.effect.PropF.forAllF
 
 class DocumentsRoutesSpec
@@ -49,6 +48,7 @@ class DocumentsRoutesSpec
   override def scalaCheckTestParameters = super.scalaCheckTestParameters.withMinSuccessfulTests(10)
 
   test("uploads document"):
+    // TODO How to restrict access to posting documents?
     forAllF { (metadata: Document.Metadata, user: User, randomUser: User) =>
       val multipart = Multipart[IO](
         parts = Vector(
@@ -68,9 +68,9 @@ class DocumentsRoutesSpec
           .to(documentsRoutes.router())
 //
           .expectJsonResponseWith[DocumentIdResponsePayload](Status.Created)
-        stored <- store.fetchDocument(result.value)
-        grantedAccessToUser <- accessControl.canAccess(user.uuid, result.value)
-        noGrantedAccessToRandomUser <- accessControl.canAccess(randomUser.uuid, result.value).map(!_)
+        stored <- store.fetchDocument(result.uuid)
+        grantedAccessToUser <- accessControl.canAccess(user.uuid, result.uuid)
+        noGrantedAccessToRandomUser <- accessControl.canAccess(randomUser.uuid, result.uuid).map(!_)
       yield
         assertEquals(stored.map(_.metadata), metadata.some)
         assert(grantedAccessToUser)
@@ -151,58 +151,28 @@ class DocumentsRoutesSpec
         assert(grantRemoved)
     }
 
-  /* Sad Path */
-
-  /**
-   * Authorisation
-   */
-
-  // TODO Merge the following 3 tests?
-  test("attempt to retrieve metadata of a document without permission results in 403"):
-    forAllF { (document: DocumentWithIdAndStream[IO], authenticated: User) =>
-      val request = GET(Uri.unsafeFromString(s"/documents/${document.uuid.value}/metadata"))
+  test("attempt to access a document without permission results in 403"):
+    case class DocumentRequest(httpRequest: Request[IO], documentWithIdAndStream: DocumentWithIdAndStream[IO])
+    given Arbitrary[DocumentRequest] = Arbitrary {
       for
-        accessControl <- makeAccessControl()
-        // the authenticated user is not the document owner
-        store <- makeDocumentsStore(state = document)
-        authMiddleware = makeAuthMiddleware(authenticated)
-        documentsRoutes <- makeDocumentsRoutes(authMiddleware, accessControl, store)
-
-        _ <- send(request)
-          .to(documentsRoutes.router())
-//
-          .expectEmptyResponseWith(Status.Forbidden)
-      yield ()
+        document <- documentWithIdAndStreams
+        request <- Gen.oneOf(
+          GET(Uri.unsafeFromString(s"/documents/${document.uuid.value}/metadata")),
+          GET(Uri.unsafeFromString(s"/documents/${document.uuid.value}")),
+          // GET(Uri.unsafeFromString(s"/documents")), // TODO Shouldn't this be forbidden as well?
+          DELETE(Uri.unsafeFromString(s"/documents/${document.uuid.value}"))
+        )
+      yield DocumentRequest(request, document)
     }
-
-  test("attempt to retrieve content bytes of a document without permission results in 403"):
-    forAllF { (document: DocumentWithIdAndStream[IO], authenticated: User) =>
-      val request = GET(Uri.unsafeFromString(s"/documents/${document.uuid.value}"))
+    forAllF { (documentRequest: DocumentRequest, authenticated: User) =>
       for
         accessControl <- makeAccessControl()
-        // the authenticated user is not the document owner
-        store <- makeDocumentsStore(state = document)
+        // the authenticated user is not the document owner nor a Superuser
+        store <- makeDocumentsStore(state = documentRequest.documentWithIdAndStream)
         authMiddleware = makeAuthMiddleware(authenticated)
         documentsRoutes <- makeDocumentsRoutes(authMiddleware, accessControl, store)
 
-        _ <- send(request)
-          .to(documentsRoutes.router())
-//
-          .expectEmptyResponseWith(Status.Forbidden)
-      yield ()
-    }
-
-  test("attempt to delete a document without permission results in 403"):
-    forAllF { (document: DocumentWithIdAndStream[IO], authenticated: User) =>
-      val request = DELETE(Uri.unsafeFromString(s"/documents/${document.uuid.value}"))
-      for
-        accessControl <- makeAccessControl()
-        // the authenticated user is not the document owner
-        store <- makeDocumentsStore(state = document)
-        authMiddleware = makeAuthMiddleware(authenticated)
-        documentsRoutes <- makeDocumentsRoutes(authMiddleware, accessControl, store)
-
-        _ <- send(request)
+        _ <- send(documentRequest.httpRequest)
           .to(documentsRoutes.router())
 //
           .expectEmptyResponseWith(Status.Forbidden)
@@ -251,23 +221,20 @@ class DocumentsRoutesSpec
 //
       yield
         assertEquals(result.message, SemanticInputError.message)
-        assertEquals(result.details.someOrFail.tips,
-                     Map("malformed.document.metadata.payload" -> "the metadata payload does not meet the contract")
+        assertEquals(
+          result.details.someOrFail.tips,
+          Map("malformed.document.metadata.payload" -> "the metadata payload does not meet the contract")
         )
     }
 
-  /*
-   * Contracts
-   */
-
   test("MetadataRequestPayload encode and decode form a bijective relationship"):
-    assertBijectiveRelationshipBetweenEncoderAndDecoder[MetadataRequestPayload]("document/metadata.request.json")
+    assertBijectiveRelationshipBetweenEncoderAndDecoder[MetadataRequestPayload]("domain/documents/get.metadata.request.json")
 
   test("DocumentResponsePayload encode and decode form a bijective relationship"):
-    assertBijectiveRelationshipBetweenEncoderAndDecoder[DocumentResponsePayload]("document/response.json")
+    assertBijectiveRelationshipBetweenEncoderAndDecoder[DocumentResponsePayload]("domain/documents/get.metadata.response.json")
 
   test("DocumentIdResponsePayload encode and decode form a bijective relationship"):
-    assertBijectiveRelationshipBetweenEncoderAndDecoder[DocumentIdResponsePayload]("document/uuid.response.json")
+    assertBijectiveRelationshipBetweenEncoderAndDecoder[DocumentIdResponsePayload]("domain/documents/post.response.json")
 
   test("validation accumulates") {
     /* Also see `given accumulatingParallel: cats.Parallel[EitherT[IO, String, *]] = EitherT.accumulatingParallel` */
@@ -278,7 +245,6 @@ class DocumentsRoutesSpec
       inputErrors.asInstanceOf[SemanticInputError].details.tips.size === 2,
       clue = inputErrors
     )
-
   }
 
 trait DocumentsRoutesSpecContext:
@@ -344,80 +310,3 @@ trait DocumentsRoutesSpecContext:
   extension (m: Document.Metadata)
     def asRequestPayload: MetadataRequestPayload =
       MetadataRequestPayload(m.name.value, m.description.value)
-
-  given Encoder[MetadataRequestPayload] = new Encoder[MetadataRequestPayload]:
-    override def apply(m: MetadataRequestPayload): Json = Json.obj(
-      "name" -> m.name.asJson,
-      "description" -> m.description.asJson
-    )
-
-  given Decoder[MetadataResponsePayload] = new Decoder[MetadataResponsePayload]:
-    override def apply(c: HCursor): Result[MetadataResponsePayload] =
-      for
-        name <- c.downField("name").as[String]
-        description <- c.downField("description").as[String]
-      yield MetadataResponsePayload(name, description)
-
-  given Decoder[DocumentResponsePayload] = new Decoder[DocumentResponsePayload]:
-    override def apply(c: HCursor): Result[DocumentResponsePayload] =
-      for
-        uuid <- c.downField("uuid").as[DocumentId]
-        contentLink <- c.downField("byteStreamUri").as[Uri]
-        metadata <- c.downField("metadata").as[MetadataResponsePayload]
-      yield DocumentResponsePayload(uuid, metadata, contentLink)
-
-  given Decoder[DocumentId] = Decoder.decodeUUID.map(DocumentId(_))
-  given Decoder[DocumentIdResponsePayload] = new Decoder[DocumentIdResponsePayload]:
-    override def apply(c: HCursor): Result[DocumentIdResponsePayload] =
-      c.downField("uuid").as[DocumentId].map(DocumentIdResponsePayload.apply)
-
-trait DocumentsStoreContext:
-  import fs2.Stream
-  import org.fiume.sketch.shared.domain.documents.{Document, DocumentId, DocumentWithId, WithStream}
-  import cats.effect.unsafe.IORuntime
-
-  def makeDocumentsStore(): IO[DocumentsStore[IO, IO]] = makeDocumentsStore(state = Map.empty)
-
-  def makeDocumentsStore(state: DocumentWithIdAndStream[IO]*): IO[DocumentsStore[IO, IO]] =
-    makeDocumentsStore(state.map(doc => doc.uuid -> doc).toMap)
-
-  private def makeDocumentsStore(state: Map[DocumentId, DocumentWithIdAndStream[IO]]): IO[DocumentsStore[IO, IO]] =
-    Ref.of[IO, Map[DocumentId, DocumentWithIdAndStream[IO]]](state).map { storage =>
-      new DocumentsStore[IO, IO]:
-        override def store(document: DocumentWithStream[IO]): IO[DocumentId] =
-          import scala.language.adhocExtensions
-          IO.randomUUID.map(DocumentId(_)).flatMap { uuid =>
-            storage
-              .update {
-                val doc = new Document(document.metadata) with WithUuid[DocumentId] with WithStream[IO]:
-                  val uuid = uuid
-                  val stream = document.stream
-                _.updated(uuid, doc)
-              }
-              .as(uuid)
-          }
-
-        override def fetchDocument(uuid: DocumentId): IO[Option[DocumentWithId]] =
-          storage.get.map(_.collectFirst {
-            case (storedUuid, document) if storedUuid === uuid => document
-          })
-
-        override def documentStream(uuid: DocumentId): fs2.Stream[IO, Byte] =
-          fetchAll().find { _.uuid === uuid }.flatMap(_.stream)
-
-        override def fetchDocuments(uuids: fs2.Stream[IO, DocumentId]): fs2.Stream[IO, DocumentWithId] =
-          uuids.flatMap { uuid => fetchAll().find(_.uuid === uuid) }
-
-        override def delete(uuid: DocumentId): IO[Unit] = storage.update { _.removed(uuid) }
-
-        override val lift: [A] => IO[A] => IO[A] = [A] => (action: IO[A]) => action
-
-        override val commit: [A] => IO[A] => IO[A] = [A] => (action: IO[A]) => action
-
-        override val commitStream: [A] => fs2.Stream[IO, A] => fs2.Stream[IO, A] = [A] => (action: fs2.Stream[IO, A]) => action
-
-        given IORuntime = IORuntime.global
-        private def fetchAll(): Stream[IO, DocumentWithIdAndStream[IO]] = fs2.Stream.emits(
-          storage.get.unsafeRunSync().values.toSeq
-        )
-    }

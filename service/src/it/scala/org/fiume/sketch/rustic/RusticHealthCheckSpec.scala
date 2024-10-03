@@ -21,8 +21,8 @@ class RusticHealthCheckSpec extends CatsEffectSuite with RusticHealthCheckSpecCo
   // table test
   List(
     // format: off
-    ("healthy"  , healthy,     Status.Ok),
-    ("faulty"   , faulty ,     Status.Degraded)
+    ("healthy"    , healthy,     Status.Ok),
+    ("degraded"   , faulty ,     Status.Degraded)
     // format: on
   ).foreach { (label, statusResponse, expectedStatus) =>
     test(s"dependency status is $expectedStatus when rustic service is $label") {
@@ -52,8 +52,8 @@ class RusticHealthCheckSpec extends CatsEffectSuite with RusticHealthCheckSpecCo
       }
 
 trait RusticHealthCheckSpecContext extends FileContentContext with HttpServiceContext:
-  val healthy = "service-status/healthy.json"
-  val faulty = "service-status/faulty.json"
+  val healthy = "status/get.response.healthy.json"
+  val faulty = "status/get.response.degraded.json"
 
   val localhost = Host.fromString("localhost").getOrElse(throw new AssertionError("localhost is valid host"))
 

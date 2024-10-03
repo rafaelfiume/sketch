@@ -16,7 +16,6 @@ type DocumentId = EntityId[DocumentEntity]
 object DocumentId:
   def apply(uuid: UUID): DocumentId = EntityId[DocumentEntity](uuid)
   given FromString[InvalidUuid, DocumentId] = EntityId.FromString.forEntityId(DocumentId.apply)
-
 sealed trait DocumentEntity extends Entity
 
 case class Document(metadata: Metadata)

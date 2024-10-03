@@ -25,27 +25,10 @@ object Model:
         )
 
   object json:
-    import io.circe.{Decoder, Encoder, HCursor, Json as JJson}
-    import io.circe.syntax.*
+    import io.circe.{Decoder, Encoder}
+    import io.circe.generic.semiauto.*
 
-    given Encoder[LoginRequestPayload] = new Encoder[LoginRequestPayload]:
-      override def apply(loginRequest: LoginRequestPayload): JJson =
-        JJson.obj(
-          "username" -> loginRequest.username.asJson,
-          "password" -> loginRequest.password.asJson
-        )
-
-    given Decoder[LoginRequestPayload] = new Decoder[LoginRequestPayload]:
-      override def apply(c: HCursor): Decoder.Result[LoginRequestPayload] =
-        for
-          username <- c.downField("username").as[String]
-          password <- c.downField("password").as[String]
-        yield LoginRequestPayload(username, password)
-
-    given Encoder[LoginResponsePayload] = new Encoder[LoginResponsePayload]:
-      override def apply(loginResponse: LoginResponsePayload): JJson =
-        JJson.obj("token" -> loginResponse.token.asJson)
-
-    given Decoder[LoginResponsePayload] = new Decoder[LoginResponsePayload]:
-      override def apply(c: HCursor): Decoder.Result[LoginResponsePayload] =
-        c.downField("token").as[String].map(LoginResponsePayload.apply)
+    given Encoder[LoginRequestPayload] = deriveEncoder
+    given Decoder[LoginRequestPayload] = deriveDecoder
+    given Encoder[LoginResponsePayload] = deriveEncoder
+    given Decoder[LoginResponsePayload] = deriveDecoder

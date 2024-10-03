@@ -14,8 +14,8 @@ class ServiceStatusContractSpec extends CatsEffectSuite with ScalaCheckEffectSui
   test("ServiceStatus encode and decode form a bijective relationship"):
     def samples =
       Gen.oneOf(
-        "service-status/healthy.json",
-        "service-status/faulty.json"
+        "status/get.response.degraded.json",
+        "status/get.response.healthy.json"
       )
     forAllF(samples) { sample =>
       assertBijectiveRelationshipBetweenEncoderAndDecoder[ServiceStatus](sample)

@@ -75,7 +75,7 @@ class DocumentsSimulation extends Simulation with AccountSetUpAndLoginContext wi
 trait DocumentsSimulationContext extends FileContentContext:
   // TODO Duplicated see acc test
   def payload(name: String, description: String): IO[String] =
-    stringFrom[IO]("document/metadata.request.json")
+    stringFrom[IO]("domain/documents/get.metadata.request.json")
       .map { json =>
         json
           .replace("SuCJzND", name)

@@ -2,7 +2,6 @@ CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 
 SET timezone = 'UTC';
 
--- Function to update `updated_at` timestamp during an row update
 CREATE OR REPLACE FUNCTION update_updated_at()
   RETURNS TRIGGER AS $$
 BEGIN
@@ -26,7 +25,7 @@ CREATE TABLE auth.users (
   -- UNIQUE salts helps to prevent precomputed hash attacks
   salt VARCHAR(50) NOT NULL UNIQUE,
   state VARCHAR(20) NOT NULL CHECK (state IN ('Active', 'PendingDeletion')) DEFAULT 'Active',
-  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  activated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   deleted_at TIMESTAMPTZ
 );

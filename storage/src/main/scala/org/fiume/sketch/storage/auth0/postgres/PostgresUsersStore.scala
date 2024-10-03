@@ -1,7 +1,6 @@
 package org.fiume.sketch.storage.auth0.postgres
 
-import cats.effect.{Async, Resource}
-import cats.effect.kernel.Clock
+import cats.effect.{Async, Clock, Resource}
 import cats.implicits.*
 import cats.~>
 import doobie.*
@@ -9,7 +8,7 @@ import doobie.free.connection.ConnectionIO
 import doobie.implicits.*
 import doobie.postgres.implicits.*
 import org.fiume.sketch.shared.auth0.algebras.UsersStore
-import org.fiume.sketch.shared.auth0.domain.{Account, Passwords, User, UserId}
+import org.fiume.sketch.shared.auth0.domain.{Account, AccountState, Passwords, User, UserId}
 import org.fiume.sketch.shared.auth0.domain.Passwords.{HashedPassword, Salt}
 import org.fiume.sketch.shared.auth0.domain.User.*
 import org.fiume.sketch.shared.auth0.jobs.ScheduledAccountDeletion
@@ -40,17 +39,14 @@ private class PostgresUsersStore[F[_]: Async] private (lift: F ~> ConnectionIO, 
   override def updatePassword(userId: UserId, password: HashedPassword): ConnectionIO[Unit] =
     Statements.updatePassword(userId, password).run.void
 
-  override def delete(userId: UserId): ConnectionIO[Unit] = Statements.delete(userId).run.void
+  override def deleteAccount(userId: UserId): ConnectionIO[Unit] = Statements.delete(userId).run.void
 
   override def claimNextJob(): ConnectionIO[Option[ScheduledAccountDeletion]] = JobStatements.lockAndRemoveNextJob().option
 
-  override protected def softDeleteAccount(userId: UserId): ConnectionIO[Instant] =
-    lift(clock.realTimeInstant).flatTap { Statements.setSoftDeletedState(userId, _).run.void }
+  override protected def updateAccount(account: Account): ConnectionIO[Unit] =
+    Statements.update(account).run.void
 
-  override def activateAccount(userId: UserId): ConnectionIO[Unit] =
-    Statements.setActiveState(userId).run.void
-
-  override protected[postgres] def schedulePermanentDeletion(
+  override protected def schedulePermanentDeletion(
     userId: UserId,
     permanentDeletionAt: Instant
   ): ConnectionIO[ScheduledAccountDeletion] =
@@ -58,6 +54,8 @@ private class PostgresUsersStore[F[_]: Async] private (lift: F ~> ConnectionIO, 
 
   override protected def unschedulePermanentDeletion(userId: UserId): ConnectionIO[Unit] =
     JobStatements.deleteJob(userId).run.void
+
+  override protected def getNow(): ConnectionIO[Instant] = lift { clock.realTimeInstant }
 
 private object Statements:
   def insertUserCredentials(username: Username, password: HashedPassword, salt: Salt): ConnectionIO[UserId] =
@@ -81,7 +79,7 @@ private object Statements:
          |  password_hash,
          |  salt,
          |  state,
-         |  created_at,
+         |  activated_at,
          |  deleted_at
          |FROM auth.users
          |WHERE uuid = $userId
@@ -95,7 +93,7 @@ private object Statements:
          |  password_hash,
          |  salt,
          |  state,
-         |  created_at,
+         |  activated_at,
          |  deleted_at
          |FROM auth.users
          |WHERE username = $username
@@ -119,22 +117,21 @@ private object Statements:
          |WHERE uuid = $userId
     """.stripMargin.update
 
-  def setSoftDeletedState(userId: UserId, deletedAt: Instant): Update0 =
-    sql"""
-         |UPDATE auth.users
-         |SET
-         |  state = 'PendingDeletion',
-         |  deleted_at = $deletedAt
-         |WHERE uuid = $userId
-    """.stripMargin.update
+  def update(account: Account): Update0 =
+    val stateUpdate = account.state match
+      case AccountState.Active(activatedAt) =>
+        fr"state = 'Active', activated_at = ${activatedAt}"
+      case AccountState.SoftDeleted(deletedAt) =>
+        fr"state = 'PendingDeletion', deleted_at = ${deletedAt}"
 
-  def setActiveState(userId: UserId): Update0 =
-    sql"""
+    fr"""
          |UPDATE auth.users
          |SET
-         |  state = 'Active',
-         |  deleted_at = NULL
-         |WHERE uuid = $userId
+         |  username = ${account.credentials.username},
+         |  password_hash = ${account.credentials.hashedPassword},
+         |  salt = ${account.credentials.salt},
+         |  $stateUpdate
+         |WHERE uuid = ${account.uuid}
     """.stripMargin.update
 
   def delete(userId: UserId): Update0 =

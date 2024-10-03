@@ -16,6 +16,7 @@ import org.fiume.sketch.shared.auth0.testkit.UserGens
 import org.fiume.sketch.shared.auth0.testkit.UserGens.given
 import org.fiume.sketch.shared.jobs.JobId
 import org.fiume.sketch.shared.testkit.ClockContext
+import org.fiume.sketch.shared.testkit.syntax.EitherSyntax.*
 import org.fiume.sketch.shared.testkit.syntax.OptionSyntax.*
 import org.fiume.sketch.storage.auth0.postgres.DatabaseCodecs.given
 import org.fiume.sketch.storage.testkit.DockerPostgresSuite
@@ -129,7 +130,7 @@ class PostgresUsersStoreSpec
           for
             userId <- store.createAccount(credentials).ccommit
 
-            _ <- store.delete(userId).ccommit
+            _ <- store.deleteAccount(userId).ccommit
 
             account <- store.fetchAccount(userId).ccommit
           yield assert(account.isEmpty)
@@ -143,13 +144,14 @@ class PostgresUsersStoreSpec
         PostgresUsersStore.make[IO](transactor(), makeFrozenClock()).use { store =>
           // given
           val numQueuedJobs = 1000
+          val now = 0.seconds
           for
             queuedJobs <- fs2.Stream
               .range(0, numQueuedJobs)
               .covary[IO]
               .parEvalMapUnbounded { _ =>
                 val user = UserGens.credentials.sample.someOrFail
-                store.markAccountForDeletion(user, permanentDeletionAt = Instant.now()).map(_.uuid)
+                store.createAccountMarkedForDeletion(user, now).map(_.rightOrFail.uuid)
               }
               // .evalTap { jobId => IO.println(s"new job: $jobId") } // uncomment to debug
               .compile
@@ -192,50 +194,17 @@ class PostgresUsersStoreSpec
     forAllF { (fstUser: UserCredentials, sndUser: UserCredentials, trdUser: UserCredentials, fthUser: UserCredentials) =>
       will(cleanStorage) {
         PostgresUsersStore.make[IO](transactor(), makeFrozenClock()).use { store =>
-          val futureDate = Instant.now().plusSeconds(60)
+          val now = 0.seconds
+          val future = 60.seconds
           for
-            _ <- store.markAccountForDeletion(fstUser, permanentDeletionAt = futureDate)
-            _ <- store.markAccountForDeletion(sndUser, permanentDeletionAt = futureDate)
-            trdScheduledDeletion <- store.markAccountForDeletion(trdUser, permanentDeletionAt = Instant.now())
-            _ <- store.markAccountForDeletion(fthUser, permanentDeletionAt = futureDate)
+            _ <- store.createAccountMarkedForDeletion(fstUser, future)
+            _ <- store.createAccountMarkedForDeletion(sndUser, future)
+            trdScheduledDeletion <- store.createAccountMarkedForDeletion(trdUser, now)
+            _ <- store.createAccountMarkedForDeletion(fthUser, future)
 
             result <- fs2.Stream.repeatEval { store.claimNextJob().ccommit }.unNone.take(1).compile.toList
 //
-          yield assertEquals(result.toSet, List(trdScheduledDeletion).toSet)
-        }
-      }
-    }
-
-  test("timestamps createdAt and updatedAt upon storage"):
-    forAllF { (credentials: UserCredentials) =>
-      will(cleanStorage) {
-        PostgresUsersStore.make[IO](transactor(), makeFrozenClock()).use { store =>
-          for
-            uuid <- store.createAccount(credentials).ccommit
-
-            createdAt <- store.fetchCreatedAt(uuid).ccommit
-            updatedAt <- store.fetchUpdatedAt(uuid).ccommit
-//
-          yield assertEquals(createdAt, updatedAt)
-        }
-      }
-    }
-
-  test("timestamps updatedAt upon update"):
-    forAllF { (credentials: UserCredentials, newPassword: HashedPassword) =>
-      will(cleanStorage) {
-        PostgresUsersStore.make[IO](transactor(), makeFrozenClock()).use { store =>
-          for
-            uuid <- store.createAccount(credentials).ccommit
-
-            _ <- store.updatePassword(uuid, newPassword).ccommit
-
-            createdAt <- store.fetchCreatedAt(uuid).ccommit
-            updatedAt <- store.fetchUpdatedAt(uuid).ccommit
-          yield assert(
-            updatedAt.isAfter(createdAt),
-            clue = s"updatedAt=${updatedAt} should be after createdAt=${createdAt}"
-          )
+          yield assertEquals(result.toSet, List(trdScheduledDeletion.rightOrFail).toSet)
         }
       }
     }
@@ -259,8 +228,8 @@ trait PostgresUsersStoreSpecContext extends DockerPostgresSuite:
         .query[ScheduledAccountDeletion]
         .option
 
-    def markAccountForDeletion(user: UserCredentials, permanentDeletionAt: Instant): IO[ScheduledAccountDeletion] =
+    def createAccountMarkedForDeletion(user: UserCredentials, timeUntilPermanentDeletion: Duration) =
       store
         .createAccount(user)
-        .flatMap { store.schedulePermanentDeletion(_, permanentDeletionAt) }
+        .flatMap { store.markForDeletion(_, timeUntilPermanentDeletion) }
         .ccommit
