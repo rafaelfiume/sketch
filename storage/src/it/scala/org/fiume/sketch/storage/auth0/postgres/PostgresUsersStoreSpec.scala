@@ -130,7 +130,7 @@ class PostgresUsersStoreSpec
           for
             userId <- store.createAccount(credentials).ccommit
 
-            _ <- store.delete(userId).ccommit
+            _ <- store.deleteAccount(userId).ccommit
 
             account <- store.fetchAccount(userId).ccommit
           yield assert(account.isEmpty)

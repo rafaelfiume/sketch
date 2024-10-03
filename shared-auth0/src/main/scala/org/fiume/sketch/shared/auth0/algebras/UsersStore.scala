@@ -24,7 +24,7 @@ trait UsersStore[F[_], Txn[_]: Monad] extends Store[F, Txn]:
 
   def updatePassword(userId: UserId, password: HashedPassword): Txn[Unit]
 
-  def delete(userId: UserId): Txn[Unit]
+  def deleteAccount(userId: UserId): Txn[Unit]
 
   def markForDeletion(
     userId: UserId,

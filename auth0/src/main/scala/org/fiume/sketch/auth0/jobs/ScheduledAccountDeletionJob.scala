@@ -23,7 +23,7 @@ private class ScheduledAccountDeletionJob[F[_]: Sync, Txn[_]: Monad] private (st
       job <- store.claimNextJob()
       result <- job match
         case Some(job) =>
-          store.delete(job.userId).map(_ => Some((job.uuid, job.userId))) <*
+          store.deleteAccount(job.userId).map(_ => Some((job.uuid, job.userId))) <*
             store.lift { logger.info(s"Job ${job.uuid} deleted account with id: ${job.userId}") }
         case None => none.pure[Txn]
     yield result

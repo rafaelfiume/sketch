@@ -39,8 +39,7 @@ private class PostgresUsersStore[F[_]: Async] private (lift: F ~> ConnectionIO, 
   override def updatePassword(userId: UserId, password: HashedPassword): ConnectionIO[Unit] =
     Statements.updatePassword(userId, password).run.void
 
-  // TODO Rename to deleteAccount
-  override def delete(userId: UserId): ConnectionIO[Unit] = Statements.delete(userId).run.void
+  override def deleteAccount(userId: UserId): ConnectionIO[Unit] = Statements.delete(userId).run.void
 
   override def claimNextJob(): ConnectionIO[Option[ScheduledAccountDeletion]] = JobStatements.lockAndRemoveNextJob().option
 
