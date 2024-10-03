@@ -23,7 +23,7 @@ case class Account(
     case _                           => false
 
 enum AccountState:
-  case Active(createdAt: Instant) // TODO Rename createdAt
+  case Active(activatedAt: Instant)
   // case Deactivated(reason: String)            // For instance, too many failed login attempts
   case SoftDeleted(deletedAt: Instant)
   // case PendingVerification                    // User must verify their email or other requirements

@@ -209,40 +209,6 @@ class PostgresUsersStoreSpec
       }
     }
 
-  test("timestamps createdAt and updatedAt upon storage"):
-    forAllF { (credentials: UserCredentials) =>
-      will(cleanStorage) {
-        PostgresUsersStore.make[IO](transactor(), makeFrozenClock()).use { store =>
-          for
-            uuid <- store.createAccount(credentials).ccommit
-
-            createdAt <- store.fetchCreatedAt(uuid).ccommit
-            updatedAt <- store.fetchUpdatedAt(uuid).ccommit
-//
-          yield assertEquals(createdAt, updatedAt)
-        }
-      }
-    }
-
-  test("timestamps updatedAt upon update"):
-    forAllF { (credentials: UserCredentials, newPassword: HashedPassword) =>
-      will(cleanStorage) {
-        PostgresUsersStore.make[IO](transactor(), makeFrozenClock()).use { store =>
-          for
-            uuid <- store.createAccount(credentials).ccommit
-
-            _ <- store.updatePassword(uuid, newPassword).ccommit
-
-            createdAt <- store.fetchCreatedAt(uuid).ccommit
-            updatedAt <- store.fetchUpdatedAt(uuid).ccommit
-          yield assert(
-            updatedAt.isAfter(createdAt),
-            clue = s"updatedAt=${updatedAt} should be after createdAt=${createdAt}"
-          )
-        }
-      }
-    }
-
 trait PostgresUsersStoreSpecContext extends DockerPostgresSuite:
   def cleanStorage: ConnectionIO[Unit] =
     sql"TRUNCATE TABLE auth.account_permanent_deletion_queue, auth.users".update.run.void

@@ -80,7 +80,7 @@ private object Statements:
          |  password_hash,
          |  salt,
          |  state,
-         |  created_at,
+         |  activated_at,
          |  deleted_at
          |FROM auth.users
          |WHERE uuid = $userId
@@ -94,7 +94,7 @@ private object Statements:
          |  password_hash,
          |  salt,
          |  state,
-         |  created_at,
+         |  activated_at,
          |  deleted_at
          |FROM auth.users
          |WHERE username = $username
@@ -120,8 +120,8 @@ private object Statements:
 
   def update(account: Account): Update0 =
     val stateUpdate = account.state match
-      case AccountState.Active(createdAt) =>
-        fr"state = 'Active', created_at = ${createdAt}"
+      case AccountState.Active(activatedAt) =>
+        fr"state = 'Active', activated_at = ${activatedAt}"
       case AccountState.SoftDeleted(deletedAt) =>
         fr"state = 'PendingDeletion', deleted_at = ${deletedAt}"
 

@@ -29,7 +29,7 @@ private[storage] object DatabaseCodecs:
   // "There is no equivalent to Meta for bidirectional column vector mappings."
   // Source: https://typelevel.org/doobie/docs/12-Custom-Mappings.html
   given Read[AccountState] = Read[(String, Instant, Option[Instant])].map {
-    case ("Active", createdAt, _)                => AccountState.Active(createdAt)
+    case ("Active", activatedAt, _)              => AccountState.Active(activatedAt)
     case ("PendingDeletion", _, Some(deletedAt)) => AccountState.SoftDeleted(deletedAt)
     case other                                   => throw new IllegalStateException(s"Unexpected account state: $other")
   }
