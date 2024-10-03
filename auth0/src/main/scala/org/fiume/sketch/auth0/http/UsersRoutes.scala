@@ -7,12 +7,12 @@ import org.fiume.sketch.auth0.http.UsersRoutes.Model.asResponsePayload
 import org.fiume.sketch.auth0.http.UsersRoutes.Model.json.given
 import org.fiume.sketch.auth0.http.UsersRoutes.UserIdVar
 import org.fiume.sketch.authorisation.AccessControl
+import org.fiume.sketch.authorisation.ContextualRole.Owner
 import org.fiume.sketch.shared.app.algebras.Store.syntax.*
 import org.fiume.sketch.shared.app.http4s.JsonCodecs.given
 import org.fiume.sketch.shared.auth0.algebras.UsersStore
-import org.fiume.sketch.shared.auth0.algebras.UsersStore.ActivateAccountError
-import org.fiume.sketch.shared.auth0.algebras.UsersStore.ActivateAccountError.AccountAlreadyActive
-import org.fiume.sketch.shared.auth0.domain.{Account, User, UserId}
+import org.fiume.sketch.shared.auth0.domain.{Account, ActivateAccountError, SoftDeleteAccountError, User, UserId}
+import org.fiume.sketch.shared.auth0.domain.ActivateAccountError.*
 import org.fiume.sketch.shared.auth0.jobs.ScheduledAccountDeletion
 import org.http4s.{HttpRoutes, *}
 import org.http4s.circe.CirceEntityEncoder.*
@@ -39,31 +39,29 @@ class UsersRoutes[F[_]: Concurrent, Txn[_]: Sync](
   private val authedRoutes: AuthedRoutes[User, F] =
     AuthedRoutes.of {
       case DELETE -> Root / "users" / UserIdVar(uuid) as authed =>
-        for
-          outcome <- canAuthedUserMarkAccountForDeletion(authed, uuid)
-            .ifM(
-              ifTrue = doMarkForDeletion(uuid).map(_.asResponsePayload).map(_.some),
-              ifFalse = none.pure[Txn]
-            )
-            .commit()
-          res <- outcome.fold(Forbidden())(Ok(_))
-        yield res
+        canAuthedUserMarkAccountForDeletion(authed, uuid)
+          .ifM(
+            ifTrue = doMarkForDeletion(uuid),
+            ifFalse = SoftDeleteAccountError.Other.asLeft.pure[Txn]
+          )
+          .commit()
+          .flatMap {
+            case Right(job) => Ok(job.asResponsePayload)
+            case _          => Forbidden()
+          }
 
       case PUT -> Root / "users" / UserIdVar(uuid) / "restore" as authed =>
-        val outcome =
-          for outcome <- canRestoreAccount(authed, uuid)
-              .ifM(
-                ifTrue = store.restoreAccount(uuid),
-                ifFalse = Left(ActivateAccountError.Other(reason = "Unauthorised")).pure[Txn]
-              )
-          yield outcome
-        outcome.commit().flatMap {
-          case Right(_)                                         => NoContent()
-          case Left(AccountAlreadyActive)                       => NoContent()
-          case Left(ActivateAccountError.Other("Unauthorised")) => Forbidden()
-          case Left(error)                                      => InternalServerError(error.toString)
-        }
-      // TODO Remove scheduled job (make sure job validates state before deletion)
+        canAuthedUserRestoreAccount(authed, uuid)
+          .ifM(
+            ifTrue = doRestoreAccount(uuid),
+            ifFalse = ActivateAccountError.Other.asLeft.pure[Txn]
+          )
+          .commit()
+          .flatMap {
+            case Right(_)                   => NoContent()
+            case Left(AccountAlreadyActive) => NoContent()
+            case _                          => Forbidden()
+          }
     }
 
   private def canAuthedUserMarkAccountForDeletion(authenticated: User, accountForDeletionId: UserId): Txn[Boolean] =
@@ -73,13 +71,18 @@ class UsersRoutes[F[_]: Concurrent, Txn[_]: Sync](
       accessControl.canAccess(authenticated.uuid, accountForDeletionId)
     ).mapN(_ && _)
 
-  private def doMarkForDeletion(userId: UserId): Txn[ScheduledAccountDeletion] =
-    store
-      .markForDeletion(userId, delayUntilPermanentDeletion)
-      .flatTap { _ => accessControl.revokeContextualAccess(userId, userId) }
+  private def doMarkForDeletion(userId: UserId): Txn[Either[SoftDeleteAccountError, ScheduledAccountDeletion]] =
+    store.markForDeletion(userId, delayUntilPermanentDeletion).flatTap { outcome =>
+      accessControl.revokeContextualAccess(userId, userId).whenA(outcome.isRight)
+    }
 
-  private def canRestoreAccount(authenticated: User, accountToBeRestoredId: UserId): Txn[Boolean] =
+  private def canAuthedUserRestoreAccount(authenticated: User, accountToBeRestoredId: UserId): Txn[Boolean] =
     accessControl.canAccess(authenticated.uuid, accountToBeRestoredId)
+
+  private def doRestoreAccount(accountToBeRestoredId: UserId): Txn[Either[ActivateAccountError, Account]] =
+    store.restoreAccount(accountToBeRestoredId).flatTap { outcome =>
+      accessControl.grantAccess(accountToBeRestoredId, accountToBeRestoredId, Owner).whenA(outcome.isRight)
+    }
 
 private[http] object UsersRoutes:
   object UserIdVar:

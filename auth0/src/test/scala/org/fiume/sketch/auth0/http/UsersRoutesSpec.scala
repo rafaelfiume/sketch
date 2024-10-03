@@ -39,73 +39,88 @@ class UsersRoutesSpec
     with UsersRoutesSpecContext
     with ShrinkLowPriority:
 
-  test("marks user for deletion") {
-    forAllF { (user: UserCredentials) =>
+  test("only the owner or an Admin can mark an account for deletion") {
+    forAllF { (owner: UserCredentials, admin: UserCredentials, isAdminMarkingForDeletion: Boolean) =>
       val deletedAt = Instant.now()
       val permantDeletionDelay = 1.second
       for
         store <- makeEmptyUsersStore(makeFrozenClock(deletedAt), permantDeletionDelay)
         accessControl <- makeAccessControl()
-        userId <- store.createAccount(user).flatTap { id => accessControl.grantAccess(id, id, Owner) }
-        request = DELETE(Uri.unsafeFromString(s"/users/${userId.value}"))
-        authMiddleware = makeAuthMiddleware(authenticated = User(userId, user.username))
+        ownerId <- store.createAccount(owner).flatTap { id => accessControl.grantAccess(id, id, Owner) }
+        adminId <- store.createAccount(admin).flatTap { id => accessControl.grantGlobalAccess(id, GlobalRole.Admin) }
+        request = DELETE(Uri.unsafeFromString(s"/users/${ownerId.value}"))
+        authMiddleware = makeAuthMiddleware(authenticated =
+          if isAdminMarkingForDeletion then User(ownerId, owner.username) else User(adminId, admin.username)
+        )
         usersRoutes = new UsersRoutes[IO, IO](authMiddleware, accessControl, store, delayUntilPermanentDeletion)
 
         result <- send(request)
           .to(usersRoutes.router())
 //
           .expectJsonResponseWith[ScheduledForPermanentDeletionResponse](Status.Ok)
-        account <- store.fetchAccount(userId).map(_.someOrFail)
-        grantRemoved <- accessControl.canAccess(userId, userId).map(!_)
+        account <- store.fetchAccount(ownerId).map(_.someOrFail)
+        grantRemoved <- accessControl.canAccess(ownerId, ownerId).map(!_)
       yield
         assert(!account.isActive)
         assert(grantRemoved)
         assertEquals(
           result,
-          ScheduledForPermanentDeletionResponse(userId, deletedAt.plusSeconds(permantDeletionDelay.toSeconds).truncatedTo(MILLIS))
+          ScheduledForPermanentDeletionResponse(
+            ownerId,
+            deletedAt.plusSeconds(permantDeletionDelay.toSeconds).truncatedTo(MILLIS)
+          )
         )
     }
   }
 
-  test("attempt to delete a non-existent account or with lack of permission results in 403") {
-    forAllF { (authedUser: UserCredentials, maybeAnotherUser: UserCredentials, anotherUserExists: Boolean) =>
-      for
-        store <- makeEmptyUsersStore()
-        accessControl <- makeAccessControl()
-        authedUserId <- store.createAccount(authedUser).flatTap { id => accessControl.grantAccess(id, id, Owner) }
-        anotherUserId <-
-          if anotherUserExists then
-            store.createAccount(maybeAnotherUser).flatTap { id => accessControl.grantAccess(id, id, Owner) }
-          else UserGens.userIds.sample.someOrFail.pure[IO]
-        authMiddleware = makeAuthMiddleware(authenticated = User(authedUserId, authedUser.username))
-        usersRoutes = new UsersRoutes[IO, IO](authMiddleware, accessControl, store, delayUntilPermanentDeletion)
-        request = DELETE(Uri.unsafeFromString(s"/users/${anotherUserId.value}"))
+  test("attempt to mark for deletion a non-existent account or with lack of permission results in 403") {
+    forAllF {
+      (authedUser: UserCredentials, maybeAnotherUser: UserCredentials, anotherUserExists: Boolean, isSuperuser: Boolean) =>
+        for
+          store <- makeEmptyUsersStore()
+          accessControl <- makeAccessControl()
+          authedUserId <- store.createAccount(authedUser).flatTap { id => accessControl.grantAccess(id, id, Owner) }
+          _ <- accessControl.grantGlobalAccess(authedUserId, GlobalRole.Superuser).whenA(isSuperuser)
+          anotherUserId <-
+            if anotherUserExists then
+              store.createAccount(maybeAnotherUser).flatTap { id => accessControl.grantAccess(id, id, Owner) }
+            else UserGens.userIds.sample.someOrFail.pure[IO]
+          authMiddleware = makeAuthMiddleware(authenticated = User(authedUserId, authedUser.username))
+          usersRoutes = new UsersRoutes[IO, IO](authMiddleware, accessControl, store, delayUntilPermanentDeletion)
+          request = DELETE(Uri.unsafeFromString(s"/users/${anotherUserId.value}"))
 
-        _ <- send(request)
-          .to(usersRoutes.router())
+          _ <- send(request)
+            .to(usersRoutes.router())
 //
-          .expectEmptyResponseWith(Status.Forbidden)
-      yield ()
+            .expectEmptyResponseWith(Status.Forbidden)
+        yield ()
     }
   }
 
   test("only users with Admin role can restore user accounts"):
-    forAllF { (authed: UserCredentials, userToBeRestored: Account, isActive: Boolean) =>
+    forAllF { (owner: UserCredentials, authed: UserCredentials) =>
       for
-        store <- makeUsersStoreForAccount(userToBeRestored.copy(state = Active(Instant.now())))
-        _ <- store.markForDeletion(userToBeRestored.uuid, 1.day).whenA(isActive)
+        store <- makeEmptyUsersStore()
         accessControl <- makeAccessControl()
+        userToBeRestoredId <- store.createAccount(owner).flatTap { id => accessControl.grantAccess(id, id, Owner) }
         authedId <- store.createAccount(authed).flatTap { id => accessControl.grantGlobalAccess(id, Admin) }
         authMiddleware = makeAuthMiddleware(authenticated = User(authedId, authed.username))
-        request = PUT(Uri.unsafeFromString(s"/users/${userToBeRestored.uuid.value}/restore"))
+        deleteRequest = DELETE(Uri.unsafeFromString(s"/users/${userToBeRestoredId.value}"))
+        restoreRequest = PUT(Uri.unsafeFromString(s"/users/${userToBeRestoredId.value}/restore"))
         usersRoutes = new UsersRoutes[IO, IO](authMiddleware, accessControl, store, delayUntilPermanentDeletion)
+        _ <- send(deleteRequest).to(usersRoutes.router()).expectJsonResponseWith[ScheduledForPermanentDeletionResponse](Status.Ok)
 
-        _ <- send(request).to(usersRoutes.router()).expectEmptyResponseWith(Status.NoContent)
-
+        _ <- send(restoreRequest).to(usersRoutes.router()).expectEmptyResponseWith(Status.NoContent)
         // idempotence
-        _ <- send(request).to(usersRoutes.router()).expectEmptyResponseWith(Status.NoContent)
-        account <- store.fetchAccount(userToBeRestored.uuid).map(_.someOrFail)
-      yield assert(account.isActive)
+        _ <- send(restoreRequest)
+          .to(usersRoutes.router())
+//
+          .expectEmptyResponseWith(Status.NoContent)
+        account <- store.fetchAccount(userToBeRestoredId).map(_.someOrFail)
+        userCanAccessHerAccount <- accessControl.canAccess(userToBeRestoredId, userToBeRestoredId)
+      yield
+        assert(account.isActive, clue = "account should be active after restore")
+        assert(userCanAccessHerAccount, clue = "user should be able to access her account after restore")
     }
 
   test("attempt to restore an account without permission results in 403"):

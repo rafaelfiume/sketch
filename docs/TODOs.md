@@ -1,10 +1,7 @@
 
 ### For the next Clean-up PR
 
-  * Write contract tests to conver all request and response payloads
-  * TODO Merge the following 3 tests?
   * TODO Make it return Either[MarkForDeletionError, ScheduledAccountDeletion]
-  * TODO Explore auto-derivation?
 
 ### Missing steps:
 

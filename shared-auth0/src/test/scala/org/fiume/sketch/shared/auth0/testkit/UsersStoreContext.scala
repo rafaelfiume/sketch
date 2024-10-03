@@ -2,7 +2,6 @@ package org.fiume.sketch.shared.auth0.testkit
 
 import cats.effect.{IO, Ref}
 import cats.effect.kernel.Clock
-import cats.implicits.*
 import org.fiume.sketch.shared.auth0.algebras.UsersStore
 import org.fiume.sketch.shared.auth0.domain.{Account, AccountState, User, UserId}
 import org.fiume.sketch.shared.auth0.domain.Passwords.HashedPassword
@@ -85,36 +84,13 @@ trait UsersStoreContext:
 
         override def fetchAccount(username: Username): IO[Option[Account]] = storage.get.map(_.getAccount(username))
 
-        override def activateAccount(userId: UserId): IO[Unit] =
-          clock.realTimeInstant.flatMap { now =>
-            storage.update { state =>
-              // TODO There seems to be quite a lot of state machine logic in here. Also see softDeleteAccount
-              val updatedAccount = state.accounts.updatedWith(userId) {
-                case Some(account) if !account.isActive => account.copy(state = AccountState.Active(now)).some
-                case unexpected => throw new AssertionError(s"expected inactive account to exist; got $unexpected")
-              }
-              State(updatedAccount, state.scheduledDeletions)
-            }
-          }
-
         override def updatePassword(userId: UserId, newPassword: HashedPassword): IO[Unit] = ???
 
         override def delete(userId: UserId): IO[Unit] = storage.update { _.--(userId) }.void
 
-        override protected def softDeleteAccount(userId: UserId): IO[Instant] =
-          clock.realTimeInstant.flatMap { deletedAt =>
-            storage
-              .update { state =>
-                val updatedAccount = state.accounts.updatedWith(userId) {
-                  case Some(account) =>
-                    val softDeation = AccountState.SoftDeleted(deletedAt)
-                    account.copy(state = softDeation).some
-                  case None => none
-                }
-                State(updatedAccount, state.scheduledDeletions)
-              }
-              .as(deletedAt)
-          }
+        override def claimNextJob(): IO[Option[ScheduledAccountDeletion]] = ???
+
+        override protected def updateAccount(account: Account): IO[Unit] = storage.update { _.++(account) }.void
 
         override protected def schedulePermanentDeletion(
           userId: UserId,
@@ -134,7 +110,7 @@ trait UsersStoreContext:
         override protected def unschedulePermanentDeletion(uuid: UserId): IO[Unit] =
           storage.update { _.---(uuid) }.void
 
-        override def claimNextJob(): IO[Option[ScheduledAccountDeletion]] = ???
+        override protected def getNow(): IO[Instant] = clock.realTimeInstant
 
         override val lift: [A] => IO[A] => IO[A] = [A] => (action: IO[A]) => action
 

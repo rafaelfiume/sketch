@@ -1,8 +1,7 @@
 package org.fiume.sketch.auth0.scripts
 
 import cats.data.{EitherNec, Validated}
-import cats.effect.{ExitCode, IO, IOApp}
-import cats.effect.kernel.Clock
+import cats.effect.{Clock, ExitCode, IO, IOApp}
 import cats.effect.std.Console
 import cats.implicits.*
 import doobie.ConnectionIO

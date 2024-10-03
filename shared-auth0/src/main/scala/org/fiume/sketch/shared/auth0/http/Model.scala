@@ -29,6 +29,6 @@ object Model:
     import io.circe.generic.semiauto.*
 
     given Encoder[LoginRequestPayload] = deriveEncoder
-    given Decoder[LoginRequestPayload] = deriveDecoder /// ?????
+    given Decoder[LoginRequestPayload] = deriveDecoder
     given Encoder[LoginResponsePayload] = deriveEncoder
-    given Decoder[LoginResponsePayload] = deriveDecoder /// ?????
+    given Decoder[LoginResponsePayload] = deriveDecoder
