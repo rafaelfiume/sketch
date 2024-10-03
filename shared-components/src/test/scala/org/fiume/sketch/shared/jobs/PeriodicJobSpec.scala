@@ -25,7 +25,7 @@ class PeriodicJobSpec extends CatsEffectSuite with JobErrorHandlerContext:
       (jobsCounter, brokenJob) <- makeBrokenJob()
       jobErrorTracker <- makeJobErrorTracker()
       period = 50.millis
-      pipelineDuration = 190.millis
+      pipelineDuration = 180.millis // this test can be sucesptible to timing issues
 
       // when
       result <- PeriodicJob
