@@ -89,7 +89,7 @@ trait DocumentsSpecContext extends Http4sClientContext with FileContentContext:
 
   // TODO Duplicated see load test
   def payload(name: String, description: String): IO[String] =
-    stringFrom[IO]("domain/document/metadata.request.json")
+    stringFrom[IO]("domain/documents/get.metadata.request.json")
       .map { json =>
         json
           .replace("SuCJzND", name)

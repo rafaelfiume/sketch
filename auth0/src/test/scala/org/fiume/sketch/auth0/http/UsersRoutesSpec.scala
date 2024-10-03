@@ -143,7 +143,7 @@ class UsersRoutesSpec
 
   test("ScheduledForPermanentDeletionResponse encode and decode form a bijective relationship"):
     assertBijectiveRelationshipBetweenEncoderAndDecoder[ScheduledForPermanentDeletionResponse](
-      "auth0/user/scheduled.deletion.response.json"
+      "auth0/users/delete.response.json"
     )
 
 trait UsersRoutesSpecContext:

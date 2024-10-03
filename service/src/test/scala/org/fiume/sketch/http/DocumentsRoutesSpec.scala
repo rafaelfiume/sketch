@@ -221,19 +221,20 @@ class DocumentsRoutesSpec
 //
       yield
         assertEquals(result.message, SemanticInputError.message)
-        assertEquals(result.details.someOrFail.tips,
-                     Map("malformed.document.metadata.payload" -> "the metadata payload does not meet the contract")
+        assertEquals(
+          result.details.someOrFail.tips,
+          Map("malformed.document.metadata.payload" -> "the metadata payload does not meet the contract")
         )
     }
 
   test("MetadataRequestPayload encode and decode form a bijective relationship"):
-    assertBijectiveRelationshipBetweenEncoderAndDecoder[MetadataRequestPayload]("domain/document/metadata.request.json")
+    assertBijectiveRelationshipBetweenEncoderAndDecoder[MetadataRequestPayload]("domain/documents/get.metadata.request.json")
 
   test("DocumentResponsePayload encode and decode form a bijective relationship"):
-    assertBijectiveRelationshipBetweenEncoderAndDecoder[DocumentResponsePayload]("domain/document/response.json")
+    assertBijectiveRelationshipBetweenEncoderAndDecoder[DocumentResponsePayload]("domain/documents/get.metadata.response.json")
 
   test("DocumentIdResponsePayload encode and decode form a bijective relationship"):
-    assertBijectiveRelationshipBetweenEncoderAndDecoder[DocumentIdResponsePayload]("domain/document/uuid.response.json")
+    assertBijectiveRelationshipBetweenEncoderAndDecoder[DocumentIdResponsePayload]("domain/documents/post.response.json")
 
   test("validation accumulates") {
     /* Also see `given accumulatingParallel: cats.Parallel[EitherT[IO, String, *]] = EitherT.accumulatingParallel` */

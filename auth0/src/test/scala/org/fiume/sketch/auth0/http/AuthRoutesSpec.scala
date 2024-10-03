@@ -146,10 +146,10 @@ class AuthRoutesSpec
     }
 
   test("LoginRequestPayload encode and decode form a bijective relationship"):
-    assertBijectiveRelationshipBetweenEncoderAndDecoder[LoginRequestPayload]("auth0/login/request.json")
+    assertBijectiveRelationshipBetweenEncoderAndDecoder[LoginRequestPayload]("auth0/login/post.request.json")
 
   test("LoginResponsePayload encode and decode form a bijective relationship"):
-    assertBijectiveRelationshipBetweenEncoderAndDecoder[LoginResponsePayload]("auth0/login/response.json")
+    assertBijectiveRelationshipBetweenEncoderAndDecoder[LoginResponsePayload]("auth0/login/post.response.json")
 
 trait AuthRoutesSpecContext:
   extension (loginRequest: LoginRequestPayload)
