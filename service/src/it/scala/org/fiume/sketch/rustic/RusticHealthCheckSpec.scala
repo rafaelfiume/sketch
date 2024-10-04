@@ -7,9 +7,8 @@ import munit.Assertions.*
 import munit.CatsEffectSuite
 import org.fiume.sketch.shared.app.ServiceStatus.{DependencyStatus, Status}
 import org.fiume.sketch.shared.app.ServiceStatus.Dependency.*
-import org.fiume.sketch.shared.testkit.FileContentContext
+import org.fiume.sketch.shared.testkit.{FileContentContext, HttpServiceContext}
 import org.fiume.sketch.shared.testkit.syntax.OptionSyntax.*
-import org.fiume.sketch.testkit.HttpServiceContext
 import org.http4s.*
 import org.http4s.circe.CirceEntityEncoder.*
 import org.http4s.dsl.io.*

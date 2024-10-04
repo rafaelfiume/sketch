@@ -7,11 +7,11 @@ import org.fiume.sketch.shared.auth0.domain.JwtToken
 import org.fiume.sketch.shared.auth0.http.HttpAuth0Client
 import org.fiume.sketch.shared.auth0.testkit.PasswordsGens.*
 import org.fiume.sketch.shared.auth0.testkit.UserGens.*
+import org.fiume.sketch.shared.testkit.Http4sClientContext
 import org.fiume.sketch.shared.testkit.syntax.EitherSyntax.*
 import org.fiume.sketch.shared.testkit.syntax.OptionSyntax.*
 import org.http4s.Uri
 import org.scalacheck.Gen
-import org.fiume.sketch.shared.testkit.Http4sClientContext
 
 trait AccountSetUpAndLoginContext extends Http4sClientContext:
 

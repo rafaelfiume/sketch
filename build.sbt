@@ -206,6 +206,7 @@ lazy val sharedTestComponents =
          Dependency.fs2Io,
          Dependency.http4sCirce,
          Dependency.http4sEmberClient,
+         Dependency.http4sEmberServer,
          Dependency.log4catsSlf4j,
          Dependency.munit,
          Dependency.munitScalaCheck

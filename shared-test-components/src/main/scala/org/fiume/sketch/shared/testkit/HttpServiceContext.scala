@@ -1,4 +1,4 @@
-package org.fiume.sketch.testkit
+package org.fiume.sketch.shared.testkit
 
 import cats.effect.*
 import com.comcast.ip4s.*

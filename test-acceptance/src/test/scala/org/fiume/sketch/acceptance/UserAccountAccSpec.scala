@@ -2,12 +2,12 @@ package org.fiume.sketch.acceptance
 
 import cats.effect.IO
 import munit.CatsEffectSuite
-import org.fiume.sketch.shared.testkit.Http4sClientContext
 import org.fiume.sketch.auth0.scripts.UsersScript
 import org.fiume.sketch.auth0.scripts.UsersScript.Args
 import org.fiume.sketch.shared.auth0.http.HttpAuth0Client
 import org.fiume.sketch.shared.auth0.testkit.PasswordsGens.*
 import org.fiume.sketch.shared.auth0.testkit.UserGens.*
+import org.fiume.sketch.shared.testkit.Http4sClientContext
 import org.fiume.sketch.shared.testkit.syntax.EitherSyntax.*
 import org.fiume.sketch.shared.testkit.syntax.OptionSyntax.*
 import org.http4s.Uri
