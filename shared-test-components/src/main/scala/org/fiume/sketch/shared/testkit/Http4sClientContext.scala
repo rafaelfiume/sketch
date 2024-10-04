@@ -1,4 +1,4 @@
-package org.fiume.sketch.acceptance.testkit
+package org.fiume.sketch.shared.testkit
 
 import cats.effect.IO
 import org.http4s.{Request, Uri}

@@ -205,6 +205,8 @@ lazy val sharedTestComponents =
          Dependency.fs2Core,
          Dependency.fs2Io,
          Dependency.http4sCirce,
+         Dependency.http4sEmberClient,
+         Dependency.log4catsSlf4j,
          Dependency.munit,
          Dependency.munitScalaCheck
        )
@@ -272,7 +274,6 @@ lazy val testAcceptance =
          Dependency.catsEffect % Test,
          Dependency.circeCore % Test,
          Dependency.http4sCirce % Test,
-         Dependency.http4sEmberClient % Test,
          Dependency.gatlingHighcharts % Test,
          Dependency.gatlingTestFramework % Test,
          Dependency.logstashLogbackEncoder % Test,
