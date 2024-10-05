@@ -1,4 +1,4 @@
-package org.fiume.sketch.acceptance
+package org.fiume.sketch.acceptance.auth0
 
 import cats.effect.IO
 import munit.CatsEffectSuite
@@ -12,7 +12,7 @@ import org.fiume.sketch.shared.testkit.syntax.EitherSyntax.*
 import org.fiume.sketch.shared.testkit.syntax.OptionSyntax.*
 import org.http4s.Uri
 
-class UserAccountAccSpec extends CatsEffectSuite with Http4sClientContext:
+class UserAccountsManagementAccSpec extends CatsEffectSuite with Http4sClientContext:
 
   private val baseUri = Uri.unsafeFromString("http://localhost:8080")
 

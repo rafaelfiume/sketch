@@ -4,7 +4,7 @@ import munit.Assertions.*
 import munit.CatsEffectSuite
 import org.fiume.sketch.shared.testkit.Http4sClientContext
 
-class BaselineSpec extends CatsEffectSuite with Http4sClientContext:
+class BaselineAccSpec extends CatsEffectSuite with Http4sClientContext:
 
   test("ping returns pong"):
     withHttp { client =>
