@@ -4,7 +4,7 @@ import cats.effect.IO
 import org.fiume.sketch.auth0.scripts.UsersScript
 import org.fiume.sketch.auth0.scripts.UsersScript.Args
 import org.fiume.sketch.shared.auth0.domain.JwtToken
-import org.fiume.sketch.shared.auth0.http.HttpAuth0Client
+import org.fiume.sketch.shared.auth0.http.HttpAuthClient
 import org.fiume.sketch.shared.auth0.testkit.PasswordsGens.*
 import org.fiume.sketch.shared.auth0.testkit.UserGens.*
 import org.fiume.sketch.shared.testkit.Http4sClientContext
@@ -26,6 +26,6 @@ trait AccountSetUpAndLoginContext extends Http4sClientContext:
       script <- UsersScript.makeScript()
       _ <- script.createUserAccount(Args(username, password, isSuperuser = false))
       jwt <- withHttp { http =>
-        HttpAuth0Client.make(http, baseUri).login(username, password)
+        HttpAuthClient.make(http, baseUri).login(username, password)
       }
     yield jwt.rightOrFail

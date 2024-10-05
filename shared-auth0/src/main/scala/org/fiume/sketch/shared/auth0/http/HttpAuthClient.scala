@@ -16,11 +16,11 @@ import org.http4s.circe.CirceEntityEncoder.*
 import org.http4s.client.*
 import org.http4s.headers.Authorization
 
-object HttpAuth0Client:
-  def make[F[_]: Async](client: Client[F], baseUri: Uri): HttpAuth0Client[F] = new HttpAuth0Client(client, baseUri)
+object HttpAuthClient:
+  def make[F[_]: Async](client: Client[F], baseUri: Uri): HttpAuthClient[F] = new HttpAuthClient(client, baseUri)
 
 // TODO Refine error handling
-class HttpAuth0Client[F[_]: Async] private (client: Client[F], baseUri: Uri):
+class HttpAuthClient[F[_]: Async] private (client: Client[F], baseUri: Uri):
 
   // Pending: perhaps return an AuthenticatedUser type?
   def login(username: Username, password: PlainPassword): F[Either[String, JwtToken]] =

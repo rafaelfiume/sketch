@@ -4,7 +4,7 @@ import cats.effect.IO
 import munit.CatsEffectSuite
 import org.fiume.sketch.auth0.scripts.UsersScript
 import org.fiume.sketch.auth0.scripts.UsersScript.Args
-import org.fiume.sketch.shared.auth0.http.HttpAuth0Client
+import org.fiume.sketch.shared.auth0.http.HttpAuthClient
 import org.fiume.sketch.shared.auth0.testkit.PasswordsGens.*
 import org.fiume.sketch.shared.auth0.testkit.UserGens.*
 import org.fiume.sketch.shared.testkit.Http4sClientContext
@@ -22,7 +22,7 @@ class UserAccountAccSpec extends CatsEffectSuite with Http4sClientContext:
     withHttp { http =>
       for
         userId <- UsersScript.makeScript().flatMap { _.createUserAccount(Args(username, password, isSuperuser = false)) }
-        client = HttpAuth0Client.make(http, baseUri)
+        client = HttpAuthClient.make(http, baseUri)
         jwt <- client.login(username, password).map(_.rightOrFail)
 
         _ <- client.markAccountForDeletion(userId, jwt)
