@@ -1,4 +1,4 @@
-package org.fiume.sketch.acceptance
+package org.fiume.sketch.acceptance.domain
 
 import cats.effect.IO
 import io.circe.Json
