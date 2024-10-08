@@ -25,7 +25,7 @@ class UserAccountsManagementAccSpec extends CatsEffectSuite with Http4sClientCon
         client = HttpAuthClient.make(http, baseUri)
         jwt <- client.login(username, password).map(_.rightOrFail)
 
-        _ <- client.markAccountForDeletion(userId, jwt)
+        result <- client.markAccountForDeletion(userId, jwt).map(_.rightOrFail)
 
         unauthorised <- client.login(username, password)
       yield unauthorised.leftOrFail
