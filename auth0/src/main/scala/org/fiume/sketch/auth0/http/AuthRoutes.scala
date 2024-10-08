@@ -6,8 +6,8 @@ import org.fiume.sketch.auth0.Authenticator
 import org.fiume.sketch.shared.app.troubleshooting.ErrorInfo
 import org.fiume.sketch.shared.app.troubleshooting.ErrorInfo.ErrorMessage
 import org.fiume.sketch.shared.app.troubleshooting.ErrorInfo.json.given
-import org.fiume.sketch.shared.auth0.http.Model.{LoginRequestPayload, LoginResponsePayload}
-import org.fiume.sketch.shared.auth0.http.Model.json.given
+import org.fiume.sketch.shared.auth0.http.model.Login.{LoginRequestPayload, LoginResponsePayload}
+import org.fiume.sketch.shared.auth0.http.model.Login.json.given
 import org.http4s.{Challenge, HttpRoutes, Response, Status}
 import org.http4s.circe.CirceEntityDecoder.*
 import org.http4s.circe.CirceEntityEncoder.*

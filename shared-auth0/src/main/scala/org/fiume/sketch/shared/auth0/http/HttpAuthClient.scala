@@ -5,8 +5,8 @@ import cats.implicits.*
 import org.fiume.sketch.shared.auth0.domain.{JwtToken, UserId}
 import org.fiume.sketch.shared.auth0.domain.Passwords.PlainPassword
 import org.fiume.sketch.shared.auth0.domain.User.Username
-import org.fiume.sketch.shared.auth0.http.Model.{LoginRequestPayload, LoginResponsePayload}
-import org.fiume.sketch.shared.auth0.http.Model.json.given
+import org.fiume.sketch.shared.auth0.http.model.Login.{LoginRequestPayload, LoginResponsePayload}
+import org.fiume.sketch.shared.auth0.http.model.Login.json.given
 import org.http4s.{Request, Uri}
 import org.http4s.Method.*
 import org.http4s.Status.*

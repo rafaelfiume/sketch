@@ -14,8 +14,8 @@ import org.fiume.sketch.shared.auth0.domain.Passwords.PlainPassword.WeakPassword
 import org.fiume.sketch.shared.auth0.domain.User
 import org.fiume.sketch.shared.auth0.domain.User.Username
 import org.fiume.sketch.shared.auth0.domain.User.Username.WeakUsernameError
-import org.fiume.sketch.shared.auth0.http.Model.{LoginRequestPayload, LoginResponsePayload}
-import org.fiume.sketch.shared.auth0.http.Model.json.given
+import org.fiume.sketch.shared.auth0.http.model.Login.{LoginRequestPayload, LoginResponsePayload}
+import org.fiume.sketch.shared.auth0.http.model.Login.json.given
 import org.fiume.sketch.shared.auth0.testkit.JwtTokenGens.jwtTokens
 import org.fiume.sketch.shared.auth0.testkit.PasswordsGens.*
 import org.fiume.sketch.shared.auth0.testkit.UserGens.*

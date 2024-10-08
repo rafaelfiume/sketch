@@ -1,4 +1,4 @@
-package org.fiume.sketch.shared.auth0.http
+package org.fiume.sketch.shared.auth0.http.model
 
 import cats.effect.Async
 import cats.implicits.*
@@ -9,7 +9,7 @@ import org.fiume.sketch.shared.auth0.domain.Passwords.PlainPassword
 import org.fiume.sketch.shared.auth0.domain.User.Username
 import org.http4s.circe.CirceEntityEncoder.*
 
-object Model:
+object Login:
   case class LoginRequestPayload(username: String, password: String)
   case class LoginResponsePayload(token: String)
 
