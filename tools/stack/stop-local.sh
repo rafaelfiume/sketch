@@ -51,7 +51,7 @@ main() {
   load_env_vars "$environments_dir" dev
 
   info "Stopping sketch stack containers..."
-  run_command "docker-compose -f "$docker_compose_yml" stop >&2"
+  run_command "docker compose -f "$docker_compose_yml" stop"
   info "Services have stopped successfully. Have a good day!"
 }
 
