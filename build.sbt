@@ -138,6 +138,10 @@ lazy val sharedAuth0 =
     .dependsOn(sharedTestComponents % Test)
     .disablePlugins(plugins.JUnitXmlReportPlugin)
     .settings(commonSettings: _*)
+    .configs(IntegrationTests)
+    .settings(
+      inConfig(IntegrationTests)(Defaults.testSettings ++ scalafixConfigSettings(IntegrationTests))
+    )
     .settings(
       name := "shared-auth0",
       libraryDependencies ++= Seq(

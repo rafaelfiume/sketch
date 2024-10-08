@@ -17,6 +17,7 @@ import org.typelevel.log4cats.slf4j.Slf4jFactory
 object RusticHealthCheck:
   given [F[_]: Sync]: LoggerFactory[F] = Slf4jFactory.create[F]
 
+  // TODO Change make to take a client as parameter
   def make[F[_]: Async: Network](config: RusticClientConfig): Resource[F, RusticHealthCheck[F]] =
     EmberClientBuilder.default[F].build.map(new RusticHealthCheck(config, _))
 

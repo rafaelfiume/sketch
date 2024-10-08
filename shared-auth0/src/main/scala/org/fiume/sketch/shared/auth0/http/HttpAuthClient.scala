@@ -17,6 +17,7 @@ import org.http4s.client.*
 import org.http4s.headers.Authorization
 
 object HttpAuthClient:
+  // TODO Pass a config to the client
   def make[F[_]: Async](client: Client[F], baseUri: Uri): HttpAuthClient[F] = new HttpAuthClient(client, baseUri)
 
 // TODO Refine error handling
@@ -32,10 +33,7 @@ class HttpAuthClient[F[_]: Async] private (client: Client[F], baseUri: Uri):
     client.run(request).use { response =>
       response.status match
         case Ok =>
-          response.as[LoginResponsePayload].attempt.map {
-            case Right(payload) => Right(JwtToken.makeUnsafeFromString(payload.token))
-            case Left(_)        => Left("Failed to decode JWT")
-          }
+          response.as[LoginResponsePayload].map(payload => JwtToken.makeUnsafeFromString(payload.token).asRight)
         case Unauthorized => Left("Invalid username or password").pure[F]
         case status       => Left(s"Unexpected error: $status").pure[F]
     }

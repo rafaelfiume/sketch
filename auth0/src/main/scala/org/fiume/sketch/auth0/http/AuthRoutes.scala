@@ -4,8 +4,8 @@ import cats.effect.Async
 import cats.implicits.*
 import org.fiume.sketch.auth0.Authenticator
 import org.fiume.sketch.shared.app.troubleshooting.ErrorInfo
-import org.fiume.sketch.shared.app.troubleshooting.ErrorInfo.ErrorMessage
 import org.fiume.sketch.shared.app.troubleshooting.ErrorInfo.json.given
+import org.fiume.sketch.shared.auth0.http.model
 import org.fiume.sketch.shared.auth0.http.model.Login.{LoginRequestPayload, LoginResponsePayload}
 import org.fiume.sketch.shared.auth0.http.model.Login.json.given
 import org.http4s.{Challenge, HttpRoutes, Response, Status}
@@ -36,10 +36,7 @@ class AuthRoutes[F[_]: Async](authenticator: Authenticator[F]) extends Http4sDsl
             Response[F](status = Status.Unauthorized)
               .putHeaders(`WWW-Authenticate`(Challenge("Bearer", "Authentication Service")))
               .withEntity(
-                ErrorInfo.make(
-                  // always the same error message for security reasons
-                  ErrorMessage("The username or password provided is incorrect.")
-                )
+                model.Login.Error.failToLogin()
               )
               .pure[F]
       yield resp

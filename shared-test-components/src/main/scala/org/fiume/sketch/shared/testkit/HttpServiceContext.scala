@@ -10,9 +10,9 @@ import org.typelevel.log4cats.LoggerFactory
 import org.typelevel.log4cats.slf4j.Slf4jFactory
 
 trait HttpServiceContext:
-  given LoggerFactory[IO] = Slf4jFactory.create[IO]
 
   def makeServer(port: Port)(httpApp: HttpRoutes[IO]): Resource[IO, Server] =
+    given LoggerFactory[IO] = Slf4jFactory.create[IO]
     EmberServerBuilder
       .default[IO]
       .withHost(ipv4"0.0.0.0")

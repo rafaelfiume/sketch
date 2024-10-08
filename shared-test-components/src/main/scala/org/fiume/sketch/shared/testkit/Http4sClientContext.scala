@@ -1,6 +1,6 @@
 package org.fiume.sketch.shared.testkit
 
-import cats.effect.IO
+import cats.effect.{IO, Resource}
 import org.http4s.{Request, Uri}
 import org.http4s.Method.*
 import org.http4s.client.*
@@ -13,18 +13,21 @@ import org.typelevel.log4cats.slf4j.Slf4jFactory
 import scala.concurrent.duration.*
 
 trait Http4sClientContext:
-  given LoggerFactory[IO] = Slf4jFactory.create[IO]
-  def withHttp[A](exec: Client[IO] => IO[A]): IO[A] = EmberClientBuilder
-    .default[IO]
-    .build
-    .map { retry(_) }
-    .use { exec(_) }
 
-  private def retry = Retry[IO](
-    policy = RetryPolicy(
-      RetryPolicy.exponentialBackoff(maxWait = 2.second, maxRetry = 30)
+  def withHttp[A](exec: Client[IO] => IO[A]): IO[A] =
+    given LoggerFactory[IO] = Slf4jFactory.create[IO]
+    def retry = Retry[IO](
+      policy = RetryPolicy(
+        RetryPolicy.exponentialBackoff(maxWait = 2.second, maxRetry = 30)
+      )
     )
-  )
+    makeHttpClient()
+      .map { retry(_) }
+      .use { exec(_) }
+
+  def makeHttpClient(): Resource[IO, Client[IO]] =
+    given LoggerFactory[IO] = Slf4jFactory.create[IO]
+    EmberClientBuilder.default[IO].build
 
   extension (s: String)
     def get: Request[IO] = GET(s.toUri)
