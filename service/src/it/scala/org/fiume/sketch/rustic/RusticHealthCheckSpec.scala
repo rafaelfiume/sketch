@@ -26,7 +26,7 @@ class RusticHealthCheckSpec extends CatsEffectSuite with RusticHealthCheckSpecCo
   ).foreach { (label, statusResponse, expectedStatus) =>
     test(s"dependency status is $expectedStatus when rustic service is $label") {
       rusticStatusIs(statusResponse)
-        .flatMap { port => RusticHealthCheck.make[IO](config = RusticClientConfig(localhost, port)) }
+        .flatMap { port => RusticHealthCheck.make[IO](config = RusticClientConfig(host, port)) }
         .use { healthCheck =>
           for result <- healthCheck.check()
           yield assertEquals(result, DependencyStatus(rustic, expectedStatus))
@@ -36,7 +36,7 @@ class RusticHealthCheckSpec extends CatsEffectSuite with RusticHealthCheckSpecCo
 
   test("dependency status is Degraded when rustic service is Degraded"):
     rusticInDegradedState()
-      .flatMap { port => RusticHealthCheck.make[IO](config = RusticClientConfig(localhost, port)) }
+      .flatMap { port => RusticHealthCheck.make[IO](config = RusticClientConfig(host, port)) }
       .use { healthCheck =>
         for result <- healthCheck.check()
         yield assertEquals(result, DependencyStatus(rustic, Status.Degraded))
@@ -44,7 +44,7 @@ class RusticHealthCheckSpec extends CatsEffectSuite with RusticHealthCheckSpecCo
 
   test("dependency status is Degraded when rustic service is down"):
     RusticHealthCheck
-      .make[IO](config = RusticClientConfig(localhost, port"3030"))
+      .make[IO](config = RusticClientConfig(host, port"3030"))
       .use { healthCheck =>
         for result <- healthCheck.check()
         yield assertEquals(result, DependencyStatus(rustic, Status.Degraded))
@@ -54,7 +54,7 @@ trait RusticHealthCheckSpecContext extends FileContentContext with HttpServiceCo
   val healthy = "status/get.response.healthy.json"
   val faulty = "status/get.response.degraded.json"
 
-  val localhost = Host.fromString("localhost").getOrElse(throw new AssertionError("localhost is valid host"))
+  val host = Host.fromString("localhost").getOrElse(throw new AssertionError("localhost is valid host"))
 
   def rusticStatusIs(pathToResponsePayload: String): Resource[IO, Port] =
     for
