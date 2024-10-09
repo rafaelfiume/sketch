@@ -44,21 +44,16 @@ object Document:
     sealed abstract case class Name(value: String)
 
     object Name:
-      sealed trait InvalidDocumentNameError extends InvariantError
+      enum InvalidDocumentNameError(val uniqueCode: String, val message: String) extends InvariantError:
+        case TooShort extends InvalidDocumentNameError("document.name.too.short", s"must be at least $minLength characters long")
 
-      object InvalidDocumentNameError:
-        case object TooShort extends InvalidDocumentNameError:
-          override def uniqueCode: String = "document.name.too.short"
-          override val message: String = s"must be at least $minLength characters long"
+        case TooLong extends InvalidDocumentNameError("document.name.too.long", s"must be at most $maxLength characters long")
 
-        case object TooLong extends InvalidDocumentNameError:
-          override def uniqueCode: String = "document.name.too.long"
-          override val message: String = s"must be at most $maxLength characters long"
-
-        case object InvalidChar extends InvalidDocumentNameError:
-          override def uniqueCode: String = "document.name.invalid"
-          override val message: String =
-            "must only contain letters (a-z,A-Z), numbers (0-9), whitespace ( ), underscores (_) hyphens (-) and periods (.)"
+        case InvalidChar
+            extends InvalidDocumentNameError(
+              "document.name.invalid",
+              "must only contain letters (a-z,A-Z), numbers (0-9), whitespace ( ), underscores (_) hyphens (-) and periods (.)"
+            )
 
       val minLength = 4
       val maxLength = 64

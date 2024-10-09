@@ -13,10 +13,9 @@ import NewlineDelimitedJson.Linebreak
  * Consult https://jsonlines.org/ and see
  * `GET /documents` in DocumentsRoutes.scala for example usage.
  */
-sealed trait NewlineDelimitedJson
-object NewlineDelimitedJson:
-  case class Line(json: Json) extends NewlineDelimitedJson
-  case object Linebreak extends NewlineDelimitedJson
+enum NewlineDelimitedJson:
+  case Line(json: Json) extends NewlineDelimitedJson
+  case Linebreak extends NewlineDelimitedJson
 
 object NewlineDelimitedJsonEncoder:
   def make[F[_]: cats.Functor]: EntityEncoder[F, NewlineDelimitedJson] =

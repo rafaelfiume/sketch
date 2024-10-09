@@ -42,14 +42,12 @@ object AccountState:
 
 sealed trait AccountStateTransitionError extends Throwable with NoStackTrace
 
-sealed trait ActivateAccountError extends AccountStateTransitionError
-object ActivateAccountError:
-  case object AccountAlreadyActive extends ActivateAccountError
-  case object AccountNotFound extends ActivateAccountError
-  case object Other extends ActivateAccountError
+enum ActivateAccountError extends AccountStateTransitionError:
+  case AccountAlreadyActive
+  case AccountNotFound
+  case Other
 
-sealed trait SoftDeleteAccountError extends AccountStateTransitionError
-object SoftDeleteAccountError:
-  case object AccountAlreadyDeleted extends SoftDeleteAccountError
-  case object AccountNotFound extends SoftDeleteAccountError
-  case object Other extends SoftDeleteAccountError
+enum SoftDeleteAccountError extends AccountStateTransitionError:
+  case AccountAlreadyDeleted
+  case AccountNotFound
+  case Other

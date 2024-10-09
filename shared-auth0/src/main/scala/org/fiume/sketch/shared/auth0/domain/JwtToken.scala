@@ -10,15 +10,17 @@ case class JwtToken private (value: String) extends AnyVal
 object JwtToken:
   def makeUnsafeFromString(value: String): JwtToken = new JwtToken(value)
 
-sealed trait JwtError extends Throwable with NoStackTrace:
-  def details: String
-  override def toString(): String = this.show
+enum JwtError(val details: String) extends Throwable with NoStackTrace:
+  // TODO Rename to conform to standards, e.g ExpiredToken
+  case JwtExpirationError(override val details: String) extends JwtError(details)
+
+  case JwtEmptySignatureError(override val details: String) extends JwtError(details)
+
+  case JwtInvalidTokenError(override val details: String) extends JwtError(details)
+
+  case JwtValidationError(override val details: String) extends JwtError(details)
+
+  case JwtUnknownError(override val details: String) extends JwtError(details)
 
 object JwtError:
   given Show[JwtError] = Show.show(error => s"${error.getClass.getSimpleName}(${error.details})")
-
-  case class JwtExpirationError(details: String) extends JwtError // Rename to conform to standards, e.g ExpiredToken
-  case class JwtEmptySignatureError(details: String) extends JwtError
-  case class JwtInvalidTokenError(details: String) extends JwtError
-  case class JwtValidationError(details: String) extends JwtError
-  case class JwtUnknownError(details: String) extends JwtError
