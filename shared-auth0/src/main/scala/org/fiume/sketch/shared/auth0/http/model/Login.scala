@@ -32,13 +32,13 @@ object Login:
       SemanticInputError.make(ErrorCode("1000"), ErrorMessage("Invalid username or password"), errorDetails)
 
     def failToLogin(error: AuthenticationError): ErrorInfo =
-      def errorToCode() = error match
-        case UserNotFoundError        => ErrorCode("1001")
-        case InvalidPasswordError     => ErrorCode("1002")
-        case AccountNotActiveError(_) => ErrorCode("1003")
+      val errorCode = error match
+        case UserNotFoundError     => ErrorCode("1001")
+        case InvalidPasswordError  => ErrorCode("1002")
+        case AccountNotActiveError => ErrorCode("1003")
 
       ErrorInfo.make(
-        errorToCode(),
+        errorCode,
         ErrorMessage("Attempt to login failed")
       )
 

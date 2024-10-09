@@ -85,7 +85,7 @@ class AuthenticatorSpec
           authenticator <- Authenticator.make[IO, IO](makeFrozenClock(), store, privateKey, publicKey, expirationOffset)
           result <- authenticator.authenticate(credentials.username, plainPassword)
 //
-        yield assertEquals(result.leftOrFail, AccountNotActiveError.make(SoftDeleted(deletedAt)))
+        yield assertEquals(result.leftOrFail, AccountNotActiveError)
     }
 
   test("expired token verification fails"):

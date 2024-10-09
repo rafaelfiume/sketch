@@ -6,7 +6,7 @@ import com.comcast.ip4s.*
 import munit.{AnyFixture, CatsEffectSuite}
 import org.fiume.sketch.shared.app.troubleshooting.ErrorInfo.json.given
 import org.fiume.sketch.shared.auth0.domain.{AuthenticationError, JwtToken}
-import org.fiume.sketch.shared.auth0.domain.AuthenticationError.UserNotFoundError
+import org.fiume.sketch.shared.auth0.domain.AuthenticationError.*
 import org.fiume.sketch.shared.auth0.domain.Passwords.PlainPassword
 import org.fiume.sketch.shared.auth0.domain.User.Username
 import org.fiume.sketch.shared.auth0.http.model.Login.LoginRequestPayload
@@ -24,15 +24,34 @@ class HttpAuthClientSpec extends HttpAuthClientSpecContext:
 
   override def munitFixtures: Seq[AnyFixture[?]] = List(httpClient, serverWillReturnError)
 
-  test("login returns error when user account is not found"):
+  // table test
+  List(
+    // format: off
+    ("user account is not found" ,  "account.not.found",  UserNotFoundError),
+    ("password is invalid"       ,  "invalid.password",   InvalidPasswordError),
+    ("user account is not active",  "inactive.account",   AccountNotActiveError)
+    // format: on
+  ).foreach { (description, username, expectedError) =>
+    test(s"login returns error when $description"):
+      val port = serverWillReturnError()
+      val baseUri = Uri.unsafeFromString(s"http://localhost:$port")
+      val authClient = HttpAuthClient.make[IO](httpClient(), baseUri)
+
+      for result <- authClient.login(Username.makeUnsafeFromString(username), aPassword())
+//
+      yield assertEquals(result, expectedError.asLeft)
+  }
+
+  test("Internal Server Error causes the client to raise an exception"):
     val port = serverWillReturnError()
     val baseUri = Uri.unsafeFromString(s"http://localhost:$port")
     val authClient = HttpAuthClient.make[IO](httpClient(), baseUri)
-    val username = Username.makeUnsafeFromString("account.not.found")
 
-    for result <- authClient.login(username, aPassword())
-//
-    yield assertEquals(result, Left("Invalid username or password"))
+    /*
+     * Check out the implementation for details on the design decision on
+     * raising exception upon unexpect status code.
+     */
+    interceptIO[RuntimeException](authClient.login(aUsername(), aPassword()))
 
 trait HttpAuthClientSpecContext extends CatsEffectSuite with Http4sClientContext with HttpServiceContext:
   val httpClient = ResourceSuiteLocalFixture("httpClient", makeHttpClient())
@@ -58,8 +77,9 @@ trait HttpAuthClientSpecContext extends CatsEffectSuite with Http4sClientContext
 
     HttpRoutes.of[IO] { case req @ POST -> Root / "login" =>
       req.decode { (payload: LoginRequestPayload) =>
-        // TODO Semantically invalid username or password
         if payload.username == "account.not.found" then unauthorised(UserNotFoundError)
+        else if payload.username == "invalid.password" then unauthorised(InvalidPasswordError)
+        else if payload.username == "inactive.account" then unauthorised(AccountNotActiveError)
         else IO.pure(Response(Status.InternalServerError))
       }
     }

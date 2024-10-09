@@ -35,7 +35,7 @@ object Authenticator:
               UserNotFoundError.asLeft.pure[F]
 
             case Some(account) if !account.isActive =>
-              AccountNotActiveError.make(account.state).asLeft.pure[F]
+              AccountNotActiveError.asLeft.pure[F]
 
             case Some(account) =>
               HashedPassword

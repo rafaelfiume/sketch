@@ -2,7 +2,10 @@ package org.fiume.sketch.shared.auth0.http
 
 import cats.effect.Async
 import cats.implicits.*
-import org.fiume.sketch.shared.auth0.domain.{JwtToken, UserId}
+import org.fiume.sketch.shared.app.troubleshooting.ErrorInfo
+import org.fiume.sketch.shared.app.troubleshooting.ErrorInfo.json.given
+import org.fiume.sketch.shared.auth0.domain.{AuthenticationError, JwtToken, UserId}
+import org.fiume.sketch.shared.auth0.domain.AuthenticationError.*
 import org.fiume.sketch.shared.auth0.domain.Passwords.PlainPassword
 import org.fiume.sketch.shared.auth0.domain.User.Username
 import org.fiume.sketch.shared.auth0.http.model.Login.{LoginRequestPayload, LoginResponsePayload}
@@ -20,11 +23,9 @@ object HttpAuthClient:
   // TODO Pass a config to the client
   def make[F[_]: Async](client: Client[F], baseUri: Uri): HttpAuthClient[F] = new HttpAuthClient(client, baseUri)
 
-// TODO Refine error handling
 class HttpAuthClient[F[_]: Async] private (client: Client[F], baseUri: Uri):
 
-  // Pending: perhaps return an AuthenticatedUser type?
-  def login(username: Username, password: PlainPassword): F[Either[String, JwtToken]] =
+  def login(username: Username, password: PlainPassword): F[Either[AuthenticationError, JwtToken]] =
     val request = Request[F](
       method = POST,
       uri = baseUri / "login"
@@ -34,8 +35,21 @@ class HttpAuthClient[F[_]: Async] private (client: Client[F], baseUri: Uri):
       response.status match
         case Ok =>
           response.as[LoginResponsePayload].map(payload => JwtToken.makeUnsafeFromString(payload.token).asRight)
-        case Unauthorized => Left("Invalid username or password").pure[F]
-        case status       => Left(s"Unexpected error: $status").pure[F]
+        case Unauthorized =>
+          response.as[ErrorInfo].map { error =>
+            error.code.value match
+              case "1001" => UserNotFoundError.asLeft
+              case "1002" => InvalidPasswordError.asLeft
+              case "1003" => AccountNotActiveError.asLeft
+              case code   => throw new AssertionError(s"Unexpected error code: $code")
+          }
+        // This is a bit of an experimental design decision where:
+        // * The API returns the same AuthenticatorError used on the server-side in order to avoid yet another (view-like) error ADT
+        // * Unexpected results - like status code 5xx - cause an exception to be raised.
+        // In theory, this should provide clear and separated semantics for expected and unexpected errors
+        // at the cost of potentially lacking consistence on how error are handled
+        // (one might first think that the left side of the `Either` will provide _all_ possible errors that can happen).
+        case status => new RuntimeException(s"Unexpected error: $status").raiseError
     }
 
   def markAccountForDeletion(id: UserId, jwt: JwtToken): F[Either[String, Unit]] =
