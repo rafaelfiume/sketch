@@ -5,8 +5,8 @@ import cats.implicits.*
 import munit.{CatsEffectSuite, ScalaCheckEffectSuite}
 import munit.Assertions.*
 import org.fiume.sketch.auth0.testkit.AuthenticatorContext
-import org.fiume.sketch.shared.app.http4s.middlewares.{SemanticInputError, SemanticValidationMiddleware}
-import org.fiume.sketch.shared.app.troubleshooting.ErrorInfo
+import org.fiume.sketch.shared.app.http4s.middlewares.SemanticValidationMiddleware
+import org.fiume.sketch.shared.app.troubleshooting.{ErrorCode, ErrorInfo}
 import org.fiume.sketch.shared.app.troubleshooting.ErrorInfo.{ErrorDetails, ErrorMessage}
 import org.fiume.sketch.shared.app.troubleshooting.ErrorInfo.json.given
 import org.fiume.sketch.shared.auth0.domain.Passwords.PlainPassword
@@ -75,7 +75,8 @@ class AuthRoutesSpec
       yield assertEquals(
         result,
         ErrorInfo.make(
-          message = ErrorMessage("The username or password provided is incorrect.")
+          ErrorCode("1002"),
+          ErrorMessage("Attempt to login failed")
         )
       )
     }
@@ -99,7 +100,8 @@ class AuthRoutesSpec
       yield assertEquals(
         result,
         ErrorInfo.make(
-          message = ErrorMessage("The username or password provided is incorrect.")
+          ErrorCode("1001"),
+          ErrorMessage("Attempt to login failed")
         )
       )
     }
@@ -119,7 +121,8 @@ class AuthRoutesSpec
           .expectJsonResponseWith[ErrorInfo](Status.UnprocessableEntity)
 
         _ <- IO {
-          assertEquals(result.message, SemanticInputError.message)
+          assertEquals(result.code, ErrorCode("1000"))
+          assertEquals(result.message, ErrorMessage("Invalid username or password"))
           val allInputErrors = usernameInvariantErrors.map(_.uniqueCode) ++ plainPasswordInvariantErrors.map(_.uniqueCode)
           val actualInputErrors = result.details.someOrFail.tips.keys.toSet
           assert(actualInputErrors.subsetOf(allInputErrors),
@@ -141,7 +144,7 @@ class AuthRoutesSpec
 
 //
       yield
-        assertEquals(result.message, SemanticInputError.message)
+        assertEquals(result.message, ErrorMessage("The request body could not be processed"))
         assertEquals(result.details, ErrorDetails("input.semantic.error" -> "The request body was invalid.").some)
     }
 

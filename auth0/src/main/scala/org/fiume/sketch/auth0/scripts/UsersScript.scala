@@ -7,7 +7,7 @@ import cats.implicits.*
 import doobie.ConnectionIO
 import org.fiume.sketch.auth0.UsersManager
 import org.fiume.sketch.auth0.scripts.UsersScript.Args
-import org.fiume.sketch.shared.app.troubleshooting.{ErrorInfo, InvariantError}
+import org.fiume.sketch.shared.app.troubleshooting.{ErrorCode, ErrorInfo, InvariantError}
 import org.fiume.sketch.shared.app.troubleshooting.ErrorInfo.ErrorMessage
 import org.fiume.sketch.shared.app.troubleshooting.ErrorInfo.given
 import org.fiume.sketch.shared.app.troubleshooting.InvariantErrorSyntax.asDetails
@@ -43,9 +43,9 @@ object UsersScript extends IOApp:
             Args.validatedIsSuperuser(isSuperuser).leftMap(_.asDetails)
           )
             .parMapN((user, password, isSuperuser) => Args(user, password, isSuperuser))
-            .leftMap(details => ErrorInfo.make(ErrorMessage("Invalid parameters"), details))
+            .leftMap(details => ErrorInfo.make(ErrorCode("1100"), ErrorMessage("Invalid parameters"), details))
         case unknown =>
-          ErrorInfo.make(ErrorMessage(s"Invalid arguments: '$unknown'")).asLeft[Args]
+          ErrorInfo.make(ErrorCode("1100"), ErrorMessage(s"Invalid arguments: '$unknown'")).asLeft[Args]
 
     private case object InvalidSuperuserArg extends InvariantError:
       override val uniqueCode: String = "invalid.superuser.arg"

@@ -11,7 +11,8 @@ import org.fiume.sketch.http.DocumentsRoutes.Model.*
 import org.fiume.sketch.http.DocumentsRoutes.Model.json.given
 import org.fiume.sketch.shared.app.WithUuid
 import org.fiume.sketch.shared.app.http4s.middlewares.{SemanticInputError, SemanticValidationMiddleware}
-import org.fiume.sketch.shared.app.troubleshooting.ErrorInfo
+import org.fiume.sketch.shared.app.troubleshooting.{ErrorCode, ErrorInfo}
+import org.fiume.sketch.shared.app.troubleshooting.ErrorInfo.{ErrorDetails, ErrorMessage}
 import org.fiume.sketch.shared.app.troubleshooting.ErrorInfo.json.given
 import org.fiume.sketch.shared.auth0.domain.User
 import org.fiume.sketch.shared.auth0.testkit.AuthMiddlewareContext
@@ -197,7 +198,8 @@ class DocumentsRoutesSpec
           .expectJsonResponseWith[ErrorInfo](Status.UnprocessableEntity)
 //
       yield
-        assertEquals(result.message, SemanticInputError.message)
+        assertEquals(result.code, ErrorCode("9011"))
+        assertEquals(result.message, ErrorMessage("Input data doesn't meet the requirements"))
         assert(
           result.details.someOrFail.tips.keySet.subsetOf(
             Set("missing.document.metadata.part", "missing.document.bytes.part", "document.name.too.short")
@@ -219,12 +221,14 @@ class DocumentsRoutesSpec
           .to(SemanticValidationMiddleware(documentsRoutes.router()))
           .expectJsonResponseWith[ErrorInfo](Status.UnprocessableEntity)
 //
-      yield
-        assertEquals(result.message, SemanticInputError.message)
-        assertEquals(
-          result.details.someOrFail.tips,
-          Map("malformed.document.metadata.payload" -> "the metadata payload does not meet the contract")
+      yield assertEquals(
+        result,
+        ErrorInfo.make(
+          ErrorCode("9011"),
+          ErrorMessage("Input data doesn't meet the requirements"),
+          ErrorDetails("malformed.document.metadata.payload" -> "the metadata payload does not meet the contract")
         )
+      )
     }
 
   test("MetadataRequestPayload encode and decode form a bijective relationship"):

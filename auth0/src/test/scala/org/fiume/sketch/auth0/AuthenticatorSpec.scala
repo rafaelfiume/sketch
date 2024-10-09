@@ -3,10 +3,10 @@ package org.fiume.sketch.auth0
 import cats.effect.IO
 import munit.{CatsEffectSuite, ScalaCheckEffectSuite}
 import org.bouncycastle.jce.provider.BouncyCastleProvider
-import org.fiume.sketch.auth0.AuthenticationError.*
 import org.fiume.sketch.auth0.testkit.EcKeysGens
 import org.fiume.sketch.shared.auth0.domain.{Account, AccountState, JwtToken, User}
 import org.fiume.sketch.shared.auth0.domain.AccountState.SoftDeleted
+import org.fiume.sketch.shared.auth0.domain.AuthenticationError.*
 import org.fiume.sketch.shared.auth0.domain.JwtError.*
 import org.fiume.sketch.shared.auth0.domain.Passwords.PlainPassword
 import org.fiume.sketch.shared.auth0.domain.User.Username

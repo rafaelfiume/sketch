@@ -5,7 +5,8 @@ import cats.implicits.*
 import com.comcast.ip4s.*
 import munit.{AnyFixture, CatsEffectSuite}
 import org.fiume.sketch.shared.app.troubleshooting.ErrorInfo.json.given
-import org.fiume.sketch.shared.auth0.domain.JwtToken
+import org.fiume.sketch.shared.auth0.domain.{AuthenticationError, JwtToken}
+import org.fiume.sketch.shared.auth0.domain.AuthenticationError.UserNotFoundError
 import org.fiume.sketch.shared.auth0.domain.Passwords.PlainPassword
 import org.fiume.sketch.shared.auth0.domain.User.Username
 import org.fiume.sketch.shared.auth0.http.model.Login.LoginRequestPayload
@@ -29,8 +30,7 @@ class HttpAuthClientSpec extends HttpAuthClientSpecContext:
     val authClient = HttpAuthClient.make[IO](httpClient(), baseUri)
     val username = Username.makeUnsafeFromString("account.not.found")
 
-    for
-      result <- authClient.login(username, aPassword())
+    for result <- authClient.login(username, aPassword())
 //
     yield assertEquals(result, Left("Invalid username or password"))
 
@@ -48,17 +48,18 @@ trait HttpAuthClientSpecContext extends CatsEffectSuite with Http4sClientContext
     yield port
 
   private def route(): HttpRoutes[IO] =
-    def unauthorised() =
+    def unauthorised(error: AuthenticationError) =
       Response[IO](status = Status.Unauthorized)
         .putHeaders(`WWW-Authenticate`(Challenge("Bearer", "Authentication Service")))
         .withEntity(
-          model.Login.Error.failToLogin()
+          model.Login.Error.failToLogin(error)
         )
         .pure[IO]
 
     HttpRoutes.of[IO] { case req @ POST -> Root / "login" =>
       req.decode { (payload: LoginRequestPayload) =>
-        if payload.username == "account.not.found" then unauthorised()
+        // TODO Semantically invalid username or password
+        if payload.username == "account.not.found" then unauthorised(UserNotFoundError)
         else IO.pure(Response(Status.InternalServerError))
       }
     }

@@ -2,9 +2,9 @@ package org.fiume.sketch.auth0.testkit
 
 import cats.effect.IO
 import cats.implicits.*
-import org.fiume.sketch.auth0.{AuthenticationError, Authenticator}
-import org.fiume.sketch.auth0.AuthenticationError.*
-import org.fiume.sketch.shared.auth0.domain.{JwtError, JwtToken, User}
+import org.fiume.sketch.auth0.Authenticator
+import org.fiume.sketch.shared.auth0.domain.{AuthenticationError, JwtError, JwtToken, User}
+import org.fiume.sketch.shared.auth0.domain.AuthenticationError.*
 import org.fiume.sketch.shared.auth0.domain.Passwords.PlainPassword
 import org.fiume.sketch.shared.auth0.domain.User.Username
 import org.fiume.sketch.shared.auth0.testkit.JwtTokenGens.*

@@ -36,7 +36,7 @@ class AuthRoutes[F[_]: Async](authenticator: Authenticator[F]) extends Http4sDsl
             Response[F](status = Status.Unauthorized)
               .putHeaders(`WWW-Authenticate`(Challenge("Bearer", "Authentication Service")))
               .withEntity(
-                model.Login.Error.failToLogin()
+                model.Login.Error.failToLogin(failure)
               )
               .pure[F]
       yield resp

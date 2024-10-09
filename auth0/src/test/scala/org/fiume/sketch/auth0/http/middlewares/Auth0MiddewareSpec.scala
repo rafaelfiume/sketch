@@ -6,7 +6,7 @@ import io.circe.parser.parse
 import munit.{CatsEffectSuite, ScalaCheckEffectSuite}
 import munit.Assertions.*
 import org.fiume.sketch.auth0.testkit.AuthenticatorContext
-import org.fiume.sketch.shared.app.troubleshooting.ErrorInfo
+import org.fiume.sketch.shared.app.troubleshooting.{ErrorCode, ErrorInfo}
 import org.fiume.sketch.shared.app.troubleshooting.ErrorInfo.{ErrorDetails, ErrorMessage}
 import org.fiume.sketch.shared.app.troubleshooting.ErrorInfo.json.given
 import org.fiume.sketch.shared.auth0.domain.{JwtError, JwtToken, User}
@@ -68,6 +68,7 @@ class Auth0MiddlewareSpec
         assertEquals(
           payload,
           ErrorInfo.make(
+            ErrorCode("1011"),
             ErrorMessage("Invalid credentials"),
             ErrorDetails("invalid.jwt" -> jwtError.toString)
           )
