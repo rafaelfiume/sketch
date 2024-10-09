@@ -47,6 +47,10 @@ trait RusticHealthCheckSpecContext extends FileContentContext with HttpServiceCo
   val healthy = "status/get.response.healthy.json"
   val faulty = "status/get.response.degraded.json"
 
+  /*
+   * See HttpAuthClientSpec for an alternative approach to instantiate the client and stub the server.
+   */
+
   given LoggerFactory[IO] = Slf4jFactory.create[IO]
   def makeRusticHealthCheck(port: Port) =
     EmberClientBuilder.default[IO].build.map(RusticHealthCheck.make(RusticClientConfig(host"localhost", port), _))

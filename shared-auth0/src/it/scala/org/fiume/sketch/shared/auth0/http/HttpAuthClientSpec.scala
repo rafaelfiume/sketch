@@ -36,24 +36,26 @@ class HttpAuthClientSpec extends HttpAuthClientSpecContext:
       val port = serverWillReturnError()
       val config = HttpAuthClientConfig(host"localhost", port)
       val authClient = HttpAuthClient.make[IO](config, httpClient())
-
-      for result <- authClient.login(Username.makeUnsafeFromString(username), aPassword())
-//
-      yield assertEquals(result, expectedError.asLeft)
+      assertIO(
+        authClient.login(Username.makeUnsafeFromString(username), aPassword()),
+        expectedError.asLeft
+      )
   }
 
   test("Internal Server Error causes the client to raise an exception"):
     val port = serverWillReturnError()
     val config = HttpAuthClientConfig(host"localhost", port)
     val authClient = HttpAuthClient.make[IO](config, httpClient())
-
     /*
-     * Check out the implementation for details on the design decision on
-     * raising exception upon unexpect status code.
+     * Check the implementation for details on the design decision to raise an exception
+     * when receiving unexpected http status codes (5xx) from the server.
      */
     interceptIO[RuntimeException](authClient.login(aUsername(), aPassword()))
 
 trait HttpAuthClientSpecContext extends CatsEffectSuite with Http4sClientContext with HttpServiceContext:
+  /*
+   * See RusticHealthCheckSpec for an alternative approach to instantiate the client and stub the server.
+   */
   val httpClient = ResourceSuiteLocalFixture("httpClient", makeHttpClient())
   val serverWillReturnError = ResourceSuiteLocalFixture("server", serverWillReturnErrorr())
 
