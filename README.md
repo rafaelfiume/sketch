@@ -11,6 +11,7 @@
 - [Authorisation](docs/Authorisation.md)
 - [Design](docs/Design.md)
 - [Domain](docs/Domain.md)
+- [Error Codes](docs/ErrorCodes.md)
 - [Pipeline & Stack (& Infra)](docs/Pipeline.md)
 - [Workspace](docs/Workspace.md)
 

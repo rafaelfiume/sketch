@@ -16,6 +16,9 @@ import org.fiume.sketch.storage.auth0.postgres.PostgresUsersStore
 import org.fiume.sketch.storage.authorisation.postgres.PostgresAccessControl
 import org.fiume.sketch.storage.documents.postgres.PostgresDocumentsStore
 import org.fiume.sketch.storage.postgres.{DbTransactor, PostgresHealthCheck}
+import org.http4s.ember.client.EmberClientBuilder
+import org.typelevel.log4cats.LoggerFactory
+import org.typelevel.log4cats.slf4j.Slf4jFactory
 
 import java.util.concurrent.{Executors, ThreadFactory}
 import java.util.concurrent.atomic.AtomicLong
@@ -33,12 +36,15 @@ trait Resources[F[_]]:
   val documentsStore: DocumentsStore[F, ConnectionIO]
 
 object Resources:
+  given [F[_]: Sync]: LoggerFactory[F] = Slf4jFactory.create[F]
+
   def make[F[_]: Async: Network](config: ServiceConfig): Resource[F, Resources[F]] =
     for
       customWorkerThreadPool0 <- newCustomWorkerThreadPool()
       transactor <- DbTransactor.make(config.db)
       dbHealthCheck0 <- PostgresHealthCheck.make[F](transactor)
-      rusticHealthCheck0 <- RusticHealthCheck.make[F](config.rusticClient)
+      httpClient <- EmberClientBuilder.default[F].build
+      rusticHealthCheck0 = RusticHealthCheck.make[F](config.rusticClient, httpClient)
       versions0 <- SketchVersions.make[F](config.env, VersionFile("sketch.version"))
       usersStore0 <- PostgresUsersStore.make[F](transactor, Clock[F])
       authenticator0 <- Resource.liftK {

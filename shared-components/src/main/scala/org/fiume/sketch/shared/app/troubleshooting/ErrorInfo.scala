@@ -5,13 +5,15 @@ import cats.implicits.*
 import org.fiume.sketch.shared.app.troubleshooting.ErrorInfo.{ErrorDetails, ErrorMessage}
 import org.fiume.sketch.shared.typeclasses.AsString
 
-case class ErrorInfo(message: ErrorMessage, details: Option[ErrorDetails])
+case class ErrorInfo(code: ErrorCode, message: ErrorMessage, details: Option[ErrorDetails])
+
+case class ErrorCode(value: String) extends AnyVal
 
 object ErrorInfo:
-  def make(message: ErrorMessage): ErrorInfo = ErrorInfo(message, None)
+  def make(code: ErrorCode, message: ErrorMessage): ErrorInfo = ErrorInfo(code, message, None)
 
-  def make(message: ErrorMessage, details: ErrorDetails): ErrorInfo =
-    ErrorInfo(message, Some(details))
+  def make(code: ErrorCode, message: ErrorMessage, details: ErrorDetails): ErrorInfo =
+    ErrorInfo(code, message, Some(details))
 
   case class ErrorMessage(value: String) extends AnyVal
   object ErrorMessage:
@@ -42,6 +44,8 @@ object ErrorInfo:
     import io.circe.Decoder.Result
     import io.circe.syntax.*
 
+    given Encoder[ErrorCode] = Encoder.encodeString.contramap(_.value)
+    given Decoder[ErrorCode] = Decoder.decodeString.map(ErrorCode.apply)
     given Encoder[ErrorMessage] = Encoder.encodeString.contramap(_.value)
     given Decoder[ErrorMessage] = Decoder.decodeString.map(ErrorMessage.apply)
     given Encoder[ErrorDetails] = Encoder.encodeMap[String, String].contramap(_.tips)
@@ -49,6 +53,7 @@ object ErrorInfo:
     given Encoder[ErrorInfo] = new Encoder[ErrorInfo]:
       override def apply(errorInfo: ErrorInfo): Json =
         Json.obj(
+          "code" -> errorInfo.code.asJson,
           "message" -> errorInfo.message.asJson,
           "details" -> errorInfo.details.asJson
         )
@@ -56,6 +61,7 @@ object ErrorInfo:
     given Decoder[ErrorInfo] = new Decoder[ErrorInfo]:
       override def apply(c: HCursor): Result[ErrorInfo] =
         for
+          code <- c.downField("code").as[ErrorCode]
           message <- c.downField("message").as[ErrorMessage]
           details <- c.downField("details").as[Option[ErrorDetails]]
-        yield ErrorInfo(message, details)
+        yield ErrorInfo(code, message, details)

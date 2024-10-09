@@ -1,5 +1,3 @@
-version: "3.8"
-
 services:
   visual-sketch:
     image: rafaelfiume/visual-sketch:${VISUAL_SKETCH_IMAGE_TAG}

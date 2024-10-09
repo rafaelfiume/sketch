@@ -74,7 +74,7 @@ exit_with_error_if_service_fails_to_start() {
 write_container_logs_to_file() {
   local container_name=$1
   local log_file=$2
-  docker-compose -f "$docker_compose_yml" logs "$container_name" > "$log_file"
+  docker compose -f "$docker_compose_yml" logs "$container_name" > "$log_file"
 }
 
 main() {
@@ -105,13 +105,13 @@ main() {
 
   if [ -n "$container_for_removal" ]; then
     info "Removing container $container_for_removal..."
-    run_command "docker-compose -f $docker_compose_yml rm -v -s -f  $container_for_removal >&2"
+    run_command "docker compose -f $docker_compose_yml rm -v -s -f  $container_for_removal"
   fi
 
   info "Starting containers with sketch tag '$SKETCH_IMAGE_TAG'..."
-  run_command "docker-compose \
+  run_command "docker compose \
     -f "$docker_compose_yml" \
-    up --remove-orphans "$pull_latest_images" --detach >&2"
+    up --remove-orphans "$pull_latest_images" --detach"
 
   write_container_logs_to_file visual-sketch "$visual_log_file"
   write_container_logs_to_file sketch "$sketch_log_file"

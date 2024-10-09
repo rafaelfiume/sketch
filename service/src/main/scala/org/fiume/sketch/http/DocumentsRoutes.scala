@@ -14,6 +14,7 @@ import org.fiume.sketch.shared.app.EntityId.given
 import org.fiume.sketch.shared.app.algebras.Store.syntax.*
 import org.fiume.sketch.shared.app.http4s.JsonCodecs.given
 import org.fiume.sketch.shared.app.http4s.middlewares.SemanticInputError
+import org.fiume.sketch.shared.app.troubleshooting.ErrorCode
 import org.fiume.sketch.shared.app.troubleshooting.ErrorInfo.ErrorDetails
 import org.fiume.sketch.shared.app.troubleshooting.InvariantErrorSyntax.asDetails
 import org.fiume.sketch.shared.auth0.domain.User
@@ -128,11 +129,12 @@ private[http] object DocumentsRoutes:
 
     extension [F[_]](id: DocumentId) def asResponsePayload: DocumentIdResponsePayload = DocumentIdResponsePayload(id)
 
+    private val errorCode = ErrorCode("9011")
     extension [F[_]: MonadThrow: Concurrent](m: Multipart[F])
       def validated(): F[DocumentWithStream[F]] =
         (m.metadata(), m.bytes()).parTupled
           .foldF(
-            details => SemanticInputError.make(details).raiseError,
+            details => SemanticInputError.make(errorCode, details).raiseError,
             _.pure[F]
           )
           .flatMap { case (metadataPayload, bytes) =>
@@ -143,7 +145,7 @@ private[http] object DocumentsRoutes:
                 ErrorDetails("malformed.document.metadata.payload" -> "the metadata payload does not meet the contract")
               )
               .foldF(
-                details => SemanticInputError.make(details).raiseError,
+                details => SemanticInputError.make(errorCode, details).raiseError,
                 (_, bytes).pure[F]
               )
           }
@@ -154,7 +156,7 @@ private[http] object DocumentsRoutes:
               EitherT.pure(stream)
             ).parMapN((name, description, bytes) => Document.make[F](bytes, Metadata(name, description)))
               .foldF(
-                details => SemanticInputError.make(details).raiseError,
+                details => SemanticInputError.make(errorCode, details).raiseError,
                 _.pure[F]
               )
           }

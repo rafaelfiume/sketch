@@ -138,13 +138,16 @@ lazy val sharedAuth0 =
     .dependsOn(sharedTestComponents % Test)
     .disablePlugins(plugins.JUnitXmlReportPlugin)
     .settings(commonSettings: _*)
+    .configs(IntegrationTests)
+    .settings(
+      inConfig(IntegrationTests)(Defaults.testSettings ++ scalafixConfigSettings(IntegrationTests))
+    )
     .settings(
       name := "shared-auth0",
       libraryDependencies ++= Seq(
         Dependency.jbcrypt,
         Dependency.circeGeneric,
         Dependency.http4sEmberClient,
-        Dependency.http4sEmberServer % Test,
         Dependency.munitCatsEffect % Test,
         Dependency.munitScalaCheckEffect % Test
       )
@@ -205,6 +208,9 @@ lazy val sharedTestComponents =
          Dependency.fs2Core,
          Dependency.fs2Io,
          Dependency.http4sCirce,
+         Dependency.http4sEmberClient,
+         Dependency.http4sEmberServer,
+         Dependency.log4catsSlf4j,
          Dependency.munit,
          Dependency.munitScalaCheck
        )
@@ -259,7 +265,7 @@ lazy val storage =
 lazy val testAcceptance =
    project.in(file("test-acceptance"))
      .dependsOn(auth0 % Test)
-     .dependsOn(sharedAuth0 % "compile->compile;test->test")
+     .dependsOn(sharedAuth0 % "test->test")
      .dependsOn(sharedTestComponents % Test)
      .dependsOn(testContracts % "test->test")
      .disablePlugins(plugins.JUnitXmlReportPlugin)
@@ -272,7 +278,6 @@ lazy val testAcceptance =
          Dependency.catsEffect % Test,
          Dependency.circeCore % Test,
          Dependency.http4sCirce % Test,
-         Dependency.http4sEmberClient % Test,
          Dependency.gatlingHighcharts % Test,
          Dependency.gatlingTestFramework % Test,
          Dependency.logstashLogbackEncoder % Test,

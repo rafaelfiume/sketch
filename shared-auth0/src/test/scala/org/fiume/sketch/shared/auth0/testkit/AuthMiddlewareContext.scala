@@ -3,7 +3,7 @@ package org.fiume.sketch.shared.auth0.testkit
 import cats.data.{Kleisli, OptionT}
 import cats.effect.IO
 import cats.implicits.*
-import org.fiume.sketch.shared.app.troubleshooting.ErrorInfo
+import org.fiume.sketch.shared.app.troubleshooting.{ErrorCode, ErrorInfo}
 import org.fiume.sketch.shared.app.troubleshooting.ErrorInfo.{ErrorDetails, ErrorMessage}
 import org.fiume.sketch.shared.app.troubleshooting.ErrorInfo.json.given
 import org.fiume.sketch.shared.auth0.domain.User
@@ -28,7 +28,7 @@ trait AuthMiddlewareContext:
         Response[IO](Status.Unauthorized)
           .withHeaders(`WWW-Authenticate`(Challenge("Bearer", s"${cx.req.uri.path}")))
           .withEntity(
-            ErrorInfo.make(ErrorMessage("Invalid credentials"), ErrorDetails("invalid.jwt" -> cx.context))
+            ErrorInfo.make(ErrorCode("1011"), ErrorMessage("Invalid credentials"), ErrorDetails("invalid.jwt" -> cx.context))
           )
       )
     }

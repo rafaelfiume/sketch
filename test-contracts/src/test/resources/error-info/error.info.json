@@ -1,4 +1,5 @@
 {
-  "message": "The username or password provided is incorrect.",
+  "code": "1011",
+  "message": "Invalid credentials",
   "details": null
 }
