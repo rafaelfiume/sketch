@@ -21,9 +21,9 @@ import org.http4s.headers.Authorization
 
 object HttpAuthClient:
   def make[F[_]: Async](config: HttpAuthClientConfig, client: Client[F]): HttpAuthClient[F] =
-    new HttpAuthClient(client, config.baseUri)
+    new HttpAuthClient(config.baseUri, client)
 
-class HttpAuthClient[F[_]: Async] private (client: Client[F], baseUri: Uri):
+class HttpAuthClient[F[_]: Async] private (baseUri: Uri, client: Client[F]):
 
   def login(username: Username, password: PlainPassword): F[Either[AuthenticationError, JwtToken]] =
     val request = Request[F](

@@ -3,7 +3,7 @@ package org.fiume.sketch.app
 import cats.effect.Async
 import cats.implicits.*
 import ciris.*
-import com.comcast.ip4s.{Host, Port}
+import com.comcast.ip4s.*
 import org.fiume.sketch.auth0.KeyStringifier
 import org.fiume.sketch.rustic.RusticClientConfig
 import org.fiume.sketch.shared.app.Version.Environment

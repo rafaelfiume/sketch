@@ -34,7 +34,7 @@ class HttpAuthClientSpec extends HttpAuthClientSpecContext:
   ).foreach { (description, username, expectedError) =>
     test(s"login returns error when $description"):
       val port = serverWillReturnError()
-      val config = HttpAuthClientConfig(host, port)
+      val config = HttpAuthClientConfig(host"localhost", port)
       val authClient = HttpAuthClient.make[IO](config, httpClient())
 
       for result <- authClient.login(Username.makeUnsafeFromString(username), aPassword())
@@ -44,7 +44,7 @@ class HttpAuthClientSpec extends HttpAuthClientSpecContext:
 
   test("Internal Server Error causes the client to raise an exception"):
     val port = serverWillReturnError()
-    val config = HttpAuthClientConfig(host, port)
+    val config = HttpAuthClientConfig(host"localhost", port)
     val authClient = HttpAuthClient.make[IO](config, httpClient())
 
     /*
@@ -59,8 +59,6 @@ trait HttpAuthClientSpecContext extends CatsEffectSuite with Http4sClientContext
 
   def aUsername(): Username = UserGens.validUsernames.sample.someOrFail
   def aPassword(): PlainPassword = PasswordsGens.validPlainPasswords.sample.someOrFail
-
-  val host = Host.fromString("localhost").someOrFail
 
   def serverWillReturnErrorr(): Resource[IO, Port] =
     for

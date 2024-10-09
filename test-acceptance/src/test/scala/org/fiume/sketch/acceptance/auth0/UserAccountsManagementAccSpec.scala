@@ -1,7 +1,7 @@
 package org.fiume.sketch.acceptance.auth0
 
 import cats.effect.IO
-import com.comcast.ip4s.{Host, Port}
+import com.comcast.ip4s.*
 import munit.CatsEffectSuite
 import org.fiume.sketch.auth0.scripts.UsersScript
 import org.fiume.sketch.auth0.scripts.UsersScript.Args
@@ -14,7 +14,7 @@ import org.fiume.sketch.shared.testkit.syntax.OptionSyntax.*
 
 class UserAccountsManagementAccSpec extends CatsEffectSuite with Http4sClientContext:
 
-  private val config = HttpAuthClientConfig(Host.fromString("localhost").someOrFail, Port.fromInt(8080).someOrFail)
+  private val config = HttpAuthClientConfig(host"localhost", port"8080")
 
   test("soft delete user account"):
     withHttp { http =>

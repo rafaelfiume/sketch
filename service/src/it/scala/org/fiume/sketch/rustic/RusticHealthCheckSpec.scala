@@ -2,8 +2,7 @@ package org.fiume.sketch.rustic
 
 import cats.effect.{IO, Resource}
 import cats.implicits.*
-import com.comcast.ip4s.{port, *}
-import munit.Assertions.*
+import com.comcast.ip4s.*
 import munit.CatsEffectSuite
 import org.fiume.sketch.shared.app.ServiceStatus.{DependencyStatus, Status}
 import org.fiume.sketch.shared.app.ServiceStatus.Dependency.*
@@ -12,8 +11,11 @@ import org.fiume.sketch.shared.testkit.syntax.OptionSyntax.*
 import org.http4s.*
 import org.http4s.circe.CirceEntityEncoder.*
 import org.http4s.dsl.io.*
+import org.http4s.ember.client.EmberClientBuilder
 import org.http4s.server.Router
 import org.scalacheck.Gen
+import org.typelevel.log4cats.LoggerFactory
+import org.typelevel.log4cats.slf4j.Slf4jFactory
 
 class RusticHealthCheckSpec extends CatsEffectSuite with RusticHealthCheckSpecContext:
 
@@ -25,36 +27,29 @@ class RusticHealthCheckSpec extends CatsEffectSuite with RusticHealthCheckSpecCo
     // format: on
   ).foreach { (label, statusResponse, expectedStatus) =>
     test(s"dependency status is $expectedStatus when rustic service is $label") {
-      rusticStatusIs(statusResponse)
-        .flatMap { port => RusticHealthCheck.make[IO](config = RusticClientConfig(host, port)) }
-        .use { healthCheck =>
-          for result <- healthCheck.check()
-          yield assertEquals(result, DependencyStatus(rustic, expectedStatus))
-        }
+      rusticStatusIs(statusResponse).flatMap { makeRusticHealthCheck(_) }.use { healthCheck =>
+        assertIO(healthCheck.check(), DependencyStatus(rustic, expectedStatus))
+      }
     }
   }
 
   test("dependency status is Degraded when rustic service is Degraded"):
-    rusticInDegradedState()
-      .flatMap { port => RusticHealthCheck.make[IO](config = RusticClientConfig(host, port)) }
-      .use { healthCheck =>
-        for result <- healthCheck.check()
-        yield assertEquals(result, DependencyStatus(rustic, Status.Degraded))
-      }
+    rusticInDegradedState().flatMap { makeRusticHealthCheck(_) }.use { healthCheck =>
+      assertIO(healthCheck.check(), DependencyStatus(rustic, Status.Degraded))
+    }
 
   test("dependency status is Degraded when rustic service is down"):
-    RusticHealthCheck
-      .make[IO](config = RusticClientConfig(host, port"3030"))
-      .use { healthCheck =>
-        for result <- healthCheck.check()
-        yield assertEquals(result, DependencyStatus(rustic, Status.Degraded))
-      }
+    makeRusticHealthCheck(port"3030").use { healthCheck =>
+      assertIO(healthCheck.check(), DependencyStatus(rustic, Status.Degraded))
+    }
 
 trait RusticHealthCheckSpecContext extends FileContentContext with HttpServiceContext:
   val healthy = "status/get.response.healthy.json"
   val faulty = "status/get.response.degraded.json"
 
-  val host = Host.fromString("localhost").someOrFail
+  given LoggerFactory[IO] = Slf4jFactory.create[IO]
+  def makeRusticHealthCheck(port: Port) =
+    EmberClientBuilder.default[IO].build.map(RusticHealthCheck.make(RusticClientConfig(host"localhost", port), _))
 
   def rusticStatusIs(pathToResponsePayload: String): Resource[IO, Port] =
     for
@@ -71,10 +66,9 @@ trait RusticHealthCheckSpecContext extends FileContentContext with HttpServiceCo
     yield port
 
   private def rusticIsOk(pathToResponsePayload: String): Resource[IO, HttpRoutes[IO]] =
-    jsonFrom[IO](pathToResponsePayload, debug = false)
-      .map { serviceStatus =>
-        makeStatusRoute(willRespond = Ok(serviceStatus))
-      }
+    jsonFrom[IO](pathToResponsePayload, debug = false).map { serviceStatus =>
+      makeStatusRoute(willRespond = Ok(serviceStatus))
+    }
 
   private def rusticIsDegraded(): Resource[IO, HttpRoutes[IO]] =
     def response: Gen[IO[Response[IO]]] = Gen.oneOf(InternalServerError(), BadRequest())
