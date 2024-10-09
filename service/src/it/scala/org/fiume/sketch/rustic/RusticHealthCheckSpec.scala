@@ -54,7 +54,7 @@ trait RusticHealthCheckSpecContext extends FileContentContext with HttpServiceCo
   val healthy = "status/get.response.healthy.json"
   val faulty = "status/get.response.degraded.json"
 
-  val host = Host.fromString("localhost").getOrElse(throw new AssertionError("localhost is valid host"))
+  val host = Host.fromString("localhost").someOrFail
 
   def rusticStatusIs(pathToResponsePayload: String): Resource[IO, Port] =
     for

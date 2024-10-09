@@ -20,8 +20,8 @@ import org.http4s.client.*
 import org.http4s.headers.Authorization
 
 object HttpAuthClient:
-  // TODO Pass a config to the client
-  def make[F[_]: Async](client: Client[F], baseUri: Uri): HttpAuthClient[F] = new HttpAuthClient(client, baseUri)
+  def make[F[_]: Async](config: HttpAuthClientConfig, client: Client[F]): HttpAuthClient[F] =
+    new HttpAuthClient(client, config.baseUri)
 
 class HttpAuthClient[F[_]: Async] private (client: Client[F], baseUri: Uri):
 
@@ -30,7 +30,6 @@ class HttpAuthClient[F[_]: Async] private (client: Client[F], baseUri: Uri):
       method = POST,
       uri = baseUri / "login"
     ).withEntity(LoginRequestPayload(username.value, password.value))
-    // TODO retries
     client.run(request).use { response =>
       response.status match
         case Ok =>
