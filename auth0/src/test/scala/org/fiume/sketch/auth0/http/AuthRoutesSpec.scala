@@ -16,7 +16,7 @@ import org.fiume.sketch.shared.auth0.domain.User.Username
 import org.fiume.sketch.shared.auth0.domain.User.Username.WeakUsernameError
 import org.fiume.sketch.shared.auth0.http.model.Login.{LoginRequestPayload, LoginResponsePayload}
 import org.fiume.sketch.shared.auth0.http.model.Login.json.given
-import org.fiume.sketch.shared.auth0.testkit.JwtTokenGens.jwtTokens
+import org.fiume.sketch.shared.auth0.testkit.JwtGens.jwts
 import org.fiume.sketch.shared.auth0.testkit.PasswordsGens.*
 import org.fiume.sketch.shared.auth0.testkit.UserGens.*
 import org.fiume.sketch.shared.testkit.{ContractContext, Http4sRoutesContext}
@@ -39,13 +39,13 @@ class AuthRoutesSpec
     with ContractContext
     with ShrinkLowPriority:
 
-  test("valid login request results in a jwt token"):
-    forAllF(loginRequests, jwtTokens) { case (user -> loginRequest -> jwtToken) =>
+  test("valid login request results in a jwt"):
+    forAllF(loginRequests, jwts) { case (user -> loginRequest -> jwt) =>
       val plainPassword = PlainPassword.makeUnsafeFromString(loginRequest.password)
       for
         authenticator <- makeAuthenticator(
           signee = user -> plainPassword,
-          signeeAuthToken = jwtToken
+          signeeAuthToken = jwt
         )
 
         request = POST(uri"/login").withEntity(loginRequest)
@@ -53,16 +53,16 @@ class AuthRoutesSpec
           .to(new AuthRoutes[IO](authenticator).router())
           .expectJsonResponseWith[LoginResponsePayload](Status.Ok)
 //
-      yield assertEquals(result.token, jwtToken.value)
+      yield assertEquals(result.token, jwt.value)
     }
 
   test("login with wrong password fails with 401 Unauthorized status"):
-    forAllF(loginRequests, jwtTokens) { case (user -> loginRequest -> jwtToken) =>
+    forAllF(loginRequests, jwts) { case (user -> loginRequest -> jwt) =>
       val plainPassword = PlainPassword.makeUnsafeFromString(loginRequest.password)
       for
         authenticator <- makeAuthenticator(
           signee = user -> plainPassword,
-          signeeAuthToken = jwtToken
+          signeeAuthToken = jwt
         )
 
         request = POST(uri"/login").withEntity(
@@ -82,12 +82,12 @@ class AuthRoutesSpec
     }
 
   test("login with unknown username fails with 401 Unauthorized status"):
-    forAllF(loginRequests, jwtTokens) { case (user -> loginRequest -> jwtToken) =>
+    forAllF(loginRequests, jwts) { case (user -> loginRequest -> jwt) =>
       val plainPassword = PlainPassword.makeUnsafeFromString(loginRequest.password)
       for
         authenticator <- makeAuthenticator(
           signee = user -> plainPassword,
-          signeeAuthToken = jwtToken
+          signeeAuthToken = jwt
         )
 
         request = POST(uri"/login").withEntity(
@@ -107,12 +107,12 @@ class AuthRoutesSpec
     }
 
   test("login with semantically invalid username or password fails with 422 Unprocessable Entity"):
-    forAllF(invalidInputs, jwtTokens) { case (user -> loginRequest -> jwtToken) =>
+    forAllF(invalidInputs, jwts) { case (user -> loginRequest -> jwt) =>
       val plainPassword = PlainPassword.makeUnsafeFromString(loginRequest.password)
       for
         authenticator <- makeAuthenticator(
           signee = user -> plainPassword,
-          signeeAuthToken = jwtToken
+          signeeAuthToken = jwt
         )
 
         request = POST(uri"/login").withEntity(loginRequest)

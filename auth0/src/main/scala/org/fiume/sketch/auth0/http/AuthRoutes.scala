@@ -29,8 +29,8 @@ class AuthRoutes[F[_]: Async](authenticator: Authenticator[F]) extends Http4sDsl
           authenticator.authenticate(username, password)
         }
         resp <- auth match
-          case Right(token) =>
-            Ok(LoginResponsePayload(token.value))
+          case Right(jwt) =>
+            Ok(LoginResponsePayload(jwt.value))
 
           case Left(failure) =>
             Response[F](status = Status.Unauthorized)

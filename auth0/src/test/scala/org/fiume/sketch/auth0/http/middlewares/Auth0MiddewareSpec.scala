@@ -9,9 +9,9 @@ import org.fiume.sketch.auth0.testkit.AuthenticatorContext
 import org.fiume.sketch.shared.app.troubleshooting.{ErrorCode, ErrorInfo}
 import org.fiume.sketch.shared.app.troubleshooting.ErrorInfo.{ErrorDetails, ErrorMessage}
 import org.fiume.sketch.shared.app.troubleshooting.ErrorInfo.json.given
-import org.fiume.sketch.shared.auth0.domain.{JwtError, JwtToken, User}
+import org.fiume.sketch.shared.auth0.domain.{Jwt, JwtError, User}
 import org.fiume.sketch.shared.auth0.domain.Passwords.PlainPassword
-import org.fiume.sketch.shared.auth0.testkit.JwtTokenGens.given
+import org.fiume.sketch.shared.auth0.testkit.JwtGens.given
 import org.fiume.sketch.shared.auth0.testkit.PasswordsGens.given
 import org.fiume.sketch.shared.auth0.testkit.UserGens.given
 import org.fiume.sketch.shared.testkit.syntax.EitherSyntax.*
@@ -33,14 +33,14 @@ class Auth0MiddlewareSpec
     with ShrinkLowPriority:
 
   test("access with a valid token is allowed"):
-    forAllF { (user: User, plainPassword: PlainPassword, jwtToken: JwtToken) =>
+    forAllF { (user: User, plainPassword: PlainPassword, jwt: Jwt) =>
       for
-        authenticator <- makeAuthenticator(signee = (user, plainPassword), signeeAuthToken = jwtToken)
+        authenticator <- makeAuthenticator(signee = (user, plainPassword), signeeAuthToken = jwt)
         routeResponsePayload = parse(s"""{"a.property" : "${user.uuid}" }""").rightOrFail
         authedRoutes = AuthedRoutes.of[User, IO] { case GET -> Root / "user" as user => Ok(routeResponsePayload) }
 
         middleware = Auth0Middleware(authenticator)
-        request = GET(uri"/user").withHeaders(Headers(Authorization.parse(s"Bearer ${jwtToken.value}")))
+        request = GET(uri"/user").withHeaders(Headers(Authorization.parse(s"Bearer ${jwt.value}")))
         response <- middleware(authedRoutes).orNotFound.run(request)
 
         _ <- response.as[Json].flatMap { result =>
@@ -53,13 +53,13 @@ class Auth0MiddlewareSpec
     }
 
   test("attempt to access with an invalid token is rejected"):
-    forAllF { (user: User, jwtToken: JwtToken, jwtError: JwtError) =>
+    forAllF { (user: User, jwt: Jwt, jwtError: JwtError) =>
       for
         authenticator <- makeFailingAuthenticator(jwtError)
         authedRoutes = AuthedRoutes.of[User, IO] { case GET -> Root / "user" as user => Ok(user.toString) }
 
         middleware = Auth0Middleware(authenticator)
-        request = GET(uri"/user").withHeaders(Headers(Authorization.parse(s"Bearer ${jwtToken.value}")))
+        request = GET(uri"/user").withHeaders(Headers(Authorization.parse(s"Bearer ${jwt.value}")))
         response <- middleware(authedRoutes).orNotFound.run(request)
 
         payload <- response.as[ErrorInfo]

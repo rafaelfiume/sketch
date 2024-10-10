@@ -5,8 +5,8 @@ import munit.Assertions.*
 import munit.ScalaCheckSuite
 import org.bouncycastle.jce.provider.BouncyCastleProvider
 import org.fiume.sketch.auth0.testkit.EcKeysGens
+import org.fiume.sketch.shared.auth0.domain.Jwt
 import org.fiume.sketch.shared.auth0.domain.JwtError.*
-import org.fiume.sketch.shared.auth0.domain.JwtToken
 import org.fiume.sketch.shared.auth0.testkit.UserGens.*
 import org.fiume.sketch.shared.testkit.ClockContext
 import org.fiume.sketch.shared.testkit.Gens.DateAndTime.*
@@ -23,19 +23,19 @@ class JwtIssuerSpec extends ScalaCheckSuite with ClockContext with EcKeysGens wi
 
   test("valid jwt verification results in the user details"):
     forAll(ecKeyPairs, users, shortDurations) { case ((privateKey, publicKey), user, expirationOffset) =>
-      val jwtToken = JwtIssuer.make[IO](privateKey, user, now, expirationOffset)
+      val jwt = JwtIssuer.make[IO](privateKey, user, now, expirationOffset)
 
-      val result = JwtIssuer.verify(jwtToken, publicKey)
+      val result = JwtIssuer.verify(jwt, publicKey)
 //
       result.rightOrFail == user
     }
 
   test("invalid jwt verification fails"):
     forAll(ecKeyPairs, users, shortDurations) { case ((privateKey, publicKey), user, expirationOffset) =>
-      val jwtToken = JwtIssuer.make[IO](privateKey, user, now, expirationOffset)
+      val jwt = JwtIssuer.make[IO](privateKey, user, now, expirationOffset)
 
       val result = JwtIssuer.verify(
-        JwtToken.makeUnsafeFromString(s"${jwtToken.value}wrong"),
+        Jwt.makeUnsafeFromString(s"${jwt.value}wrong"),
         publicKey
       )
 
@@ -46,9 +46,9 @@ class JwtIssuerSpec extends ScalaCheckSuite with ClockContext with EcKeysGens wi
   test("expired jwt verification fails"):
     forAll(ecKeyPairs, users, shortDurations) { case ((privateKey, publicKey), user, expirationOffset) =>
       val before = Instant.now().minusSeconds(expirationOffset.toSeconds)
-      val jwtToken = JwtIssuer.make[IO](privateKey, user, before, expirationOffset)
+      val jwt = JwtIssuer.make[IO](privateKey, user, before, expirationOffset)
 
-      val result = JwtIssuer.verify(jwtToken, publicKey)
+      val result = JwtIssuer.verify(jwt, publicKey)
 
       assert(result.leftOrFail.isInstanceOf[JwtExpirationError])
       assert(result.leftOrFail.details.contains("The token is expired since "))
@@ -57,9 +57,9 @@ class JwtIssuerSpec extends ScalaCheckSuite with ClockContext with EcKeysGens wi
   test("token verification with invalid public key fails"):
     forAll(ecKeyPairs, ecKeyPairs, users, shortDurations) {
       case ((privateKey, _), (_, strangePublicKey), user, expirationOffset) =>
-        val jwtToken = JwtIssuer.make[IO](privateKey, user, now, expirationOffset)
+        val jwt = JwtIssuer.make[IO](privateKey, user, now, expirationOffset)
 
-        val result = JwtIssuer.verify(jwtToken, strangePublicKey)
+        val result = JwtIssuer.verify(jwt, strangePublicKey)
 
         assert(result.leftOrFail.isInstanceOf[JwtValidationError])
         assertEquals(result.leftOrFail.details, "Invalid signature for this token or wrong algorithm.")

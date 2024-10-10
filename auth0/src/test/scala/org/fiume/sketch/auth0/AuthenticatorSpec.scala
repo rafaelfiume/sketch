@@ -4,7 +4,7 @@ import cats.effect.IO
 import munit.{CatsEffectSuite, ScalaCheckEffectSuite}
 import org.bouncycastle.jce.provider.BouncyCastleProvider
 import org.fiume.sketch.auth0.testkit.EcKeysGens
-import org.fiume.sketch.shared.auth0.domain.{Account, AccountState, JwtToken, User}
+import org.fiume.sketch.shared.auth0.domain.{Account, AccountState, Jwt, User}
 import org.fiume.sketch.shared.auth0.domain.AccountState.SoftDeleted
 import org.fiume.sketch.shared.auth0.domain.AuthenticationError.*
 import org.fiume.sketch.shared.auth0.domain.JwtError.*
@@ -36,7 +36,7 @@ class AuthenticatorSpec
 
   Security.addProvider(new BouncyCastleProvider())
 
-  test("valid username and password authentication results in a jwt token representing the user"):
+  test("valid username and password authentication results in a jwt representing the user"):
     forAllF(validCredentialsWithIdAndPlainPassword, ecKeyPairs, shortDurations) {
       case ((credentials, plainPassword), (privateKey, publicKey), expirationOffset) =>
         for
@@ -95,9 +95,9 @@ class AuthenticatorSpec
         for
           store <- makeUsersStore(credentials)
           authenticator <- Authenticator.make[IO, IO](frozenClock, store, privateKey, publicKey, expirationOffset)
-          jwtToken <- authenticator.authenticate(credentials.username, plainPassword).map(_.rightOrFail)
+          jwt <- authenticator.authenticate(credentials.username, plainPassword).map(_.rightOrFail)
 
-          result = authenticator.verify(jwtToken)
+          result = authenticator.verify(jwt)
 //
         yield
           assert(result.leftOrFail.isInstanceOf[JwtExpirationError])
@@ -110,9 +110,9 @@ class AuthenticatorSpec
         for
           store <- makeUsersStore(credentials)
           authenticator <- Authenticator.make[IO, IO](makeFrozenClock(), store, privateKey, publicKey, expirationOffset)
-          token <- authenticator.authenticate(credentials.username, plainPassword).map(_.rightOrFail)
+          jwt <- authenticator.authenticate(credentials.username, plainPassword).map(_.rightOrFail)
 
-          result = authenticator.verify(token.tampered)
+          result = authenticator.verify(jwt.tampered)
 //
         yield assertEquals(
           result.leftOrFail,
@@ -126,13 +126,13 @@ class AuthenticatorSpec
         for
           store <- makeUsersStore(credentials)
           authenticator <- Authenticator.make[IO, IO](makeFrozenClock(), store, privateKey, publicKey, expirationOffset)
-          jwtToken <- authenticator.authenticate(credentials.username, plainPassword).map(_.rightOrFail)
+          jwt <- authenticator.authenticate(credentials.username, plainPassword).map(_.rightOrFail)
 
-          result = authenticator.verify(jwtToken.reversed)
+          result = authenticator.verify(jwt.reversed)
 //
         yield
           assert(result.leftOrFail.isInstanceOf[JwtInvalidTokenError])
-          assert(result.leftOrFail.details.startsWith("Invalid Jwt token:"))
+          assert(result.leftOrFail.details.startsWith("Invalid Jwt:"), clue = s"actual: ${result.leftOrFail.details}")
     }
 
   test("token verification with invalid public key fails"):
@@ -141,9 +141,9 @@ class AuthenticatorSpec
         for
           store <- makeUsersStore(credentials)
           authenticator <- Authenticator.make[IO, IO](makeFrozenClock(), store, privateKey, strangePublicKey, expirationOffset)
-          jwtToken <- authenticator.authenticate(credentials.username, plainPassword).map(_.rightOrFail)
+          jwt <- authenticator.authenticate(credentials.username, plainPassword).map(_.rightOrFail)
 
-          result = authenticator.verify(jwtToken)
+          result = authenticator.verify(jwt)
 //
         yield assertEquals(
           result.leftOrFail,
@@ -157,6 +157,6 @@ trait AuthenticatorSpecContext:
 
   extension (username: Username) def shuffled: Username = Username.makeUnsafeFromString(username.value._shuffled)
 
-  extension (token: JwtToken)
-    def reversed: JwtToken = JwtToken.makeUnsafeFromString(token.value._reversed)
-    def tampered: JwtToken = JwtToken.makeUnsafeFromString(token.value.split('.').dropRight(1).mkString("."))
+  extension (jwt: Jwt)
+    def reversed: Jwt = Jwt.makeUnsafeFromString(jwt.value._reversed)
+    def tampered: Jwt = Jwt.makeUnsafeFromString(jwt.value.split('.').dropRight(1).mkString("."))

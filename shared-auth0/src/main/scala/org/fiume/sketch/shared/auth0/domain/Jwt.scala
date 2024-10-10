@@ -5,10 +5,13 @@ import cats.implicits.*
 
 import scala.util.control.NoStackTrace
 
-case class JwtToken private (value: String) extends AnyVal
+case class Jwt private (value: String) extends AnyVal
 
-object JwtToken:
-  def makeUnsafeFromString(value: String): JwtToken = new JwtToken(value)
+/*
+ * Pronounced as "jot".
+ */
+object Jwt:
+  def makeUnsafeFromString(value: String): Jwt = new Jwt(value)
 
 enum JwtError(val details: String) extends Throwable with NoStackTrace:
   // TODO Rename to conform to standards, e.g ExpiredToken

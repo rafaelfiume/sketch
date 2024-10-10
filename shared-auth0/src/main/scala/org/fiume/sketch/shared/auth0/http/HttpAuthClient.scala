@@ -4,7 +4,7 @@ import cats.effect.Async
 import cats.implicits.*
 import org.fiume.sketch.shared.app.troubleshooting.ErrorInfo
 import org.fiume.sketch.shared.app.troubleshooting.ErrorInfo.json.given
-import org.fiume.sketch.shared.auth0.domain.{AuthenticationError, JwtToken, UserId}
+import org.fiume.sketch.shared.auth0.domain.{AuthenticationError, Jwt, UserId}
 import org.fiume.sketch.shared.auth0.domain.AuthenticationError.*
 import org.fiume.sketch.shared.auth0.domain.Passwords.PlainPassword
 import org.fiume.sketch.shared.auth0.domain.User.Username
@@ -25,7 +25,7 @@ object HttpAuthClient:
 
 class HttpAuthClient[F[_]: Async] private (baseUri: Uri, client: Client[F]):
 
-  def login(username: Username, password: PlainPassword): F[Either[AuthenticationError, JwtToken]] =
+  def login(username: Username, password: PlainPassword): F[Either[AuthenticationError, Jwt]] =
     val request = Request[F](
       method = POST,
       uri = baseUri / "login"
@@ -33,7 +33,7 @@ class HttpAuthClient[F[_]: Async] private (baseUri: Uri, client: Client[F]):
     client.run(request).use { response =>
       response.status match
         case Ok =>
-          response.as[LoginResponsePayload].map(payload => JwtToken.makeUnsafeFromString(payload.token).asRight)
+          response.as[LoginResponsePayload].map(payload => Jwt.makeUnsafeFromString(payload.token).asRight)
         case Unauthorized =>
           response.as[ErrorInfo].map { error =>
             error.code.value match
@@ -51,7 +51,7 @@ class HttpAuthClient[F[_]: Async] private (baseUri: Uri, client: Client[F]):
         case status => new RuntimeException(s"Unexpected error: $status").raiseError
     }
 
-  def markAccountForDeletion(id: UserId, jwt: JwtToken): F[Either[String, Unit]] =
+  def markAccountForDeletion(id: UserId, jwt: Jwt): F[Either[String, Unit]] =
     for
       authHeader <- Async[F].delay { Authorization.parse(s"Bearer ${jwt.value}") }
       request = Request[F](DELETE, uri = baseUri / "users" / id.value).withHeaders(authHeader)
