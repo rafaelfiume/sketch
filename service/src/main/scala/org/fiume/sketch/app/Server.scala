@@ -1,6 +1,7 @@
 package org.fiume.sketch.app
 
-import cats.effect.{Async, ExitCode, Resource}
+import cats.effect.{Async, Resource}
+import cats.effect.syntax.resource.*
 import cats.implicits.*
 import com.comcast.ip4s.*
 import doobie.ConnectionIO
@@ -21,16 +22,15 @@ import org.typelevel.log4cats.slf4j.{Slf4jFactory, Slf4jLogger}
 
 object Server:
 
-  def run[F[_]: Async: Network](): F[ExitCode] =
+  def run[F[_]: Async: Network](): F[Unit] =
     given LoggerFactory[F] = Slf4jFactory.create[F]
     val logger = Slf4jLogger.getLogger[F]
 
     val serviceStream = for
-      config <- Resource.eval(ServiceConfig.load[F])
+      config <- ServiceConfig.load[F].toResource
       resources <- Resources.make(config)
-      server = httpServer[F](config, resources)
-
       httpServiceStream = {
+        val server = httpServer[F](config, resources)
         fs2.Stream
           .resource(server)
           .flatTap { server => fs2.Stream.eval(logger.info(s"Server has started at ${server.address}")) } >>
@@ -47,7 +47,7 @@ object Server:
     yield stream
 
     serviceStream
-      .use { _.compile.drain.as(ExitCode.Success) }
+      .use { _.compile.drain }
       .onError { case ex => logger.error(s"The service has failed with $ex") }
 
   private def httpServer[F[_]: Async: Network: LoggerFactory](
@@ -88,7 +88,7 @@ object HttpApi:
     val corsMiddleware: CORSPolicy = CORS.policy.withAllowOriginHeader(config.endpoints.cors.allowedOrigins)
     val middlewares = WorkerMiddleware[F](res.customWorkerThreadPool)
       .andThen(SemanticValidationMiddleware.apply)
-      .andThen(TraceAuditLogMiddleware[F](Slf4jLogger.getLogger[F], config.endpoints.requestResponseLoggingEnabled))
+      .andThen(TraceAuditLogMiddleware[F](config.endpoints.requestResponseLoggingEnabled))
     for
       cAuthRoutes <- corsMiddleware.httpRoutes[F](authRoutes)
       cUsersRoutes <- corsMiddleware.httpRoutes[F](usersRoutes)

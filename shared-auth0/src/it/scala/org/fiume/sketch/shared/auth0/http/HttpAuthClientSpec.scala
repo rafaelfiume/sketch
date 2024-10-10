@@ -64,7 +64,7 @@ trait HttpAuthClientSpecContext extends CatsEffectSuite with Http4sClientContext
 
   def serverWillReturnErrorr(): Resource[IO, Port] =
     for
-      port <- Resource.eval(freePort())
+      port <- freePort().toResource
       _ <- makeServer(port)(route()).void
     yield port
 

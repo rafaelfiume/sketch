@@ -1,6 +1,7 @@
 package org.fiume.sketch.storage.postgres
 
 import cats.effect.{Async, Resource}
+import cats.effect.syntax.resource.*
 import doobie.hikari.HikariTransactor
 import doobie.util.log.{LogEvent, LogHandler}
 import doobie.util.transactor.Transactor
@@ -29,7 +30,7 @@ object DbTransactor:
           )
         )(tp => Async[F].delay(tp.shutdown()))
         .map(ExecutionContext.fromExecutorService)
-    _ <- Resource.eval(SchemaMigration[F](config))
+    _ <- SchemaMigration[F](config).toResource
     debugSql = false
     printSqlLogHandler = new LogHandler[F]:
       def run(logEvent: LogEvent): F[Unit] = Async[F].delay { if debugSql then println(logEvent.sql) }

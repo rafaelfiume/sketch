@@ -1,6 +1,6 @@
 package org.fiume.sketch.shared.domain.testkit
 
-import cats.effect.{IO, Ref}
+import cats.effect.IO
 import cats.effect.unsafe.IORuntime
 import cats.implicits.*
 import fs2.Stream
@@ -22,7 +22,7 @@ trait DocumentsStoreContext:
     makeDocumentsStore(state.map(doc => doc.uuid -> doc).toMap)
 
   private def makeDocumentsStore(state: Map[DocumentId, DocumentWithIdAndStream[IO]]): IO[DocumentsStore[IO, IO]] =
-    Ref.of[IO, Map[DocumentId, DocumentWithIdAndStream[IO]]](state).map { storage =>
+    IO.ref(state).map { storage =>
       new DocumentsStore[IO, IO]:
         override def store(document: DocumentWithStream[IO]): IO[DocumentId] =
           import scala.language.adhocExtensions

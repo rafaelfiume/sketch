@@ -57,14 +57,14 @@ trait RusticHealthCheckSpecContext extends FileContentContext with HttpServiceCo
 
   def rusticStatusIs(pathToResponsePayload: String): Resource[IO, Port] =
     for
-      port <- Resource.eval(freePort())
+      port <- freePort().toResource
       httpApp <- rusticIsOk(pathToResponsePayload)
       _ <- makeServer(port)(httpApp).void
     yield port
 
   def rusticInDegradedState(): Resource[IO, Port] =
     for
-      port <- Resource.eval(freePort())
+      port <- freePort().toResource
       httpApp <- rusticIsDegraded()
       _ <- makeServer(port)(httpApp).void
     yield port

@@ -3,7 +3,9 @@ package org.fiume.sketch.shared.jobs
 import cats.{Applicative, Apply}
 import cats.effect.Sync
 import cats.implicits.*
+import org.typelevel.log4cats.Logger
 import org.typelevel.log4cats.slf4j.Slf4jLogger
+import org.typelevel.log4cats.syntax.LoggerInterpolator
 
 trait JobErrorHandler[F[_]]:
   val handleJobError: Throwable => F[Unit]
@@ -30,8 +32,8 @@ object JobErrorHandler:
 
 object JobErrorLogger:
   def make[F[_]: Sync]() = JobErrorHandler.make[F] { error =>
-    val logger = Slf4jLogger.getLogger[F]
-    logger.warn(s"job failed with: ${error.getMessage()}")
+    given Logger[F] = Slf4jLogger.getLogger[F]
+    warn"job failed with: ${error.getMessage()}"
   }
 
 object NoOpJobErrorLogger:

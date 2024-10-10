@@ -1,6 +1,6 @@
 package org.fiume.sketch.shared.auth0.testkit
 
-import cats.effect.{IO, Ref}
+import cats.effect.IO
 import cats.effect.kernel.Clock
 import org.fiume.sketch.shared.auth0.algebras.UsersStore
 import org.fiume.sketch.shared.auth0.domain.{Account, AccountState, User, UserId}
@@ -71,7 +71,7 @@ trait UsersStoreContext:
     clock: Clock[IO],
     delayUntilPermanentDeletion: Duration
   ): IO[UsersStore[IO, IO]] =
-    Ref.of[IO, State](state).map { storage =>
+    IO.ref(state).map { storage =>
       new UsersStore[IO, IO]:
         override def createAccount(credentials: UserCredentials): IO[UserId] =
           for
