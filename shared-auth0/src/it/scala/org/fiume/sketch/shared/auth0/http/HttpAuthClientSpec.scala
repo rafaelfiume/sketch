@@ -34,7 +34,7 @@ class HttpAuthClientSpec extends HttpAuthClientSpecContext:
   ).foreach { (description, username, expectedError) =>
     test(s"login returns error when $description"):
       val port = serverWillReturnError()
-      val config = HttpAuthClientConfig(host"localhost", port)
+      val config = HttpClientConfig(host"localhost", port)
       val authClient = HttpAuthClient.make[IO](config, httpClient())
       assertIO(
         authClient.login(Username.makeUnsafeFromString(username), aPassword()),
@@ -44,7 +44,7 @@ class HttpAuthClientSpec extends HttpAuthClientSpecContext:
 
   test("Internal Server Error causes the client to raise an exception"):
     val port = serverWillReturnError()
-    val config = HttpAuthClientConfig(host"localhost", port)
+    val config = HttpClientConfig(host"localhost", port)
     val authClient = HttpAuthClient.make[IO](config, httpClient())
     /*
      * Check the implementation for details on the design decision to raise an exception
