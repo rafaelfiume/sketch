@@ -164,6 +164,7 @@ lazy val sharedComponents =
       libraryDependencies ++= Seq(
         Dependency.cats,
         Dependency.circeCore,
+        Dependency.circeGeneric,
         Dependency.http4sCirce,
         Dependency.http4sDsl,
         Dependency.log4catsSlf4j,
