@@ -5,7 +5,7 @@ import com.comcast.ip4s.*
 import munit.CatsEffectSuite
 import org.fiume.sketch.auth0.scripts.UsersScript
 import org.fiume.sketch.auth0.scripts.UsersScript.Args
-import org.fiume.sketch.shared.auth0.http.{HttpAuthClient, HttpAuthClientConfig}
+import org.fiume.sketch.shared.auth0.http.{HttpAccountClient, HttpAuthClient, HttpClientConfig}
 import org.fiume.sketch.shared.auth0.testkit.PasswordsGens.*
 import org.fiume.sketch.shared.auth0.testkit.UserGens.*
 import org.fiume.sketch.shared.testkit.Http4sClientContext
@@ -14,7 +14,7 @@ import org.fiume.sketch.shared.testkit.syntax.OptionSyntax.*
 
 class UserAccountsManagementAccSpec extends CatsEffectSuite with Http4sClientContext:
 
-  private val config = HttpAuthClientConfig(host"localhost", port"8080")
+  private val config = HttpClientConfig(host"localhost", port"8080")
 
   test("soft delete user account"):
     withHttp { http =>
@@ -22,11 +22,12 @@ class UserAccountsManagementAccSpec extends CatsEffectSuite with Http4sClientCon
       val password = validPlainPasswords.sample.someOrFail
       for
         userId <- UsersScript.makeScript().flatMap { _.createUserAccount(Args(username, password, isSuperuser = false)) }
-        client = HttpAuthClient.make(config, http)
-        jwt <- client.login(username, password).map(_.rightOrFail)
+        authClient = HttpAuthClient.make(config, http)
+        jwt <- authClient.login(username, password).map(_.rightOrFail)
 
-        result <- client.markAccountForDeletion(userId, jwt).map(_.rightOrFail)
+        accountClient = HttpAccountClient.make(config, http)
+        result <- accountClient.markAccountForDeletion(userId, jwt).map(_.rightOrFail)
 
-        unauthorised <- client.login(username, password)
+        unauthorised <- authClient.login(username, password)
       yield unauthorised.leftOrFail
     }

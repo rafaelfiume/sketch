@@ -1,6 +1,6 @@
 package org.fiume.sketch.authorisation.testkit
 
-import cats.effect.{IO, Ref}
+import cats.effect.IO
 import org.fiume.sketch.authorisation.{AccessControl, ContextualRole, GlobalRole, Role}
 import org.fiume.sketch.shared.app.{Entity, EntityId}
 import org.fiume.sketch.shared.auth0.domain.UserId
@@ -35,7 +35,7 @@ trait AccessControlContext:
   def makeAccessControl(): IO[AccessControl[IO, IO] & InspectAccessControl] = makeAccessControl(State.empty)
 
   private def makeAccessControl(state: State): IO[AccessControl[IO, IO] & InspectAccessControl] =
-    Ref.of[IO, State](state).map { ref =>
+    IO.ref(state).map { ref =>
       new AccessControl[IO, IO] with InspectAccessControl:
 
         override def getGlobalRole(userId: UserId): IO[Option[GlobalRole]] =

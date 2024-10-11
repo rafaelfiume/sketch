@@ -44,29 +44,21 @@ object User:
   sealed abstract case class Username(value: String)
 
   object Username:
-    sealed trait WeakUsernameError extends InvariantError
+    enum WeakUsernameError(val uniqueCode: String, val message: String) extends InvariantError:
+      case TooShort extends WeakUsernameError("username.too.short", s"must be at least $minLength characters long")
 
-    object WeakUsernameError:
-      case object TooShort extends WeakUsernameError:
-        override def uniqueCode: String = "username.too.short"
-        override val message: String = s"must be at least $minLength characters long"
+      case TooLong extends WeakUsernameError("username.too.long", s"must be at most $maxLength characters long")
 
-      case object TooLong extends WeakUsernameError:
-        override def uniqueCode: String = "username.too.long"
-        override val message: String = s"must be at most $maxLength characters long"
+      case InvalidChar
+          extends WeakUsernameError(
+            "username.invalid.character",
+            "must only contain letters (a-z, A-Z), numbers (0-9), and a the special characters: (_,-,@,.)"
+          )
 
-      case object InvalidChar extends WeakUsernameError:
-        override def uniqueCode: String = "username.invalid.character"
-        override val message: String =
-          "must only contain letters (a-z, A-Z), numbers (0-9), and a the special characters: (_,-,@,.)"
+      case ReservedWords extends WeakUsernameError("username.reserved.words", "must not contain reserved words")
 
-      case object ReservedWords extends WeakUsernameError:
-        override def uniqueCode: String = "username.reserved.words"
-        override val message: String = "must not contain reserved words"
-
-      case object ExcessiveRepeatedChars extends WeakUsernameError:
-        override def uniqueCode: String = "username.excessive.repeated.characters"
-        override val message: String = "must not contain excessive repeated characters"
+      case ExcessiveRepeatedChars
+          extends WeakUsernameError("username.excessive.repeated.characters", "must not contain excessive repeated characters")
 
     val minLength = 8
     val maxLength = 40

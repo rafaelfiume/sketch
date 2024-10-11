@@ -40,9 +40,8 @@ object ErrorInfo:
         }
 
   object json:
-    import io.circe.{Decoder, Encoder, HCursor, Json}
-    import io.circe.Decoder.Result
-    import io.circe.syntax.*
+    import io.circe.{Decoder, Encoder}
+    import io.circe.generic.semiauto.*
 
     given Encoder[ErrorCode] = Encoder.encodeString.contramap(_.value)
     given Decoder[ErrorCode] = Decoder.decodeString.map(ErrorCode.apply)
@@ -50,18 +49,5 @@ object ErrorInfo:
     given Decoder[ErrorMessage] = Decoder.decodeString.map(ErrorMessage.apply)
     given Encoder[ErrorDetails] = Encoder.encodeMap[String, String].contramap(_.tips)
     given Decoder[ErrorDetails] = Decoder.decodeMap[String, String].map(_.toList).map(ErrorDetails.apply)
-    given Encoder[ErrorInfo] = new Encoder[ErrorInfo]:
-      override def apply(errorInfo: ErrorInfo): Json =
-        Json.obj(
-          "code" -> errorInfo.code.asJson,
-          "message" -> errorInfo.message.asJson,
-          "details" -> errorInfo.details.asJson
-        )
-
-    given Decoder[ErrorInfo] = new Decoder[ErrorInfo]:
-      override def apply(c: HCursor): Result[ErrorInfo] =
-        for
-          code <- c.downField("code").as[ErrorCode]
-          message <- c.downField("message").as[ErrorMessage]
-          details <- c.downField("details").as[Option[ErrorDetails]]
-        yield ErrorInfo(code, message, details)
+    given Encoder[ErrorInfo] = deriveEncoder
+    given Decoder[ErrorInfo] = deriveDecoder

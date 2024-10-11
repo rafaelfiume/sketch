@@ -4,7 +4,7 @@ import cats.effect.Async
 import cats.implicits.*
 import org.fiume.sketch.shared.app.troubleshooting.ErrorInfo
 import org.fiume.sketch.shared.app.troubleshooting.ErrorInfo.json.given
-import org.fiume.sketch.shared.auth0.domain.{AuthenticationError, JwtToken, UserId}
+import org.fiume.sketch.shared.auth0.domain.{AuthenticationError, Jwt}
 import org.fiume.sketch.shared.auth0.domain.AuthenticationError.*
 import org.fiume.sketch.shared.auth0.domain.Passwords.PlainPassword
 import org.fiume.sketch.shared.auth0.domain.User.Username
@@ -17,15 +17,14 @@ import org.http4s.circe.*
 import org.http4s.circe.CirceEntityDecoder.*
 import org.http4s.circe.CirceEntityEncoder.*
 import org.http4s.client.*
-import org.http4s.headers.Authorization
 
 object HttpAuthClient:
-  def make[F[_]: Async](config: HttpAuthClientConfig, client: Client[F]): HttpAuthClient[F] =
+  def make[F[_]: Async](config: HttpClientConfig, client: Client[F]): HttpAuthClient[F] =
     new HttpAuthClient(config.baseUri, client)
 
 class HttpAuthClient[F[_]: Async] private (baseUri: Uri, client: Client[F]):
 
-  def login(username: Username, password: PlainPassword): F[Either[AuthenticationError, JwtToken]] =
+  def login(username: Username, password: PlainPassword): F[Either[AuthenticationError, Jwt]] =
     val request = Request[F](
       method = POST,
       uri = baseUri / "login"
@@ -33,7 +32,7 @@ class HttpAuthClient[F[_]: Async] private (baseUri: Uri, client: Client[F]):
     client.run(request).use { response =>
       response.status match
         case Ok =>
-          response.as[LoginResponsePayload].map(payload => JwtToken.makeUnsafeFromString(payload.token).asRight)
+          response.as[LoginResponsePayload].map(payload => Jwt.makeUnsafeFromString(payload.token).asRight)
         case Unauthorized =>
           response.as[ErrorInfo].map { error =>
             error.code.value match
@@ -50,16 +49,3 @@ class HttpAuthClient[F[_]: Async] private (baseUri: Uri, client: Client[F]):
         // (one might first think that the left side of the `Either` will provide _all_ possible errors that can happen).
         case status => new RuntimeException(s"Unexpected error: $status").raiseError
     }
-
-  def markAccountForDeletion(id: UserId, jwt: JwtToken): F[Either[String, Unit]] =
-    for
-      authHeader <- Async[F].delay { Authorization.parse(s"Bearer ${jwt.value}") }
-      request = Request[F](DELETE, uri = baseUri / "users" / id.value).withHeaders(authHeader)
-      response <- client
-        .status(request)
-        .map {
-          case Ok        => Right(())
-          case Forbidden => Left("")
-          case status    => Left(s"Unexpected status code: $status")
-        }
-    yield response

@@ -4,7 +4,7 @@ import cats.effect.{Clock, Sync}
 import cats.implicits.*
 import org.fiume.sketch.shared.app.algebras.Store.syntax.*
 import org.fiume.sketch.shared.auth0.algebras.UsersStore
-import org.fiume.sketch.shared.auth0.domain.{AuthenticationError, JwtError, JwtToken, User}
+import org.fiume.sketch.shared.auth0.domain.{AuthenticationError, Jwt, JwtError, User}
 import org.fiume.sketch.shared.auth0.domain.AuthenticationError.*
 import org.fiume.sketch.shared.auth0.domain.Passwords.{HashedPassword, PlainPassword}
 import org.fiume.sketch.shared.auth0.domain.User.Username
@@ -13,8 +13,8 @@ import java.security.{PrivateKey, PublicKey}
 import scala.concurrent.duration.Duration
 
 trait Authenticator[F[_]]:
-  def authenticate(username: Username, password: PlainPassword): F[Either[AuthenticationError, JwtToken]]
-  def verify(jwtToken: JwtToken): Either[JwtError, User]
+  def authenticate(username: Username, password: PlainPassword): F[Either[AuthenticationError, Jwt]]
+  def verify(jwt: Jwt): Either[JwtError, User]
 
 object Authenticator:
   def make[F[_]: Sync, Txn[_]](
@@ -27,10 +27,10 @@ object Authenticator:
     given UsersStore[F, Txn] = store
 
     new Authenticator[F]:
-      override def authenticate(username: Username, password: PlainPassword): F[Either[AuthenticationError, JwtToken]] =
+      override def authenticate(username: Username, password: PlainPassword): F[Either[AuthenticationError, Jwt]] =
         for
           account <- store.fetchAccount(username).commit()
-          jwtToken <- account match
+          jwt <- account match
             case None =>
               UserNotFoundError.asLeft.pure[F]
 
@@ -46,8 +46,8 @@ object Authenticator:
                   },
                   ifFalse = InvalidPasswordError.asLeft.pure[F]
                 )
-        yield jwtToken
+        yield jwt
 
-      override def verify(jwtToken: JwtToken): Either[JwtError, User] =
-        JwtIssuer.verify(jwtToken, publicKey)
+      override def verify(jwt: Jwt): Either[JwtError, User] =
+        JwtIssuer.verify(jwt, publicKey)
   }

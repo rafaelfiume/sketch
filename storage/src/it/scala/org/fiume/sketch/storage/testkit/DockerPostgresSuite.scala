@@ -74,6 +74,6 @@ trait DockerPostgresSuite extends CatsEffectSuite:
         connectionPool,
         Some(printSqlLogHandler)
       )
-      _ <- Resource.eval(SchemaMigration[IO](dbConfig))
+      _ <- SchemaMigration[IO](dbConfig).toResource
     yield DbContainerAndTransactor(container, tx)
   )

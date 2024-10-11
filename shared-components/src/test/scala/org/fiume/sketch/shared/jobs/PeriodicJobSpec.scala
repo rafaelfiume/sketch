@@ -11,7 +11,7 @@ class PeriodicJobSpec extends CatsEffectSuite with JobErrorHandlerContext:
 
   test("runs job periodically, even after encountering errors"):
     // given
-    def makeBrokenJob(): IO[(Ref[IO, Int], Job[IO, Int])] = Ref.of[IO, Int](0).map { counter =>
+    def makeBrokenJob(): IO[(Ref[IO, Int], Job[IO, Int])] = IO.ref(0).map { counter =>
       counter -> JobWrapper(
         effect = counter.flatModify { i =>
           val jobNumber = i + 1
@@ -53,7 +53,7 @@ class PeriodicJobSpec extends CatsEffectSuite with JobErrorHandlerContext:
 
   test("stops running jobs when interrupted"):
     for
-      jobCounter <- Ref.of[IO, Int](0)
+      jobCounter <- IO.ref(0)
       job = JobWrapper(jobCounter.update(_ + 1), "increments a counter")
       fiber <- PeriodicJob
         .makeWithDefaultJobErrorHandler(50.millis, job)
