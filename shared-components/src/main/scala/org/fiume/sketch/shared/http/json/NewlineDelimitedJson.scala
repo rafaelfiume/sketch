@@ -20,8 +20,8 @@ enum NewlineDelimitedJson:
 object NewlineDelimitedJsonEncoder:
   def make[F[_]: cats.Functor]: EntityEncoder[F, NewlineDelimitedJson] =
     EntityEncoder.stringEncoder
-      .contramap[NewlineDelimitedJson] { token =>
-        token match
+      .contramap[NewlineDelimitedJson] { line =>
+        line match
           case Line(value) => value.noSpaces
           case Linebreak   => "\n"
       }
