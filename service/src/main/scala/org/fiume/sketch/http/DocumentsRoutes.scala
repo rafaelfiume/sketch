@@ -6,7 +6,6 @@ import cats.effect.Concurrent
 import cats.implicits.*
 import fs2.Stream
 import io.circe.syntax.*
-import org.fiume.sketch.authorisation.{AccessControl, ContextualRole}
 import org.fiume.sketch.http.DocumentsRoutes.DocumentIdVar
 import org.fiume.sketch.http.DocumentsRoutes.Model.*
 import org.fiume.sketch.http.DocumentsRoutes.Model.json.given
@@ -17,7 +16,8 @@ import org.fiume.sketch.shared.app.http4s.middlewares.SemanticInputError
 import org.fiume.sketch.shared.app.troubleshooting.ErrorCode
 import org.fiume.sketch.shared.app.troubleshooting.ErrorInfo.ErrorDetails
 import org.fiume.sketch.shared.app.troubleshooting.InvariantErrorSyntax.asDetails
-import org.fiume.sketch.shared.auth0.domain.User
+import org.fiume.sketch.shared.auth.domain.User
+import org.fiume.sketch.shared.authorisation.{AccessControl, ContextualRole}
 import org.fiume.sketch.shared.domain.documents.{Document, DocumentId, DocumentWithId, DocumentWithStream}
 import org.fiume.sketch.shared.domain.documents.Document.Metadata
 import org.fiume.sketch.shared.domain.documents.Document.Metadata.*

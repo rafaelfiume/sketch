@@ -4,10 +4,10 @@ import cats.effect.Async
 import cats.implicits.*
 import ciris.*
 import com.comcast.ip4s.*
-import org.fiume.sketch.auth0.KeyStringifier
+import org.fiume.sketch.auth.KeyStringifier
 import org.fiume.sketch.rustic.RusticClientConfig
 import org.fiume.sketch.shared.app.Version.Environment
-import org.fiume.sketch.shared.auth0.AccountConfig
+import org.fiume.sketch.shared.auth.AccountConfig
 import org.fiume.sketch.storage.postgres.DatabaseConfig
 import org.http4s.headers.Origin
 

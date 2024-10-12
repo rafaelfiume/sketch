@@ -15,5 +15,5 @@ This is the list of files or evironment vars that are expected in a `secrets` di
  * `public_key.pem` (see `docs/Authentication.md`)
  * `DB_PASS` (for instace, in a `sketch.secrets.envs.vars.sh`)
 
-You should use `EcKeyPairPemGenScript` in the `auth0-script` module to generate both the private and publick keys pem files.
+You should use `EcKeyPairPemGenScript` in the `auth` module to generate both the private and publick keys pem files.
 Just make sure to move them to this (`secrets`) directory.

@@ -1,4 +1,4 @@
-package org.fiume.sketch.storage.auth0.postgres
+package org.fiume.sketch.storage.auth.postgres
 
 import cats.effect.{Async, Clock, Resource}
 import cats.implicits.*
@@ -7,14 +7,14 @@ import doobie.*
 import doobie.free.connection.ConnectionIO
 import doobie.implicits.*
 import doobie.postgres.implicits.*
-import org.fiume.sketch.shared.auth0.algebras.UsersStore
-import org.fiume.sketch.shared.auth0.domain.{Account, AccountState, Passwords, User, UserId}
-import org.fiume.sketch.shared.auth0.domain.Passwords.{HashedPassword, Salt}
-import org.fiume.sketch.shared.auth0.domain.User.*
-import org.fiume.sketch.shared.auth0.jobs.ScheduledAccountDeletion
+import org.fiume.sketch.shared.auth.algebras.UsersStore
+import org.fiume.sketch.shared.auth.domain.{Account, AccountState, Passwords, User, UserId}
+import org.fiume.sketch.shared.auth.domain.Passwords.{HashedPassword, Salt}
+import org.fiume.sketch.shared.auth.domain.User.*
+import org.fiume.sketch.shared.auth.jobs.ScheduledAccountDeletion
 import org.fiume.sketch.shared.jobs.JobId
-import org.fiume.sketch.storage.auth0.postgres.DatabaseCodecs.given
-import org.fiume.sketch.storage.auth0.postgres.Statements.*
+import org.fiume.sketch.storage.auth.postgres.DatabaseCodecs.given
+import org.fiume.sketch.storage.auth.postgres.Statements.*
 import org.fiume.sketch.storage.postgres.AbstractPostgresStore
 
 import java.time.Instant

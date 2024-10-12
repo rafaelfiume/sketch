@@ -35,35 +35,17 @@ lazy val commonSettings = Seq(
 // See https://eed3si9n.com/sbt-1.9.0
 val IntegrationTests = config("it").extend(Test)
 
-lazy val accessControl =
-   project.in(file("access-control"))
-     .dependsOn(sharedAuth0 % "compile->compile;test->test")
-     .dependsOn(sharedComponents)
-     .dependsOn(sharedTestComponents % Test)
-     .disablePlugins(plugins.JUnitXmlReportPlugin)
-     .settings(commonSettings: _*)
-     .settings(
-       name := "access-control",
-       libraryDependencies ++= Seq(
-         Dependency.catsEffect,
-         Dependency.munit % Test,
-         Dependency.munitCatsEffect % Test,
-         Dependency.munitScalaCheck % Test,
-         Dependency.munitScalaCheckEffect % Test
-       )
-     )
-
-lazy val auth0 =
-   project.in(file("auth0"))
-     .dependsOn(accessControl % "compile->compile;test->test")
-     .dependsOn(sharedAuth0 % "compile->compile;test->test")
+lazy val auth =
+   project.in(file("auth"))
+     .dependsOn(sharedAccessControl % "compile->compile;test->test")
+     .dependsOn(sharedAuth % "compile->compile;test->test")
      .dependsOn(sharedTestComponents % Test)
      .dependsOn(storage)
      .dependsOn(testContracts % "test->test")
      .disablePlugins(plugins.JUnitXmlReportPlugin)
      .settings(commonSettings: _*)
      .settings(
-       name := "auth0",
+       name := "auth",
        libraryDependencies ++= Seq(
          Dependency.bouncycastle,
          Dependency.catsEffect,
@@ -80,9 +62,9 @@ lazy val auth0 =
 
 lazy val service =
    project.in(file("service"))
-     .dependsOn(accessControl % "compile->compile;test->test")
-     .dependsOn(auth0)
-     .dependsOn(sharedAuth0 % "compile->compile;test->test")
+     .dependsOn(auth)
+     .dependsOn(sharedAccessControl % "compile->compile;test->test")
+     .dependsOn(sharedAuth % "compile->compile;test->test")
      .dependsOn(sharedComponents % "compile->compile;test->test")
      .dependsOn(sharedDomain % "compile->compile;test->test")
      .dependsOn(sharedTestComponents % Test)
@@ -132,8 +114,26 @@ lazy val service =
        dockerRepository := Some("docker.io")
      )
 
-lazy val sharedAuth0 =
-    project.in(file("shared-auth0"))
+lazy val sharedAccessControl =
+   project.in(file("shared-access-control"))
+     .dependsOn(sharedAuth % "compile->compile;test->test")
+     .dependsOn(sharedComponents)
+     .dependsOn(sharedTestComponents % Test)
+     .disablePlugins(plugins.JUnitXmlReportPlugin)
+     .settings(commonSettings: _*)
+     .settings(
+       name := "shared-access-control",
+       libraryDependencies ++= Seq(
+         Dependency.catsEffect,
+         Dependency.munit % Test,
+         Dependency.munitCatsEffect % Test,
+         Dependency.munitScalaCheck % Test,
+         Dependency.munitScalaCheckEffect % Test
+       )
+     )
+
+lazy val sharedAuth =
+    project.in(file("shared-auth"))
     .dependsOn(sharedComponents)
     .dependsOn(sharedTestComponents % Test)
     .disablePlugins(plugins.JUnitXmlReportPlugin)
@@ -143,7 +143,7 @@ lazy val sharedAuth0 =
       inConfig(IntegrationTests)(Defaults.testSettings ++ scalafixConfigSettings(IntegrationTests))
     )
     .settings(
-      name := "shared-auth0",
+      name := "shared-auth",
       libraryDependencies ++= Seq(
         Dependency.jbcrypt,
         Dependency.circeGeneric,
@@ -176,10 +176,10 @@ lazy val sharedComponents =
       )
     )
 
-// depends on auth0, not the other way round
+// depends on auth, not the other way round
 lazy val sharedDomain =
     project.in(file("shared-domain"))
-    .dependsOn(sharedAuth0 % "compile->compile;test->test")
+    .dependsOn(sharedAuth % "compile->compile;test->test")
     .dependsOn(sharedComponents)
     .dependsOn(sharedTestComponents % Test)
     .disablePlugins(plugins.JUnitXmlReportPlugin)
@@ -220,10 +220,10 @@ lazy val sharedTestComponents =
 lazy val sketch =
    project.in(file("."))
     .settings(commonSettings: _*)
-    .aggregate(accessControl)
-    .aggregate(auth0)
+    .aggregate(auth)
     .aggregate(service)
-    .aggregate(sharedAuth0)
+    .aggregate(sharedAccessControl)
+    .aggregate(sharedAuth)
     .aggregate(sharedComponents)
     .aggregate(sharedDomain)
     .aggregate(sharedTestComponents)
@@ -231,8 +231,8 @@ lazy val sketch =
 
 lazy val storage =
    project.in(file("storage"))
-     .dependsOn(accessControl % "compile->compile;test->test")
-     .dependsOn(sharedAuth0 % "compile->compile;test->test")
+     .dependsOn(sharedAccessControl % "compile->compile;test->test")
+     .dependsOn(sharedAuth % "compile->compile;test->test")
      .dependsOn(sharedComponents)
      .dependsOn(sharedDomain % "compile->compile;test->test")
      .dependsOn(sharedTestComponents % Test)
@@ -265,8 +265,8 @@ lazy val storage =
 
 lazy val testAcceptance =
    project.in(file("test-acceptance"))
-     .dependsOn(auth0 % Test)
-     .dependsOn(sharedAuth0 % "test->test")
+     .dependsOn(auth % Test)
+     .dependsOn(sharedAuth % "test->test")
      .dependsOn(sharedTestComponents % Test)
      .dependsOn(testContracts % "test->test")
      .disablePlugins(plugins.JUnitXmlReportPlugin)

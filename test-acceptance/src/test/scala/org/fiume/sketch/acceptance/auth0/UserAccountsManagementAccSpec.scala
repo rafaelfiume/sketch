@@ -1,13 +1,13 @@
-package org.fiume.sketch.acceptance.auth0
+package org.fiume.sketch.acceptance.auth
 
 import cats.effect.IO
 import com.comcast.ip4s.*
 import munit.CatsEffectSuite
-import org.fiume.sketch.auth0.scripts.UsersScript
-import org.fiume.sketch.auth0.scripts.UsersScript.Args
-import org.fiume.sketch.shared.auth0.http.{HttpAccountClient, HttpAuthClient, HttpClientConfig}
-import org.fiume.sketch.shared.auth0.testkit.PasswordsGens.*
-import org.fiume.sketch.shared.auth0.testkit.UserGens.*
+import org.fiume.sketch.auth.scripts.UsersScript
+import org.fiume.sketch.auth.scripts.UsersScript.Args
+import org.fiume.sketch.shared.auth.http.{HttpAccountClient, HttpAuthClient, HttpClientConfig}
+import org.fiume.sketch.shared.auth.testkit.PasswordsGens.*
+import org.fiume.sketch.shared.auth.testkit.UserGens.*
 import org.fiume.sketch.shared.testkit.Http4sClientContext
 import org.fiume.sketch.shared.testkit.syntax.EitherSyntax.*
 import org.fiume.sketch.shared.testkit.syntax.OptionSyntax.*

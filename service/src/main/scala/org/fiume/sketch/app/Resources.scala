@@ -4,15 +4,15 @@ import cats.effect.{Async, Clock, Resource, Sync}
 import doobie.ConnectionIO
 import fs2.io.net.Network
 import org.fiume.sketch.app.SketchVersions.VersionFile
-import org.fiume.sketch.auth0.Authenticator
-import org.fiume.sketch.authorisation.AccessControl
+import org.fiume.sketch.auth.Authenticator
 import org.fiume.sketch.rustic.RusticHealthCheck
 import org.fiume.sketch.shared.app.ServiceStatus.Dependency.*
 import org.fiume.sketch.shared.app.algebras.{HealthChecker, Versions}
 import org.fiume.sketch.shared.app.algebras.HealthChecker.*
-import org.fiume.sketch.shared.auth0.algebras.UsersStore
+import org.fiume.sketch.shared.auth.algebras.UsersStore
+import org.fiume.sketch.shared.authorisation.AccessControl
 import org.fiume.sketch.shared.domain.documents.algebras.DocumentsStore
-import org.fiume.sketch.storage.auth0.postgres.PostgresUsersStore
+import org.fiume.sketch.storage.auth.postgres.PostgresUsersStore
 import org.fiume.sketch.storage.authorisation.postgres.PostgresAccessControl
 import org.fiume.sketch.storage.documents.postgres.PostgresDocumentsStore
 import org.fiume.sketch.storage.postgres.{DbTransactor, PostgresHealthCheck}

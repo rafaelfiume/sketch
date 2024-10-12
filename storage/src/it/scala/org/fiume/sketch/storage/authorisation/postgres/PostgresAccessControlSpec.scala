@@ -5,22 +5,22 @@ import cats.implicits.*
 import doobie.ConnectionIO
 import doobie.implicits.*
 import munit.ScalaCheckEffectSuite
-import org.fiume.sketch.authorisation.{ContextualRole, GlobalRole, Role}
-import org.fiume.sketch.authorisation.ContextualRole.Owner
-import org.fiume.sketch.authorisation.GlobalRole.{Admin, Superuser}
-import org.fiume.sketch.authorisation.testkit.AccessControlGens.*
-import org.fiume.sketch.authorisation.testkit.AccessControlGens.given
-import org.fiume.sketch.shared.auth0.domain.User.UserCredentials
-import org.fiume.sketch.shared.auth0.domain.UserId
-import org.fiume.sketch.shared.auth0.testkit.UserGens.*
-import org.fiume.sketch.shared.auth0.testkit.UserGens.given
-import org.fiume.sketch.shared.auth0.testkit.UsersStoreContext
+import org.fiume.sketch.shared.auth.domain.User.UserCredentials
+import org.fiume.sketch.shared.auth.domain.UserId
+import org.fiume.sketch.shared.auth.testkit.UserGens.*
+import org.fiume.sketch.shared.auth.testkit.UserGens.given
+import org.fiume.sketch.shared.auth.testkit.UsersStoreContext
+import org.fiume.sketch.shared.authorisation.{ContextualRole, GlobalRole, Role}
+import org.fiume.sketch.shared.authorisation.ContextualRole.Owner
+import org.fiume.sketch.shared.authorisation.GlobalRole.{Admin, Superuser}
+import org.fiume.sketch.shared.authorisation.testkit.AccessControlGens.*
+import org.fiume.sketch.shared.authorisation.testkit.AccessControlGens.given
 import org.fiume.sketch.shared.domain.documents.{DocumentEntity, DocumentId, DocumentWithIdAndStream}
 import org.fiume.sketch.shared.domain.testkit.DocumentsGens.*
 import org.fiume.sketch.shared.domain.testkit.DocumentsGens.given
 import org.fiume.sketch.shared.testkit.syntax.EitherSyntax.*
 import org.fiume.sketch.shared.testkit.syntax.OptionSyntax.someOrFail
-import org.fiume.sketch.storage.auth0.postgres.PostgresUsersStore
+import org.fiume.sketch.storage.auth.postgres.PostgresUsersStore
 import org.fiume.sketch.storage.documents.postgres.PostgresDocumentsStore
 import org.fiume.sketch.storage.testkit.DockerPostgresSuite
 import org.scalacheck.ShrinkLowPriority

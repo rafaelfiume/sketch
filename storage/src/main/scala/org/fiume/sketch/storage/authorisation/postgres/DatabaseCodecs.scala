@@ -4,9 +4,9 @@ import cats.implicits.*
 import doobie.{Meta, Read}
 import doobie.postgres.implicits.*
 import doobie.util.Write
-import org.fiume.sketch.authorisation.{ContextualRole, GlobalRole, Role}
-import org.fiume.sketch.authorisation.Role.given
 import org.fiume.sketch.shared.app.{Entity, EntityId}
+import org.fiume.sketch.shared.authorisation.{ContextualRole, GlobalRole, Role}
+import org.fiume.sketch.shared.authorisation.Role.given
 
 import java.util.UUID
 
@@ -22,7 +22,7 @@ private[storage] object DatabaseCodecs:
   given write[T <: Entity]: Write[EntityId[T]] = Write[UUID].contramap(_.value)
 
   import org.fiume.sketch.shared.domain.documents.DocumentId
-  import org.fiume.sketch.shared.auth0.domain.UserId
+  import org.fiume.sketch.shared.auth.domain.UserId
   given read[T <: Entity]: Read[EntityId[T]] = Read[(UUID, String)].map { case (uuid, entityType) =>
     entityType match
       case "DocumentEntity" => DocumentId(uuid).asInstanceOf[EntityId[T]]

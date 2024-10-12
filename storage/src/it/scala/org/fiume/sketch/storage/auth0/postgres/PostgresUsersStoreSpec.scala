@@ -1,4 +1,4 @@
-package org.fiume.sketch.storage.auth0.postgres
+package org.fiume.sketch.storage.auth.postgres
 
 import cats.effect.IO
 import cats.implicits.*
@@ -6,19 +6,19 @@ import doobie.ConnectionIO
 import doobie.implicits.*
 import doobie.postgres.implicits.*
 import munit.ScalaCheckEffectSuite
-import org.fiume.sketch.shared.auth0.domain.{AccountState, Passwords, User, UserId}
-import org.fiume.sketch.shared.auth0.domain.AccountState.SoftDeleted
-import org.fiume.sketch.shared.auth0.domain.Passwords.HashedPassword
-import org.fiume.sketch.shared.auth0.domain.User.*
-import org.fiume.sketch.shared.auth0.jobs.ScheduledAccountDeletion
-import org.fiume.sketch.shared.auth0.testkit.PasswordsGens.given
-import org.fiume.sketch.shared.auth0.testkit.UserGens
-import org.fiume.sketch.shared.auth0.testkit.UserGens.given
+import org.fiume.sketch.shared.auth.domain.{AccountState, Passwords, User, UserId}
+import org.fiume.sketch.shared.auth.domain.AccountState.SoftDeleted
+import org.fiume.sketch.shared.auth.domain.Passwords.HashedPassword
+import org.fiume.sketch.shared.auth.domain.User.*
+import org.fiume.sketch.shared.auth.jobs.ScheduledAccountDeletion
+import org.fiume.sketch.shared.auth.testkit.PasswordsGens.given
+import org.fiume.sketch.shared.auth.testkit.UserGens
+import org.fiume.sketch.shared.auth.testkit.UserGens.given
 import org.fiume.sketch.shared.jobs.JobId
 import org.fiume.sketch.shared.testkit.ClockContext
 import org.fiume.sketch.shared.testkit.syntax.EitherSyntax.*
 import org.fiume.sketch.shared.testkit.syntax.OptionSyntax.*
-import org.fiume.sketch.storage.auth0.postgres.DatabaseCodecs.given
+import org.fiume.sketch.storage.auth.postgres.DatabaseCodecs.given
 import org.fiume.sketch.storage.testkit.DockerPostgresSuite
 import org.scalacheck.ShrinkLowPriority
 import org.scalacheck.effect.PropF.forAllF

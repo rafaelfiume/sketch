@@ -1,11 +1,11 @@
-package org.fiume.sketch.storage.auth0.postgres
+package org.fiume.sketch.storage.auth.postgres
 
 import doobie.{Meta, Read}
 import doobie.postgres.implicits.*
 import doobie.util.Write
-import org.fiume.sketch.shared.auth0.domain.{Account, AccountState, User, UserId}
-import org.fiume.sketch.shared.auth0.domain.Passwords.{HashedPassword, Salt}
-import org.fiume.sketch.shared.auth0.domain.User.*
+import org.fiume.sketch.shared.auth.domain.{Account, AccountState, User, UserId}
+import org.fiume.sketch.shared.auth.domain.Passwords.{HashedPassword, Salt}
+import org.fiume.sketch.shared.auth.domain.User.*
 import org.fiume.sketch.shared.jobs.JobId
 
 import java.time.Instant

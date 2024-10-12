@@ -6,9 +6,9 @@ import cats.implicits.*
 import com.comcast.ip4s.*
 import doobie.ConnectionIO
 import fs2.io.net.Network
-import org.fiume.sketch.auth0.http.{AuthRoutes, UsersRoutes}
-import org.fiume.sketch.auth0.http.middlewares.Auth0Middleware
-import org.fiume.sketch.auth0.jobs.ScheduledAccountDeletionJob
+import org.fiume.sketch.auth.http.{AuthRoutes, UsersRoutes}
+import org.fiume.sketch.auth.http.middlewares.Auth0Middleware
+import org.fiume.sketch.auth.jobs.ScheduledAccountDeletionJob
 import org.fiume.sketch.http.{DocumentsRoutes, HealthStatusRoutes}
 import org.fiume.sketch.shared.app.http4s.middlewares.{SemanticValidationMiddleware, TraceAuditLogMiddleware, WorkerMiddleware}
 import org.fiume.sketch.shared.jobs.PeriodicJob
