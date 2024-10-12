@@ -21,15 +21,16 @@
 
 #### sbt:
 
+- `sbt ~compile`
+- `sbt docker:publishLocal`
 - `sbt scalafmtAll`
 - `sbt scalafixAll`
-- `sbt docker:publishLocal`
 
 #### Acceptance tests:
 
-- `sbt testAcceptance/test`
-- `sbt testAcceptance/scalafixAll`
 - `sbt testAcceptance/Gatling/test`
+- `sbt testAcceptance/scalafixAll`
+- `sbt testAcceptance/test`
 
 #### Scripts:
 
@@ -51,5 +52,9 @@
  - `docker volume ls`
  - `docker volume prune`
  - `docker volume rm my_database_volume`
+
+#### Other Commands
+
+ - `lsof -i tcp:8080`
 
 Check postgres connection with: `lsof -nP -iTCP:5433 | grep LISTEN`
