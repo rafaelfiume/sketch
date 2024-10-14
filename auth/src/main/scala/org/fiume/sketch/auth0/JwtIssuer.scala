@@ -52,11 +52,11 @@ private[auth] object JwtIssuer:
   private case class Content(preferredUsername: Username)
 
   private object Content:
-    given Encoder[Content] = new Encoder[Content]:
+    given Encoder[Content] with
       final def apply(a: Content): Json = Json.obj(
         "preferred_username" -> a.preferredUsername.value.asJson
       )
 
-    given Decoder[Content] = new Decoder[Content]:
+    given Decoder[Content] with
       final def apply(c: HCursor): Decoder.Result[Content] =
         c.downField("preferred_username").as[String].map(value => Content(Username.makeUnsafeFromString(value)))

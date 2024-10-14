@@ -30,7 +30,7 @@ abstract case class EntityId[T <: Entity](val value: UUID):
 object EntityId:
   inline def apply[T <: Entity](value: UUID): EntityId[T] = ${ Macros.entityIdApplyMacro[T]('value) }
 
-  given [T <: Entity]: AsString[EntityId[T]] = new AsString[EntityId[T]]:
+  given [T <: Entity]: AsString[EntityId[T]] with
     extension (id: EntityId[T]) override def asString(): String = id.value.toString
 
   object FromString:

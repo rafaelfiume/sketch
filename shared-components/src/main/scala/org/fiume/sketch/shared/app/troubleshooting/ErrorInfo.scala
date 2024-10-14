@@ -28,7 +28,7 @@ object ErrorInfo:
     given Semigroup[ErrorDetails] = new Semigroup[ErrorDetails]:
       def combine(x: ErrorDetails, y: ErrorDetails): ErrorDetails = ErrorDetails(x.tips.combine(y.tips))
 
-  given AsString[ErrorInfo] = new AsString[ErrorInfo]:
+  given AsString[ErrorInfo] with
     extension (error: ErrorInfo)
       override def asString(): String =
         val semanticErrorMessage = error.message.asString
