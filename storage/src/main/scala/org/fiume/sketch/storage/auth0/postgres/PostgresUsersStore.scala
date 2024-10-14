@@ -25,7 +25,7 @@ object PostgresUsersStore:
 
 private class PostgresUsersStore[F[_]: Async] private (lift: F ~> ConnectionIO, tx: Transactor[F], clock: Clock[F])
     extends AbstractPostgresStore[F](lift, tx)
-    with UsersStore[F, ConnectionIO]:
+    with UsersStore[F, ConnectionIO](clock):
 
   override def createAccount(credentials: UserCredentials): ConnectionIO[UserId] =
     insertUserCredentials(credentials.username, credentials.hashedPassword, credentials.salt)
@@ -54,8 +54,6 @@ private class PostgresUsersStore[F[_]: Async] private (lift: F ~> ConnectionIO, 
 
   override protected def unschedulePermanentDeletion(userId: UserId): ConnectionIO[Unit] =
     JobStatements.deleteJob(userId).run.void
-
-  override protected def getNow(): ConnectionIO[Instant] = lift { clock.realTimeInstant }
 
 private object Statements:
   def insertUserCredentials(username: Username, password: HashedPassword, salt: Salt): ConnectionIO[UserId] =

@@ -72,7 +72,7 @@ trait UsersStoreContext:
     delayUntilPermanentDeletion: Duration
   ): IO[UsersStore[IO, IO]] =
     IO.ref(state).map { storage =>
-      new UsersStore[IO, IO]:
+      new UsersStore[IO, IO](clock):
         override def createAccount(credentials: UserCredentials): IO[UserId] =
           for
             uuid <- IO.randomUUID.map(UserId(_))
@@ -109,8 +109,6 @@ trait UsersStoreContext:
 
         override protected def unschedulePermanentDeletion(uuid: UserId): IO[Unit] =
           storage.update { _.---(uuid) }.void
-
-        override protected def getNow(): IO[Instant] = clock.realTimeInstant
 
         override val lift: [A] => IO[A] => IO[A] = [A] => (action: IO[A]) => action
 

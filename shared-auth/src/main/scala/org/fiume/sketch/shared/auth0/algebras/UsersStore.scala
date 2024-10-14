@@ -1,6 +1,7 @@
 package org.fiume.sketch.shared.auth.algebras
 
 import cats.Monad
+import cats.effect.kernel.Clock
 import cats.implicits.*
 import org.fiume.sketch.shared.app.algebras.Store
 import org.fiume.sketch.shared.auth.domain.{Account, AccountState, ActivateAccountError, SoftDeleteAccountError, User, UserId}
@@ -12,7 +13,7 @@ import org.fiume.sketch.shared.auth.jobs.ScheduledAccountDeletion
 import java.time.Instant
 import scala.concurrent.duration.Duration
 
-trait UsersStore[F[_], Txn[_]: Monad] extends Store[F, Txn]:
+trait UsersStore[F[_], Txn[_]: Monad](clock: Clock[F]) extends Store[F, Txn]:
 
   def createAccount(credentials: UserCredentials): Txn[UserId]
 
@@ -30,7 +31,7 @@ trait UsersStore[F[_], Txn[_]: Monad] extends Store[F, Txn]:
     userId: UserId,
     timeUntilPermanentDeletion: Duration
   ): Txn[Either[SoftDeleteAccountError, ScheduledAccountDeletion]] =
-    getNow().flatMap { now =>
+    lift { clock.realTimeInstant }.flatMap { now =>
       val permanentDeletionAt = now.plusSeconds(timeUntilPermanentDeletion.toSeconds)
       fetchAccountWith(userId) { _.fold(AccountNotFound.asLeft)(AccountState.transitionToSoftDelete(_, now)) }.flatMap {
         case Right(account) =>
@@ -42,7 +43,7 @@ trait UsersStore[F[_], Txn[_]: Monad] extends Store[F, Txn]:
     }
 
   def restoreAccount(userId: UserId): Txn[Either[ActivateAccountError, Account]] =
-    getNow().flatMap { now =>
+    lift { clock.realTimeInstant }.flatMap { now =>
       fetchAccountWith(userId) { _.fold(ActivateAccountError.AccountNotFound.asLeft)(AccountState.transitionToActive(_, now)) }
         .flatMap {
           case Right(account) =>
@@ -60,5 +61,3 @@ trait UsersStore[F[_], Txn[_]: Monad] extends Store[F, Txn]:
   protected def schedulePermanentDeletion(userId: UserId, permanentDeletionAt: Instant): Txn[ScheduledAccountDeletion]
 
   protected def unschedulePermanentDeletion(userId: UserId): Txn[Unit]
-
-  protected def getNow(): Txn[Instant]
