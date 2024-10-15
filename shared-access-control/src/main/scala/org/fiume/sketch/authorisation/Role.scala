@@ -7,7 +7,6 @@ import org.fiume.sketch.shared.authorisation.InvalidRole.UnparsableRole
 import org.fiume.sketch.shared.typeclasses.{AsString, FromString}
 
 import scala.util.Try
-import scala.util.control.NoStackTrace
 
 enum Role:
   case Global(designation: GlobalRole)
@@ -38,8 +37,5 @@ object Role:
 
   given Eq[Role] = Eq.fromUniversalEquals[Role]
 
-trait InvalidRole extends InvariantError
-object InvalidRole:
-  case class UnparsableRole(value: String) extends InvalidRole with NoStackTrace:
-    override def uniqueCode: String = "invalid.role"
-    override val message: String = s"invalid role '$value'"
+enum InvalidRole(val uniqueCode: String, val message: String) extends InvariantError:
+  case UnparsableRole(value: String) extends InvalidRole("invalid.role", s"invalid role '$value'")

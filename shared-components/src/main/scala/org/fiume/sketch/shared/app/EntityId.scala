@@ -8,7 +8,6 @@ import org.fiume.sketch.shared.typeclasses.{AsString, FromString}
 
 import java.util.UUID
 import scala.util.Try
-import scala.util.control.NoStackTrace
 
 /*
  * A phantom type is a parameterised type whose parameters do not all appear on the right-hand side of its definition.
@@ -48,11 +47,8 @@ object EntityId:
 
 trait Entity
 
-trait InvalidUuid extends InvariantError
-object InvalidUuid:
-  case class UnparsableUuid(value: String) extends InvalidUuid with NoStackTrace:
-    override def uniqueCode: String = "invalid.uuid"
-    override val message: String = s"invalid uuid '$value'"
+enum InvalidUuid(val uniqueCode: String, val message: String) extends InvariantError:
+  case UnparsableUuid(value: String) extends InvalidUuid("invalid.uuid", s"invalid uuid '$value'")
 
 trait WithUuid[T <: EntityId[?]]:
   val uuid: T

@@ -13,7 +13,7 @@ trait JobErrorHandler[F[_]]:
 object JobErrorHandler:
   def make[F[_]](handler: Throwable => F[Unit]): JobErrorHandler[F] =
     new JobErrorHandler[F]:
-      override val handleJobError: Throwable => F[Unit] = handler
+      override val handleJobError = handler
   /*
    * Note: Do not rely on the order of execution of the handlers, as it is not guaranteed.
    */

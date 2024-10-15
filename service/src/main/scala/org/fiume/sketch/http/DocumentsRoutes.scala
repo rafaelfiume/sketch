@@ -185,19 +185,20 @@ private[http] object DocumentsRoutes:
         }
 
     object json:
-      import io.circe.{Decoder, Encoder, Json, *}
+      import io.circe.{Decoder, Encoder, *}
       import io.circe.generic.semiauto.*
       import org.http4s.circe.*
 
       given Decoder[DocumentId] = Decoder.decodeUUID.map(DocumentId(_))
+
       given Encoder[MetadataRequestPayload] = deriveEncoder
       given Decoder[MetadataRequestPayload] = deriveDecoder
+
       given Encoder[MetadataResponsePayload] = deriveEncoder
       given Decoder[MetadataResponsePayload] = deriveDecoder
+
       given Encoder[DocumentResponsePayload] = deriveEncoder
       given Decoder[DocumentResponsePayload] = deriveDecoder
 
-      given Encoder[DocumentIdResponsePayload] = new Encoder[DocumentIdResponsePayload]:
-        override def apply(uuid: DocumentIdResponsePayload): Json = Json.obj("uuid" -> uuid.uuid.asJson)
-
+      given Encoder[DocumentIdResponsePayload] = deriveEncoder
       given Decoder[DocumentIdResponsePayload] = deriveDecoder

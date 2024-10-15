@@ -25,7 +25,7 @@ object ErrorInfo:
 
     extension (d: ErrorDetails) def asString: String = d.tips.mkString(" * ", "\n * ", "")
 
-    given Semigroup[ErrorDetails] = new Semigroup[ErrorDetails]:
+    given Semigroup[ErrorDetails] with
       def combine(x: ErrorDetails, y: ErrorDetails): ErrorDetails = ErrorDetails(x.tips.combine(y.tips))
 
   given AsString[ErrorInfo] with
