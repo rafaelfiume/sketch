@@ -16,12 +16,13 @@ import org.fiume.sketch.shared.app.troubleshooting.ErrorInfo.ErrorDetails
  * and giving them a chance to fix it.
  */
 trait InvariantError:
-  def uniqueCode: String
-  def message: String
+  def key: String
+  def detail: String
 
 object InvariantErrorSyntax:
-  extension [T <: InvariantError](inputError: T)
-    def asDetails: ErrorDetails = ErrorDetails(inputError.uniqueCode -> inputError.message) // Yolo
+  extension [T <: InvariantError](
+    inputError: T
+  ) def asDetails: ErrorDetails = ErrorDetails(inputError.key -> inputError.detail) // Yolo
 
   extension (inputErrors: NonEmptyChain[InvariantError])
-    def asDetails: ErrorDetails = ErrorDetails(inputErrors.map(e => e.uniqueCode -> e.message).toList*)
+    def asDetails: ErrorDetails = ErrorDetails(inputErrors.map(e => e.key -> e.detail).toList*)

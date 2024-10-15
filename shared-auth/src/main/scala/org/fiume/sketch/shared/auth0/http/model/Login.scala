@@ -3,8 +3,8 @@ package org.fiume.sketch.shared.auth.http.model
 import cats.effect.Async
 import cats.implicits.*
 import org.fiume.sketch.shared.app.http4s.middlewares.SemanticInputError
-import org.fiume.sketch.shared.app.troubleshooting.{ErrorCode, ErrorInfo}
-import org.fiume.sketch.shared.app.troubleshooting.ErrorInfo.{ErrorDetails, ErrorMessage}
+import org.fiume.sketch.shared.app.troubleshooting.ErrorInfo
+import org.fiume.sketch.shared.app.troubleshooting.ErrorInfo.{ErrorCode, ErrorDetails, ErrorMessage}
 import org.fiume.sketch.shared.app.troubleshooting.InvariantErrorSyntax.asDetails
 import org.fiume.sketch.shared.auth.domain.AuthenticationError
 import org.fiume.sketch.shared.auth.domain.AuthenticationError.*

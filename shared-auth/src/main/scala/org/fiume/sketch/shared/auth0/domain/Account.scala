@@ -6,7 +6,6 @@ import org.fiume.sketch.shared.auth.domain.SoftDeleteAccountError.AccountAlready
 import org.fiume.sketch.shared.auth.domain.User.UserCredentials
 
 import java.time.Instant
-import scala.util.control.NoStackTrace
 
 case class Account(
   uuid: UserId,
@@ -40,7 +39,7 @@ object AccountState:
       case AccountState.SoftDeleted(_) => AccountAlreadyDeleted.asLeft
       case _                           => account.copy(state = AccountState.SoftDeleted(deletedAt)).asRight
 
-sealed trait AccountStateTransitionError extends Throwable with NoStackTrace
+sealed trait AccountStateTransitionError
 
 enum ActivateAccountError extends AccountStateTransitionError:
   case AccountAlreadyActive

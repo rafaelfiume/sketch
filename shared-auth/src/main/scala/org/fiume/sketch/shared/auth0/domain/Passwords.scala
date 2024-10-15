@@ -13,7 +13,7 @@ object Passwords:
   sealed abstract case class PlainPassword(value: String)
 
   object PlainPassword:
-    enum WeakPasswordError(val uniqueCode: String, val message: String) extends InvariantError:
+    enum WeakPasswordError(val key: String, val detail: String) extends InvariantError:
       case TooShort extends WeakPasswordError("password.too.short", s"must be at least $minLength characters long")
 
       case TooLong extends WeakPasswordError("password.too.long", s"must be at most $maxLength characters long")

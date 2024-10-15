@@ -2,12 +2,13 @@ package org.fiume.sketch.shared.app.troubleshooting
 
 import cats.Semigroup
 import cats.implicits.*
-import org.fiume.sketch.shared.app.troubleshooting.ErrorInfo.{ErrorDetails, ErrorMessage}
-import org.fiume.sketch.shared.typeclasses.AsString
+import org.fiume.sketch.shared.app.troubleshooting.ErrorInfo.{ErrorCode, ErrorDetails, ErrorMessage}
 
-case class ErrorInfo(code: ErrorCode, message: ErrorMessage, details: Option[ErrorDetails])
-
-case class ErrorCode(value: String) extends AnyVal
+case class ErrorInfo private (
+  code: ErrorCode,
+  message: ErrorMessage,
+  details: Option[ErrorDetails]
+)
 
 object ErrorInfo:
   def make(code: ErrorCode, message: ErrorMessage): ErrorInfo = ErrorInfo(code, message, None)
@@ -15,29 +16,16 @@ object ErrorInfo:
   def make(code: ErrorCode, message: ErrorMessage, details: ErrorDetails): ErrorInfo =
     ErrorInfo(code, message, Some(details))
 
+  case class ErrorCode(value: String) extends AnyVal
   case class ErrorMessage(value: String) extends AnyVal
-  object ErrorMessage:
-    extension (msg: ErrorMessage) def asString: String = s"${msg.value}"
-
   case class ErrorDetails private (tips: Map[String, String]) extends AnyVal
+
   object ErrorDetails:
     def apply(details: (String, String)*): ErrorDetails = ErrorDetails(details.toMap)
 
-    extension (d: ErrorDetails) def asString: String = d.tips.mkString(" * ", "\n * ", "")
-
+    // TODO Test this
     given Semigroup[ErrorDetails] with
       def combine(x: ErrorDetails, y: ErrorDetails): ErrorDetails = ErrorDetails(x.tips.combine(y.tips))
-
-  given AsString[ErrorInfo] with
-    extension (error: ErrorInfo)
-      override def asString(): String =
-        val semanticErrorMessage = error.message.asString
-        error.details.fold(
-          ifEmpty = semanticErrorMessage
-        ) { details =>
-          s"""|${semanticErrorMessage}:
-            |${details.asString}""".stripMargin
-        }
 
   object json:
     import io.circe.{Decoder, Encoder}

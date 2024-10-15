@@ -13,8 +13,7 @@ import org.fiume.sketch.shared.app.EntityId.given
 import org.fiume.sketch.shared.app.algebras.Store.syntax.*
 import org.fiume.sketch.shared.app.http4s.JsonCodecs.given
 import org.fiume.sketch.shared.app.http4s.middlewares.SemanticInputError
-import org.fiume.sketch.shared.app.troubleshooting.ErrorCode
-import org.fiume.sketch.shared.app.troubleshooting.ErrorInfo.ErrorDetails
+import org.fiume.sketch.shared.app.troubleshooting.ErrorInfo.{ErrorCode, ErrorDetails}
 import org.fiume.sketch.shared.app.troubleshooting.InvariantErrorSyntax.asDetails
 import org.fiume.sketch.shared.auth.domain.User
 import org.fiume.sketch.shared.authorisation.{AccessControl, ContextualRole}
@@ -56,7 +55,7 @@ class DocumentsRoutes[F[_]: Concurrent, Txn[_]: FlatMap](
       case cx @ POST -> Root / "documents" as user =>
         cx.req.decode { (uploadRequest: Multipart[F]) =>
           for
-            document <- uploadRequest.validated()
+            document <- uploadRequest.validated().foldF(_.raiseError, _.pure)
             uuid <- accessControl
               .ensureAccess(user.uuid, ContextualRole.Owner) {
                 store.store(document)
@@ -131,23 +130,16 @@ private[http] object DocumentsRoutes:
 
     private val errorCode = ErrorCode("9011")
     extension [F[_]: MonadThrow: Concurrent](m: Multipart[F])
-      def validated(): F[DocumentWithStream[F]] =
+      def validated(): EitherT[F, SemanticInputError, DocumentWithStream[F]] =
         (m.metadata(), m.bytes()).parTupled
-          .foldF(
-            details => SemanticInputError.make(errorCode, details).raiseError,
-            _.pure[F]
-          )
-          .flatMap { case (metadataPayload, bytes) =>
-            metadataPayload
+          .flatMap { case (part, bytes) =>
+            part
               .as[MetadataRequestPayload]
               .attemptT
               .leftMap(_ =>
                 ErrorDetails("malformed.document.metadata.payload" -> "the metadata payload does not meet the contract")
               )
-              .foldF(
-                details => SemanticInputError.make(errorCode, details).raiseError,
-                (_, bytes).pure[F]
-              )
+              .map((_, bytes))
           }
           .flatMap { case (payload, stream) =>
             (
@@ -155,11 +147,9 @@ private[http] object DocumentsRoutes:
               EitherT.pure(Description(payload.description)),
               EitherT.pure(stream)
             ).parMapN((name, description, bytes) => Document.make[F](bytes, Metadata(name, description)))
-              .foldF(
-                details => SemanticInputError.make(errorCode, details).raiseError,
-                _.pure[F]
-              )
+
           }
+          .leftMap(details => SemanticInputError.make(errorCode, details))
 
       private def metadata(): EitherT[F, ErrorDetails, Part[F]] = EitherT
         .fromEither {

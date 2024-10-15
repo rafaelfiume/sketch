@@ -1,8 +1,8 @@
 {
-  "code": "1011",
-  "message": "Invalid credentials",
+  "code": "1000",
+  "message": "Invalid username or password",
   "details": {
-    "username.too.short": "A specific message for the username.too.short error",
-    "password.too.long": "A specific message for the password.too.long error"
+    "username.too.short": "must be at least 8 characters long",
+    "username.reserved.words": "must not contain reserved words"
   }
 }

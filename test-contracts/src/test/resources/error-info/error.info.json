@@ -1,5 +1,5 @@
 {
-  "code": "1011",
-  "message": "Invalid credentials",
+  "code": "1001",
+  "message": "Attempt to login failed",
   "details": null
 }

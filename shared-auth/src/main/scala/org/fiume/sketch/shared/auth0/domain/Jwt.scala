@@ -3,8 +3,6 @@ package org.fiume.sketch.shared.auth.domain
 import cats.Show
 import cats.implicits.*
 
-import scala.util.control.NoStackTrace
-
 case class Jwt private (value: String) extends AnyVal
 
 /*
@@ -13,7 +11,7 @@ case class Jwt private (value: String) extends AnyVal
 object Jwt:
   def makeUnsafeFromString(value: String): Jwt = new Jwt(value)
 
-enum JwtError(val details: String) extends Throwable with NoStackTrace:
+enum JwtError(val details: String):
   // TODO Rename to conform to standards, e.g ExpiredToken
   case JwtExpirationError(override val details: String) extends JwtError(details)
 

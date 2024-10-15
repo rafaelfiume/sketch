@@ -16,7 +16,7 @@ private[storage] object DatabaseCodecs:
 
   given Meta[ContextualRole] = Meta[String].timap(ContextualRole.valueOf(_))(_.toString)
 
-  given Meta[Role] = Meta[String].tiemap(_.parsed().leftMap(_.message))(_.asString())
+  given Meta[Role] = Meta[String].tiemap(_.parsed().leftMap(_.detail))(_.asString())
 
   // TODO Move it to shared app package?
   given write[T <: Entity]: Write[EntityId[T]] = Write[UUID].contramap(_.value)

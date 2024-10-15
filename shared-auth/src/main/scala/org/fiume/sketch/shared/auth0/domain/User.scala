@@ -44,7 +44,7 @@ object User:
   sealed abstract case class Username(value: String)
 
   object Username:
-    enum WeakUsernameError(val uniqueCode: String, val message: String) extends InvariantError:
+    enum WeakUsernameError(val key: String, val detail: String) extends InvariantError:
       case TooShort extends WeakUsernameError("username.too.short", s"must be at least $minLength characters long")
 
       case TooLong extends WeakUsernameError("username.too.long", s"must be at most $maxLength characters long")

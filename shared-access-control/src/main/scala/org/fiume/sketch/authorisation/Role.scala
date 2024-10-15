@@ -3,7 +3,7 @@ package org.fiume.sketch.shared.authorisation
 import cats.implicits.*
 import cats.kernel.Eq
 import org.fiume.sketch.shared.app.troubleshooting.InvariantError
-import org.fiume.sketch.shared.authorisation.InvalidRole.UnparsableRole
+import org.fiume.sketch.shared.authorisation.InvalidRoleError.UnparsableRole
 import org.fiume.sketch.shared.typeclasses.{AsString, FromString}
 
 import scala.util.Try
@@ -26,7 +26,7 @@ object Role:
         case Role.Global(designation)     => designation.toString()
         case Role.Contextual(designation) => designation.toString()
 
-  given FromString[InvalidRole, Role] with
+  given FromString[InvalidRoleError, Role] with
     extension (role: String)
       override def parsed() =
         Try(GlobalRole.valueOf(role))
@@ -37,5 +37,5 @@ object Role:
 
   given Eq[Role] = Eq.fromUniversalEquals[Role]
 
-enum InvalidRole(val uniqueCode: String, val message: String) extends InvariantError:
-  case UnparsableRole(value: String) extends InvalidRole("invalid.role", s"invalid role '$value'")
+enum InvalidRoleError(val key: String, val detail: String) extends InvariantError:
+  case UnparsableRole(value: String) extends InvalidRoleError("invalid.role", s"invalid role '$value'")

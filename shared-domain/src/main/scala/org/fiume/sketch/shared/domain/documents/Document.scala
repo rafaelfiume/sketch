@@ -44,7 +44,7 @@ object Document:
     sealed abstract case class Name(value: String)
 
     object Name:
-      enum InvalidDocumentNameError(val uniqueCode: String, val message: String) extends InvariantError:
+      enum InvalidDocumentNameError(val key: String, val detail: String) extends InvariantError:
         case TooShort extends InvalidDocumentNameError("document.name.too.short", s"must be at least $minLength characters long")
 
         case TooLong extends InvalidDocumentNameError("document.name.too.long", s"must be at most $maxLength characters long")

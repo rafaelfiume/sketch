@@ -7,13 +7,13 @@ import cats.implicits.*
 import doobie.ConnectionIO
 import org.fiume.sketch.auth.UsersManager
 import org.fiume.sketch.auth.scripts.UsersScript.Args
-import org.fiume.sketch.shared.app.troubleshooting.{ErrorCode, ErrorInfo, InvariantError}
-import org.fiume.sketch.shared.app.troubleshooting.ErrorInfo.ErrorMessage
-import org.fiume.sketch.shared.app.troubleshooting.ErrorInfo.given
+import org.fiume.sketch.shared.app.troubleshooting.{ErrorInfo, InvariantError}
+import org.fiume.sketch.shared.app.troubleshooting.ErrorInfo.{ErrorCode, ErrorDetails, ErrorMessage}
 import org.fiume.sketch.shared.app.troubleshooting.InvariantErrorSyntax.asDetails
 import org.fiume.sketch.shared.auth.domain.{User, UserId}
 import org.fiume.sketch.shared.auth.domain.Passwords.PlainPassword
 import org.fiume.sketch.shared.auth.domain.User.Username
+import org.fiume.sketch.shared.typeclasses.AsString
 import org.fiume.sketch.storage.auth.postgres.PostgresUsersStore
 import org.fiume.sketch.storage.authorisation.postgres.PostgresAccessControl
 import org.fiume.sketch.storage.postgres.{DatabaseConfig, DbTransactor}
@@ -33,6 +33,26 @@ object UsersScript extends IOApp:
   def makeScript(): IO[UsersScript] =
     DatabaseConfig.envs[IO](dbPoolThreads = 2).load[IO].map(UsersScript(_, Clock[IO]))
 
+  /*
+   * An experimental implementation of `AsString` for `ErrorInfo`
+   * which doesn't seem to work particularly well when, for example, sent over the network via a json field.
+   */
+  given AsString[ErrorInfo] with // yolo
+    extension (error: ErrorInfo)
+      override def asString(): String =
+        val basicMessage = s"""
+          |code: ${error.code.value}
+          |message: ${error.message.value}
+          |""".stripMargin
+        error.details.fold(
+          ifEmpty = basicMessage
+        ) { details =>
+          s"""|
+              |${basicMessage}:
+              |${details.tips.mkString(" * ", "\n * ", "")}
+              |""".stripMargin
+        }
+
   object Args:
     def make(args: List[String]): Either[ErrorInfo, Args] =
       args match
@@ -47,12 +67,12 @@ object UsersScript extends IOApp:
         case unknown =>
           ErrorInfo.make(ErrorCode("1100"), ErrorMessage(s"Invalid arguments: '$unknown'")).asLeft[Args]
 
-    private case object InvalidSuperuserArg extends InvariantError:
-      override val uniqueCode: String = "invalid.superuser.arg"
-      override val message: String = "'isSuperuser' must be either 'true' or 'false'"
+    private case object InvalidSuperuserArgError extends InvariantError:
+      override val key: String = "invalid.superuser.arg"
+      override val detail: String = "'isSuperuser' must be either 'true' or 'false'"
 
-    private def validatedIsSuperuser(isSuperuser: String): EitherNec[InvalidSuperuserArg.type, Boolean] = Validated
-      .condNec(isSuperuser == "true" || isSuperuser == "false", isSuperuser.toBoolean, InvalidSuperuserArg)
+    private def validatedIsSuperuser(isSuperuser: String): EitherNec[InvalidSuperuserArgError.type, Boolean] = Validated
+      .condNec(isSuperuser == "true" || isSuperuser == "false", isSuperuser.toBoolean, InvalidSuperuserArgError)
       .toEither
 
   case class Args(username: Username, password: PlainPassword, isSuperuser: Boolean)

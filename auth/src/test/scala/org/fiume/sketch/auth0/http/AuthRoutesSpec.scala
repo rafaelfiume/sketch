@@ -6,8 +6,8 @@ import munit.{CatsEffectSuite, ScalaCheckEffectSuite}
 import munit.Assertions.*
 import org.fiume.sketch.auth.testkit.AuthenticatorContext
 import org.fiume.sketch.shared.app.http4s.middlewares.SemanticValidationMiddleware
-import org.fiume.sketch.shared.app.troubleshooting.{ErrorCode, ErrorInfo}
-import org.fiume.sketch.shared.app.troubleshooting.ErrorInfo.{ErrorDetails, ErrorMessage}
+import org.fiume.sketch.shared.app.troubleshooting.ErrorInfo
+import org.fiume.sketch.shared.app.troubleshooting.ErrorInfo.{ErrorCode, ErrorDetails, ErrorMessage}
 import org.fiume.sketch.shared.app.troubleshooting.ErrorInfo.json.given
 import org.fiume.sketch.shared.auth.domain.Passwords.PlainPassword
 import org.fiume.sketch.shared.auth.domain.Passwords.PlainPassword.WeakPasswordError
@@ -123,7 +123,7 @@ class AuthRoutesSpec
         _ <- IO {
           assertEquals(result.code, ErrorCode("1000"))
           assertEquals(result.message, ErrorMessage("Invalid username or password"))
-          val allInputErrors = usernameInvariantErrors.map(_.uniqueCode) ++ plainPasswordInvariantErrors.map(_.uniqueCode)
+          val allInputErrors = usernameInvariantErrors.map(_.key) |+| plainPasswordInvariantErrors.map(_.key)
           val actualInputErrors = result.details.someOrFail.tips.keys.toSet
           assert(actualInputErrors.subsetOf(allInputErrors),
                  clue = s"actualInputErrors: $actualInputErrors\nallInputErrors: $allInputErrors"

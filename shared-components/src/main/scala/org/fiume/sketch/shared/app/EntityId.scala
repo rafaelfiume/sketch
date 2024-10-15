@@ -47,7 +47,7 @@ object EntityId:
 
 trait Entity
 
-enum InvalidUuid(val uniqueCode: String, val message: String) extends InvariantError:
+enum InvalidUuid(val key: String, val detail: String) extends InvariantError:
   case UnparsableUuid(value: String) extends InvalidUuid("invalid.uuid", s"invalid uuid '$value'")
 
 trait WithUuid[T <: EntityId[?]]:

@@ -36,17 +36,18 @@ private[auth] object JwtIssuer:
       claims <- JwtCirce.decode(jwt.value, publicKey, Seq(JwtAlgorithm.ES256)).toEither
       uuid: UserId <- claims.subject
         .toRight(JwtUnknownError("verify: subject is missing"))
-        .flatMap { _.parsed().leftMap(e => JwtUnknownError(e.message)) }
+        .flatMap { _.parsed().leftMap(e => JwtUnknownError(e.detail)) }
       content <- parse(claims.content).flatMap(_.as[Content])
     yield User(uuid, content.preferredUsername)).leftMap(mapJwtErrors)
 
-  private def mapJwtErrors(jwtError: Throwable): JwtError =
+  private def mapJwtErrors(jwtError: Throwable | JwtError): JwtError =
     jwtError match
       case e: JwtEmptySignatureException => JwtEmptySignatureError(e.getMessage)
       case e: ParsingFailure             => JwtInvalidTokenError(s"Invalid Jwt: ${e.getMessage}")
       case e: JwtValidationException     => JwtValidationError(e.getMessage)
       case e: JwtExpirationException     => JwtExpirationError(e.getMessage)
-      case e                             => JwtUnknownError(e.getMessage)
+      case e: JwtError                   => e
+      case e: Throwable                  => JwtUnknownError(e.getMessage)
 
   // see https://www.iana.org/assignments/jwt/jwt.xhtml
   private case class Content(preferredUsername: Username)
