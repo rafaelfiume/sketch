@@ -12,7 +12,7 @@ import org.fiume.sketch.shared.auth.domain.{Account, AccountState, Passwords, Us
 import org.fiume.sketch.shared.auth.domain.Passwords.{HashedPassword, Salt}
 import org.fiume.sketch.shared.auth.domain.User.*
 import org.fiume.sketch.shared.auth.jobs.ScheduledAccountDeletion
-import org.fiume.sketch.shared.jobs.JobId
+import org.fiume.sketch.shared.common.jobs.JobId
 import org.fiume.sketch.storage.auth.postgres.DatabaseCodecs.given
 import org.fiume.sketch.storage.auth.postgres.Statements.*
 import org.fiume.sketch.storage.postgres.AbstractPostgresStore

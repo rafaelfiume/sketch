@@ -1,9 +1,9 @@
 package org.fiume.sketch.shared.authorisation.testkit
 
 import cats.effect.IO
-import org.fiume.sketch.shared.app.{Entity, EntityId}
 import org.fiume.sketch.shared.auth.domain.UserId
 import org.fiume.sketch.shared.authorisation.{AccessControl, ContextualRole, GlobalRole, Role}
+import org.fiume.sketch.shared.common.{Entity, EntityId}
 
 /*
  * Note that this is a > simplified < version of AccessControlContext that provides support

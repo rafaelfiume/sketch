@@ -6,7 +6,7 @@ import doobie.util.Write
 import org.fiume.sketch.shared.auth.domain.{Account, AccountState, User, UserId}
 import org.fiume.sketch.shared.auth.domain.Passwords.{HashedPassword, Salt}
 import org.fiume.sketch.shared.auth.domain.User.*
-import org.fiume.sketch.shared.jobs.JobId
+import org.fiume.sketch.shared.common.jobs.JobId
 
 import java.time.Instant
 import java.util.UUID

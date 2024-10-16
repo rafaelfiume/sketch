@@ -2,7 +2,7 @@ package org.fiume.sketch.shared.domain.testkit
 
 import cats.effect.IO
 import fs2.Stream
-import org.fiume.sketch.shared.app.WithUuid
+import org.fiume.sketch.shared.common.WithUuid
 import org.fiume.sketch.shared.domain.documents.{
   Document,
   DocumentId,

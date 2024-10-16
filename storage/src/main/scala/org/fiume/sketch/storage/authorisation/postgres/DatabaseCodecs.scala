@@ -4,9 +4,9 @@ import cats.implicits.*
 import doobie.{Meta, Read}
 import doobie.postgres.implicits.*
 import doobie.util.Write
-import org.fiume.sketch.shared.app.{Entity, EntityId}
 import org.fiume.sketch.shared.authorisation.{ContextualRole, GlobalRole, Role}
 import org.fiume.sketch.shared.authorisation.Role.given
+import org.fiume.sketch.shared.common.{Entity, EntityId}
 
 import java.util.UUID
 

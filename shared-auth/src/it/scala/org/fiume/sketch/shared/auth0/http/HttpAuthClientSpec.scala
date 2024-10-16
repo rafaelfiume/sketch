@@ -4,7 +4,6 @@ import cats.effect.{IO, Resource}
 import cats.implicits.*
 import com.comcast.ip4s.*
 import munit.{AnyFixture, CatsEffectSuite}
-import org.fiume.sketch.shared.app.troubleshooting.ErrorInfo.json.given
 import org.fiume.sketch.shared.auth.domain.{AuthenticationError, Jwt}
 import org.fiume.sketch.shared.auth.domain.AuthenticationError.*
 import org.fiume.sketch.shared.auth.domain.Passwords.PlainPassword
@@ -12,6 +11,7 @@ import org.fiume.sketch.shared.auth.domain.User.Username
 import org.fiume.sketch.shared.auth.http.model.Login.LoginRequestPayload
 import org.fiume.sketch.shared.auth.http.model.Login.json.given
 import org.fiume.sketch.shared.auth.testkit.{PasswordsGens, UserGens}
+import org.fiume.sketch.shared.common.troubleshooting.ErrorInfo.json.given
 import org.fiume.sketch.shared.testkit.{Http4sClientContext, HttpServiceContext}
 import org.fiume.sketch.shared.testkit.syntax.OptionSyntax.*
 import org.http4s.*

@@ -3,13 +3,13 @@ package org.fiume.sketch.shared.auth.domain
 import cats.{Eq, Show}
 import cats.data.{EitherNec, Validated}
 import cats.implicits.*
-import org.fiume.sketch.shared.app.{Entity, EntityId, InvalidUuid, WithUuid}
-import org.fiume.sketch.shared.app.troubleshooting.InvariantError
 import org.fiume.sketch.shared.auth.domain.Passwords.{HashedPassword, Salt}
 import org.fiume.sketch.shared.auth.domain.User.Username
 import org.fiume.sketch.shared.auth.domain.User.Username.WeakUsernameError
 import org.fiume.sketch.shared.auth.domain.User.Username.WeakUsernameError.*
-import org.fiume.sketch.shared.typeclasses.FromString
+import org.fiume.sketch.shared.common.{Entity, EntityId, InvalidUuid, WithUuid}
+import org.fiume.sketch.shared.common.troubleshooting.InvariantError
+import org.fiume.sketch.shared.common.typeclasses.FromString
 
 import java.util.UUID
 

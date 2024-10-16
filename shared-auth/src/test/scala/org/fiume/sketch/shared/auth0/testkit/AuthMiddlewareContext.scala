@@ -3,11 +3,11 @@ package org.fiume.sketch.shared.auth.testkit
 import cats.data.{Kleisli, OptionT}
 import cats.effect.IO
 import cats.implicits.*
-import org.fiume.sketch.shared.app.troubleshooting.ErrorInfo
-import org.fiume.sketch.shared.app.troubleshooting.ErrorInfo.{ErrorCode, ErrorDetails, ErrorMessage}
-import org.fiume.sketch.shared.app.troubleshooting.ErrorInfo.json.given
 import org.fiume.sketch.shared.auth.domain.User
 import org.fiume.sketch.shared.auth.testkit.UserGens.*
+import org.fiume.sketch.shared.common.troubleshooting.ErrorInfo
+import org.fiume.sketch.shared.common.troubleshooting.ErrorInfo.{ErrorCode, ErrorDetails, ErrorMessage}
+import org.fiume.sketch.shared.common.troubleshooting.ErrorInfo.json.given
 import org.fiume.sketch.shared.testkit.syntax.OptionSyntax.*
 import org.http4s.{AuthedRoutes, Challenge, Request, Response, Status}
 import org.http4s.circe.CirceEntityEncoder.*

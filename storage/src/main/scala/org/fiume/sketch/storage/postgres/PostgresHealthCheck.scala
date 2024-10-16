@@ -4,9 +4,9 @@ import cats.effect.{Async, Resource}
 import cats.implicits.*
 import doobie.*
 import doobie.implicits.*
-import org.fiume.sketch.shared.app.ServiceStatus.{DependencyStatus, Status}
-import org.fiume.sketch.shared.app.ServiceStatus.Dependency.*
-import org.fiume.sketch.shared.app.algebras.HealthChecker
+import org.fiume.sketch.shared.common.ServiceStatus.{DependencyStatus, Status}
+import org.fiume.sketch.shared.common.ServiceStatus.Dependency.*
+import org.fiume.sketch.shared.common.algebras.HealthChecker
 
 object PostgresHealthCheck:
   def make[F[_]: Async](tx: Transactor[F]): Resource[F, PostgresHealthCheck[F]] =

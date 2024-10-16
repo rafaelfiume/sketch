@@ -14,7 +14,7 @@ import org.fiume.sketch.shared.auth.jobs.ScheduledAccountDeletion
 import org.fiume.sketch.shared.auth.testkit.PasswordsGens.given
 import org.fiume.sketch.shared.auth.testkit.UserGens
 import org.fiume.sketch.shared.auth.testkit.UserGens.given
-import org.fiume.sketch.shared.jobs.JobId
+import org.fiume.sketch.shared.common.jobs.JobId
 import org.fiume.sketch.shared.testkit.ClockContext
 import org.fiume.sketch.shared.testkit.syntax.EitherSyntax.*
 import org.fiume.sketch.shared.testkit.syntax.OptionSyntax.*

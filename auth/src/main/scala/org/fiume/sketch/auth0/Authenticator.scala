@@ -2,12 +2,12 @@ package org.fiume.sketch.auth
 
 import cats.effect.{Clock, Sync}
 import cats.implicits.*
-import org.fiume.sketch.shared.app.algebras.Store.syntax.*
 import org.fiume.sketch.shared.auth.algebras.UsersStore
 import org.fiume.sketch.shared.auth.domain.{AuthenticationError, Jwt, JwtError, User}
 import org.fiume.sketch.shared.auth.domain.AuthenticationError.*
 import org.fiume.sketch.shared.auth.domain.Passwords.{HashedPassword, PlainPassword}
 import org.fiume.sketch.shared.auth.domain.User.Username
+import org.fiume.sketch.shared.common.algebras.syntax.StoreSyntax.commit
 
 import java.security.{PrivateKey, PublicKey}
 import scala.concurrent.duration.Duration

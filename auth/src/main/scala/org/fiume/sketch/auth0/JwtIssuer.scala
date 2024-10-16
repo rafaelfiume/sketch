@@ -5,11 +5,11 @@ import cats.implicits.*
 import io.circe.{Decoder, Encoder, HCursor, Json, ParsingFailure}
 import io.circe.parser.parse
 import io.circe.syntax.*
-import org.fiume.sketch.shared.app.EntityId.given
 import org.fiume.sketch.shared.auth.domain.{Jwt, JwtError, User, UserId}
 import org.fiume.sketch.shared.auth.domain.JwtError.*
 import org.fiume.sketch.shared.auth.domain.User.Username
 import org.fiume.sketch.shared.auth.domain.UserId.given
+import org.fiume.sketch.shared.common.EntityId.given
 import pdi.jwt.{JwtAlgorithm, JwtCirce, JwtClaim}
 import pdi.jwt.exceptions.*
 

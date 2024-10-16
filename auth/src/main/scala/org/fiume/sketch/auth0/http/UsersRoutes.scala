@@ -6,14 +6,14 @@ import io.circe.{Decoder, Encoder}
 import org.fiume.sketch.auth.http.UsersRoutes.Model.asResponsePayload
 import org.fiume.sketch.auth.http.UsersRoutes.Model.json.given
 import org.fiume.sketch.auth.http.UsersRoutes.UserIdVar
-import org.fiume.sketch.shared.app.algebras.Store.syntax.*
-import org.fiume.sketch.shared.app.http4s.JsonCodecs.given
 import org.fiume.sketch.shared.auth.algebras.UsersStore
 import org.fiume.sketch.shared.auth.domain.{Account, ActivateAccountError, SoftDeleteAccountError, User, UserId}
 import org.fiume.sketch.shared.auth.domain.ActivateAccountError.*
 import org.fiume.sketch.shared.auth.jobs.ScheduledAccountDeletion
 import org.fiume.sketch.shared.authorisation.AccessControl
 import org.fiume.sketch.shared.authorisation.ContextualRole.Owner
+import org.fiume.sketch.shared.common.algebras.syntax.StoreSyntax.*
+import org.fiume.sketch.shared.common.http.json.JsonCodecs.given
 import org.http4s.{HttpRoutes, *}
 import org.http4s.circe.CirceEntityEncoder.*
 import org.http4s.dsl.Http4sDsl

@@ -7,7 +7,7 @@ import org.fiume.sketch.shared.auth.domain.{Account, AccountState, User, UserId}
 import org.fiume.sketch.shared.auth.domain.Passwords.HashedPassword
 import org.fiume.sketch.shared.auth.domain.User.{UserCredentials, UserCredentialsWithId, Username}
 import org.fiume.sketch.shared.auth.jobs.ScheduledAccountDeletion
-import org.fiume.sketch.shared.jobs.JobId
+import org.fiume.sketch.shared.common.jobs.JobId
 import org.fiume.sketch.shared.testkit.syntax.OptionSyntax.*
 
 import java.time.Instant

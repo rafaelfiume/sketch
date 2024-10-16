@@ -2,9 +2,9 @@ package org.fiume.sketch.shared.authorisation
 
 import cats.implicits.*
 import cats.kernel.Eq
-import org.fiume.sketch.shared.app.troubleshooting.InvariantError
 import org.fiume.sketch.shared.authorisation.InvalidRoleError.UnparsableRole
-import org.fiume.sketch.shared.typeclasses.{AsString, FromString}
+import org.fiume.sketch.shared.common.troubleshooting.InvariantError
+import org.fiume.sketch.shared.common.typeclasses.{AsString, FromString}
 
 import scala.util.Try
 

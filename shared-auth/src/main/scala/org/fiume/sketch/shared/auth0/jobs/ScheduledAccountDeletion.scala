@@ -1,7 +1,7 @@
 package org.fiume.sketch.shared.auth.jobs
 
 import org.fiume.sketch.shared.auth.domain.UserId
-import org.fiume.sketch.shared.jobs.JobId
+import org.fiume.sketch.shared.common.jobs.JobId
 
 import java.time.Instant
 

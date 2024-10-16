@@ -7,9 +7,9 @@ import doobie.*
 import doobie.free.connection.ConnectionIO
 import doobie.implicits.*
 import doobie.util.transactor.Transactor
-import org.fiume.sketch.shared.app.{Entity, EntityId}
 import org.fiume.sketch.shared.auth.domain.UserId
 import org.fiume.sketch.shared.authorisation.{AccessControl, ContextualRole, GlobalRole, Role}
+import org.fiume.sketch.shared.common.{Entity, EntityId}
 import org.fiume.sketch.storage.authorisation.postgres.DatabaseCodecs.given
 import org.fiume.sketch.storage.postgres.AbstractPostgresStore
 import org.slf4j.LoggerFactory

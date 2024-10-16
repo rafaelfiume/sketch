@@ -3,11 +3,11 @@ package org.fiume.sketch.rustic
 import cats.effect.Async
 import cats.implicits.*
 import fs2.io.net.Network
-import org.fiume.sketch.shared.app.ServiceStatus
-import org.fiume.sketch.shared.app.ServiceStatus.{DependencyStatus, Status}
-import org.fiume.sketch.shared.app.ServiceStatus.Dependency.*
-import org.fiume.sketch.shared.app.ServiceStatus.json.given
-import org.fiume.sketch.shared.app.algebras.HealthChecker
+import org.fiume.sketch.shared.common.ServiceStatus
+import org.fiume.sketch.shared.common.ServiceStatus.{DependencyStatus, Status}
+import org.fiume.sketch.shared.common.ServiceStatus.Dependency.*
+import org.fiume.sketch.shared.common.ServiceStatus.json.given
+import org.fiume.sketch.shared.common.algebras.HealthChecker
 import org.http4s.Uri
 import org.http4s.circe.CirceEntityDecoder.*
 import org.http4s.client.*

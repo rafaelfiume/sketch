@@ -3,12 +3,12 @@ package org.fiume.sketch.auth
 import cats.Monad
 import cats.effect.Sync
 import cats.implicits.*
-import org.fiume.sketch.shared.app.algebras.Store.syntax.*
 import org.fiume.sketch.shared.auth.algebras.UsersStore
 import org.fiume.sketch.shared.auth.domain.{User, UserId}
 import org.fiume.sketch.shared.auth.domain.Passwords.{HashedPassword, PlainPassword, Salt}
 import org.fiume.sketch.shared.auth.domain.User.*
 import org.fiume.sketch.shared.authorisation.{AccessControl, ContextualRole, GlobalRole}
+import org.fiume.sketch.shared.common.algebras.syntax.StoreSyntax.*
 
 trait UsersManager[F[_]]:
   def createAccount(username: Username, password: PlainPassword, isSuperuser: Boolean = false): F[UserId]

@@ -7,13 +7,13 @@ import cats.implicits.*
 import doobie.ConnectionIO
 import org.fiume.sketch.auth.UsersManager
 import org.fiume.sketch.auth.scripts.UsersScript.Args
-import org.fiume.sketch.shared.app.troubleshooting.{ErrorInfo, InvariantError}
-import org.fiume.sketch.shared.app.troubleshooting.ErrorInfo.{ErrorCode, ErrorDetails, ErrorMessage}
-import org.fiume.sketch.shared.app.troubleshooting.InvariantErrorSyntax.asDetails
 import org.fiume.sketch.shared.auth.domain.{User, UserId}
 import org.fiume.sketch.shared.auth.domain.Passwords.PlainPassword
 import org.fiume.sketch.shared.auth.domain.User.Username
-import org.fiume.sketch.shared.typeclasses.AsString
+import org.fiume.sketch.shared.common.troubleshooting.{ErrorInfo, InvariantError}
+import org.fiume.sketch.shared.common.troubleshooting.ErrorInfo.{ErrorCode, ErrorDetails, ErrorMessage}
+import org.fiume.sketch.shared.common.troubleshooting.InvariantErrorSyntax.asDetails
+import org.fiume.sketch.shared.common.typeclasses.AsString
 import org.fiume.sketch.storage.auth.postgres.PostgresUsersStore
 import org.fiume.sketch.storage.authorisation.postgres.PostgresAccessControl
 import org.fiume.sketch.storage.postgres.{DatabaseConfig, DbTransactor}

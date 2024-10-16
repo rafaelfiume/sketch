@@ -1,6 +1,6 @@
 package org.fiume.sketch.shared.domain.documents.algebras
 
-import org.fiume.sketch.shared.app.algebras.Store
+import org.fiume.sketch.shared.common.algebras.Store
 import org.fiume.sketch.shared.domain.documents.{DocumentId, DocumentWithId, DocumentWithStream}
 
 trait DocumentsStore[F[_], Txn[_]] extends Store[F, Txn]:

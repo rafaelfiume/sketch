@@ -9,20 +9,20 @@ import io.circe.syntax.*
 import org.fiume.sketch.http.DocumentsRoutes.DocumentIdVar
 import org.fiume.sketch.http.DocumentsRoutes.Model.*
 import org.fiume.sketch.http.DocumentsRoutes.Model.json.given
-import org.fiume.sketch.shared.app.EntityId.given
-import org.fiume.sketch.shared.app.algebras.Store.syntax.*
-import org.fiume.sketch.shared.app.http4s.JsonCodecs.given
-import org.fiume.sketch.shared.app.http4s.middlewares.SemanticInputError
-import org.fiume.sketch.shared.app.troubleshooting.ErrorInfo.{ErrorCode, ErrorDetails}
-import org.fiume.sketch.shared.app.troubleshooting.InvariantErrorSyntax.asDetails
 import org.fiume.sketch.shared.auth.domain.User
 import org.fiume.sketch.shared.authorisation.{AccessControl, ContextualRole}
+import org.fiume.sketch.shared.common.EntityId.given
+import org.fiume.sketch.shared.common.algebras.syntax.StoreSyntax.*
+import org.fiume.sketch.shared.common.http.json.{NewlineDelimitedJson, NewlineDelimitedJsonEncoder}
+import org.fiume.sketch.shared.common.http.json.JsonCodecs.given
+import org.fiume.sketch.shared.common.http.json.NewlineDelimitedJson.{Line, Linebreak}
+import org.fiume.sketch.shared.common.http.middlewares.SemanticInputError
+import org.fiume.sketch.shared.common.troubleshooting.ErrorInfo.{ErrorCode, ErrorDetails}
+import org.fiume.sketch.shared.common.troubleshooting.InvariantErrorSyntax.asDetails
 import org.fiume.sketch.shared.domain.documents.{Document, DocumentId, DocumentWithId, DocumentWithStream}
 import org.fiume.sketch.shared.domain.documents.Document.Metadata
 import org.fiume.sketch.shared.domain.documents.Document.Metadata.*
 import org.fiume.sketch.shared.domain.documents.algebras.DocumentsStore
-import org.fiume.sketch.shared.http.json.{NewlineDelimitedJson, NewlineDelimitedJsonEncoder}
-import org.fiume.sketch.shared.http.json.NewlineDelimitedJson.{Line, Linebreak}
 import org.http4s.{EntityEncoder, HttpRoutes, *}
 import org.http4s.circe.CirceEntityDecoder.*
 import org.http4s.circe.CirceEntityEncoder.*

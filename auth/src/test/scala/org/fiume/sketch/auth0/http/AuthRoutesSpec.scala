@@ -5,10 +5,6 @@ import cats.implicits.*
 import munit.{CatsEffectSuite, ScalaCheckEffectSuite}
 import munit.Assertions.*
 import org.fiume.sketch.auth.testkit.AuthenticatorContext
-import org.fiume.sketch.shared.app.http4s.middlewares.SemanticValidationMiddleware
-import org.fiume.sketch.shared.app.troubleshooting.ErrorInfo
-import org.fiume.sketch.shared.app.troubleshooting.ErrorInfo.{ErrorCode, ErrorDetails, ErrorMessage}
-import org.fiume.sketch.shared.app.troubleshooting.ErrorInfo.json.given
 import org.fiume.sketch.shared.auth.domain.Passwords.PlainPassword
 import org.fiume.sketch.shared.auth.domain.Passwords.PlainPassword.WeakPasswordError
 import org.fiume.sketch.shared.auth.domain.User
@@ -19,6 +15,10 @@ import org.fiume.sketch.shared.auth.http.model.Login.json.given
 import org.fiume.sketch.shared.auth.testkit.JwtGens.jwts
 import org.fiume.sketch.shared.auth.testkit.PasswordsGens.*
 import org.fiume.sketch.shared.auth.testkit.UserGens.*
+import org.fiume.sketch.shared.common.http.middlewares.SemanticValidationMiddleware
+import org.fiume.sketch.shared.common.troubleshooting.ErrorInfo
+import org.fiume.sketch.shared.common.troubleshooting.ErrorInfo.{ErrorCode, ErrorDetails, ErrorMessage}
+import org.fiume.sketch.shared.common.troubleshooting.ErrorInfo.json.given
 import org.fiume.sketch.shared.testkit.{ContractContext, Http4sRoutesContext}
 import org.fiume.sketch.shared.testkit.syntax.OptionSyntax.*
 import org.fiume.sketch.shared.testkit.syntax.StringSyntax.*

@@ -3,11 +3,11 @@ package org.fiume.sketch.auth.http
 import cats.effect.Async
 import cats.implicits.*
 import org.fiume.sketch.auth.Authenticator
-import org.fiume.sketch.shared.app.troubleshooting.ErrorInfo
-import org.fiume.sketch.shared.app.troubleshooting.ErrorInfo.json.given
 import org.fiume.sketch.shared.auth.http.model
 import org.fiume.sketch.shared.auth.http.model.Login.{LoginRequestPayload, LoginResponsePayload}
 import org.fiume.sketch.shared.auth.http.model.Login.json.given
+import org.fiume.sketch.shared.common.troubleshooting.ErrorInfo
+import org.fiume.sketch.shared.common.troubleshooting.ErrorInfo.json.given
 import org.http4s.{Challenge, HttpRoutes, Response, Status}
 import org.http4s.circe.CirceEntityDecoder.*
 import org.http4s.circe.CirceEntityEncoder.*

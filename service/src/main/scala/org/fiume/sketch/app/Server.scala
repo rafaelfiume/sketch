@@ -10,8 +10,8 @@ import org.fiume.sketch.auth.http.{AuthRoutes, UsersRoutes}
 import org.fiume.sketch.auth.http.middlewares.Auth0Middleware
 import org.fiume.sketch.auth.jobs.ScheduledAccountDeletionJob
 import org.fiume.sketch.http.{DocumentsRoutes, HealthStatusRoutes}
-import org.fiume.sketch.shared.app.http4s.middlewares.{SemanticValidationMiddleware, TraceAuditLogMiddleware, WorkerMiddleware}
-import org.fiume.sketch.shared.jobs.PeriodicJob
+import org.fiume.sketch.shared.common.http.middlewares.{SemanticValidationMiddleware, TraceAuditLogMiddleware, WorkerMiddleware}
+import org.fiume.sketch.shared.common.jobs.PeriodicJob
 import org.http4s.{HttpApp, HttpRoutes}
 import org.http4s.ember.server.EmberServerBuilder
 import org.http4s.implicits.*
