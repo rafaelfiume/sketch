@@ -22,6 +22,7 @@ object Dependency {
     val logstash              = "8.0"
     val munit                 = "1.0.1"
     val munitCatsEffect       = "2.0.0"
+    val munitDiscipline       = "2.0.0"
     val munitScalaCheck       = "1.0.0" 
     val munitScalaCheckEffect = "1.0.4"
     val munitTestcontainers   = "0.41.4"
@@ -55,11 +56,13 @@ object Dependency {
   val slf4jSimple                 = "org.slf4j"                  %  "slf4j-simple"                        % Version.slf4j
 
   //// Test Dependencies
+  val catsLaws                    = "org.typelevel"              %% "cats-laws"                           % Version.cats
   val gatlingHighcharts           = "io.gatling.highcharts"      %  "gatling-charts-highcharts"           % Version.gatling
   val gatlingTestFramework        = "io.gatling"                 %  "gatling-test-framework"              % Version.gatling
   val logstashLogbackEncoder      = "net.logstash.logback"       % "logstash-logback-encoder"             % Version.logstash
   val munit                       = "org.scalameta"              %% "munit"                               % Version.munit
-  val munitCatsEffect             = "org.typelevel"              %% "munit-cats-effect"                 % Version.munitCatsEffect
+  val munitCatsEffect             = "org.typelevel"              %% "munit-cats-effect"                   % Version.munitCatsEffect
+  val munitDiscipline             = "org.typelevel"              %% "discipline-munit"                    % Version.munitDiscipline
   val munitScalaCheck             = "org.scalameta"              %% "munit-scalacheck"                    % Version.munitScalaCheck
   val munitScalaCheckEffect       = "org.typelevel"              %% "scalacheck-effect-munit"             % Version.munitScalaCheckEffect
   val munitTestcontainersScala    = "com.dimafeng"               %% "testcontainers-scala-munit"          % Version.munitTestcontainers

@@ -169,8 +169,10 @@ lazy val sharedComponents =
         Dependency.http4sDsl,
         Dependency.log4catsSlf4j,
         Dependency.slf4jSimple,
+        Dependency.catsLaws % Test,
         Dependency.munit % Test,
         Dependency.munitCatsEffect % Test,
+        Dependency.munitDiscipline % Test,
         Dependency.munitScalaCheck % Test,
         Dependency.munitScalaCheckEffect % Test
       )
