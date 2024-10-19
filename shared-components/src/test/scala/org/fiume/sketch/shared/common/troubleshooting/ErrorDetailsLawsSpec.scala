@@ -7,6 +7,9 @@ import org.fiume.sketch.shared.common.troubleshooting.ErrorInfo.ErrorDetails
 import org.fiume.sketch.shared.common.troubleshooting.ErrorInfo.ErrorDetails.given
 import org.scalacheck.{Arbitrary, Gen}
 
+/*
+ * Source: https://typelevel.org/cats/typeclasses/lawtesting.html
+ */
 class ErrorDetailsLawsSpec extends DisciplineSuite:
 
   checkAll("ErrorDetails.SemigroupLaws", SemigroupTests[ErrorDetails].semigroup)

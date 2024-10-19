@@ -2,15 +2,19 @@
 
 ## Entities
 
-The domain is represented by entities. For instance, documents and projects.
-There can be multiple domains, each one of them with their own entities. For example:
- * Authentication & Authorisation: `User`
- * Core business: `Document`.
+The domain is represented mainly by entities, aggregates (ADTs) and algebras.
+
+There can be multiple domains, each one of them with their own components and abstractions. For example, a `User` (`authentication`, or simply `auth`) or a `Document` (`sketch`) are entities, a `Project` (`sketch`) is an aggregate and `AccessControl` (`authorisation`) is an algebra.
+
+A useful entity and aggregate [definition](https://www.ibm.com/topics/microservices#Common+patterns) is:
+```
+An entity is an object distinguished by its identity. For example, on an e-commerce site, a product object might be distinguished by product name, type, and price. An aggregate is a collection of related entities that should be treated as one unit. So, for the e-commerce site, an order would be a collection (aggregate) of products (entities) ordered by a buyer. These patterns are used to classify data in meaningful ways.
+```
 
 ## Contextual Attributes
 
 There are attributes that dependent on context and don't belong to the core domain model
-of the entities themselves. I.e. they are not instrinsic properties of the entities, but arise -
+of the domain ADTs themselves. I.e. they are not instrinsic properties of the entities, but arise -
 for example - from the relationship between a user and the entity (user roles and permissions).
 
 These external or contextual properties should be modelled separately from the core domain model
