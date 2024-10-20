@@ -6,6 +6,7 @@ import cats.implicits.*
 import org.fiume.sketch.auth.Authenticator
 import org.fiume.sketch.shared.auth.http.model
 import org.fiume.sketch.shared.auth.http.model.Login.{LoginRequestPayload, LoginResponsePayload}
+import org.fiume.sketch.shared.auth.http.model.Login.Error.toErrorInfo
 import org.fiume.sketch.shared.auth.http.model.Login.json.given
 import org.fiume.sketch.shared.common.troubleshooting.ErrorInfo
 import org.fiume.sketch.shared.common.troubleshooting.ErrorInfo.json.given
@@ -36,9 +37,7 @@ class AuthRoutes[F[_]: Async](authenticator: Authenticator[F]) extends Http4sDsl
           case Left(failure) =>
             Response[F](status = Status.Unauthorized)
               .putHeaders(`WWW-Authenticate`(Challenge("Bearer", "Authentication Service")))
-              .withEntity(
-                model.Login.Error.failToLogin(failure)
-              )
+              .withEntity(failure.toErrorInfo)
               .pure[F]
       yield resp
     }

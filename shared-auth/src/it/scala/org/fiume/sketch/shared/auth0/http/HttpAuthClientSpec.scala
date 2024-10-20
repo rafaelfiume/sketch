@@ -8,6 +8,7 @@ import org.fiume.sketch.shared.auth.domain.{AuthenticationError, Jwt}
 import org.fiume.sketch.shared.auth.domain.AuthenticationError.*
 import org.fiume.sketch.shared.auth.domain.Passwords.PlainPassword
 import org.fiume.sketch.shared.auth.domain.User.Username
+import org.fiume.sketch.shared.auth.http.model.Login.Error.toErrorInfo
 import org.fiume.sketch.shared.auth.http.model.Login.LoginRequestPayload
 import org.fiume.sketch.shared.auth.http.model.Login.json.given
 import org.fiume.sketch.shared.auth.testkit.{PasswordsGens, UserGens}
@@ -74,9 +75,7 @@ trait HttpAuthClientSpecContext extends CatsEffectSuite with Http4sClientContext
     def unauthorised(error: AuthenticationError) =
       Response[IO](status = Status.Unauthorized)
         .putHeaders(`WWW-Authenticate`(Challenge("Bearer", "Authentication Service")))
-        .withEntity(
-          model.Login.Error.failToLogin(error)
-        )
+        .withEntity(error.toErrorInfo)
         .pure[IO]
 
     HttpRoutes.of[IO] { case req @ POST -> Root / "login" =>

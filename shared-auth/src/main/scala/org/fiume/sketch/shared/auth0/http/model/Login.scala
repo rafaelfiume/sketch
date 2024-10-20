@@ -31,13 +31,13 @@ object Login:
     private[model] def makeSemanticInputError(errorDetails: ErrorDetails) =
       SemanticInputError.make(ErrorCode("1000"), ErrorMessage("Invalid username or password"), errorDetails)
 
-    def failToLogin(error: AuthenticationError): ErrorInfo =
-      val errorCode = error match
-        case UserNotFoundError     => ErrorCode("1001")
-        case InvalidPasswordError  => ErrorCode("1002")
-        case AccountNotActiveError => ErrorCode("1003")
-
-      ErrorInfo.make(errorCode, ErrorMessage("Attempt to login failed"))
+    extension (error: AuthenticationError)
+      def toErrorInfo =
+        val errorCode = error match
+          case UserNotFoundError     => ErrorCode("1001")
+          case InvalidPasswordError  => ErrorCode("1002")
+          case AccountNotActiveError => ErrorCode("1003")
+        ErrorInfo.make(errorCode, ErrorMessage("Attempt to login failed"))
 
   object json:
     import io.circe.{Decoder, Encoder}

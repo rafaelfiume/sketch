@@ -4,6 +4,7 @@ import cats.effect.{Concurrent, Sync}
 import cats.implicits.*
 import io.circe.{Decoder, Encoder}
 import org.fiume.sketch.auth.http.UsersRoutes.{model, UserIdVar}
+import org.fiume.sketch.auth.http.UsersRoutes.model.Error.toErrorInfo
 import org.fiume.sketch.auth.http.UsersRoutes.model.asResponsePayload
 import org.fiume.sketch.auth.http.UsersRoutes.model.json.given
 import org.fiume.sketch.shared.auth.algebras.UsersStore
@@ -54,9 +55,9 @@ class UsersRoutes[F[_]: Concurrent, Txn[_]: Sync](
                 // Returns Conflict since the request conflicts with the current state of the account (transition error).
                 // Note that the Api is idempotent in behaviour (same account state across multiple requests),
                 // but not idempotent in response.
-                case AccountAlreadyPendingDeletion          => Conflict(model.Error.failToMarkAccountForDeletion(error))
-                case SoftDeleteAccountError.AccountNotFound => NotFound(model.Error.failToMarkAccountForDeletion(error))
-            case Left(error: AuthorisationError) => Forbidden(model.Error.failToMarkAccountForDeletion(error))
+                case AccountAlreadyPendingDeletion          => Conflict(error.toErrorInfo)
+                case SoftDeleteAccountError.AccountNotFound => NotFound(error.toErrorInfo)
+            case Left(error: AuthorisationError) => Forbidden(error.toErrorInfo)
           }
 
       // This Api is idempotent
@@ -92,13 +93,13 @@ private[http] object UsersRoutes:
 
   object model:
     object Error:
-      def failToMarkAccountForDeletion(error: SoftDeleteAccountError | AuthorisationError): ErrorInfo =
-        val errorCode = error match
-          case AccountAlreadyPendingDeletion          => ErrorCode("1200")
-          case SoftDeleteAccountError.AccountNotFound => ErrorCode("1201")
-          case UnauthorisedError                      => ErrorCode("1300")
-
-        ErrorInfo.make(errorCode, ErrorMessage("Attempt to mark account for deletion failed"))
+      extension(error: SoftDeleteAccountError | AuthorisationError)
+        def toErrorInfo =
+          val errorCode = error match
+            case AccountAlreadyPendingDeletion          => ErrorCode("1200")
+            case SoftDeleteAccountError.AccountNotFound => ErrorCode("1201")
+            case UnauthorisedError                      => ErrorCode("1300")
+          ErrorInfo.make(errorCode, ErrorMessage("Attempt to mark account for deletion failed"))
 
     case class ScheduledForPermanentDeletionResponse(userId: UserId, permanentDeletionAt: Instant)
 
