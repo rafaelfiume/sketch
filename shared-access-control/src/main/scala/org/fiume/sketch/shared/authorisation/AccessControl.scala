@@ -11,7 +11,6 @@ import org.fiume.sketch.shared.common.{Entity, EntityId, WithUuid}
 import org.fiume.sketch.shared.common.algebras.Store
 
 trait AccessControl[F[_], Txn[_]: Monad] extends Store[F, Txn]:
-  type Unauthorised = String
 
   def grantGlobalAccess(userId: UserId, role: GlobalRole): Txn[Unit] = storeGlobalGrant(userId, role)
 
@@ -19,14 +18,16 @@ trait AccessControl[F[_], Txn[_]: Monad] extends Store[F, Txn]:
     storeGrant(userId, entityId, role)
 
   // TODO Test this
-  def ensureAccess[E, R <: WithUuid[?]](userId: UserId, role: ContextualRole)(txn: => Txn[Either[E, R]]): Txn[Either[E, R]] =
-    txn.flatTap {
+  def ensureAccess[E, R <: WithUuid[?]](userId: UserId, role: ContextualRole)(
+    manageEntity: => Txn[Either[E, R]]
+  ): Txn[Either[E, R]] =
+    manageEntity.flatTap {
       case Right(result) => grantAccess(userId, result.uuid, role)
-      case Left(_)       => ().pure[Txn] // ignore TODO Is there a more ellegant way?
+      case Left(_)       => ().pure[Txn] // TODO Is there a more ellegant way?
     }
 
-  def ensureAccess_[T <: Entity](userId: UserId, role: ContextualRole)(entityIdTxn: => Txn[EntityId[T]]): Txn[EntityId[T]] =
-    ensureAccess(userId, role) { entityIdTxn.map(WithUuid.make(_).asRight) }.map {
+  def ensureAccess_[T <: Entity](userId: UserId, role: ContextualRole)(manageEntity: => Txn[EntityId[T]]): Txn[EntityId[T]] =
+    ensureAccess(userId, role) { manageEntity.map(WithUuid.make(_).asRight) }.map {
       _.getOrElse(throw AssertionError("there is no left")).uuid
     }
 
@@ -42,11 +43,11 @@ trait AccessControl[F[_], Txn[_]: Monad] extends Store[F, Txn]:
     }
 
   def attemptWithAuthorisation[T <: Entity, A](userId: UserId, entityId: EntityId[T])(
-    ops: EntityId[T] => Txn[A]
-  ): Txn[Either[Unauthorised, A]] =
+    accessEntity: EntityId[T] => Txn[A]
+  ): Txn[Either[AuthorisationError, A]] =
     canAccess(userId, entityId).ifM(
-      ifTrue = ops(entityId).map(Right(_)),
-      ifFalse = Left("Unauthorised").pure[Txn] // TODO Replace this left by AuthorisationError
+      ifTrue = accessEntity(entityId).map(Right(_)),
+      ifFalse = UnauthorisedError.asLeft.pure[Txn]
     )
 
   // TODO Test this

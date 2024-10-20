@@ -11,6 +11,7 @@ import org.fiume.sketch.shared.auth.testkit.UserGens.*
 import org.fiume.sketch.shared.auth.testkit.UserGens.given
 import org.fiume.sketch.shared.auth.testkit.UsersStoreContext
 import org.fiume.sketch.shared.authorisation.{ContextualRole, GlobalRole, Role}
+import org.fiume.sketch.shared.authorisation.AuthorisationError.*
 import org.fiume.sketch.shared.authorisation.ContextualRole.Owner
 import org.fiume.sketch.shared.authorisation.GlobalRole.{Admin, Superuser}
 import org.fiume.sketch.shared.authorisation.testkit.AccessControlGens.*
@@ -187,7 +188,7 @@ class PostgresAccessControlSpec
 
             result <- accessControl.attemptWithAuthorisation(userId, docId) { docStore.fetchDocument }.ccommit
 //
-          yield assertEquals(result.leftOrFail, "Unauthorised")
+          yield assertEquals(result.leftOrFail, UnauthorisedError)
         }
       }
     }
