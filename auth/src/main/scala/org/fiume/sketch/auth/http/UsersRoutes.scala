@@ -52,7 +52,7 @@ class UsersRoutes[F[_]: Concurrent, Txn[_]: Sync](
             case Right(job) => Ok(job.asResponsePayload)
             case Left(error: SoftDeleteAccountError) =>
               error match
-                // The request conflicts with the current state of the account (transition error).
+                // The request conflicts with the current state of the account (state machine transition error).
                 case AccountAlreadyPendingDeletion          => Conflict(error.toErrorInfo)
                 case SoftDeleteAccountError.AccountNotFound => NotFound(error.toErrorInfo)
             case Left(error: AuthorisationError) => Forbidden(error.toErrorInfo)
