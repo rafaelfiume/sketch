@@ -4,7 +4,7 @@ import cats.effect.{Concurrent, Sync}
 import cats.implicits.*
 import io.circe.{Decoder, Encoder}
 import org.fiume.sketch.auth.http.UsersRoutes.{model, UserIdVar}
-import org.fiume.sketch.auth.http.UsersRoutes.model.Error.toErrorInfo
+import org.fiume.sketch.auth.http.UsersRoutes.model.Error.*
 import org.fiume.sketch.auth.http.UsersRoutes.model.asResponsePayload
 import org.fiume.sketch.auth.http.UsersRoutes.model.json.given
 import org.fiume.sketch.shared.auth.algebras.UsersStore
@@ -52,23 +52,23 @@ class UsersRoutes[F[_]: Concurrent, Txn[_]: Sync](
             case Right(job) => Ok(job.asResponsePayload)
             case Left(error: SoftDeleteAccountError) =>
               error match
-                // Returns Conflict since the request conflicts with the current state of the account (transition error).
-                // Note that the Api is idempotent in behaviour (same account state across multiple requests),
-                // but not idempotent in response.
+                // The request conflicts with the current state of the account (transition error).
                 case AccountAlreadyPendingDeletion          => Conflict(error.toErrorInfo)
                 case SoftDeleteAccountError.AccountNotFound => NotFound(error.toErrorInfo)
             case Left(error: AuthorisationError) => Forbidden(error.toErrorInfo)
           }
 
-      // This Api is idempotent
       case POST -> Root / "users" / UserIdVar(uuid) / "restore" as authed =>
         accessControl
           .attemptAccountManagementWithAuthorisation(authed.uuid, uuid, isAuthenticatedAccountActive)(doRestoreAccount)
           .commit()
           .flatMap {
-            case Right(_)                   => NoContent()
-            case Left(AccountAlreadyActive) => NoContent()
-            case _                          => Forbidden()
+            case Right(_) => NoContent()
+            case Left(error: ActivateAccountError) =>
+              error match
+                case AccountAlreadyActive                 => Conflict(error.toActivateErrorInfo)
+                case ActivateAccountError.AccountNotFound => NotFound(error.toActivateErrorInfo)
+            case Left(error: AuthorisationError) => Forbidden(error.toActivateErrorInfo)
           }
     }
 
@@ -93,13 +93,21 @@ private[http] object UsersRoutes:
 
   object model:
     object Error:
-      extension(error: SoftDeleteAccountError | AuthorisationError)
+      extension (error: SoftDeleteAccountError | AuthorisationError)
         def toErrorInfo =
-          val errorCode = error match
-            case AccountAlreadyPendingDeletion          => ErrorCode("1200")
-            case SoftDeleteAccountError.AccountNotFound => ErrorCode("1201")
-            case UnauthorisedError                      => ErrorCode("1300")
-          ErrorInfo.make(errorCode, ErrorMessage("Attempt to mark account for deletion failed"))
+          val (errorCode, errorMessage) = error match
+            case AccountAlreadyPendingDeletion => ErrorCode("1200") -> ErrorMessage("Account already marked for deletion")
+            case SoftDeleteAccountError.AccountNotFound => ErrorCode("1201") -> ErrorMessage("Account not found")
+            case UnauthorisedError                      => ErrorCode("3000") -> ErrorMessage("Unauthorised operation")
+          ErrorInfo.make(errorCode, errorMessage)
+
+      extension (error: ActivateAccountError | AuthorisationError)
+        def toActivateErrorInfo =
+          val (errorCode, errorMessage) = error match
+            case AccountAlreadyActive                 => ErrorCode("1210") -> ErrorMessage("Account is already active")
+            case ActivateAccountError.AccountNotFound => ErrorCode("1211") -> ErrorMessage("Account not found")
+            case UnauthorisedError                    => ErrorCode("3000") -> ErrorMessage("Unauthorised operation")
+          ErrorInfo.make(errorCode, errorMessage)
 
     case class ScheduledForPermanentDeletionResponse(userId: UserId, permanentDeletionAt: Instant)
 

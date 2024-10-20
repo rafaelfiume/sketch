@@ -57,10 +57,17 @@ class UsersRoutesSpec
         )
         usersRoutes = new UsersRoutes[IO, IO](authMiddleware, accessControl, store, delayUntilPermanentDeletion)
 
-        result <- send(request)
+        result <- send(request).to(usersRoutes.router()).expectJsonResponseWith[ScheduledForPermanentDeletionResponse](Status.Ok)
+
+        // The Api is idempotent in behaviour but not in response
+        _ <- send(request)
           .to(usersRoutes.router())
-//
-          .expectJsonResponseWith[ScheduledForPermanentDeletionResponse](Status.Ok)
+          .expectJsonResponseWith[ErrorInfo](Status.Conflict)
+          .whenA(isAdminMarkingForDeletion)
+        _ <- send(request)
+          .to(usersRoutes.router())
+          .expectJsonResponseWith[ErrorInfo](Status.Forbidden)
+          .whenA(!isAdminMarkingForDeletion)
         account <- store.fetchAccount(ownerId).map(_.someOrFail)
         grantRemoved <- accessControl.canAccess(ownerId, ownerId).map(!_)
       yield
@@ -94,7 +101,7 @@ class UsersRoutesSpec
           .to(usersRoutes.router())
 //
           .expectJsonResponseWith[ErrorInfo](Status.Forbidden)
-      yield assertEquals(result, ErrorInfo.make(ErrorCode("1300"), ErrorMessage("Attempt to mark account for deletion failed")))
+      yield assertEquals(result, ErrorInfo.make(ErrorCode("3000"), ErrorMessage("Unauthorised operation")))
     }
   }
   // TODO Check mark for deletion also with AccountAlreadyPendingDeletion and AccountNotFound sad path
@@ -104,20 +111,18 @@ class UsersRoutesSpec
       for
         store <- makeEmptyUsersStore()
         accessControl <- makeAccessControl()
-        ownerId <- store.createAccount(owner).flatTap { id => accessControl.grantAccess(id, id, Owner) }
+        ownerId <- store.createAccount(owner).flatTap(store.markForDeletion(_, 0.seconds))
         authedId <- store.createAccount(authed).flatTap { id => accessControl.grantGlobalAccess(id, Admin) }
         authMiddleware = makeAuthMiddleware(authenticated = User(authedId, authed.username))
-        deleteRequest = DELETE(Uri.unsafeFromString(s"/users/${ownerId.value}"))
-        restoreRequest = POST(Uri.unsafeFromString(s"/users/${ownerId.value}/restore"))
+        request = POST(Uri.unsafeFromString(s"/users/${ownerId.value}/restore"))
         usersRoutes = new UsersRoutes[IO, IO](authMiddleware, accessControl, store, delayUntilPermanentDeletion)
-        _ <- send(deleteRequest).to(usersRoutes.router()).expectJsonResponseWith[ScheduledForPermanentDeletionResponse](Status.Ok)
 
-        _ <- send(restoreRequest).to(usersRoutes.router()).expectEmptyResponseWith(Status.NoContent)
-        // idempotence
-        _ <- send(restoreRequest)
+        _ <- send(request).to(usersRoutes.router()).expectEmptyResponseWith(Status.NoContent)
+
+        // The Api is idempotent in behaviour but not in response
+        _ <- send(request)
           .to(usersRoutes.router())
-//
-          .expectEmptyResponseWith(Status.NoContent)
+          .expectJsonResponseWith[ErrorInfo](Status.Conflict)
         account <- store.fetchAccount(ownerId).map(_.someOrFail)
         userCanAccessHerAccount <- accessControl.canAccess(ownerId, ownerId)
       yield
@@ -137,12 +142,14 @@ class UsersRoutesSpec
         request = POST(Uri.unsafeFromString(s"/users/${owner.uuid.value}/restore"))
         usersRoutes = new UsersRoutes[IO, IO](authMiddleware, accessControl, store, delayUntilPermanentDeletion)
 
-        _ <- send(request)
+        result <- send(request)
           .to(usersRoutes.router())
 //
-          .expectEmptyResponseWith(Status.Forbidden)
+          .expectJsonResponseWith[ErrorInfo](Status.Forbidden)
         account <- store.fetchAccount(owner.uuid).map(_.someOrFail)
-      yield assert(account.isMarkedForDeletion, clue = "account should remain marked for deletion")
+      yield
+        assert(account.isMarkedForDeletion, clue = "account should remain marked for deletion")
+        assertEquals(result, ErrorInfo.make(ErrorCode("3000"), ErrorMessage("Unauthorised operation")))
     }
 
   test("ScheduledForPermanentDeletionResponse encode and decode form a bijective relationship"):
