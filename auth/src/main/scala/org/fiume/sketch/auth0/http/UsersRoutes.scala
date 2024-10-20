@@ -59,7 +59,8 @@ class UsersRoutes[F[_]: Concurrent, Txn[_]: Sync](
             case Left(error: AuthorisationError) => Forbidden(model.Error.failToMarkAccountForDeletion(error))
           }
 
-      case PUT -> Root / "users" / UserIdVar(uuid) / "restore" as authed =>
+      // This Api is idempotent
+      case POST -> Root / "users" / UserIdVar(uuid) / "restore" as authed =>
         accessControl
           .attemptAccountManagementWithAuthorisation(authed.uuid, uuid, isAuthenticatedAccountActive)(doRestoreAccount)
           .commit()

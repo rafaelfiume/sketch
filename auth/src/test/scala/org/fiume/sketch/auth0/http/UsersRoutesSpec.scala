@@ -108,7 +108,7 @@ class UsersRoutesSpec
         authedId <- store.createAccount(authed).flatTap { id => accessControl.grantGlobalAccess(id, Admin) }
         authMiddleware = makeAuthMiddleware(authenticated = User(authedId, authed.username))
         deleteRequest = DELETE(Uri.unsafeFromString(s"/users/${ownerId.value}"))
-        restoreRequest = PUT(Uri.unsafeFromString(s"/users/${ownerId.value}/restore"))
+        restoreRequest = POST(Uri.unsafeFromString(s"/users/${ownerId.value}/restore"))
         usersRoutes = new UsersRoutes[IO, IO](authMiddleware, accessControl, store, delayUntilPermanentDeletion)
         _ <- send(deleteRequest).to(usersRoutes.router()).expectJsonResponseWith[ScheduledForPermanentDeletionResponse](Status.Ok)
 
@@ -134,7 +134,7 @@ class UsersRoutesSpec
           accessControl.grantGlobalAccess(id, GlobalRole.Superuser).whenA(isSuperuser)
         }
         authMiddleware = makeAuthMiddleware(authenticated = User(authedId, authed.username))
-        request = PUT(Uri.unsafeFromString(s"/users/${owner.uuid.value}/restore"))
+        request = POST(Uri.unsafeFromString(s"/users/${owner.uuid.value}/restore"))
         usersRoutes = new UsersRoutes[IO, IO](authMiddleware, accessControl, store, delayUntilPermanentDeletion)
 
         _ <- send(request)
