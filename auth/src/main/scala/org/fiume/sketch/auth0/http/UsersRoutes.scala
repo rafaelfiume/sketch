@@ -3,17 +3,22 @@ package org.fiume.sketch.auth.http
 import cats.effect.{Concurrent, Sync}
 import cats.implicits.*
 import io.circe.{Decoder, Encoder}
-import org.fiume.sketch.auth.http.UsersRoutes.Model.asResponsePayload
-import org.fiume.sketch.auth.http.UsersRoutes.Model.json.given
-import org.fiume.sketch.auth.http.UsersRoutes.UserIdVar
+import org.fiume.sketch.auth.http.UsersRoutes.{model, UserIdVar}
+import org.fiume.sketch.auth.http.UsersRoutes.model.asResponsePayload
+import org.fiume.sketch.auth.http.UsersRoutes.model.json.given
 import org.fiume.sketch.shared.auth.algebras.UsersStore
 import org.fiume.sketch.shared.auth.domain.{Account, ActivateAccountError, SoftDeleteAccountError, User, UserId}
 import org.fiume.sketch.shared.auth.domain.ActivateAccountError.*
+import org.fiume.sketch.shared.auth.domain.SoftDeleteAccountError.*
 import org.fiume.sketch.shared.auth.jobs.ScheduledAccountDeletion
 import org.fiume.sketch.shared.authorisation.{AccessControl, AuthorisationError, ContextualRole}
+import org.fiume.sketch.shared.authorisation.AuthorisationError.UnauthorisedError
 import org.fiume.sketch.shared.authorisation.ContextualRole.Owner
 import org.fiume.sketch.shared.common.algebras.syntax.StoreSyntax.*
 import org.fiume.sketch.shared.common.http.json.JsonCodecs.given
+import org.fiume.sketch.shared.common.troubleshooting.ErrorInfo
+import org.fiume.sketch.shared.common.troubleshooting.ErrorInfo.{ErrorCode, ErrorMessage}
+import org.fiume.sketch.shared.common.troubleshooting.ErrorInfo.json.given
 import org.http4s.{HttpRoutes, *}
 import org.http4s.circe.CirceEntityEncoder.*
 import org.http4s.dsl.Http4sDsl
@@ -44,7 +49,14 @@ class UsersRoutes[F[_]: Concurrent, Txn[_]: Sync](
           .commit()
           .flatMap {
             case Right(job) => Ok(job.asResponsePayload)
-            case _          => Forbidden()
+            case Left(error: SoftDeleteAccountError) =>
+              error match
+                // Returns Conflict since the request conflicts with the current state of the account (transition error).
+                // Note that the Api is idempotent in behaviour (same account state across multiple requests),
+                // but not idempotent in response.
+                case AccountAlreadyPendingDeletion          => Conflict(model.Error.failToMarkAccountForDeletion(error))
+                case SoftDeleteAccountError.AccountNotFound => NotFound(model.Error.failToMarkAccountForDeletion(error))
+            case Left(error: AuthorisationError) => Forbidden(model.Error.failToMarkAccountForDeletion(error))
           }
 
       case PUT -> Root / "users" / UserIdVar(uuid) / "restore" as authed =>
@@ -63,6 +75,7 @@ class UsersRoutes[F[_]: Concurrent, Txn[_]: Sync](
   }
 
   private def doMarkForDeletion(userId: UserId): Txn[Either[SoftDeleteAccountError, ScheduledAccountDeletion]] =
+    // TODO Create an equivalent of ensureAccess for when deleting resource
     store.markForDeletion(userId, delayUntilPermanentDeletion).flatTap { outcome =>
       accessControl.revokeContextualAccess(userId, userId).whenA(outcome.isRight)
     }
@@ -76,7 +89,16 @@ private[http] object UsersRoutes:
     import org.fiume.sketch.shared.auth.domain.UserId.given
     def unapply(uuid: String): Option[UserId] = uuid.parsed().toOption
 
-  object Model:
+  object model:
+    object Error:
+      def failToMarkAccountForDeletion(error: SoftDeleteAccountError | AuthorisationError): ErrorInfo =
+        val errorCode = error match
+          case AccountAlreadyPendingDeletion          => ErrorCode("1200")
+          case SoftDeleteAccountError.AccountNotFound => ErrorCode("1201")
+          case UnauthorisedError                      => ErrorCode("1300")
+
+        ErrorInfo.make(errorCode, ErrorMessage("Attempt to mark account for deletion failed"))
+
     case class ScheduledForPermanentDeletionResponse(userId: UserId, permanentDeletionAt: Instant)
 
     extension (job: ScheduledAccountDeletion)

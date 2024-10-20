@@ -22,6 +22,8 @@ import org.http4s.headers.`WWW-Authenticate`
 
 class HttpAuthClientSpec extends HttpAuthClientSpecContext:
 
+  /* Checkout RusticHealthCheckSpec for an auternative way of priming stubbed server responses
+   */
   override def munitFixtures: Seq[AnyFixture[?]] = List(httpClient, serverWillReturnError)
 
   // table test

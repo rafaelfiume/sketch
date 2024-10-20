@@ -3,8 +3,8 @@ package org.fiume.sketch.auth.http
 import cats.effect.IO
 import cats.implicits.*
 import munit.{CatsEffectSuite, ScalaCheckEffectSuite}
-import org.fiume.sketch.auth.http.UsersRoutes.Model.ScheduledForPermanentDeletionResponse
-import org.fiume.sketch.auth.http.UsersRoutes.Model.json.given
+import org.fiume.sketch.auth.http.UsersRoutes.model.ScheduledForPermanentDeletionResponse
+import org.fiume.sketch.auth.http.UsersRoutes.model.json.given
 import org.fiume.sketch.shared.auth.domain.{Account, AccountState, User, UserId}
 import org.fiume.sketch.shared.auth.domain.AccountState.*
 import org.fiume.sketch.shared.auth.domain.User.UserCredentials
@@ -15,6 +15,9 @@ import org.fiume.sketch.shared.authorisation.{ContextualRole, GlobalRole}
 import org.fiume.sketch.shared.authorisation.ContextualRole.Owner
 import org.fiume.sketch.shared.authorisation.GlobalRole.Admin
 import org.fiume.sketch.shared.authorisation.testkit.AccessControlContext
+import org.fiume.sketch.shared.common.troubleshooting.ErrorInfo
+import org.fiume.sketch.shared.common.troubleshooting.ErrorInfo.{ErrorCode, ErrorMessage}
+import org.fiume.sketch.shared.common.troubleshooting.ErrorInfo.json.given
 import org.fiume.sketch.shared.testkit.{ClockContext, ContractContext, Http4sRoutesContext}
 import org.fiume.sketch.shared.testkit.syntax.OptionSyntax.*
 import org.http4s.*
@@ -73,7 +76,7 @@ class UsersRoutesSpec
     }
   }
 
-  test("attempt to mark for deletion a non-existent account or with lack of permission results in 403") {
+  test("attempt to mark an account for deletion with lack of permission results in 403") {
     forAllF { (owner: UserCredentials, ownerExists: Boolean, authed: UserCredentials, isSuperuser: Boolean) =>
       for
         store <- makeEmptyUsersStore()
@@ -87,13 +90,14 @@ class UsersRoutesSpec
         usersRoutes = new UsersRoutes[IO, IO](authMiddleware, accessControl, store, delayUntilPermanentDeletion)
         request = DELETE(Uri.unsafeFromString(s"/users/${ownerId.value}"))
 
-        _ <- send(request)
+        result <- send(request)
           .to(usersRoutes.router())
 //
-          .expectEmptyResponseWith(Status.Forbidden)
-      yield ()
+          .expectJsonResponseWith[ErrorInfo](Status.Forbidden)
+      yield assertEquals(result, ErrorInfo.make(ErrorCode("1300"), ErrorMessage("Attempt to mark account for deletion failed")))
     }
   }
+  // TODO Check mark for deletion also with AccountAlreadyPendingDeletion and AccountNotFound sad path
 
   test("only users with Admin role can restore user accounts"):
     forAllF { (owner: UserCredentials, authed: UserCredentials) =>

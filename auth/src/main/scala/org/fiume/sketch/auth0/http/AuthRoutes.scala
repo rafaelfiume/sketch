@@ -1,4 +1,5 @@
 package org.fiume.sketch.auth.http
+// TODO Rename path from auth0 to auth
 
 import cats.effect.Async
 import cats.implicits.*
