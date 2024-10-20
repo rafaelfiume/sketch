@@ -46,7 +46,7 @@ class UsersRoutes[F[_]: Concurrent, Txn[_]: Sync](
     AuthedRoutes.of {
       case DELETE -> Root / "users" / UserIdVar(uuid) as authed =>
         accessControl
-          .attemptAccountManagementWithAuthorisation(authed.uuid, uuid, isAuthenticatedAccountActive)(doMarkForDeletion)
+          .attemptAccountManagement(authed.uuid, uuid, isAuthenticatedAccountActive)(markAccountForDeletion)
           .commit()
           .flatMap {
             case Right(job) => Ok(job.asResponsePayload)
@@ -60,7 +60,7 @@ class UsersRoutes[F[_]: Concurrent, Txn[_]: Sync](
 
       case POST -> Root / "users" / UserIdVar(uuid) / "restore" as authed =>
         accessControl
-          .attemptAccountManagementWithAuthorisation(authed.uuid, uuid, isAuthenticatedAccountActive)(doRestoreAccount)
+          .attemptAccountManagement(authed.uuid, uuid, isAuthenticatedAccountActive)(restoreAccount)
           .commit()
           .flatMap {
             case Right(_) => NoContent()
@@ -76,13 +76,13 @@ class UsersRoutes[F[_]: Concurrent, Txn[_]: Sync](
     _.fold(false)(_.isActive)
   }
 
-  private def doMarkForDeletion(userId: UserId): Txn[Either[SoftDeleteAccountError, ScheduledAccountDeletion]] =
+  private def markAccountForDeletion(userId: UserId): Txn[Either[SoftDeleteAccountError, ScheduledAccountDeletion]] =
     // TODO Create an equivalent of ensureAccess for when deleting resource
     store.markForDeletion(userId, delayUntilPermanentDeletion).flatTap { outcome =>
       accessControl.revokeContextualAccess(userId, userId).whenA(outcome.isRight)
     }
 
-  private def doRestoreAccount(userToBeRestoredId: UserId): Txn[Either[ActivateAccountError, Account]] =
+  private def restoreAccount(userToBeRestoredId: UserId): Txn[Either[ActivateAccountError, Account]] =
     accessControl.ensureAccess(userToBeRestoredId, Owner)(store.restoreAccount(userToBeRestoredId))
 
 private[http] object UsersRoutes:

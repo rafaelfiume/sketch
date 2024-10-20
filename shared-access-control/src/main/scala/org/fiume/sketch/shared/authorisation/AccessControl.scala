@@ -42,7 +42,7 @@ trait AccessControl[F[_], Txn[_]: Monad] extends Store[F, Txn]:
         case (Some(Role.Global(Admin)), _)                => true
     }
 
-  def attemptWithAuthorisation[T <: Entity, A](userId: UserId, entityId: EntityId[T])(
+  def attempt[T <: Entity, A](userId: UserId, entityId: EntityId[T])(
     accessEntity: EntityId[T] => Txn[A]
   ): Txn[Either[AuthorisationError, A]] =
     canAccess(userId, entityId).ifM(
@@ -51,7 +51,7 @@ trait AccessControl[F[_], Txn[_]: Monad] extends Store[F, Txn]:
     )
 
   // TODO Test this
-  def attemptAccountManagementWithAuthorisation[E <: AccountStateTransitionError, R](
+  def attemptAccountManagement[E <: AccountStateTransitionError, R](
     authenticated: UserId,
     account: UserId,
     isAuthenticatedAccountActive: UserId => Txn[Boolean]

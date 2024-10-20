@@ -52,6 +52,8 @@ class DocumentsRoutes[F[_]: Concurrent, Txn[_]: FlatMap](
 
   private val authedRoutes: AuthedRoutes[User, F] =
     AuthedRoutes.of {
+      // TODO Return 201 with a Location header with a link to the newly created resource instead.
+      // See https://www.restapitutorial.com/introduction/httpmethods#post
       case cx @ POST -> Root / "documents" as user =>
         cx.req.decode { (uploadRequest: Multipart[F]) =>
           for
@@ -67,7 +69,7 @@ class DocumentsRoutes[F[_]: Concurrent, Txn[_]: FlatMap](
 
       case GET -> Root / "documents" / DocumentIdVar(uuid) / "metadata" as user =>
         for
-          document <- accessControl.attemptWithAuthorisation(user.uuid, uuid) { store.fetchDocument }.commit()
+          document <- accessControl.attempt(user.uuid, uuid) { store.fetchDocument }.commit()
           res <- document match
             case Right(document)    => document.map(_.asResponsePayload).fold(ifEmpty = NotFound())(Ok(_))
             case Left(unauthorised) => Forbidden()
@@ -97,7 +99,7 @@ class DocumentsRoutes[F[_]: Concurrent, Txn[_]: FlatMap](
       case DELETE -> Root / "documents" / DocumentIdVar(uuid) as user =>
         for
           document <- accessControl
-            .attemptWithAuthorisation(user.uuid, uuid) { store.delete }
+            .attempt(user.uuid, uuid) { store.delete }
             .flatTap { _ => accessControl.revokeContextualAccess(user.uuid, uuid) }
             .commit()
           res <- document match

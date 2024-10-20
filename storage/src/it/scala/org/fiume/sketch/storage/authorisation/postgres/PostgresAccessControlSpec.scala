@@ -168,7 +168,7 @@ class PostgresAccessControlSpec
           for
             docId <- accessControl.ensureAccess_(userId, role) { docStore.store(document) }.ccommit
 
-            result <- accessControl.attemptWithAuthorisation(userId, docId) { docStore.fetchDocument }.ccommit
+            result <- accessControl.attempt(userId, docId) { docStore.fetchDocument }.ccommit
 //
           yield assertEquals(result.rightOrFail, document.some)
         }
@@ -186,7 +186,7 @@ class PostgresAccessControlSpec
             // no granting access to the user
             docId <- docStore.store(document).ccommit
 
-            result <- accessControl.attemptWithAuthorisation(userId, docId) { docStore.fetchDocument }.ccommit
+            result <- accessControl.attempt(userId, docId) { docStore.fetchDocument }.ccommit
 //
           yield assertEquals(result.leftOrFail, UnauthorisedError)
         }
