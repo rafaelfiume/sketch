@@ -57,7 +57,7 @@ class DocumentsRoutes[F[_]: Concurrent, Txn[_]: FlatMap](
           for
             document <- uploadRequest.validated().foldF(_.raiseError, _.pure)
             uuid <- accessControl
-              .ensureAccess(user.uuid, ContextualRole.Owner) {
+              .ensureAccess_(user.uuid, ContextualRole.Owner) {
                 store.store(document)
               }
               .commit()

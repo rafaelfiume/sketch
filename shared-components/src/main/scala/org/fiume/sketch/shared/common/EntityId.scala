@@ -52,3 +52,7 @@ enum InvalidUuid(val key: String, val detail: String) extends InvariantError:
 
 trait WithUuid[T <: EntityId[?]]:
   val uuid: T
+
+object WithUuid:
+  def make[T <: EntityId[?]](id: T): WithUuid[T] = new WithUuid[T]:
+    val uuid = id

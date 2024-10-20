@@ -7,10 +7,17 @@ import org.fiume.sketch.auth.http.UsersRoutes.Model.asResponsePayload
 import org.fiume.sketch.auth.http.UsersRoutes.Model.json.given
 import org.fiume.sketch.auth.http.UsersRoutes.UserIdVar
 import org.fiume.sketch.shared.auth.algebras.UsersStore
-import org.fiume.sketch.shared.auth.domain.{Account, AccountStateTransitionError, ActivateAccountError, SoftDeleteAccountError, User, UserId}
+import org.fiume.sketch.shared.auth.domain.{
+  Account,
+  AccountStateTransitionError,
+  ActivateAccountError,
+  SoftDeleteAccountError,
+  User,
+  UserId
+}
 import org.fiume.sketch.shared.auth.domain.ActivateAccountError.*
 import org.fiume.sketch.shared.auth.jobs.ScheduledAccountDeletion
-import org.fiume.sketch.shared.authorisation.{AccessControl, AuthorisationError}
+import org.fiume.sketch.shared.authorisation.{AccessControl, AuthorisationError, ContextualRole}
 import org.fiume.sketch.shared.authorisation.AuthorisationError.*
 import org.fiume.sketch.shared.authorisation.ContextualRole.Owner
 import org.fiume.sketch.shared.common.algebras.syntax.StoreSyntax.*
@@ -58,6 +65,7 @@ class UsersRoutes[F[_]: Concurrent, Txn[_]: Sync](
     }
 
   // TODO Move it to AccessControl?
+  // Reconcile it with attemptWithAuthorisation
   private def canAuthedUserManageAccount[E <: AccountStateTransitionError, R](authenticated: UserId, account: UserId)(
     changeAccountIfAuthorised: UserId => Txn[Either[E, R]]
   ): Txn[Either[E | AuthorisationError, R]] =
@@ -76,10 +84,8 @@ class UsersRoutes[F[_]: Concurrent, Txn[_]: Sync](
       accessControl.revokeContextualAccess(userId, userId).whenA(outcome.isRight)
     }
 
-  private def doRestoreAccount(accountToBeRestoredId: UserId): Txn[Either[ActivateAccountError, Account]] =
-    store.restoreAccount(accountToBeRestoredId).flatTap { outcome =>
-      accessControl.grantAccess(accountToBeRestoredId, accountToBeRestoredId, Owner).whenA(outcome.isRight)
-    }
+  private def doRestoreAccount(userToBeRestoredId: UserId): Txn[Either[ActivateAccountError, Account]] =
+    accessControl.ensureAccess(userToBeRestoredId, Owner)(store.restoreAccount(userToBeRestoredId))
 
 private[http] object UsersRoutes:
   object UserIdVar:

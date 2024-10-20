@@ -4,6 +4,7 @@ import cats.implicits.*
 import org.fiume.sketch.shared.auth.domain.ActivateAccountError.*
 import org.fiume.sketch.shared.auth.domain.SoftDeleteAccountError.AccountAlreadyDeleted
 import org.fiume.sketch.shared.auth.domain.User.UserCredentials
+import org.fiume.sketch.shared.common.WithUuid
 
 import java.time.Instant
 
@@ -12,7 +13,7 @@ case class Account(
   credentials: UserCredentials,
   // email: Email, // possibly in the future, depending on requirements
   state: AccountState
-):
+) extends WithUuid[UserId]:
   def isActive: Boolean = state match
     case AccountState.Active(_) => true
     case _                      => false

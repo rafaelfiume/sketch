@@ -6,7 +6,7 @@ import org.fiume.sketch.shared.auth.domain.UserId
 import org.fiume.sketch.shared.authorisation.ContextualRole.*
 import org.fiume.sketch.shared.authorisation.GlobalRole.*
 import org.fiume.sketch.shared.authorisation.Role.{Contextual, Global}
-import org.fiume.sketch.shared.common.{Entity, EntityId}
+import org.fiume.sketch.shared.common.{Entity, EntityId, WithUuid}
 import org.fiume.sketch.shared.common.algebras.Store
 
 trait AccessControl[F[_], Txn[_]: Monad] extends Store[F, Txn]:
@@ -17,8 +17,16 @@ trait AccessControl[F[_], Txn[_]: Monad] extends Store[F, Txn]:
   def grantAccess[T <: Entity](userId: UserId, entityId: EntityId[T], role: ContextualRole): Txn[Unit] =
     storeGrant(userId, entityId, role)
 
-  def ensureAccess[T <: Entity](userId: UserId, role: ContextualRole)(entityIdTxn: => Txn[EntityId[T]]): Txn[EntityId[T]] =
-    entityIdTxn.flatTap { grantAccess(userId, _, role) }
+  def ensureAccess[E, R <: WithUuid[?]](userId: UserId, role: ContextualRole)(txn: => Txn[Either[E, R]]): Txn[Either[E, R]] =
+    txn.flatTap {
+      case Right(result) => grantAccess(userId, result.uuid, role)
+      case Left(_)       => ().pure[Txn] // ignore TODO Is there a more ellegant way?
+    }
+
+  def ensureAccess_[T <: Entity](userId: UserId, role: ContextualRole)(entityIdTxn: => Txn[EntityId[T]]): Txn[EntityId[T]] =
+    ensureAccess(userId, role) { entityIdTxn.map(WithUuid.make(_).asRight) }.map {
+      _.getOrElse(throw AssertionError("there is no left")).uuid
+    }
 
   // Should canAccess return `Either`? For example, `Left(NotFound)`?
   def canAccess[T <: Entity](userId: UserId, entityId: EntityId[T]): Txn[Boolean] =
@@ -36,7 +44,7 @@ trait AccessControl[F[_], Txn[_]: Monad] extends Store[F, Txn]:
   ): Txn[Either[Unauthorised, A]] =
     canAccess(userId, entityId).ifM(
       ifTrue = ops(entityId).map(Right(_)),
-      ifFalse = Left("Unauthorised").pure[Txn]
+      ifFalse = Left("Unauthorised").pure[Txn] // TODO Replace this left by AuthorisationError
     )
 
   // It needs to respect the same rules as `canAccess`

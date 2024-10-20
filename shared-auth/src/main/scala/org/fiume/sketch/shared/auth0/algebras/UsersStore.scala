@@ -25,8 +25,6 @@ trait UsersStore[F[_], Txn[_]: Monad](clock: Clock[F]) extends Store[F, Txn]:
 
   def updatePassword(userId: UserId, password: HashedPassword): Txn[Unit]
 
-  def deleteAccount(userId: UserId): Txn[Unit]
-
   def markForDeletion(
     userId: UserId,
     timeUntilPermanentDeletion: Duration
@@ -41,6 +39,8 @@ trait UsersStore[F[_], Txn[_]: Monad](clock: Clock[F]) extends Store[F, Txn]:
         case Left(error) => error.asLeft[ScheduledAccountDeletion].pure[Txn]
       }
     }
+
+  def deleteAccount(userId: UserId): Txn[Unit]
 
   def restoreAccount(userId: UserId): Txn[Either[ActivateAccountError, Account]] =
     lift { clock.realTimeInstant }.flatMap { now =>
