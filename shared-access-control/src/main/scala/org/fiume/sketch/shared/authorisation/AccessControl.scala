@@ -2,7 +2,8 @@ package org.fiume.sketch.shared.authorisation
 
 import cats.Monad
 import cats.implicits.*
-import org.fiume.sketch.shared.auth.domain.UserId
+import org.fiume.sketch.shared.auth.domain.{AccountStateTransitionError, UserId}
+import org.fiume.sketch.shared.authorisation.AuthorisationError.*
 import org.fiume.sketch.shared.authorisation.ContextualRole.*
 import org.fiume.sketch.shared.authorisation.GlobalRole.*
 import org.fiume.sketch.shared.authorisation.Role.{Contextual, Global}
@@ -17,6 +18,7 @@ trait AccessControl[F[_], Txn[_]: Monad] extends Store[F, Txn]:
   def grantAccess[T <: Entity](userId: UserId, entityId: EntityId[T], role: ContextualRole): Txn[Unit] =
     storeGrant(userId, entityId, role)
 
+  // TODO Test this
   def ensureAccess[E, R <: WithUuid[?]](userId: UserId, role: ContextualRole)(txn: => Txn[Either[E, R]]): Txn[Either[E, R]] =
     txn.flatTap {
       case Right(result) => grantAccess(userId, result.uuid, role)
@@ -46,6 +48,24 @@ trait AccessControl[F[_], Txn[_]: Monad] extends Store[F, Txn]:
       ifTrue = ops(entityId).map(Right(_)),
       ifFalse = Left("Unauthorised").pure[Txn] // TODO Replace this left by AuthorisationError
     )
+
+  // TODO Test this
+  def attemptAccountManagementWithAuthorisation[E <: AccountStateTransitionError, R](
+    authenticated: UserId,
+    account: UserId,
+    isAuthenticatedAccountActive: UserId => Txn[Boolean]
+  )(
+    // TODO Define a lower bound for type R so result can only be related to account management?
+    changeAccountIfAuthorised: UserId => Txn[Either[E, R]]
+  ): Txn[Either[E | AuthorisationError, R]] =
+    (
+      isAuthenticatedAccountActive(authenticated), // for when the user deactivates their own account
+      canAccess(authenticated, account)
+    ).mapN(_ && _)
+      .ifM(
+        ifTrue = changeAccountIfAuthorised(account).map { _.leftMap[E | AuthorisationError](identity) }, // widening the left type
+        ifFalse = UnauthorisedError.asLeft.pure[Txn]
+      )
 
   // It needs to respect the same rules as `canAccess`
   def fetchAllAuthorisedEntityIds[T <: Entity](userId: UserId, entityType: String): fs2.Stream[Txn, EntityId[T]]
