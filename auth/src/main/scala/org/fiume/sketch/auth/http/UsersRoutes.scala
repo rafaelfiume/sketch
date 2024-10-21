@@ -70,10 +70,6 @@ class UsersRoutes[F[_]: Concurrent, Txn[_]: Sync](
           }
     }
 
-  /*
-   * This is an interesting case where it is necessary to customise both `canAccess` function
-   * and how `revokeContextualAccess` is invoked.
-   */
   private def markAccountForDeletion(
     authedId: UserId,
     userId: UserId
