@@ -3,8 +3,8 @@ package org.fiume.sketch.auth.http
 import cats.effect.IO
 import cats.implicits.*
 import munit.{CatsEffectSuite, ScalaCheckEffectSuite}
-import org.fiume.sketch.auth.http.UsersRoutes.Model.ScheduledForPermanentDeletionResponse
-import org.fiume.sketch.auth.http.UsersRoutes.Model.json.given
+import org.fiume.sketch.auth.http.UsersRoutes.model.ScheduledForPermanentDeletionResponse
+import org.fiume.sketch.auth.http.UsersRoutes.model.json.given
 import org.fiume.sketch.shared.auth.domain.{Account, AccountState, User, UserId}
 import org.fiume.sketch.shared.auth.domain.AccountState.*
 import org.fiume.sketch.shared.auth.domain.User.UserCredentials
@@ -15,6 +15,9 @@ import org.fiume.sketch.shared.authorisation.{ContextualRole, GlobalRole}
 import org.fiume.sketch.shared.authorisation.ContextualRole.Owner
 import org.fiume.sketch.shared.authorisation.GlobalRole.Admin
 import org.fiume.sketch.shared.authorisation.testkit.AccessControlContext
+import org.fiume.sketch.shared.common.troubleshooting.ErrorInfo
+import org.fiume.sketch.shared.common.troubleshooting.ErrorInfo.{ErrorCode, ErrorMessage}
+import org.fiume.sketch.shared.common.troubleshooting.ErrorInfo.json.given
 import org.fiume.sketch.shared.testkit.{ClockContext, ContractContext, Http4sRoutesContext}
 import org.fiume.sketch.shared.testkit.syntax.OptionSyntax.*
 import org.http4s.*
@@ -54,10 +57,17 @@ class UsersRoutesSpec
         )
         usersRoutes = new UsersRoutes[IO, IO](authMiddleware, accessControl, store, delayUntilPermanentDeletion)
 
-        result <- send(request)
+        result <- send(request).to(usersRoutes.router()).expectJsonResponseWith[ScheduledForPermanentDeletionResponse](Status.Ok)
+
+        // The Api is idempotent in behaviour but not in response
+        _ <- send(request)
           .to(usersRoutes.router())
-//
-          .expectJsonResponseWith[ScheduledForPermanentDeletionResponse](Status.Ok)
+          .expectJsonResponseWith[ErrorInfo](Status.Conflict)
+          .whenA(isAdminMarkingForDeletion)
+        _ <- send(request)
+          .to(usersRoutes.router())
+          .expectJsonResponseWith[ErrorInfo](Status.Forbidden)
+          .whenA(!isAdminMarkingForDeletion)
         account <- store.fetchAccount(ownerId).map(_.someOrFail)
         grantRemoved <- accessControl.canAccess(ownerId, ownerId).map(!_)
       yield
@@ -73,7 +83,7 @@ class UsersRoutesSpec
     }
   }
 
-  test("attempt to mark for deletion a non-existent account or with lack of permission results in 403") {
+  test("attempt to mark an account for deletion with lack of permission results in 403") {
     forAllF { (owner: UserCredentials, ownerExists: Boolean, authed: UserCredentials, isSuperuser: Boolean) =>
       for
         store <- makeEmptyUsersStore()
@@ -87,33 +97,32 @@ class UsersRoutesSpec
         usersRoutes = new UsersRoutes[IO, IO](authMiddleware, accessControl, store, delayUntilPermanentDeletion)
         request = DELETE(Uri.unsafeFromString(s"/users/${ownerId.value}"))
 
-        _ <- send(request)
+        result <- send(request)
           .to(usersRoutes.router())
 //
-          .expectEmptyResponseWith(Status.Forbidden)
-      yield ()
+          .expectJsonResponseWith[ErrorInfo](Status.Forbidden)
+      yield assertEquals(result, ErrorInfo.make(ErrorCode("3000"), ErrorMessage("Unauthorised operation")))
     }
   }
+  // TODO Check mark for deletion also with AccountAlreadyPendingDeletion and AccountNotFound sad path
 
   test("only users with Admin role can restore user accounts"):
     forAllF { (owner: UserCredentials, authed: UserCredentials) =>
       for
         store <- makeEmptyUsersStore()
         accessControl <- makeAccessControl()
-        ownerId <- store.createAccount(owner).flatTap { id => accessControl.grantAccess(id, id, Owner) }
+        ownerId <- store.createAccount(owner).flatTap(store.markForDeletion(_, 0.seconds))
         authedId <- store.createAccount(authed).flatTap { id => accessControl.grantGlobalAccess(id, Admin) }
         authMiddleware = makeAuthMiddleware(authenticated = User(authedId, authed.username))
-        deleteRequest = DELETE(Uri.unsafeFromString(s"/users/${ownerId.value}"))
-        restoreRequest = PUT(Uri.unsafeFromString(s"/users/${ownerId.value}/restore"))
+        request = POST(Uri.unsafeFromString(s"/users/${ownerId.value}/restore"))
         usersRoutes = new UsersRoutes[IO, IO](authMiddleware, accessControl, store, delayUntilPermanentDeletion)
-        _ <- send(deleteRequest).to(usersRoutes.router()).expectJsonResponseWith[ScheduledForPermanentDeletionResponse](Status.Ok)
 
-        _ <- send(restoreRequest).to(usersRoutes.router()).expectEmptyResponseWith(Status.NoContent)
-        // idempotence
-        _ <- send(restoreRequest)
+        _ <- send(request).to(usersRoutes.router()).expectEmptyResponseWith(Status.NoContent)
+
+        // The Api is idempotent in behaviour but not in response
+        _ <- send(request)
           .to(usersRoutes.router())
-//
-          .expectEmptyResponseWith(Status.NoContent)
+          .expectJsonResponseWith[ErrorInfo](Status.Conflict)
         account <- store.fetchAccount(ownerId).map(_.someOrFail)
         userCanAccessHerAccount <- accessControl.canAccess(ownerId, ownerId)
       yield
@@ -130,15 +139,17 @@ class UsersRoutesSpec
           accessControl.grantGlobalAccess(id, GlobalRole.Superuser).whenA(isSuperuser)
         }
         authMiddleware = makeAuthMiddleware(authenticated = User(authedId, authed.username))
-        request = PUT(Uri.unsafeFromString(s"/users/${owner.uuid.value}/restore"))
+        request = POST(Uri.unsafeFromString(s"/users/${owner.uuid.value}/restore"))
         usersRoutes = new UsersRoutes[IO, IO](authMiddleware, accessControl, store, delayUntilPermanentDeletion)
 
-        _ <- send(request)
+        result <- send(request)
           .to(usersRoutes.router())
 //
-          .expectEmptyResponseWith(Status.Forbidden)
+          .expectJsonResponseWith[ErrorInfo](Status.Forbidden)
         account <- store.fetchAccount(owner.uuid).map(_.someOrFail)
-      yield assert(account.isMarkedForDeletion, clue = "account should remain marked for deletion")
+      yield
+        assert(account.isMarkedForDeletion, clue = "account should remain marked for deletion")
+        assertEquals(result, ErrorInfo.make(ErrorCode("3000"), ErrorMessage("Unauthorised operation")))
     }
 
   test("ScheduledForPermanentDeletionResponse encode and decode form a bijective relationship"):

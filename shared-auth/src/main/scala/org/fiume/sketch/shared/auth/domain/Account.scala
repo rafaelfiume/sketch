@@ -2,8 +2,9 @@ package org.fiume.sketch.shared.auth.domain
 
 import cats.implicits.*
 import org.fiume.sketch.shared.auth.domain.ActivateAccountError.*
-import org.fiume.sketch.shared.auth.domain.SoftDeleteAccountError.AccountAlreadyDeleted
+import org.fiume.sketch.shared.auth.domain.SoftDeleteAccountError.AccountAlreadyPendingDeletion
 import org.fiume.sketch.shared.auth.domain.User.UserCredentials
+import org.fiume.sketch.shared.common.WithUuid
 
 import java.time.Instant
 
@@ -12,7 +13,7 @@ case class Account(
   credentials: UserCredentials,
   // email: Email, // possibly in the future, depending on requirements
   state: AccountState
-):
+) extends WithUuid[UserId]:
   def isActive: Boolean = state match
     case AccountState.Active(_) => true
     case _                      => false
@@ -36,7 +37,7 @@ object AccountState:
 
   def transitionToSoftDelete(account: Account, deletedAt: Instant): Either[SoftDeleteAccountError, Account] =
     account.state match
-      case AccountState.SoftDeleted(_) => AccountAlreadyDeleted.asLeft
+      case AccountState.SoftDeleted(_) => AccountAlreadyPendingDeletion.asLeft
       case _                           => account.copy(state = AccountState.SoftDeleted(deletedAt)).asRight
 
 sealed trait AccountStateTransitionError
@@ -44,9 +45,7 @@ sealed trait AccountStateTransitionError
 enum ActivateAccountError extends AccountStateTransitionError:
   case AccountAlreadyActive
   case AccountNotFound
-  case Other
 
 enum SoftDeleteAccountError extends AccountStateTransitionError:
-  case AccountAlreadyDeleted
+  case AccountAlreadyPendingDeletion
   case AccountNotFound
-  case Other

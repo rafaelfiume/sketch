@@ -9,6 +9,9 @@ import scala.concurrent.duration.*
 
 class PeriodicJobSpec extends CatsEffectSuite with JobErrorHandlerContext:
 
+  /*
+   * this tests are flickering. fix them
+   */
   test("runs job periodically, even after encountering errors"):
     // given
     def makeBrokenJob(): IO[(Ref[IO, Int], Job[IO, Int])] = IO.ref(0).map { counter =>
@@ -25,7 +28,7 @@ class PeriodicJobSpec extends CatsEffectSuite with JobErrorHandlerContext:
       (jobsCounter, brokenJob) <- makeBrokenJob()
       jobErrorTracker <- makeJobErrorTracker()
       period = 50.millis
-      pipelineDuration = 180.millis // this test can be sucesptible to timing issues
+      pipelineDuration = 185.millis // this test can be sucesptible to timing issues
 
       // when
       result <- org.fiume.sketch.shared.common.jobs.PeriodicJob

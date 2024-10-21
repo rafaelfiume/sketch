@@ -11,6 +11,7 @@ import org.fiume.sketch.shared.auth.testkit.UserGens.*
 import org.fiume.sketch.shared.auth.testkit.UserGens.given
 import org.fiume.sketch.shared.auth.testkit.UsersStoreContext
 import org.fiume.sketch.shared.authorisation.{ContextualRole, GlobalRole, Role}
+import org.fiume.sketch.shared.authorisation.AuthorisationError.*
 import org.fiume.sketch.shared.authorisation.ContextualRole.Owner
 import org.fiume.sketch.shared.authorisation.GlobalRole.{Admin, Superuser}
 import org.fiume.sketch.shared.authorisation.testkit.AccessControlGens.*
@@ -92,9 +93,9 @@ class PostgresAccessControlSpec
                 .createAccount(sndUser)
                 .flatTap { userId => accessControl.grantAccess(userId, userId, Owner) }
                 .ccommit
-              fstDocId <- accessControl.ensureAccess(fstUserId, Owner) { docStore.store(fstDocument) }.ccommit
-              sndDocId <- accessControl.ensureAccess(sndUserId, Owner) { docStore.store(sndDocument) }.ccommit
-              trdDocId <- accessControl.ensureAccess(sndUserId, Owner) { docStore.store(trdDocument) }.ccommit
+              fstDocId <- accessControl.ensureAccess_(fstUserId, Owner) { docStore.store(fstDocument) }.ccommit
+              sndDocId <- accessControl.ensureAccess_(sndUserId, Owner) { docStore.store(sndDocument) }.ccommit
+              trdDocId <- accessControl.ensureAccess_(sndUserId, Owner) { docStore.store(trdDocument) }.ccommit
               _ <- accessControl.grantGlobalAccess(fstUserId, globalRole).ccommit
 
               result <- accessControl
@@ -165,9 +166,9 @@ class PostgresAccessControlSpec
           PostgresDocumentsStore.make[IO](transactor())
         ).tupled.use { case (accessControl, docStore) =>
           for
-            docId <- accessControl.ensureAccess(userId, role) { docStore.store(document) }.ccommit
+            docId <- accessControl.ensureAccess_(userId, role) { docStore.store(document) }.ccommit
 
-            result <- accessControl.attemptWithAuthorisation(userId, docId) { docStore.fetchDocument }.ccommit
+            result <- accessControl.attempt(userId, docId) { docStore.fetchDocument }.ccommit
 //
           yield assertEquals(result.rightOrFail, document.some)
         }
@@ -185,9 +186,9 @@ class PostgresAccessControlSpec
             // no granting access to the user
             docId <- docStore.store(document).ccommit
 
-            result <- accessControl.attemptWithAuthorisation(userId, docId) { docStore.fetchDocument }.ccommit
+            result <- accessControl.attempt(userId, docId) { docStore.fetchDocument }.ccommit
 //
-          yield assertEquals(result.leftOrFail, "Unauthorised")
+          yield assertEquals(result.leftOrFail, UnauthorisedError)
         }
       }
     }
@@ -207,9 +208,9 @@ class PostgresAccessControlSpec
             PostgresDocumentsStore.make[IO](transactor())
           ).tupled.use { case (accessControl, documentStore) =>
             for
-              fstDocumentId <- accessControl.ensureAccess(fstUserId, role) { documentStore.store(fstDocument) }.ccommit
-              sndDocumentId <- accessControl.ensureAccess(fstUserId, role) { documentStore.store(sndDocument) }.ccommit
-              trdDocumentId <- accessControl.ensureAccess(sndUserId, role) { documentStore.store(trdDocument) }.ccommit
+              fstDocumentId <- accessControl.ensureAccess_(fstUserId, role) { documentStore.store(fstDocument) }.ccommit
+              sndDocumentId <- accessControl.ensureAccess_(fstUserId, role) { documentStore.store(sndDocument) }.ccommit
+              trdDocumentId <- accessControl.ensureAccess_(sndUserId, role) { documentStore.store(trdDocument) }.ccommit
 
               result <- accessControl
                 .fetchAllAuthorisedEntityIds(fstUserId, "DocumentEntity")
