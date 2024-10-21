@@ -3,12 +3,12 @@ package org.fiume.sketch.auth.http
 import cats.effect.{Concurrent, Sync}
 import cats.implicits.*
 import io.circe.{Decoder, Encoder}
-import org.fiume.sketch.auth.http.UsersRoutes.{model, UserIdVar}
+import org.fiume.sketch.auth.http.UsersRoutes.*
 import org.fiume.sketch.auth.http.UsersRoutes.model.Error.*
 import org.fiume.sketch.auth.http.UsersRoutes.model.asResponsePayload
 import org.fiume.sketch.auth.http.UsersRoutes.model.json.given
 import org.fiume.sketch.shared.auth.algebras.UsersStore
-import org.fiume.sketch.shared.auth.domain.{Account, ActivateAccountError, SoftDeleteAccountError, User, UserId}
+import org.fiume.sketch.shared.auth.domain.{Account, ActivateAccountError, SoftDeleteAccountError, User, UserEntity, UserId}
 import org.fiume.sketch.shared.auth.domain.ActivateAccountError.*
 import org.fiume.sketch.shared.auth.domain.SoftDeleteAccountError.*
 import org.fiume.sketch.shared.auth.jobs.ScheduledAccountDeletion
@@ -45,8 +45,7 @@ class UsersRoutes[F[_]: Concurrent, Txn[_]: Sync](
   private val authedRoutes: AuthedRoutes[User, F] =
     AuthedRoutes.of {
       case DELETE -> Root / "users" / UserIdVar(uuid) as authed =>
-        accessControl
-          .attemptAccountManagement(authed.uuid, uuid, isAuthenticatedAccountActive)(markAccountForDeletion)
+        markAccountForDeletion(authed.uuid, uuid)
           .commit()
           .flatMap {
             case Right(job) => Ok(job.asResponsePayload)
@@ -59,8 +58,7 @@ class UsersRoutes[F[_]: Concurrent, Txn[_]: Sync](
           }
 
       case POST -> Root / "users" / UserIdVar(uuid) / "restore" as authed =>
-        accessControl
-          .attemptAccountManagement(authed.uuid, uuid, isAuthenticatedAccountActive)(restoreAccount)
+        restoreAccount(authed.uuid, uuid)
           .commit()
           .flatMap {
             case Right(_) => NoContent()
@@ -72,24 +70,50 @@ class UsersRoutes[F[_]: Concurrent, Txn[_]: Sync](
           }
     }
 
-  private def isAuthenticatedAccountActive(uuid: UserId): Txn[Boolean] = store.fetchAccountWith(uuid) {
-    _.fold(false)(_.isActive)
-  }
+  /*
+   * This is an interesting case where it is necessary to customise both `canAccess` function
+   * and how `revokeContextualAccess` is invoked.
+   */
+  private def markAccountForDeletion(
+    authedId: UserId,
+    userId: UserId
+  ): Txn[Either[AuthorisationError | SoftDeleteAccountError, ScheduledAccountDeletion]] =
+    canManageAccount(authedId, userId).ifM(
+      ifTrue = accessControl
+        .ensureRevoked(userId, userId) {
+          store.markForDeletion(_, delayUntilPermanentDeletion).map(_.widenErrorType)
+        },
+      ifFalse = AuthorisationError.UnauthorisedError.asLeft.pure[Txn]
+    )
 
-  private def markAccountForDeletion(userId: UserId): Txn[Either[SoftDeleteAccountError, ScheduledAccountDeletion]] =
-    // TODO Create an equivalent of ensureAccess for when deleting resource
-    store.markForDeletion(userId, delayUntilPermanentDeletion).flatTap { outcome =>
-      accessControl.revokeContextualAccess(userId, userId).whenA(outcome.isRight)
-    }
+  private def restoreAccount(
+    authedId: UserId,
+    userToBeRestoredId: UserId
+  ): Txn[Either[AuthorisationError | ActivateAccountError, Account]] =
+    canManageAccount(authedId, userToBeRestoredId).ifM(
+      ifTrue = accessControl.ensureAccess(userToBeRestoredId, Owner) {
+        store.restoreAccount(userToBeRestoredId).map(_.widenErrorType)
+      },
+      ifFalse = AuthorisationError.UnauthorisedError.asLeft.pure[Txn]
+    )
 
-  private def restoreAccount(userToBeRestoredId: UserId): Txn[Either[ActivateAccountError, Account]] =
-    accessControl.ensureAccess(userToBeRestoredId, Owner)(store.restoreAccount(userToBeRestoredId))
+  /*
+   * An example of a custom `canAccess` fn.
+   */
+  private def canManageAccount(authedId: UserId, account: UserId): Txn[Boolean] =
+    def isAuthenticatedAccountActive(uuid: UserId): Txn[Boolean] = store.fetchAccountWith(uuid) { _.fold(false)(_.isActive) }
+    (
+      isAuthenticatedAccountActive(authedId), // for when the user deactivates their own account
+      accessControl.canAccess(authedId, account)
+    ).mapN(_ && _)
 
 private[http] object UsersRoutes:
   object UserIdVar:
-
     import org.fiume.sketch.shared.auth.domain.UserId.given
     def unapply(uuid: String): Option[UserId] = uuid.parsed().toOption
+
+  // TODO Move this extension fn to `access-control` module?
+  extension [E, R](result: Either[E, R]) def widenErrorType = result.leftMap[AuthorisationError | E](identity)
 
   object model:
     object Error:

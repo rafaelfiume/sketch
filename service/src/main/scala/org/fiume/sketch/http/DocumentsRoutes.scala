@@ -19,7 +19,7 @@ import org.fiume.sketch.shared.common.http.json.NewlineDelimitedJson.{Line, Line
 import org.fiume.sketch.shared.common.http.middlewares.SemanticInputError
 import org.fiume.sketch.shared.common.troubleshooting.ErrorInfo.{ErrorCode, ErrorDetails}
 import org.fiume.sketch.shared.common.troubleshooting.InvariantErrorSyntax.asDetails
-import org.fiume.sketch.shared.domain.documents.{Document, DocumentId, DocumentWithId, DocumentWithStream}
+import org.fiume.sketch.shared.domain.documents.{Document, DocumentEntity, DocumentId, DocumentWithId, DocumentWithStream}
 import org.fiume.sketch.shared.domain.documents.Document.Metadata
 import org.fiume.sketch.shared.domain.documents.Document.Metadata.*
 import org.fiume.sketch.shared.domain.documents.algebras.DocumentsStore
@@ -99,11 +99,13 @@ class DocumentsRoutes[F[_]: Concurrent, Txn[_]: FlatMap](
       case DELETE -> Root / "documents" / DocumentIdVar(uuid) as user =>
         for
           document <- accessControl
-            .attempt(user.uuid, uuid) { store.delete }
-            .flatTap { _ => accessControl.revokeContextualAccess(user.uuid, uuid) }
+            .attempt(user.uuid, uuid) { docId =>
+              accessControl.ensureRevoked_(user.uuid, uuid) { store.delete(_).as(uuid) }
+            }
             .commit()
           res <- document match
-            case Right(document)    => NoContent()
+            case Right(_) => NoContent()
+            // TODO Return error info?
             case Left(unauthorised) => Forbidden()
         yield res
     }

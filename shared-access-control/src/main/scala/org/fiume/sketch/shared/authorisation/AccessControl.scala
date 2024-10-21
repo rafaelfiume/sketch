@@ -2,7 +2,7 @@ package org.fiume.sketch.shared.authorisation
 
 import cats.Monad
 import cats.implicits.*
-import org.fiume.sketch.shared.auth.domain.{AccountStateTransitionError, UserId}
+import org.fiume.sketch.shared.auth.domain.UserId
 import org.fiume.sketch.shared.authorisation.AuthorisationError.*
 import org.fiume.sketch.shared.authorisation.ContextualRole.*
 import org.fiume.sketch.shared.authorisation.GlobalRole.*
@@ -18,18 +18,28 @@ trait AccessControl[F[_], Txn[_]: Monad] extends Store[F, Txn]:
     storeGrant(userId, entityId, role)
 
   // TODO Test this
-  def ensureAccess[E, R <: WithUuid[?]](userId: UserId, role: ContextualRole)(
-    manageEntity: => Txn[Either[E, R]]
-  ): Txn[Either[E, R]] =
-    manageEntity.flatTap {
-      case Right(result) => grantAccess(userId, result.uuid, role)
-      case Left(_)       => ().pure[Txn] // TODO Is there a more ellegant way?
+  def ensureAccess[E, R <: WithUuid[?]](userId: UserId, role: ContextualRole)(txn: => Txn[Either[E, R]]): Txn[Either[E, R]] =
+    txn.flatTap {
+      _.fold(_ => ().pure[Txn], result => grantAccess(userId, result.uuid, role))
     }
 
-  def ensureAccess_[T <: Entity](userId: UserId, role: ContextualRole)(manageEntity: => Txn[EntityId[T]]): Txn[EntityId[T]] =
-    ensureAccess(userId, role) { manageEntity.map(WithUuid.make(_).asRight) }.map {
-      _.getOrElse(throw AssertionError("there is no left")).uuid
+  def ensureAccess_[T <: Entity](userId: UserId, role: ContextualRole)(txn: => Txn[EntityId[T]]): Txn[EntityId[T]] =
+    // can be implemented in terms of `ensureAccess`, which is cool.
+    txn.flatTap { id => grantAccess(userId, id, role) }
+
+  // TODO Test this
+  def ensureRevoked[E, T <: Entity, R <: WithUuid[?]](userId: UserId, entityId: EntityId[T])(
+    ops: EntityId[T] => Txn[Either[E, R]]
+  ): Txn[Either[E, R]] =
+    ops(entityId).flatTap { outcome =>
+      revokeContextualAccess(userId, entityId).whenA(outcome.isRight)
     }
+
+  def ensureRevoked_[T1 <: Entity, T2 <: Entity](userId: UserId, entityId: EntityId[T1])(
+    ops: EntityId[T1] => Txn[EntityId[T2]]
+  ): Txn[EntityId[T2]] =
+    // can be implemented in terms of `ensureAccess`, which is cool.
+    ops(entityId).flatTap(_ => revokeContextualAccess(userId, entityId))
 
   // Should canAccess return `Either`? For example, `Left(NotFound)`?
   def canAccess[T <: Entity](userId: UserId, entityId: EntityId[T]): Txn[Boolean] =
@@ -43,30 +53,12 @@ trait AccessControl[F[_], Txn[_]: Monad] extends Store[F, Txn]:
     }
 
   def attempt[T <: Entity, A](userId: UserId, entityId: EntityId[T])(
-    accessEntity: EntityId[T] => Txn[A]
+    ops: EntityId[T] => Txn[A]
   ): Txn[Either[AuthorisationError, A]] =
     canAccess(userId, entityId).ifM(
-      ifTrue = accessEntity(entityId).map(Right(_)),
+      ifTrue = ops(entityId).map(Right(_)),
       ifFalse = UnauthorisedError.asLeft.pure[Txn]
     )
-
-  // TODO Test this
-  def attemptAccountManagement[E <: AccountStateTransitionError, R](
-    authenticated: UserId,
-    account: UserId,
-    isAuthenticatedAccountActive: UserId => Txn[Boolean]
-  )(
-    // TODO Define a lower bound for type R so result can only be related to account management?
-    changeAccountIfAuthorised: UserId => Txn[Either[E, R]]
-  ): Txn[Either[E | AuthorisationError, R]] =
-    (
-      isAuthenticatedAccountActive(authenticated), // for when the user deactivates their own account
-      canAccess(authenticated, account)
-    ).mapN(_ && _)
-      .ifM(
-        ifTrue = changeAccountIfAuthorised(account).map { _.leftMap[E | AuthorisationError](identity) }, // widening the left type
-        ifFalse = UnauthorisedError.asLeft.pure[Txn]
-      )
 
   // It needs to respect the same rules as `canAccess`
   def fetchAllAuthorisedEntityIds[T <: Entity](userId: UserId, entityType: String): fs2.Stream[Txn, EntityId[T]]
