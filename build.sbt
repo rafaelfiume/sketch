@@ -138,6 +138,22 @@ lazy val sharedAuth =
     .dependsOn(sharedTestComponents % Test)
     .disablePlugins(plugins.JUnitXmlReportPlugin)
     .settings(commonSettings: _*)
+    .settings(
+      name := "shared-auth",
+      libraryDependencies ++= Seq(
+        Dependency.jbcrypt,
+        Dependency.http4sEmberClient,
+        Dependency.munitCatsEffect % Test,
+        Dependency.munitScalaCheckEffect % Test
+      )
+    )
+
+lazy val sharedAuthClients =
+    project.in(file("shared-auth-clients"))
+    .dependsOn(sharedAccessControl)
+    .dependsOn(sharedAuth % "compile->compile;test->test")
+    .disablePlugins(plugins.JUnitXmlReportPlugin)
+    .settings(commonSettings: _*)
     .configs(IntegrationTests)
     .settings(
       inConfig(IntegrationTests)(Defaults.testSettings ++ scalafixConfigSettings(IntegrationTests))
@@ -145,7 +161,6 @@ lazy val sharedAuth =
     .settings(
       name := "shared-auth",
       libraryDependencies ++= Seq(
-        Dependency.jbcrypt,
         Dependency.circeGeneric,
         Dependency.http4sEmberClient,
         Dependency.munitCatsEffect % Test,
@@ -178,7 +193,6 @@ lazy val sharedComponents =
       )
     )
 
-// depends on auth, not the other way round
 lazy val sharedDomain =
     project.in(file("shared-domain"))
     .dependsOn(sharedAuth % "compile->compile;test->test")
@@ -195,8 +209,8 @@ lazy val sharedDomain =
 
 /*
  * Don't include any domain specific class in this module,
- * for instance a dependency on `sharedComponents`
- * (i.e. it is a domain agnostic module/lib).
+ * for instance a dependency on `sharedComponents`.
+ * I.e, this is a domain agnostic module/lib.
  */
 lazy val sharedTestComponents =
    project.in(file("shared-test-components"))
@@ -226,6 +240,7 @@ lazy val sketch =
     .aggregate(service)
     .aggregate(sharedAccessControl)
     .aggregate(sharedAuth)
+    .aggregate(sharedAuthClients)
     .aggregate(sharedComponents)
     .aggregate(sharedDomain)
     .aggregate(sharedTestComponents)
@@ -268,7 +283,7 @@ lazy val storage =
 lazy val testAcceptance =
    project.in(file("test-acceptance"))
      .dependsOn(auth % Test)
-     .dependsOn(sharedAuth % "test->test")
+     .dependsOn(sharedAuthClients % "test->test")
      .dependsOn(sharedTestComponents % Test)
      .dependsOn(testContracts % "test->test")
      .disablePlugins(plugins.JUnitXmlReportPlugin)
