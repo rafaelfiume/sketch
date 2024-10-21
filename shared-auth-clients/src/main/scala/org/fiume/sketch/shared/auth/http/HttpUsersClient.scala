@@ -9,11 +9,11 @@ import org.http4s.Status.*
 import org.http4s.client.*
 import org.http4s.headers.Authorization
 
-object HttpAccountClient:
-  def make[F[_]: Async](config: HttpClientConfig, client: Client[F]): HttpAccountClient[F] =
-    new HttpAccountClient(config.baseUri, client)
+object HttpUsersClient:
+  def make[F[_]: Async](config: HttpClientConfig, client: Client[F]): HttpUsersClient[F] =
+    new HttpUsersClient(config.baseUri, client)
 
-class HttpAccountClient[F[_]: Async] private (baseUri: Uri, client: Client[F]):
+class HttpUsersClient[F[_]: Async] private (baseUri: Uri, client: Client[F]):
 
   def markAccountForDeletion(id: UserId, jwt: Jwt): F[Either[String, Unit]] =
     for

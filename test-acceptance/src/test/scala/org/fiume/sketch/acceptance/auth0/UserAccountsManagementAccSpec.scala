@@ -5,7 +5,7 @@ import com.comcast.ip4s.*
 import munit.CatsEffectSuite
 import org.fiume.sketch.auth.scripts.UsersScript
 import org.fiume.sketch.auth.scripts.UsersScript.Args
-import org.fiume.sketch.shared.auth.http.{HttpAccountClient, HttpAuthClient, HttpClientConfig}
+import org.fiume.sketch.shared.auth.http.{HttpAuthClient, HttpClientConfig, HttpUsersClient}
 import org.fiume.sketch.shared.auth.testkit.PasswordsGens.*
 import org.fiume.sketch.shared.auth.testkit.UserGens.*
 import org.fiume.sketch.shared.testkit.Http4sClientContext
@@ -25,7 +25,7 @@ class UserAccountsManagementAccSpec extends CatsEffectSuite with Http4sClientCon
         authClient = HttpAuthClient.make(config, http)
         jwt <- authClient.login(username, password).map(_.rightOrFail)
 
-        accountClient = HttpAccountClient.make(config, http)
+        accountClient = HttpUsersClient.make(config, http)
         result <- accountClient.markAccountForDeletion(userId, jwt).map(_.rightOrFail)
 
         unauthorised <- authClient.login(username, password)
