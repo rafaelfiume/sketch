@@ -17,8 +17,9 @@ import org.fiume.sketch.shared.common.http.json.{NewlineDelimitedJson, NewlineDe
 import org.fiume.sketch.shared.common.http.json.JsonCodecs.given
 import org.fiume.sketch.shared.common.http.json.NewlineDelimitedJson.{Line, Linebreak}
 import org.fiume.sketch.shared.common.http.middlewares.SemanticInputError
-import org.fiume.sketch.shared.common.troubleshooting.ErrorInfo.{ErrorCode, ErrorDetails}
-import org.fiume.sketch.shared.common.troubleshooting.InvariantErrorSyntax.asDetails
+import org.fiume.sketch.shared.common.troubleshooting.ErrorInfo.ErrorDetails
+import org.fiume.sketch.shared.common.troubleshooting.syntax.ErrorInfoSyntax.*
+import org.fiume.sketch.shared.common.troubleshooting.syntax.InvariantErrorSyntax.asDetails
 import org.fiume.sketch.shared.domain.documents.{Document, DocumentId, DocumentWithId, DocumentWithStream}
 import org.fiume.sketch.shared.domain.documents.Document.Metadata
 import org.fiume.sketch.shared.domain.documents.Document.Metadata.*
@@ -132,7 +133,7 @@ private[http] object DocumentsRoutes:
 
     extension [F[_]](id: DocumentId) def asResponsePayload: DocumentIdResponsePayload = DocumentIdResponsePayload(id)
 
-    private val errorCode = ErrorCode("9011")
+    private val errorCode = "9011".code
     extension [F[_]: MonadThrow: Concurrent](m: Multipart[F])
       def validated(): EitherT[F, SemanticInputError, DocumentWithStream[F]] =
         (m.metadata(), m.bytes()).parTupled
@@ -140,9 +141,7 @@ private[http] object DocumentsRoutes:
             part
               .as[MetadataRequestPayload]
               .attemptT
-              .leftMap(_ =>
-                ErrorDetails("malformed.document.metadata.payload" -> "the metadata payload does not meet the contract")
-              )
+              .leftMap(_ => ("malformed.document.metadata.payload" -> "the metadata payload does not meet the contract").details)
               .map((_, bytes))
           }
           .flatMap { case (payload, stream) =>

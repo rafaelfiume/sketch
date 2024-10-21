@@ -18,8 +18,8 @@ import org.fiume.sketch.shared.authorisation.ContextualRole.Owner
 import org.fiume.sketch.shared.common.algebras.syntax.StoreSyntax.*
 import org.fiume.sketch.shared.common.http.json.JsonCodecs.given
 import org.fiume.sketch.shared.common.troubleshooting.ErrorInfo
-import org.fiume.sketch.shared.common.troubleshooting.ErrorInfo.{ErrorCode, ErrorMessage}
 import org.fiume.sketch.shared.common.troubleshooting.ErrorInfo.json.given
+import org.fiume.sketch.shared.common.troubleshooting.syntax.ErrorInfoSyntax.*
 import org.http4s.{HttpRoutes, *}
 import org.http4s.circe.CirceEntityEncoder.*
 import org.http4s.dsl.Http4sDsl
@@ -116,17 +116,17 @@ private[http] object UsersRoutes:
       extension (error: SoftDeleteAccountError | AuthorisationError)
         def toErrorInfo =
           val (errorCode, errorMessage) = error match
-            case AccountAlreadyPendingDeletion => ErrorCode("1200") -> ErrorMessage("Account already marked for deletion")
-            case SoftDeleteAccountError.AccountNotFound => ErrorCode("1201") -> ErrorMessage("Account not found")
-            case UnauthorisedError                      => ErrorCode("3000") -> ErrorMessage("Unauthorised operation")
+            case AccountAlreadyPendingDeletion          => "1200".code -> "Account already marked for deletion".message
+            case SoftDeleteAccountError.AccountNotFound => "1201".code -> "Account not found".message
+            case UnauthorisedError                      => "3000".code -> "Unauthorised operation".message
           ErrorInfo.make(errorCode, errorMessage)
 
       extension (error: ActivateAccountError | AuthorisationError)
         def toActivateErrorInfo =
           val (errorCode, errorMessage) = error match
-            case AccountAlreadyActive                 => ErrorCode("1210") -> ErrorMessage("Account is already active")
-            case ActivateAccountError.AccountNotFound => ErrorCode("1211") -> ErrorMessage("Account not found")
-            case UnauthorisedError                    => ErrorCode("3000") -> ErrorMessage("Unauthorised operation")
+            case AccountAlreadyActive                 => "1210".code -> "Account is already active".message
+            case ActivateAccountError.AccountNotFound => "1211".code -> "Account not found".message
+            case UnauthorisedError                    => "3000".code -> "Unauthorised operation".message
           ErrorInfo.make(errorCode, errorMessage)
 
     case class ScheduledForPermanentDeletionResponse(userId: UserId, permanentDeletionAt: Instant)

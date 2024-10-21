@@ -16,8 +16,8 @@ import org.fiume.sketch.shared.authorisation.ContextualRole.Owner
 import org.fiume.sketch.shared.authorisation.GlobalRole.Admin
 import org.fiume.sketch.shared.authorisation.testkit.AccessControlContext
 import org.fiume.sketch.shared.common.troubleshooting.ErrorInfo
-import org.fiume.sketch.shared.common.troubleshooting.ErrorInfo.{ErrorCode, ErrorMessage}
 import org.fiume.sketch.shared.common.troubleshooting.ErrorInfo.json.given
+import org.fiume.sketch.shared.common.troubleshooting.syntax.ErrorInfoSyntax.*
 import org.fiume.sketch.shared.testkit.{ClockContext, ContractContext, Http4sRoutesContext}
 import org.fiume.sketch.shared.testkit.syntax.OptionSyntax.*
 import org.http4s.*
@@ -101,7 +101,7 @@ class UsersRoutesSpec
           .to(usersRoutes.router())
 //
           .expectJsonResponseWith[ErrorInfo](Status.Forbidden)
-      yield assertEquals(result, ErrorInfo.make(ErrorCode("3000"), ErrorMessage("Unauthorised operation")))
+      yield assertEquals(result, ErrorInfo.make("3000".code, "Unauthorised operation".message))
     }
   }
   // TODO Check mark for deletion also with AccountAlreadyPendingDeletion and AccountNotFound sad path
@@ -149,7 +149,7 @@ class UsersRoutesSpec
         account <- store.fetchAccount(owner.uuid).map(_.someOrFail)
       yield
         assert(account.isMarkedForDeletion, clue = "account should remain marked for deletion")
-        assertEquals(result, ErrorInfo.make(ErrorCode("3000"), ErrorMessage("Unauthorised operation")))
+        assertEquals(result, ErrorInfo.make("3000".code, "Unauthorised operation".message))
     }
 
   test("ScheduledForPermanentDeletionResponse encode and decode form a bijective relationship"):

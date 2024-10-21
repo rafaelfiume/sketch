@@ -12,8 +12,8 @@ import org.fiume.sketch.shared.auth.testkit.JwtGens.given
 import org.fiume.sketch.shared.auth.testkit.PasswordsGens.given
 import org.fiume.sketch.shared.auth.testkit.UserGens.given
 import org.fiume.sketch.shared.common.troubleshooting.ErrorInfo
-import org.fiume.sketch.shared.common.troubleshooting.ErrorInfo.{ErrorCode, ErrorDetails, ErrorMessage}
 import org.fiume.sketch.shared.common.troubleshooting.ErrorInfo.json.given
+import org.fiume.sketch.shared.common.troubleshooting.syntax.ErrorInfoSyntax.*
 import org.fiume.sketch.shared.testkit.syntax.EitherSyntax.*
 import org.http4s.{AuthedRoutes, Headers, Response, Status}
 import org.http4s.circe.CirceEntityDecoder.*
@@ -67,10 +67,6 @@ class Auth0MiddlewareSpec
         assertEquals(response.status, Status.Unauthorized)
         assertEquals(
           payload,
-          ErrorInfo.make(
-            ErrorCode("1011"),
-            ErrorMessage("Invalid credentials"),
-            ErrorDetails("invalid.jwt" -> jwtError.toString)
-          )
+          ErrorInfo.make("1011".code, "Invalid credentials".message, ("invalid.jwt" -> jwtError.toString).details)
         )
     }

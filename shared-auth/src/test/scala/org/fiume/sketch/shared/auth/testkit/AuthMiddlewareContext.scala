@@ -6,8 +6,8 @@ import cats.implicits.*
 import org.fiume.sketch.shared.auth.domain.User
 import org.fiume.sketch.shared.auth.testkit.UserGens.*
 import org.fiume.sketch.shared.common.troubleshooting.ErrorInfo
-import org.fiume.sketch.shared.common.troubleshooting.ErrorInfo.{ErrorCode, ErrorDetails, ErrorMessage}
 import org.fiume.sketch.shared.common.troubleshooting.ErrorInfo.json.given
+import org.fiume.sketch.shared.common.troubleshooting.syntax.ErrorInfoSyntax.*
 import org.fiume.sketch.shared.testkit.syntax.OptionSyntax.*
 import org.http4s.{AuthedRoutes, Challenge, Request, Response, Status}
 import org.http4s.circe.CirceEntityEncoder.*
@@ -28,7 +28,7 @@ trait AuthMiddlewareContext:
         Response[IO](Status.Unauthorized)
           .withHeaders(`WWW-Authenticate`(Challenge("Bearer", s"${cx.req.uri.path}")))
           .withEntity(
-            ErrorInfo.make(ErrorCode("1011"), ErrorMessage("Invalid credentials"), ErrorDetails("invalid.jwt" -> cx.context))
+            ErrorInfo.make("1011".code, "Invalid credentials".message, ("invalid.jwt" -> cx.context).details)
           )
       )
     }

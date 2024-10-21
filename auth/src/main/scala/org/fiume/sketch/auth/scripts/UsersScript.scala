@@ -11,8 +11,9 @@ import org.fiume.sketch.shared.auth.domain.{User, UserId}
 import org.fiume.sketch.shared.auth.domain.Passwords.PlainPassword
 import org.fiume.sketch.shared.auth.domain.User.Username
 import org.fiume.sketch.shared.common.troubleshooting.{ErrorInfo, InvariantError}
-import org.fiume.sketch.shared.common.troubleshooting.ErrorInfo.{ErrorCode, ErrorDetails, ErrorMessage}
-import org.fiume.sketch.shared.common.troubleshooting.InvariantErrorSyntax.asDetails
+import org.fiume.sketch.shared.common.troubleshooting.ErrorInfo.ErrorDetails
+import org.fiume.sketch.shared.common.troubleshooting.syntax.ErrorInfoSyntax.*
+import org.fiume.sketch.shared.common.troubleshooting.syntax.InvariantErrorSyntax.asDetails
 import org.fiume.sketch.shared.common.typeclasses.AsString
 import org.fiume.sketch.storage.auth.postgres.PostgresUsersStore
 import org.fiume.sketch.storage.authorisation.postgres.PostgresAccessControl
@@ -63,9 +64,9 @@ object UsersScript extends IOApp:
             Args.validatedIsSuperuser(isSuperuser).leftMap(_.asDetails)
           )
             .parMapN((user, password, isSuperuser) => Args(user, password, isSuperuser))
-            .leftMap(details => ErrorInfo.make(ErrorCode("1100"), ErrorMessage("Invalid parameters"), details))
+            .leftMap(details => ErrorInfo.make("1100".code, "Invalid parameters".message, details))
         case unknown =>
-          ErrorInfo.make(ErrorCode("1100"), ErrorMessage(s"Invalid arguments: '$unknown'")).asLeft[Args]
+          ErrorInfo.make("1100".code, s"Invalid arguments: '$unknown'".message).asLeft[Args]
 
     private case object InvalidSuperuserArgError extends InvariantError:
       override val key: String = "invalid.superuser.arg"

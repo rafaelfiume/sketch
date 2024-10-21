@@ -15,8 +15,9 @@ import org.fiume.sketch.shared.authorisation.testkit.AccessControlContext
 import org.fiume.sketch.shared.common.WithUuid
 import org.fiume.sketch.shared.common.http.middlewares.{SemanticInputError, SemanticValidationMiddleware}
 import org.fiume.sketch.shared.common.troubleshooting.ErrorInfo
-import org.fiume.sketch.shared.common.troubleshooting.ErrorInfo.{ErrorCode, ErrorDetails, ErrorMessage}
+import org.fiume.sketch.shared.common.troubleshooting.ErrorInfo.{ErrorCode, ErrorMessage}
 import org.fiume.sketch.shared.common.troubleshooting.ErrorInfo.json.given
+import org.fiume.sketch.shared.common.troubleshooting.syntax.ErrorInfoSyntax.*
 import org.fiume.sketch.shared.domain.documents.{Document, DocumentId, DocumentWithIdAndStream}
 import org.fiume.sketch.shared.domain.documents.algebras.DocumentsStore
 import org.fiume.sketch.shared.domain.testkit.DocumentsGens.*
@@ -198,8 +199,8 @@ class DocumentsRoutesSpec
           .expectJsonResponseWith[ErrorInfo](Status.UnprocessableEntity)
 //
       yield
-        assertEquals(result.code, ErrorCode("9011"))
-        assertEquals(result.message, ErrorMessage("Input data doesn't meet the requirements"))
+        assertEquals(result.code, "9011".code)
+        assertEquals(result.message, "Input data doesn't meet the requirements".message)
         assert(
           result.details.someOrFail.tips.keySet.subsetOf(
             Set("missing.document.metadata.part", "missing.document.bytes.part", "document.name.too.short")
@@ -224,9 +225,9 @@ class DocumentsRoutesSpec
       yield assertEquals(
         result,
         ErrorInfo.make(
-          ErrorCode("9011"),
-          ErrorMessage("Input data doesn't meet the requirements"),
-          ErrorDetails("malformed.document.metadata.payload" -> "the metadata payload does not meet the contract")
+          "9011".code,
+          "Input data doesn't meet the requirements".message,
+          ("malformed.document.metadata.payload" -> "the metadata payload does not meet the contract").details
         )
       )
     }

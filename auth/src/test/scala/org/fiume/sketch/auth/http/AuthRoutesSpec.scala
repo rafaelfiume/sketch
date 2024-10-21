@@ -19,6 +19,7 @@ import org.fiume.sketch.shared.common.http.middlewares.SemanticValidationMiddlew
 import org.fiume.sketch.shared.common.troubleshooting.ErrorInfo
 import org.fiume.sketch.shared.common.troubleshooting.ErrorInfo.{ErrorCode, ErrorDetails, ErrorMessage}
 import org.fiume.sketch.shared.common.troubleshooting.ErrorInfo.json.given
+import org.fiume.sketch.shared.common.troubleshooting.syntax.ErrorInfoSyntax.*
 import org.fiume.sketch.shared.testkit.{ContractContext, Http4sRoutesContext}
 import org.fiume.sketch.shared.testkit.syntax.OptionSyntax.*
 import org.fiume.sketch.shared.testkit.syntax.StringSyntax.*
@@ -74,10 +75,7 @@ class AuthRoutesSpec
 //
       yield assertEquals(
         result,
-        ErrorInfo.make(
-          ErrorCode("1002"),
-          ErrorMessage("Attempt to login failed")
-        )
+        ErrorInfo.make("1002".code, "Attempt to login failed".message)
       )
     }
 
@@ -99,10 +97,7 @@ class AuthRoutesSpec
 //
       yield assertEquals(
         result,
-        ErrorInfo.make(
-          ErrorCode("1001"),
-          ErrorMessage("Attempt to login failed")
-        )
+        ErrorInfo.make("1001".code, "Attempt to login failed".message)
       )
     }
 
@@ -121,8 +116,8 @@ class AuthRoutesSpec
           .expectJsonResponseWith[ErrorInfo](Status.UnprocessableEntity)
 
         _ <- IO {
-          assertEquals(result.code, ErrorCode("1000"))
-          assertEquals(result.message, ErrorMessage("Invalid username or password"))
+          assertEquals(result.code, "1000".code)
+          assertEquals(result.message, "Invalid username or password".message)
           val allInputErrors = usernameInvariantErrors.map(_.key) |+| plainPasswordInvariantErrors.map(_.key)
           val actualInputErrors = result.details.someOrFail.tips.keys.toSet
           assert(actualInputErrors.subsetOf(allInputErrors),
@@ -145,7 +140,7 @@ class AuthRoutesSpec
 //
       yield
         assertEquals(result.message, ErrorMessage("The request body could not be processed"))
-        assertEquals(result.details, ErrorDetails("input.semantic.error" -> "The request body was invalid.").some)
+        assertEquals(result.details, ("input.semantic.error" -> "The request body was invalid.").details.some)
     }
 
   test("LoginRequestPayload encode and decode form a bijective relationship"):
