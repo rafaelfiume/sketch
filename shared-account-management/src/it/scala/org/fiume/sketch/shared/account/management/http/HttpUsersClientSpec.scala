@@ -5,7 +5,7 @@ import cats.implicits.*
 import com.comcast.ip4s.*
 import munit.CatsEffectSuite
 import org.fiume.sketch.shared.account.management.http.model.AccountStateTransitionErrorSyntax.*
-import org.fiume.sketch.shared.auth.domain.{Jwt, SoftDeleteAccountError, UserId}
+import org.fiume.sketch.shared.auth.domain.{ActivateAccountError, Jwt, SoftDeleteAccountError, UserId}
 import org.fiume.sketch.shared.auth.domain.SoftDeleteAccountError.*
 import org.fiume.sketch.shared.auth.http.model.Users.UserIdVar
 import org.fiume.sketch.shared.auth.testkit.JwtGens.*
@@ -29,9 +29,9 @@ class HttpUsersClientSpec extends HttpUsersClientSpecContext:
   // table test
   List(
     // format: off
-    ("account is already pending deletion" , AccountAlreadyPendingDeletion),
+    ("account is already pending deletion" , SoftDeleteAccountError.AccountAlreadyPendingDeletion),
     ("account is not found"                , SoftDeleteAccountError.AccountNotFound),
-    ("authed user is unauthorised"         , UnauthorisedError)
+    ("user is unauthorised"                , UnauthorisedError)
     // format: on
   ).foreach { (description, expectedError) =>
     test(s"marking account for deletion returns error when $description"):
@@ -43,6 +43,22 @@ class HttpUsersClientSpec extends HttpUsersClientSpecContext:
       }
   }
 
+  // table test
+  List(
+    // format: off
+    ("account is already active", ActivateAccountError.AccountAlreadyActive),
+    ("account is not found"     , ActivateAccountError.AccountNotFound),
+    ("user is unauthorised"     , UnauthorisedError)
+    // format: on
+  ).foreach { (description, expectedError) =>
+    test(s"restoring account returns error when $description"):
+      serverWillReturnError(expectedError).flatMap { makeUsersClient(_) }.use { usersClient =>
+        assertIO(
+          usersClient.restoreAccount(aUserId(), aJwt()),
+          expectedError.asLeft
+        )
+      }
+  }
 trait HttpUsersClientSpecContext extends CatsEffectSuite with Http4sClientContext with HttpServiceContext:
 
   def aUserId(): UserId = userIds.sample.someOrFail
@@ -52,18 +68,34 @@ trait HttpUsersClientSpecContext extends CatsEffectSuite with Http4sClientContex
   def makeUsersClient(port: Port) =
     EmberClientBuilder.default[IO].build.map(HttpUsersClient.make[IO](HttpUsersClient.Config(host"localhost", port), _))
 
-  def serverWillReturnError(error: AuthorisationError | SoftDeleteAccountError): Resource[IO, Port] =
+  def serverWillReturnError(error: AuthorisationError | SoftDeleteAccountError | ActivateAccountError): Resource[IO, Port] =
     for
       port <- freePort().toResource
       _ <- makeServer(port)(makeUsersRoute(error)).void
     yield port
 
-  private def makeUsersRoute(error: AuthorisationError | SoftDeleteAccountError): HttpRoutes[IO] =
-    HttpRoutes.of[IO] { case req @ DELETE -> Root / "users" / UserIdVar(uuid) =>
-      error match
-        case e: SoftDeleteAccountError =>
-          e match
-            case AccountAlreadyPendingDeletion          => Conflict(error.toErrorInfo)
-            case SoftDeleteAccountError.AccountNotFound => NotFound(error.toErrorInfo)
-        case error: AuthorisationError => Forbidden(error.toErrorInfo)
+  private def makeUsersRoute(error: AuthorisationError | SoftDeleteAccountError | ActivateAccountError): HttpRoutes[IO] =
+    HttpRoutes.of[IO] {
+      case req @ DELETE -> Root / "users" / UserIdVar(uuid) =>
+        error match
+          case e: SoftDeleteAccountError =>
+            e match
+              case AccountAlreadyPendingDeletion =>
+                Conflict(error.asInstanceOf[AuthorisationError | SoftDeleteAccountError].toErrorInfo)
+              case SoftDeleteAccountError.AccountNotFound =>
+                NotFound(error.asInstanceOf[AuthorisationError | SoftDeleteAccountError].toErrorInfo)
+          case error: AuthorisationError => Forbidden(error.asInstanceOf[AuthorisationError | SoftDeleteAccountError].toErrorInfo)
+          case unknown => throw UnsupportedOperationException(s"unexpected $unknown")
+
+      case req @ POST -> Root / "users" / UserIdVar(uuid) / "restore" =>
+        error match
+          case e: ActivateAccountError =>
+            e match
+              case ActivateAccountError.AccountAlreadyActive =>
+                Conflict(error.asInstanceOf[AuthorisationError | ActivateAccountError].toActivateErrorInfo)
+              case ActivateAccountError.AccountNotFound =>
+                NotFound(error.asInstanceOf[AuthorisationError | ActivateAccountError].toActivateErrorInfo)
+          case error: AuthorisationError =>
+            Forbidden(error.asInstanceOf[AuthorisationError | ActivateAccountError].toActivateErrorInfo)
+          case unknown => throw UnsupportedOperationException(s"unexpected $unknown")
     }

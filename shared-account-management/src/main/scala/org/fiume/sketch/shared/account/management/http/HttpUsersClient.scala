@@ -3,7 +3,7 @@ package org.fiume.sketch.shared.account.management.http
 import cats.effect.Async
 import cats.implicits.*
 import com.comcast.ip4s.{Host, Port}
-import org.fiume.sketch.shared.auth.domain.{Jwt, SoftDeleteAccountError, UserId}
+import org.fiume.sketch.shared.auth.domain.{ActivateAccountError, Jwt, SoftDeleteAccountError, UserId}
 import org.fiume.sketch.shared.auth.domain.SoftDeleteAccountError.AccountAlreadyPendingDeletion
 import org.fiume.sketch.shared.auth.http.model.Users.ScheduledForPermanentDeletionResponse
 import org.fiume.sketch.shared.auth.http.model.Users.json.given
@@ -32,7 +32,7 @@ class HttpUsersClient[F[_]: Async] private (baseUri: Uri, client: Client[F]):
   ): F[Either[AuthorisationError | SoftDeleteAccountError, ScheduledAccountDeletion]] =
     for
       authHeader <- Async[F].delay { Authorization.parse(s"Bearer ${jwt.value}") }
-      request = Request[F](DELETE, uri = baseUri / "users" / id.value).withHeaders(authHeader)
+      request = Request[F](DELETE, baseUri / "users" / id.value).withHeaders(authHeader)
       result <- client.run(request).use {
         case Ok(resp) =>
           resp
@@ -41,5 +41,18 @@ class HttpUsersClient[F[_]: Async] private (baseUri: Uri, client: Client[F]):
         case Conflict(resp)  => AccountAlreadyPendingDeletion.asLeft[ScheduledAccountDeletion].pure[F]
         case NotFound(resp)  => SoftDeleteAccountError.AccountNotFound.asLeft.pure[F]
         case Forbidden(resp) => UnauthorisedError.asLeft.pure[F]
+      }
+    yield result
+
+  def restoreAccount(id: UserId, jwt: Jwt): F[Either[AuthorisationError | ActivateAccountError, Unit]] =
+    for
+      authHeader <- Async[F].delay { Authorization.parse(s"Bearer ${jwt.value}") }
+      // TODO Make POST idempotent
+      request = Request[F](POST, baseUri / "users" / id.value / "restore")
+      result <- client.run(request).use {
+        case NoContent(_) => ().asRight.pure[F]
+        case Conflict(_)  => ActivateAccountError.AccountAlreadyActive.asLeft.pure[F]
+        case NotFound(_)  => ActivateAccountError.AccountNotFound.asLeft.pure[F]
+        case Forbidden(_) => UnauthorisedError.asLeft.pure[F]
       }
     yield result
