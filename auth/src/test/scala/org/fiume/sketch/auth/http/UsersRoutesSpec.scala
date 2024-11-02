@@ -3,11 +3,11 @@ package org.fiume.sketch.auth.http
 import cats.effect.IO
 import cats.implicits.*
 import munit.{CatsEffectSuite, ScalaCheckEffectSuite}
-import org.fiume.sketch.auth.http.UsersRoutes.model.ScheduledForPermanentDeletionResponse
-import org.fiume.sketch.auth.http.UsersRoutes.model.json.given
 import org.fiume.sketch.shared.auth.domain.{Account, AccountState, User, UserId}
 import org.fiume.sketch.shared.auth.domain.AccountState.*
 import org.fiume.sketch.shared.auth.domain.User.UserCredentials
+import org.fiume.sketch.shared.auth.http.model.Users.ScheduledForPermanentDeletionResponse
+import org.fiume.sketch.shared.auth.http.model.Users.json.given
 import org.fiume.sketch.shared.auth.testkit.{AuthMiddlewareContext, UserGens, UsersStoreContext}
 import org.fiume.sketch.shared.auth.testkit.AccountGens.given
 import org.fiume.sketch.shared.auth.testkit.UserGens.given
@@ -70,12 +70,14 @@ class UsersRoutesSpec
           .whenA(!isAdminMarkingForDeletion)
         account <- store.fetchAccount(ownerId).map(_.someOrFail)
         grantRemoved <- accessControl.canAccess(ownerId, ownerId).map(!_)
+        jobId <- store.getScheduledJob(ownerId).map(_.someOrFail.uuid)
       yield
         assert(account.isMarkedForDeletion)
         assert(grantRemoved)
         assertEquals(
           result,
           ScheduledForPermanentDeletionResponse(
+            jobId,
             ownerId,
             deletedAt.plusSeconds(permantDeletionDelay.toSeconds).truncatedTo(MILLIS)
           )

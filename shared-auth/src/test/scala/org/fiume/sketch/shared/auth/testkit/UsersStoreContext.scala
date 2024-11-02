@@ -49,13 +49,13 @@ trait UsersStoreContext:
   def makeEmptyUsersStore(
     clock: Clock[IO] = Clock[IO],
     delayUntilPermanentDeletion: Duration = 1.second
-  ): IO[UsersStore[IO, IO]] = makeUsersStore(State.empty, clock, delayUntilPermanentDeletion)
+  ): IO[UsersStore[IO, IO] & JobInspector] = makeUsersStore(State.empty, clock, delayUntilPermanentDeletion)
 
   def makeUsersStore(
     credentials: UserCredentialsWithId,
     clock: Clock[IO] = Clock[IO],
     delayUntilPermanentDeletion: Duration = 1.second
-  ): IO[UsersStore[IO, IO]] =
+  ): IO[UsersStore[IO, IO] & JobInspector] =
     val account = Account(credentials.uuid, credentials, AccountState.Active(Instant.now()))
     makeUsersStoreForAccount(account, clock, delayUntilPermanentDeletion)
 
@@ -63,16 +63,16 @@ trait UsersStoreContext:
     account: Account,
     clock: Clock[IO] = Clock[IO],
     delayUntilPermanentDeletion: Duration = 1.second
-  ): IO[UsersStore[IO, IO]] =
+  ): IO[UsersStore[IO, IO] & JobInspector] =
     makeUsersStore(State.makeWith(account), clock, delayUntilPermanentDeletion)
 
   private def makeUsersStore(
     state: State,
     clock: Clock[IO],
     delayUntilPermanentDeletion: Duration
-  ): IO[UsersStore[IO, IO]] =
+  ): IO[UsersStore[IO, IO] & JobInspector] =
     IO.ref(state).map { storage =>
-      new UsersStore[IO, IO](clock):
+      new UsersStore[IO, IO](clock) with JobInspector:
         override def createAccount(credentials: UserCredentials): IO[UserId] =
           for
             uuid <- IO.randomUUID.map(UserId(_))
@@ -115,4 +115,10 @@ trait UsersStoreContext:
         override val commit: [A] => IO[A] => IO[A] = [A] => (action: IO[A]) => action
 
         override val commitStream: [A] => fs2.Stream[IO, A] => fs2.Stream[IO, A] = [A] => (action: fs2.Stream[IO, A]) => action
+
+        override def getScheduledJob(userId: UserId): IO[Option[ScheduledAccountDeletion]] =
+          storage.get.map(_.getScheduledJob(userId))
     }
+
+trait JobInspector:
+  def getScheduledJob(userId: UserId): IO[Option[ScheduledAccountDeletion]]

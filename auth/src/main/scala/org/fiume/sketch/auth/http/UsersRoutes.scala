@@ -2,30 +2,25 @@ package org.fiume.sketch.auth.http
 
 import cats.effect.{Concurrent, Sync}
 import cats.implicits.*
-import io.circe.{Decoder, Encoder}
 import org.fiume.sketch.auth.http.UsersRoutes.*
-import org.fiume.sketch.auth.http.UsersRoutes.model.Error.*
-import org.fiume.sketch.auth.http.UsersRoutes.model.asResponsePayload
-import org.fiume.sketch.auth.http.UsersRoutes.model.json.given
 import org.fiume.sketch.shared.auth.algebras.UsersStore
-import org.fiume.sketch.shared.auth.domain.{Account, ActivateAccountError, SoftDeleteAccountError, User, UserEntity, UserId}
+import org.fiume.sketch.shared.auth.domain.{Account, ActivateAccountError, SoftDeleteAccountError, User, UserId}
 import org.fiume.sketch.shared.auth.domain.ActivateAccountError.*
 import org.fiume.sketch.shared.auth.domain.SoftDeleteAccountError.*
+import org.fiume.sketch.shared.auth.http.model.AccountStateTransitionErrorSyntax.*
+import org.fiume.sketch.shared.auth.http.model.Users.{UserIdVar, *}
+import org.fiume.sketch.shared.auth.http.model.Users.json.given
 import org.fiume.sketch.shared.auth.jobs.ScheduledAccountDeletion
 import org.fiume.sketch.shared.authorisation.{AccessControl, AuthorisationError, ContextualRole}
-import org.fiume.sketch.shared.authorisation.AuthorisationError.UnauthorisedError
 import org.fiume.sketch.shared.authorisation.ContextualRole.Owner
 import org.fiume.sketch.shared.common.algebras.syntax.StoreSyntax.*
-import org.fiume.sketch.shared.common.http.json.JsonCodecs.given
 import org.fiume.sketch.shared.common.troubleshooting.ErrorInfo
 import org.fiume.sketch.shared.common.troubleshooting.ErrorInfo.json.given
-import org.fiume.sketch.shared.common.troubleshooting.syntax.ErrorInfoSyntax.*
 import org.http4s.{HttpRoutes, *}
 import org.http4s.circe.CirceEntityEncoder.*
 import org.http4s.dsl.Http4sDsl
 import org.http4s.server.{AuthMiddleware, Router}
 
-import java.time.Instant
 import scala.concurrent.duration.Duration
 
 class UsersRoutes[F[_]: Concurrent, Txn[_]: Sync](
@@ -104,39 +99,6 @@ class UsersRoutes[F[_]: Concurrent, Txn[_]: Sync](
     ).mapN(_ && _)
 
 private[http] object UsersRoutes:
-  object UserIdVar:
-    import org.fiume.sketch.shared.auth.domain.UserId.given
-    def unapply(uuid: String): Option[UserId] = uuid.parsed().toOption
 
   // TODO Move this extension fn to `access-control` module?
   extension [E, R](result: Either[E, R]) def widenErrorType = result.leftMap[AuthorisationError | E](identity)
-
-  object model:
-    object Error:
-      extension (error: SoftDeleteAccountError | AuthorisationError)
-        def toErrorInfo =
-          val (errorCode, errorMessage) = error match
-            case AccountAlreadyPendingDeletion          => "1200".code -> "Account already marked for deletion".message
-            case SoftDeleteAccountError.AccountNotFound => "1201".code -> "Account not found".message
-            case UnauthorisedError                      => "3000".code -> "Unauthorised operation".message
-          ErrorInfo.make(errorCode, errorMessage)
-
-      extension (error: ActivateAccountError | AuthorisationError)
-        def toActivateErrorInfo =
-          val (errorCode, errorMessage) = error match
-            case AccountAlreadyActive                 => "1210".code -> "Account is already active".message
-            case ActivateAccountError.AccountNotFound => "1211".code -> "Account not found".message
-            case UnauthorisedError                    => "3000".code -> "Unauthorised operation".message
-          ErrorInfo.make(errorCode, errorMessage)
-
-    case class ScheduledForPermanentDeletionResponse(userId: UserId, permanentDeletionAt: Instant)
-
-    extension (job: ScheduledAccountDeletion)
-      def asResponsePayload: ScheduledForPermanentDeletionResponse =
-        ScheduledForPermanentDeletionResponse(job.userId, job.permanentDeletionAt)
-
-    object json:
-      import io.circe.generic.semiauto.*
-      given Decoder[UserId] = Decoder.decodeUUID.map(UserId(_))
-      given Encoder[ScheduledForPermanentDeletionResponse] = deriveEncoder
-      given Decoder[ScheduledForPermanentDeletionResponse] = deriveDecoder

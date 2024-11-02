@@ -30,9 +30,9 @@ class HttpAuthClientSpec extends HttpAuthClientSpecContext:
   // table test
   List(
     // format: off
-    ("user account is not found" ,  "account.not.found",  UserNotFoundError),
-    ("password is invalid"       ,  "invalid.password",   InvalidPasswordError),
-    ("user account is not active",  "inactive.account",   AccountNotActiveError)
+    ("user account is not found" ,  unknownUser            , UserNotFoundError),
+    ("password is invalid"       ,  userWithInvalidPassword, InvalidPasswordError),
+    ("user account is not active",  deactivatedUser        , AccountNotActiveError)
     // format: on
   ).foreach { (description, username, expectedError) =>
     test(s"login returns error when $description"):
@@ -40,7 +40,7 @@ class HttpAuthClientSpec extends HttpAuthClientSpecContext:
       val config = HttpClientConfig(host"localhost", port)
       val authClient = HttpAuthClient.make[IO](config, httpClient())
       assertIO(
-        authClient.login(Username.makeUnsafeFromString(username), aPassword()),
+        authClient.login(username, aPassword()),
         expectedError.asLeft
       )
   }
@@ -60,12 +60,16 @@ trait HttpAuthClientSpecContext extends CatsEffectSuite with Http4sClientContext
    * See RusticHealthCheckSpec for an alternative approach to instantiate the client and stub the server.
    */
   val httpClient = ResourceSuiteLocalFixture("httpClient", makeHttpClient())
-  val serverWillReturnError = ResourceSuiteLocalFixture("server", serverWillReturnErrorr())
+  val serverWillReturnError = ResourceSuiteLocalFixture("server", primedServer())
 
   def aUsername(): Username = UserGens.validUsernames.sample.someOrFail
   def aPassword(): PlainPassword = PasswordsGens.validPlainPasswords.sample.someOrFail
 
-  def serverWillReturnErrorr(): Resource[IO, Port] =
+  val unknownUser = Username.makeUnsafeFromString("account.not.found")
+  val userWithInvalidPassword = Username.makeUnsafeFromString("invalid.password")
+  val deactivatedUser = Username.makeUnsafeFromString("inactive.account")
+
+  def primedServer(): Resource[IO, Port] =
     for
       port <- freePort().toResource
       _ <- makeServer(port)(route()).void
@@ -80,9 +84,9 @@ trait HttpAuthClientSpecContext extends CatsEffectSuite with Http4sClientContext
 
     HttpRoutes.of[IO] { case req @ POST -> Root / "login" =>
       req.decode { (payload: LoginRequestPayload) =>
-        if payload.username == "account.not.found" then unauthorised(UserNotFoundError)
-        else if payload.username == "invalid.password" then unauthorised(InvalidPasswordError)
-        else if payload.username == "inactive.account" then unauthorised(AccountNotActiveError)
+        if payload.username == unknownUser.value then unauthorised(UserNotFoundError)
+        else if payload.username == userWithInvalidPassword.value then unauthorised(InvalidPasswordError)
+        else if payload.username == deactivatedUser.value then unauthorised(AccountNotActiveError)
         else IO.pure(Response(Status.InternalServerError))
       }
     }

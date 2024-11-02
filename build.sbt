@@ -39,6 +39,7 @@ lazy val auth =
    project.in(file("auth"))
      .dependsOn(sharedAccessControl % "compile->compile;test->test")
      .dependsOn(sharedAuth % "compile->compile;test->test")
+     .dependsOn(sharedAuthClients)
      .dependsOn(sharedTestComponents % Test)
      .dependsOn(storage)
      .dependsOn(testContracts % "test->test")
@@ -47,6 +48,7 @@ lazy val auth =
      .settings(
        name := "auth",
        libraryDependencies ++= Seq(
+         Dependency.jbcrypt,
          Dependency.bouncycastle,
          Dependency.catsEffect,
          Dependency.circeGeneric,
@@ -163,6 +165,7 @@ lazy val sharedAuthClients =
       libraryDependencies ++= Seq(
         Dependency.circeGeneric,
         Dependency.http4sEmberClient,
+        Dependency.http4sEmberServer % "it",
         Dependency.munitCatsEffect % Test,
         Dependency.munitScalaCheckEffect % Test
       )
