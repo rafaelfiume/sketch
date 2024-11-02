@@ -39,7 +39,7 @@ lazy val auth =
    project.in(file("auth"))
      .dependsOn(sharedAccessControl % "compile->compile;test->test")
      .dependsOn(sharedAuth % "compile->compile;test->test")
-     .dependsOn(sharedAuthClients)
+     .dependsOn(sharedAccountManagement)
      .dependsOn(sharedTestComponents % Test)
      .dependsOn(storage)
      .dependsOn(testContracts % "test->test")
@@ -150,8 +150,8 @@ lazy val sharedAuth =
       )
     )
 
-lazy val sharedAuthClients =
-    project.in(file("shared-auth-clients"))
+lazy val sharedAccountManagement =
+    project.in(file("shared-account-management"))
     .dependsOn(sharedAccessControl)
     .dependsOn(sharedAuth % "compile->compile;test->test")
     .disablePlugins(plugins.JUnitXmlReportPlugin)
@@ -243,7 +243,7 @@ lazy val sketch =
     .aggregate(service)
     .aggregate(sharedAccessControl)
     .aggregate(sharedAuth)
-    .aggregate(sharedAuthClients)
+    .aggregate(sharedAccountManagement)
     .aggregate(sharedComponents)
     .aggregate(sharedDomain)
     .aggregate(sharedTestComponents)
@@ -286,7 +286,7 @@ lazy val storage =
 lazy val testAcceptance =
    project.in(file("test-acceptance"))
      .dependsOn(auth % Test)
-     .dependsOn(sharedAuthClients % "test->test")
+     .dependsOn(sharedAccountManagement % "test->test")
      .dependsOn(sharedTestComponents % Test)
      .dependsOn(testContracts % "test->test")
      .disablePlugins(plugins.JUnitXmlReportPlugin)

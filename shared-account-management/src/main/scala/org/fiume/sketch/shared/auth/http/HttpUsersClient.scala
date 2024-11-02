@@ -2,6 +2,7 @@ package org.fiume.sketch.shared.auth.http
 
 import cats.effect.Async
 import cats.implicits.*
+import com.comcast.ip4s.{Host, Port}
 import org.fiume.sketch.shared.auth.domain.{Jwt, SoftDeleteAccountError, UserId}
 import org.fiume.sketch.shared.auth.domain.SoftDeleteAccountError.AccountAlreadyPendingDeletion
 import org.fiume.sketch.shared.auth.http.model.Users.ScheduledForPermanentDeletionResponse
@@ -17,7 +18,10 @@ import org.http4s.client.*
 import org.http4s.headers.Authorization
 
 object HttpUsersClient:
-  def make[F[_]: Async](config: HttpClientConfig, client: Client[F]): HttpUsersClient[F] =
+  case class Config(private val host: Host, private val port: Port):
+    val baseUri: Uri = Uri.unsafeFromString(s"http://$host:$port")
+
+  def make[F[_]: Async](config: Config, client: Client[F]): HttpUsersClient[F] =
     new HttpUsersClient(config.baseUri, client)
 
 class HttpUsersClient[F[_]: Async] private (baseUri: Uri, client: Client[F]):

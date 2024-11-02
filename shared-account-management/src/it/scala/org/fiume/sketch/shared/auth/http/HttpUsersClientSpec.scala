@@ -50,7 +50,7 @@ trait HttpUsersClientSpecContext extends CatsEffectSuite with Http4sClientContex
 
   given LoggerFactory[IO] = Slf4jFactory.create[IO]
   def makeUsersClient(port: Port) =
-    EmberClientBuilder.default[IO].build.map(HttpUsersClient.make[IO](HttpClientConfig(host"localhost", port), _))
+    EmberClientBuilder.default[IO].build.map(HttpUsersClient.make[IO](HttpUsersClient.Config(host"localhost", port), _))
 
   def serverWillReturnError(error: AuthorisationError | SoftDeleteAccountError): Resource[IO, Port] =
     for

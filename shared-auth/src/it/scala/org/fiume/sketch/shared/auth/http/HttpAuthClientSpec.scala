@@ -47,8 +47,7 @@ class HttpAuthClientSpec extends HttpAuthClientSpecContext:
 
   test("Internal Server Error causes the client to raise an exception"):
     val port = serverWillReturnError()
-    val config = HttpClientConfig(host"localhost", port)
-    val authClient = HttpAuthClient.make[IO](config, httpClient())
+    val authClient = HttpAuthClient.make[IO](HttpAuthClient.Config(host"localhost", port), httpClient())
     /*
      * Check the implementation for details on the design decision to raise an exception
      * when receiving unexpected http status codes (5xx) from the server.
