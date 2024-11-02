@@ -2,7 +2,6 @@ package org.fiume.sketch.auth.http
 
 import cats.effect.{Concurrent, Sync}
 import cats.implicits.*
-import org.fiume.sketch.auth.http.UsersRoutes.*
 import org.fiume.sketch.shared.account.management.http.model.AccountStateTransitionErrorSyntax.*
 import org.fiume.sketch.shared.auth.algebras.UsersStore
 import org.fiume.sketch.shared.auth.domain.{Account, ActivateAccountError, SoftDeleteAccountError, User, UserId}
@@ -13,6 +12,7 @@ import org.fiume.sketch.shared.auth.http.model.Users.json.given
 import org.fiume.sketch.shared.auth.jobs.ScheduledAccountDeletion
 import org.fiume.sketch.shared.authorisation.{AccessControl, AuthorisationError, ContextualRole}
 import org.fiume.sketch.shared.authorisation.ContextualRole.Owner
+import org.fiume.sketch.shared.authorisation.syntax.AuthorisationErrorSyntax.*
 import org.fiume.sketch.shared.common.algebras.syntax.StoreSyntax.*
 import org.fiume.sketch.shared.common.troubleshooting.ErrorInfo
 import org.fiume.sketch.shared.common.troubleshooting.ErrorInfo.json.given
@@ -97,8 +97,3 @@ class UsersRoutes[F[_]: Concurrent, Txn[_]: Sync](
       isAuthenticatedAccountActive(authedId), // for when the user deactivates their own account
       accessControl.canAccess(authedId, account)
     ).mapN(_ && _)
-
-private[http] object UsersRoutes:
-
-  // TODO Move this extension fn to `access-control` module?
-  extension [E, R](result: Either[E, R]) def widenErrorType = result.leftMap[AuthorisationError | E](identity)
