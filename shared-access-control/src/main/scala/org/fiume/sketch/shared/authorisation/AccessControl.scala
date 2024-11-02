@@ -17,7 +17,6 @@ trait AccessControl[F[_], Txn[_]: Monad] extends Store[F, Txn]:
   def grantAccess[T <: Entity](userId: UserId, entityId: EntityId[T], role: ContextualRole): Txn[Unit] =
     storeGrant(userId, entityId, role)
 
-  // TODO Test this
   def ensureAccess[E, R <: WithUuid[?]](userId: UserId, role: ContextualRole)(txn: => Txn[Either[E, R]]): Txn[Either[E, R]] =
     txn.flatTap {
       _.fold(_ => ().pure[Txn], result => grantAccess(userId, result.uuid, role))
@@ -27,7 +26,6 @@ trait AccessControl[F[_], Txn[_]: Monad] extends Store[F, Txn]:
     // can be implemented in terms of `ensureAccess`, which is cool.
     txn.flatTap { id => grantAccess(userId, id, role) }
 
-  // TODO Test this
   def ensureRevoked[E, T <: Entity, R <: WithUuid[?]](userId: UserId, entityId: EntityId[T])(
     ops: EntityId[T] => Txn[Either[E, R]]
   ): Txn[Either[E, R]] =
