@@ -1,5 +1,4 @@
-// TODO Rethink namespace since this is an auth/access-control combo
-package org.fiume.sketch.shared.auth.http.model
+package org.fiume.sketch.shared.account.management.http.model
 
 import org.fiume.sketch.shared.auth.domain.{ActivateAccountError, SoftDeleteAccountError}
 import org.fiume.sketch.shared.auth.domain.ActivateAccountError.*

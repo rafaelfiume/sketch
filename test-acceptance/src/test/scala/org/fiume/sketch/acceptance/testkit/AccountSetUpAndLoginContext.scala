@@ -5,7 +5,7 @@ import com.comcast.ip4s.*
 import org.fiume.sketch.auth.scripts.UsersScript
 import org.fiume.sketch.auth.scripts.UsersScript.Args
 import org.fiume.sketch.shared.auth.domain.Jwt
-import org.fiume.sketch.shared.auth.http.{HttpAuthClient, HttpClientConfig}
+import org.fiume.sketch.shared.auth.http.HttpAuthClient
 import org.fiume.sketch.shared.auth.testkit.PasswordsGens.*
 import org.fiume.sketch.shared.auth.testkit.UserGens.*
 import org.fiume.sketch.shared.testkit.Http4sClientContext
@@ -15,7 +15,7 @@ import org.scalacheck.Gen
 
 trait AccountSetUpAndLoginContext extends Http4sClientContext:
 
-  private val config = HttpClientConfig(host"localhost", port"8080")
+  private val config = HttpAuthClient.Config(host"localhost", port"8080")
 
   def loginAndGetAuthenticatedUser(): IO[Jwt] =
     val username = aUsername()

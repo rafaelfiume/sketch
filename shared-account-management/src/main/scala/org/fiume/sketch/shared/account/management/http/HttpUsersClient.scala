@@ -1,4 +1,4 @@
-package org.fiume.sketch.shared.auth.http
+package org.fiume.sketch.shared.account.management.http
 
 import cats.effect.Async
 import cats.implicits.*
