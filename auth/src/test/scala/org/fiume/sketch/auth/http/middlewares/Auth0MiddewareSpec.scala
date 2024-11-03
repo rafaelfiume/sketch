@@ -6,7 +6,7 @@ import io.circe.parser.parse
 import munit.{CatsEffectSuite, ScalaCheckEffectSuite}
 import munit.Assertions.*
 import org.fiume.sketch.auth.testkit.AuthenticatorContext
-import org.fiume.sketch.shared.auth.domain.{Jwt, JwtError, User}
+import org.fiume.sketch.shared.auth.domain.{Jwt, JwtVerificationError, User}
 import org.fiume.sketch.shared.auth.domain.Passwords.PlainPassword
 import org.fiume.sketch.shared.auth.testkit.JwtGens.given
 import org.fiume.sketch.shared.auth.testkit.PasswordsGens.given
@@ -53,7 +53,7 @@ class Auth0MiddlewareSpec
     }
 
   test("attempt to access with an invalid token is rejected"):
-    forAllF { (user: User, jwt: Jwt, jwtError: JwtError) =>
+    forAllF { (user: User, jwt: Jwt, jwtError: JwtVerificationError) =>
       for
         authenticator <- makeFailingAuthenticator(jwtError)
         authedRoutes = AuthedRoutes.of[User, IO] { case GET -> Root / "user" as user => Ok(user.toString) }

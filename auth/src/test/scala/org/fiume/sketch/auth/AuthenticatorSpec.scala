@@ -7,7 +7,7 @@ import org.fiume.sketch.auth.testkit.EcKeysGens
 import org.fiume.sketch.shared.auth.domain.{Account, AccountState, Jwt, User}
 import org.fiume.sketch.shared.auth.domain.AccountState.SoftDeleted
 import org.fiume.sketch.shared.auth.domain.AuthenticationError.*
-import org.fiume.sketch.shared.auth.domain.JwtError.*
+import org.fiume.sketch.shared.auth.domain.JwtVerificationError.*
 import org.fiume.sketch.shared.auth.domain.Passwords.PlainPassword
 import org.fiume.sketch.shared.auth.domain.User.Username
 import org.fiume.sketch.shared.auth.testkit.{UserGens, UsersStoreContext}

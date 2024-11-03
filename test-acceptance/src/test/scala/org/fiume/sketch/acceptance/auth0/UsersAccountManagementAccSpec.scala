@@ -7,12 +7,11 @@ import munit.CatsEffectSuite
 import org.fiume.sketch.auth.scripts.UsersScript
 import org.fiume.sketch.auth.scripts.UsersScript.Args
 import org.fiume.sketch.shared.account.management.http.HttpUsersClient
-import org.fiume.sketch.shared.auth.domain.JwtError
-import org.fiume.sketch.shared.auth.http.HttpAuthClient
+import org.fiume.sketch.shared.auth.http.{ClientAuthorisationError, HttpAuthClient}
 import org.fiume.sketch.shared.auth.testkit.JwtGens.jwts
 import org.fiume.sketch.shared.auth.testkit.PasswordsGens.*
 import org.fiume.sketch.shared.auth.testkit.UserGens.*
-import org.fiume.sketch.shared.authorisation.{AuthorisationError, GlobalRole}
+import org.fiume.sketch.shared.authorisation.{AccessDenied, GlobalRole}
 import org.fiume.sketch.shared.testkit.Http4sClientContext
 import org.fiume.sketch.shared.testkit.syntax.EitherSyntax.*
 import org.fiume.sketch.shared.testkit.syntax.OptionSyntax.*
@@ -37,10 +36,7 @@ class UsersAccountManagementAccSpec extends CatsEffectSuite with Http4sClientCon
           assertEquals(result.userId, userId)
           assert(result.permanentDeletionAt.isAfter(Instant.now()))
         }
-        _ <- assertIO(
-          usersClient.restoreAccount(userId, jwt).map(_.leftOrFail),
-          AuthorisationError.UnauthorisedError
-        )
+        _ <- assertIO(usersClient.restoreAccount(userId, jwt).map(_.leftOrFail), AccessDenied)
         unauthorised <- authClient.login(username, password)
       yield unauthorised.leftOrFail
     }
@@ -78,7 +74,7 @@ class UsersAccountManagementAccSpec extends CatsEffectSuite with Http4sClientCon
       val usersClient = HttpUsersClient.make(HttpUsersClient.Config(host"localhost", port"8080"), http)
       assertIO(
         usersClient.markAccountForDeletion(userId, jwt).map(_.leftOrFail),
-        JwtError.JwtUnknownError("Invalid credentials")
+        ClientAuthorisationError("Invalid credentials")
       )
     }
 
@@ -89,6 +85,6 @@ class UsersAccountManagementAccSpec extends CatsEffectSuite with Http4sClientCon
       val usersClient = HttpUsersClient.make(HttpUsersClient.Config(host"localhost", port"8080"), http)
       assertIO(
         usersClient.restoreAccount(userId, jwt).map(_.leftOrFail),
-        JwtError.JwtUnknownError("Invalid credentials")
+        ClientAuthorisationError("Invalid credentials")
       )
     }

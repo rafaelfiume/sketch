@@ -10,8 +10,7 @@ import org.fiume.sketch.shared.auth.domain.SoftDeleteAccountError.*
 import org.fiume.sketch.shared.auth.http.model.Users.UserIdVar
 import org.fiume.sketch.shared.auth.testkit.JwtGens.*
 import org.fiume.sketch.shared.auth.testkit.UserGens.*
-import org.fiume.sketch.shared.authorisation.AuthorisationError
-import org.fiume.sketch.shared.authorisation.AuthorisationError.*
+import org.fiume.sketch.shared.authorisation.AccessDenied
 import org.fiume.sketch.shared.common.troubleshooting.ErrorInfo.json.given
 import org.fiume.sketch.shared.testkit.{Http4sClientContext, HttpServiceContext}
 import org.fiume.sketch.shared.testkit.syntax.OptionSyntax.someOrFail
@@ -31,7 +30,7 @@ class HttpUsersClientSpec extends HttpUsersClientSpecContext:
     // format: off
     ("account is already pending deletion" , SoftDeleteAccountError.AccountAlreadyPendingDeletion),
     ("account is not found"                , SoftDeleteAccountError.AccountNotFound),
-    ("user is unauthorised"                , UnauthorisedError)
+    ("user has no permission"              , AccessDenied)
     // format: on
   ).foreach { (description, expectedError) =>
     test(s"marking account for deletion returns error when $description"):
@@ -48,7 +47,7 @@ class HttpUsersClientSpec extends HttpUsersClientSpecContext:
     // format: off
     ("account is already active", ActivateAccountError.AccountAlreadyActive),
     ("account is not found"     , ActivateAccountError.AccountNotFound),
-    ("user is unauthorised"     , UnauthorisedError)
+    ("user has no permission"   , AccessDenied)
     // format: on
   ).foreach { (description, expectedError) =>
     test(s"restoring account returns error when $description"):
@@ -68,34 +67,34 @@ trait HttpUsersClientSpecContext extends CatsEffectSuite with Http4sClientContex
   def makeUsersClient(port: Port) =
     EmberClientBuilder.default[IO].build.map(HttpUsersClient.make[IO](HttpUsersClient.Config(host"localhost", port), _))
 
-  def serverWillReturnError(error: AuthorisationError | SoftDeleteAccountError | ActivateAccountError): Resource[IO, Port] =
+  def serverWillReturnError(error: AccessDenied.type | SoftDeleteAccountError | ActivateAccountError): Resource[IO, Port] =
     for
       port <- freePort().toResource
       _ <- makeServer(port)(makeUsersRoute(error)).void
     yield port
 
-  private def makeUsersRoute(error: AuthorisationError | SoftDeleteAccountError | ActivateAccountError): HttpRoutes[IO] =
+  private def makeUsersRoute(error: AccessDenied.type | SoftDeleteAccountError | ActivateAccountError): HttpRoutes[IO] =
     HttpRoutes.of[IO] {
       case req @ DELETE -> Root / "users" / UserIdVar(uuid) =>
         error match
           case e: SoftDeleteAccountError =>
             e match
               case AccountAlreadyPendingDeletion =>
-                Conflict(error.asInstanceOf[AuthorisationError | SoftDeleteAccountError].toErrorInfo)
+                Conflict(error.asInstanceOf[AccessDenied.type | SoftDeleteAccountError].toErrorInfo)
               case SoftDeleteAccountError.AccountNotFound =>
-                NotFound(error.asInstanceOf[AuthorisationError | SoftDeleteAccountError].toErrorInfo)
-          case error: AuthorisationError => Forbidden(error.asInstanceOf[AuthorisationError | SoftDeleteAccountError].toErrorInfo)
-          case unknown                   => throw UnsupportedOperationException(s"unexpected $unknown")
+                NotFound(error.asInstanceOf[AccessDenied.type | SoftDeleteAccountError].toErrorInfo)
+          case error: AccessDenied.type => Forbidden(error.asInstanceOf[AccessDenied.type | SoftDeleteAccountError].toErrorInfo)
+          case unknown                  => throw UnsupportedOperationException(s"unexpected $unknown")
 
       case req @ POST -> Root / "users" / UserIdVar(uuid) / "restore" =>
         error match
           case e: ActivateAccountError =>
             e match
               case ActivateAccountError.AccountAlreadyActive =>
-                Conflict(error.asInstanceOf[AuthorisationError | ActivateAccountError].toActivateErrorInfo)
+                Conflict(error.asInstanceOf[AccessDenied.type | ActivateAccountError].toActivateErrorInfo)
               case ActivateAccountError.AccountNotFound =>
-                NotFound(error.asInstanceOf[AuthorisationError | ActivateAccountError].toActivateErrorInfo)
-          case error: AuthorisationError =>
-            Forbidden(error.asInstanceOf[AuthorisationError | ActivateAccountError].toActivateErrorInfo)
+                NotFound(error.asInstanceOf[AccessDenied.type | ActivateAccountError].toActivateErrorInfo)
+          case error: AccessDenied.type =>
+            Forbidden(error.asInstanceOf[AccessDenied.type | ActivateAccountError].toActivateErrorInfo)
           case unknown => throw UnsupportedOperationException(s"unexpected $unknown")
     }

@@ -3,7 +3,6 @@ package org.fiume.sketch.shared.authorisation
 import cats.Monad
 import cats.implicits.*
 import org.fiume.sketch.shared.auth.domain.UserId
-import org.fiume.sketch.shared.authorisation.AuthorisationError.*
 import org.fiume.sketch.shared.authorisation.ContextualRole.*
 import org.fiume.sketch.shared.authorisation.GlobalRole.*
 import org.fiume.sketch.shared.authorisation.Role.{Contextual, Global}
@@ -52,10 +51,10 @@ trait AccessControl[F[_], Txn[_]: Monad] extends Store[F, Txn]:
 
   def attempt[T <: Entity, A](userId: UserId, entityId: EntityId[T])(
     ops: EntityId[T] => Txn[A]
-  ): Txn[Either[AuthorisationError, A]] =
+  ): Txn[Either[AccessDenied.type, A]] =
     canAccess(userId, entityId).ifM(
       ifTrue = ops(entityId).map(Right(_)),
-      ifFalse = UnauthorisedError.asLeft.pure[Txn]
+      ifFalse = AccessDenied.asLeft.pure[Txn]
     )
 
   // It needs to respect the same rules as `canAccess`

@@ -5,8 +5,8 @@ import cats.implicits.*
 import io.circe.{Decoder, Encoder, HCursor, Json, ParsingFailure}
 import io.circe.parser.parse
 import io.circe.syntax.*
-import org.fiume.sketch.shared.auth.domain.{Jwt, JwtError, User, UserId}
-import org.fiume.sketch.shared.auth.domain.JwtError.*
+import org.fiume.sketch.shared.auth.domain.{Jwt, JwtVerificationError, User, UserId}
+import org.fiume.sketch.shared.auth.domain.JwtVerificationError.*
 import org.fiume.sketch.shared.auth.domain.User.Username
 import org.fiume.sketch.shared.auth.domain.UserId.given
 import org.fiume.sketch.shared.common.EntityId.given
@@ -31,7 +31,7 @@ private[auth] object JwtIssuer:
     )
     Jwt.makeUnsafeFromString(JwtCirce.encode(claim, privateKey, JwtAlgorithm.ES256))
 
-  def verify(jwt: Jwt, publicKey: PublicKey): Either[JwtError, User] =
+  def verify(jwt: Jwt, publicKey: PublicKey): Either[JwtVerificationError, User] =
     (for
       claims <- JwtCirce.decode(jwt.value, publicKey, Seq(JwtAlgorithm.ES256)).toEither
       uuid: UserId <- claims.subject
@@ -40,13 +40,13 @@ private[auth] object JwtIssuer:
       content <- parse(claims.content).flatMap(_.as[Content])
     yield User(uuid, content.preferredUsername)).leftMap(mapJwtErrors)
 
-  private def mapJwtErrors(jwtError: Throwable | JwtError): JwtError =
+  private def mapJwtErrors(jwtError: Throwable | JwtVerificationError): JwtVerificationError =
     jwtError match
       case e: JwtEmptySignatureException => JwtEmptySignatureError(e.getMessage)
       case e: ParsingFailure             => JwtInvalidTokenError(s"Invalid Jwt: ${e.getMessage}")
       case e: JwtValidationException     => JwtValidationError(e.getMessage)
       case e: JwtExpirationException     => JwtExpirationError(e.getMessage)
-      case e: JwtError                   => e
+      case e: JwtVerificationError       => e
       case e: Throwable                  => JwtUnknownError(e.getMessage)
 
   // see https://www.iana.org/assignments/jwt/jwt.xhtml

@@ -3,15 +3,13 @@ package org.fiume.sketch.shared.account.management.http
 import cats.effect.Async
 import cats.implicits.*
 import com.comcast.ip4s.{Host, Port}
-import org.fiume.sketch.shared.auth.domain.{ActivateAccountError, Jwt, JwtError, SoftDeleteAccountError, UserId}
+import org.fiume.sketch.shared.auth.domain.{ActivateAccountError, Jwt, SoftDeleteAccountError, UserId}
 import org.fiume.sketch.shared.auth.domain.SoftDeleteAccountError.AccountAlreadyPendingDeletion
+import org.fiume.sketch.shared.auth.http.ClientAuthorisationError
 import org.fiume.sketch.shared.auth.http.model.Users.ScheduledForPermanentDeletionResponse
 import org.fiume.sketch.shared.auth.http.model.Users.json.given
 import org.fiume.sketch.shared.auth.jobs.ScheduledAccountDeletion
-import org.fiume.sketch.shared.authorisation.AuthorisationError
-import org.fiume.sketch.shared.authorisation.AuthorisationError.UnauthorisedError
-import org.fiume.sketch.shared.common.troubleshooting.ErrorInfo
-import org.fiume.sketch.shared.common.troubleshooting.ErrorInfo.json.given
+import org.fiume.sketch.shared.authorisation.AccessDenied
 import org.http4s.{Request, Uri}
 import org.http4s.Method.*
 import org.http4s.Status.*
@@ -35,7 +33,7 @@ class HttpUsersClient[F[_]: Async] private (baseUri: Uri, client: Client[F]):
   def markAccountForDeletion(
     id: UserId,
     jwt: Jwt
-  ): F[Either[JwtError | AuthorisationError | SoftDeleteAccountError, ScheduledAccountDeletion]] =
+  ): F[Either[ClientAuthorisationError | AccessDenied.type | SoftDeleteAccountError, ScheduledAccountDeletion]] =
     for
       authHeader <- Async[F].delay { Authorization.parse(s"Bearer ${jwt.value}") }
       request = Request[F](DELETE, baseUri / "users" / id.value).withHeaders(authHeader)
@@ -44,30 +42,37 @@ class HttpUsersClient[F[_]: Async] private (baseUri: Uri, client: Client[F]):
           resp
             .as[ScheduledForPermanentDeletionResponse]
             .map(p => ScheduledAccountDeletion(p.jobId, p.userId, p.permanentDeletionAt).asRight)
-        case Conflict(_) => AccountAlreadyPendingDeletion.asLeft[ScheduledAccountDeletion].pure[F]
-        case NotFound(_) => SoftDeleteAccountError.AccountNotFound.asLeft.pure[F]
+        case Conflict(_)        => AccountAlreadyPendingDeletion.asLeft[ScheduledAccountDeletion].pure[F]
+        case NotFound(_)        => SoftDeleteAccountError.AccountNotFound.asLeft.pure[F]
         case Unauthorized(resp) =>
-          resp.as[ErrorInfo].flatTap { error => warn"Unauthorised to mark account for deletion: $error" }.map { error =>
-            error.code.value match
-              case "1011" => JwtError.JwtUnknownError(error.message.value).asLeft
-          }
-        case Forbidden(_) => UnauthorisedError.asLeft.pure[F]
+          /* There is a chance an Api gateway will take care of verifying an issued token,
+           * so I'm relaxing the error handling to merely pass a String payload as param to ClientAuthenticationError.
+           * That's to minimise potential changes to this logic.
+           */
+          resp.bodyText.compile.string
+            .flatTap { error => warn"Unauthorised to restore account: $error" }
+            .map(_ => ClientAuthorisationError("Invalid credentials").asLeft)
+        case Forbidden(_) => AccessDenied.asLeft.pure[F]
       }
     yield result
 
-  def restoreAccount(id: UserId, jwt: Jwt): F[Either[JwtError | AuthorisationError | ActivateAccountError, Unit]] =
+  def restoreAccount(
+    id: UserId,
+    jwt: Jwt
+  ): F[Either[ClientAuthorisationError | AccessDenied.type | ActivateAccountError, Unit]] =
     for
       authHeader <- Async[F].delay { Authorization.parse(s"Bearer ${jwt.value}") }
       request = Request[F](POST, baseUri / "users" / id.value / "restore").withHeaders(authHeader)
       result <- client.run(request).use {
-        case NoContent(_) => ().asRight[JwtError | AuthorisationError | ActivateAccountError].pure[F]
+        case NoContent(_) => ().asRight[ClientAuthorisationError | AccessDenied.type | ActivateAccountError].pure[F]
         case Conflict(_)  => ActivateAccountError.AccountAlreadyActive.asLeft.pure[F]
         case NotFound(_)  => ActivateAccountError.AccountNotFound.asLeft.pure[F]
         case Unauthorized(resp) =>
-          resp.as[ErrorInfo].flatTap { error => warn"Unauthorised to restore account: $error" }.map { error =>
-            error.code.value match
-              case "1011" => JwtError.JwtUnknownError(error.message.value).asLeft
-          }
-        case Forbidden(_) => UnauthorisedError.asLeft.pure[F]
+          resp.bodyText.compile.string
+            .flatTap { error => warn"Unauthorised to restore account: $error" }
+            .as(
+              ClientAuthorisationError("Invalid credentials").asLeft
+            )
+        case Forbidden(_) => AccessDenied.asLeft.pure[F]
       }
     yield result

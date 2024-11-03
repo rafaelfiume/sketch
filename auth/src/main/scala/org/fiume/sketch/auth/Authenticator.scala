@@ -3,7 +3,7 @@ package org.fiume.sketch.auth
 import cats.effect.{Clock, Sync}
 import cats.implicits.*
 import org.fiume.sketch.shared.auth.algebras.UsersStore
-import org.fiume.sketch.shared.auth.domain.{AuthenticationError, Jwt, JwtError, User}
+import org.fiume.sketch.shared.auth.domain.{AuthenticationError, Jwt, JwtVerificationError, User}
 import org.fiume.sketch.shared.auth.domain.AuthenticationError.*
 import org.fiume.sketch.shared.auth.domain.Passwords.{HashedPassword, PlainPassword}
 import org.fiume.sketch.shared.auth.domain.User.Username
@@ -14,7 +14,7 @@ import scala.concurrent.duration.Duration
 
 trait Authenticator[F[_]]:
   def identify(username: Username, password: PlainPassword): F[Either[AuthenticationError, Jwt]]
-  def verify(jwt: Jwt): Either[JwtError, User]
+  def verify(jwt: Jwt): Either[JwtVerificationError, User]
 
 object Authenticator:
   def make[F[_]: Sync, Txn[_]](
@@ -48,6 +48,6 @@ object Authenticator:
                 )
         yield jwt
 
-      override def verify(jwt: Jwt): Either[JwtError, User] =
+      override def verify(jwt: Jwt): Either[JwtVerificationError, User] =
         JwtIssuer.verify(jwt, publicKey)
   }

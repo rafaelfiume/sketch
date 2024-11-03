@@ -10,9 +10,9 @@ import org.fiume.sketch.shared.auth.domain.SoftDeleteAccountError.*
 import org.fiume.sketch.shared.auth.http.model.Users.{UserIdVar, *}
 import org.fiume.sketch.shared.auth.http.model.Users.json.given
 import org.fiume.sketch.shared.auth.jobs.ScheduledAccountDeletion
-import org.fiume.sketch.shared.authorisation.{AccessControl, AuthorisationError, ContextualRole}
+import org.fiume.sketch.shared.authorisation.{AccessControl, AccessDenied, ContextualRole}
 import org.fiume.sketch.shared.authorisation.ContextualRole.Owner
-import org.fiume.sketch.shared.authorisation.syntax.AuthorisationErrorSyntax.*
+import org.fiume.sketch.shared.authorisation.syntax.AccessDeniedSyntax.*
 import org.fiume.sketch.shared.common.algebras.syntax.StoreSyntax.*
 import org.fiume.sketch.shared.common.troubleshooting.ErrorInfo
 import org.fiume.sketch.shared.common.troubleshooting.ErrorInfo.json.given
@@ -49,7 +49,7 @@ class UsersRoutes[F[_]: Concurrent, Txn[_]: Sync](
                 // The request conflicts with the current state of the account (state machine transition error).
                 case AccountAlreadyPendingDeletion          => Conflict(error.toErrorInfo)
                 case SoftDeleteAccountError.AccountNotFound => NotFound(error.toErrorInfo)
-            case Left(error: AuthorisationError) => Forbidden(error.toErrorInfo)
+            case Left(error: AccessDenied.type) => Forbidden(error.toErrorInfo)
           }
 
       case POST -> Root / "users" / UserIdVar(uuid) / "restore" as authed =>
@@ -61,31 +61,31 @@ class UsersRoutes[F[_]: Concurrent, Txn[_]: Sync](
               error match
                 case AccountAlreadyActive                 => Conflict(error.toActivateErrorInfo)
                 case ActivateAccountError.AccountNotFound => NotFound(error.toActivateErrorInfo)
-            case Left(error: AuthorisationError) => Forbidden(error.toActivateErrorInfo)
+            case Left(error: AccessDenied.type) => Forbidden(error.toActivateErrorInfo)
           }
     }
 
   private def markAccountForDeletion(
     authedId: UserId,
     userId: UserId
-  ): Txn[Either[AuthorisationError | SoftDeleteAccountError, ScheduledAccountDeletion]] =
+  ): Txn[Either[AccessDenied.type | SoftDeleteAccountError, ScheduledAccountDeletion]] =
     canManageAccount(authedId, userId).ifM(
       ifTrue = accessControl
         .ensureRevoked(userId, userId) {
           store.markForDeletion(_, delayUntilPermanentDeletion).map(_.widenErrorType)
         },
-      ifFalse = AuthorisationError.UnauthorisedError.asLeft.pure[Txn]
+      ifFalse = AccessDenied.asLeft.pure[Txn]
     )
 
   private def restoreAccount(
     authedId: UserId,
     userToBeRestoredId: UserId
-  ): Txn[Either[AuthorisationError | ActivateAccountError, Account]] =
+  ): Txn[Either[AccessDenied.type | ActivateAccountError, Account]] =
     canManageAccount(authedId, userToBeRestoredId).ifM(
       ifTrue = accessControl.ensureAccess(userToBeRestoredId, Owner) {
         store.restoreAccount(userToBeRestoredId).map(_.widenErrorType)
       },
-      ifFalse = AuthorisationError.UnauthorisedError.asLeft.pure[Txn]
+      ifFalse = AccessDenied.asLeft.pure[Txn]
     )
 
   /*
