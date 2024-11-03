@@ -14,7 +14,7 @@ import org.scalacheck.Gen
 trait AuthenticatorContext:
   def makeAuthenticator(signee: (User, PlainPassword), signeeAuthToken: Jwt): IO[Authenticator[IO]] = IO.delay {
     new Authenticator[IO]:
-      override def authenticate(username: Username, password: PlainPassword): IO[Either[AuthenticationError, Jwt]] =
+      override def identify(username: Username, password: PlainPassword): IO[Either[AuthenticationError, Jwt]] =
         if username != signee._1.username then UserNotFoundError.asLeft[Jwt].pure[IO]
         else if password != signee._2 then InvalidPasswordError.asLeft[Jwt].pure[IO]
         else IO.delay { signeeAuthToken.asRight }
@@ -26,7 +26,7 @@ trait AuthenticatorContext:
 
   def makeFailingAuthenticator(jwtError: JwtError = jwtErrors.sample.someOrFail): IO[Authenticator[IO]] = IO.delay {
     new Authenticator[IO]:
-      override def authenticate(username: Username, password: PlainPassword): IO[Either[AuthenticationError, Jwt]] =
+      override def identify(username: Username, password: PlainPassword): IO[Either[AuthenticationError, Jwt]] =
         IO.delay {
           Gen.oneOf(UserNotFoundError, InvalidPasswordError).sample.someOrFail.asLeft
         }

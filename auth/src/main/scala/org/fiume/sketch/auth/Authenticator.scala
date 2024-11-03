@@ -13,7 +13,7 @@ import java.security.{PrivateKey, PublicKey}
 import scala.concurrent.duration.Duration
 
 trait Authenticator[F[_]]:
-  def authenticate(username: Username, password: PlainPassword): F[Either[AuthenticationError, Jwt]]
+  def identify(username: Username, password: PlainPassword): F[Either[AuthenticationError, Jwt]]
   def verify(jwt: Jwt): Either[JwtError, User]
 
 object Authenticator:
@@ -27,7 +27,7 @@ object Authenticator:
     given UsersStore[F, Txn] = store
 
     new Authenticator[F]:
-      override def authenticate(username: Username, password: PlainPassword): F[Either[AuthenticationError, Jwt]] =
+      override def identify(username: Username, password: PlainPassword): F[Either[AuthenticationError, Jwt]] =
         for
           account <- store.fetchAccount(username).commit()
           jwt <- account match
