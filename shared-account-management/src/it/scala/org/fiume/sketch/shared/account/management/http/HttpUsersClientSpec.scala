@@ -85,7 +85,7 @@ trait HttpUsersClientSpecContext extends CatsEffectSuite with Http4sClientContex
               case SoftDeleteAccountError.AccountNotFound =>
                 NotFound(error.asInstanceOf[AuthorisationError | SoftDeleteAccountError].toErrorInfo)
           case error: AuthorisationError => Forbidden(error.asInstanceOf[AuthorisationError | SoftDeleteAccountError].toErrorInfo)
-          case unknown => throw UnsupportedOperationException(s"unexpected $unknown")
+          case unknown                   => throw UnsupportedOperationException(s"unexpected $unknown")
 
       case req @ POST -> Root / "users" / UserIdVar(uuid) / "restore" =>
         error match

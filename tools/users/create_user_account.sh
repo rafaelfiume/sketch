@@ -10,7 +10,8 @@ Available options:
 -h, --help           Print this help and exit
     --local          Registre user in local environment
 -u, --username       The unique identifier for the user
--S, --superuser      The user is a superuser
+-S, --superuser      Assign 'Superuser' global role
+-A, --admin          Assign 'Admin' global role
 -p, --password       The password for the user account
 -t, --trace          Enable trace level logs
 EOF
@@ -22,6 +23,7 @@ parse_params() {
   username=''
   password=''
   isSuperuser=false
+  isAdmin=false
 
   while :; do
     case "${1-}" in
@@ -37,6 +39,8 @@ parse_params() {
       ;;
     -S | --superuser)
       isSuperuser=true ;;
+    -A | --admin)
+      isAdmin=true ;;
     -d | --debug) enable_debug_level ;; # see logs.sh
     -t | --trace) enable_trace_level ;; # see logs.sh
     -?*) exit_with_error "Unknown option: $1" ;;
@@ -73,7 +77,7 @@ function main() {
   load_env_vars "$environments_dir" "$env_name"
 
   local app_name="org.fiume.sketch.auth.scripts.UsersScript"
-  sbt_subproject_run_main "auth" "$app_name" "$username" "$password" "$isSuperuser"
+  sbt_subproject_run_main "auth" "$app_name" "$username" "$password" "$isSuperuser" "$isAdmin"
 
   info "Tell '$username' he or she is ready to go in '$env_name' environment!"
 }

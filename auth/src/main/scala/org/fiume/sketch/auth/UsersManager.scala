@@ -11,7 +11,7 @@ import org.fiume.sketch.shared.authorisation.{AccessControl, ContextualRole, Glo
 import org.fiume.sketch.shared.common.algebras.syntax.StoreSyntax.*
 
 trait UsersManager[F[_]]:
-  def createAccount(username: Username, password: PlainPassword, isSuperuser: Boolean = false): F[UserId]
+  def createAccount(username: Username, password: PlainPassword, globalRole: Option[GlobalRole] = none): F[UserId]
 
 object UsersManager:
   def make[F[_]: Sync, Txn[_]: Monad](store: UsersStore[F, Txn], accessControl: AccessControl[F, Txn]): F[UsersManager[F]] =
@@ -19,7 +19,7 @@ object UsersManager:
       given UsersStore[F, Txn] = store
 
       new UsersManager[F]:
-        override def createAccount(username: Username, password: PlainPassword, isSuperuser: Boolean): F[UserId] =
+        override def createAccount(username: Username, password: PlainPassword, globalRole: Option[GlobalRole]): F[UserId] =
           val credentials = for
             salt <- Salt.generate()
             hashedPassword <- HashedPassword.hashPassword(password, salt)
@@ -29,7 +29,7 @@ object UsersManager:
             creds <- store.lift { credentials }
             userId <- store.createAccount(creds)
             _ <- accessControl.grantAccess(userId, userId, ContextualRole.Owner)
-            _ <- accessControl.grantGlobalAccess(userId, GlobalRole.Superuser).whenA(isSuperuser)
+            _ <- globalRole.fold(ifEmpty = ().pure[Txn])(accessControl.grantGlobalAccess(userId, _))
           yield userId
 
           setUpAccount.commit()

@@ -22,7 +22,7 @@ trait AccountSetUpAndLoginContext extends Http4sClientContext:
     val password = aPassword()
     for
       script <- UsersScript.makeScript()
-      _ <- script.createUserAccount(Args(username, password, isSuperuser = false))
+      _ <- script.createUserAccount(Args(username, password, globalRole = None))
       jwt <- withHttp { http =>
         HttpAuthClient.make(config, http).login(username, password)
       }

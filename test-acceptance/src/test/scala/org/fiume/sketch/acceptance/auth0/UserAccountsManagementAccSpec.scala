@@ -20,7 +20,7 @@ class UserAccountsManagementAccSpec extends CatsEffectSuite with Http4sClientCon
       val username = validUsernames.sample.someOrFail
       val password = validPlainPasswords.sample.someOrFail
       for
-        userId <- UsersScript.makeScript().flatMap { _.createUserAccount(Args(username, password, isSuperuser = false)) }
+        userId <- UsersScript.makeScript().flatMap { _.createUserAccount(Args(username, password, globalRole = None)) }
         authClient = HttpAuthClient.make(HttpAuthClient.Config(host"localhost", port"8080"), http)
         jwt <- authClient.login(username, password).map(_.rightOrFail)
 
