@@ -7,7 +7,9 @@ import munit.CatsEffectSuite
 import org.fiume.sketch.auth.scripts.UsersScript
 import org.fiume.sketch.auth.scripts.UsersScript.Args
 import org.fiume.sketch.shared.account.management.http.HttpUsersClient
+import org.fiume.sketch.shared.auth.domain.JwtError
 import org.fiume.sketch.shared.auth.http.HttpAuthClient
+import org.fiume.sketch.shared.auth.testkit.JwtGens.jwts
 import org.fiume.sketch.shared.auth.testkit.PasswordsGens.*
 import org.fiume.sketch.shared.auth.testkit.UserGens.*
 import org.fiume.sketch.shared.authorisation.{AuthorisationError, GlobalRole}
@@ -65,3 +67,28 @@ class UsersAccountManagementAccSpec extends CatsEffectSuite with Http4sClientCon
       yield authorised.rightOrFail
     }
 
+  /*          *
+   * Sad Path *
+   ***********/
+
+  test("marking account for deletion requires authentication"):
+    val userId = userIds.sample.someOrFail
+    val jwt = jwts.sample.someOrFail
+    withHttp { http =>
+      val usersClient = HttpUsersClient.make(HttpUsersClient.Config(host"localhost", port"8080"), http)
+      assertIO(
+        usersClient.markAccountForDeletion(userId, jwt).map(_.leftOrFail),
+        JwtError.JwtUnknownError("Invalid credentials")
+      )
+    }
+
+  test("restoring account for deletion requires authentication"):
+    val userId = userIds.sample.someOrFail
+    val jwt = jwts.sample.someOrFail
+    withHttp { http =>
+      val usersClient = HttpUsersClient.make(HttpUsersClient.Config(host"localhost", port"8080"), http)
+      assertIO(
+        usersClient.restoreAccount(userId, jwt).map(_.leftOrFail),
+        JwtError.JwtUnknownError("Invalid credentials")
+      )
+    }
