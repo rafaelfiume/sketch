@@ -39,6 +39,7 @@ lazy val auth =
    project.in(file("auth"))
      .dependsOn(sharedAccessControl % "compile->compile;test->test")
      .dependsOn(sharedAuth % "compile->compile;test->test")
+     .dependsOn(sharedAccountManagement)
      .dependsOn(sharedTestComponents % Test)
      .dependsOn(storage)
      .dependsOn(testContracts % "test->test")
@@ -47,6 +48,7 @@ lazy val auth =
      .settings(
        name := "auth",
        libraryDependencies ++= Seq(
+         Dependency.jbcrypt,
          Dependency.bouncycastle,
          Dependency.catsEffect,
          Dependency.circeGeneric,
@@ -138,16 +140,32 @@ lazy val sharedAuth =
     .dependsOn(sharedTestComponents % Test)
     .disablePlugins(plugins.JUnitXmlReportPlugin)
     .settings(commonSettings: _*)
+    .settings(
+      name := "shared-auth",
+      libraryDependencies ++= Seq(
+        Dependency.jbcrypt,
+        Dependency.http4sEmberClient,
+        Dependency.munitCatsEffect % Test,
+        Dependency.munitScalaCheckEffect % Test
+      )
+    )
+
+lazy val sharedAccountManagement =
+    project.in(file("shared-account-management"))
+    .dependsOn(sharedAccessControl)
+    .dependsOn(sharedAuth % "compile->compile;test->test")
+    .disablePlugins(plugins.JUnitXmlReportPlugin)
+    .settings(commonSettings: _*)
     .configs(IntegrationTests)
     .settings(
       inConfig(IntegrationTests)(Defaults.testSettings ++ scalafixConfigSettings(IntegrationTests))
     )
     .settings(
-      name := "shared-auth",
+      name := "shared-account-management",
       libraryDependencies ++= Seq(
-        Dependency.jbcrypt,
         Dependency.circeGeneric,
         Dependency.http4sEmberClient,
+        Dependency.http4sEmberServer % "it",
         Dependency.munitCatsEffect % Test,
         Dependency.munitScalaCheckEffect % Test
       )
@@ -178,7 +196,6 @@ lazy val sharedComponents =
       )
     )
 
-// depends on auth, not the other way round
 lazy val sharedDomain =
     project.in(file("shared-domain"))
     .dependsOn(sharedAuth % "compile->compile;test->test")
@@ -195,8 +212,8 @@ lazy val sharedDomain =
 
 /*
  * Don't include any domain specific class in this module,
- * for instance a dependency on `sharedComponents`
- * (i.e. it is a domain agnostic module/lib).
+ * for instance a dependency on `sharedComponents`.
+ * I.e, this is a domain agnostic module/lib.
  */
 lazy val sharedTestComponents =
    project.in(file("shared-test-components"))
@@ -226,6 +243,7 @@ lazy val sketch =
     .aggregate(service)
     .aggregate(sharedAccessControl)
     .aggregate(sharedAuth)
+    .aggregate(sharedAccountManagement)
     .aggregate(sharedComponents)
     .aggregate(sharedDomain)
     .aggregate(sharedTestComponents)
@@ -268,7 +286,7 @@ lazy val storage =
 lazy val testAcceptance =
    project.in(file("test-acceptance"))
      .dependsOn(auth % Test)
-     .dependsOn(sharedAuth % "test->test")
+     .dependsOn(sharedAccountManagement % "test->test")
      .dependsOn(sharedTestComponents % Test)
      .dependsOn(testContracts % "test->test")
      .disablePlugins(plugins.JUnitXmlReportPlugin)

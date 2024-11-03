@@ -1,6 +1,6 @@
 package org.fiume.sketch.auth.scripts
 
-import cats.data.{EitherNec, Validated}
+import cats.data.Validated
 import cats.effect.{Clock, ExitCode, IO, IOApp}
 import cats.effect.std.Console
 import cats.implicits.*
@@ -10,13 +10,17 @@ import org.fiume.sketch.auth.scripts.UsersScript.Args
 import org.fiume.sketch.shared.auth.domain.{User, UserId}
 import org.fiume.sketch.shared.auth.domain.Passwords.PlainPassword
 import org.fiume.sketch.shared.auth.domain.User.Username
+import org.fiume.sketch.shared.authorisation.GlobalRole
 import org.fiume.sketch.shared.common.troubleshooting.{ErrorInfo, InvariantError}
-import org.fiume.sketch.shared.common.troubleshooting.ErrorInfo.{ErrorCode, ErrorDetails, ErrorMessage}
-import org.fiume.sketch.shared.common.troubleshooting.InvariantErrorSyntax.asDetails
+import org.fiume.sketch.shared.common.troubleshooting.ErrorInfo.ErrorDetails
+import org.fiume.sketch.shared.common.troubleshooting.syntax.ErrorInfoSyntax.*
+import org.fiume.sketch.shared.common.troubleshooting.syntax.InvariantErrorSyntax.asDetails
 import org.fiume.sketch.shared.common.typeclasses.AsString
 import org.fiume.sketch.storage.auth.postgres.PostgresUsersStore
 import org.fiume.sketch.storage.authorisation.postgres.PostgresAccessControl
 import org.fiume.sketch.storage.postgres.{DatabaseConfig, DbTransactor}
+
+import scala.util.Try
 
 object UsersScript extends IOApp:
 
@@ -56,26 +60,44 @@ object UsersScript extends IOApp:
   object Args:
     def make(args: List[String]): Either[ErrorInfo, Args] =
       args match
-        case username :: password :: isSuperuser :: Nil =>
+        case username :: password :: isSuperuser :: isAdmin :: Nil =>
           (
             Username.validated(username).leftMap(_.asDetails),
             PlainPassword.validated(password).leftMap(_.asDetails),
-            Args.validatedIsSuperuser(isSuperuser).leftMap(_.asDetails)
+            Args.validatedIsGlobalRole(isSuperuser, GlobalRole.Superuser).leftMap(_.asDetails),
+            Args.validatedIsGlobalRole(isAdmin, GlobalRole.Admin).leftMap(_.asDetails)
           )
-            .parMapN((user, password, isSuperuser) => Args(user, password, isSuperuser))
-            .leftMap(details => ErrorInfo.make(ErrorCode("1100"), ErrorMessage("Invalid parameters"), details))
+            .parFlatMapN((user, password, isSuperuser, isAdmin) => Args.validated(user, password, isSuperuser, isAdmin))
+            .leftMap(details => ErrorInfo.make("1100".code, "Invalid parameters".message, details))
         case unknown =>
-          ErrorInfo.make(ErrorCode("1100"), ErrorMessage(s"Invalid arguments: '$unknown'")).asLeft[Args]
+          ErrorInfo.make("1100".code, s"Invalid arguments: '$unknown'".message).asLeft[Args]
 
-    private case object InvalidSuperuserArgError extends InvariantError:
-      override val key: String = "invalid.superuser.arg"
-      override val detail: String = "'isSuperuser' must be either 'true' or 'false'"
+    private def validatedIsGlobalRole(boolean: String, role: GlobalRole) =
+      Validated.fromTry(Try(boolean.toBoolean)).leftMap(_ => InvalidGlobalRoleArg(role)).toEither
 
-    private def validatedIsSuperuser(isSuperuser: String): EitherNec[InvalidSuperuserArgError.type, Boolean] = Validated
-      .condNec(isSuperuser == "true" || isSuperuser == "false", isSuperuser.toBoolean, InvalidSuperuserArgError)
-      .toEither
+    private def validated(
+      username: Username,
+      password: PlainPassword,
+      isSuperuser: Boolean,
+      isAdmin: Boolean
+    ): Either[ErrorDetails, Args] =
+      if isSuperuser && isAdmin then InvalidGlobalRoleSelectionArg.asDetails.asLeft
+      else
+        val globalRole =
+          if isSuperuser then GlobalRole.Superuser.some
+          else if isAdmin then GlobalRole.Superuser.some
+          else none
+        Args(username, password, globalRole).asRight
 
-  case class Args(username: Username, password: PlainPassword, isSuperuser: Boolean)
+    private case object InvalidGlobalRoleSelectionArg extends InvariantError:
+      override val key: String = "invalid.global.role.selection.arg"
+      override val detail: String = "select at most one global role"
+
+    private case class InvalidGlobalRoleArg(role: GlobalRole) extends InvariantError:
+      override val key: String = s"invalid.${role.toString().toLowerCase()}.arg"
+      override val detail: String = s"'is$role' must be either 'true' or 'false'"
+
+  case class Args(username: Username, password: PlainPassword, globalRole: Option[GlobalRole])
 
 class UsersScript private (config: DatabaseConfig, clock: Clock[IO]):
   def createUserAccount(args: Args): IO[UserId] =
@@ -87,6 +109,6 @@ class UsersScript private (config: DatabaseConfig, clock: Clock[IO]):
       .use { case (usersStore, accessControl) =>
         for
           usersManager <- UsersManager.make[IO, ConnectionIO](usersStore, accessControl)
-          userId <- usersManager.createAccount(args.username, args.password, args.isSuperuser)
+          userId <- usersManager.createAccount(args.username, args.password, args.globalRole)
         yield userId
       }

@@ -1,5 +1,4 @@
 package org.fiume.sketch.auth.http
-// TODO Rename path from auth0 to auth
 
 import cats.effect.Async
 import cats.implicits.*
@@ -28,7 +27,7 @@ class AuthRoutes[F[_]: Async](authenticator: Authenticator[F]) extends Http4sDsl
     req.decode { (login: LoginRequestPayload) =>
       for
         auth <- login.validated().flatMap { case (username, password) =>
-          authenticator.authenticate(username, password)
+          authenticator.identify(username, password)
         }
         resp <- auth match
           case Right(jwt) =>

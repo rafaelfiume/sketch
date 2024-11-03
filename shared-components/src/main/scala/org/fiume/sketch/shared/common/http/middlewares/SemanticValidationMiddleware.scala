@@ -6,6 +6,7 @@ import cats.implicits.*
 import org.fiume.sketch.shared.common.troubleshooting.ErrorInfo
 import org.fiume.sketch.shared.common.troubleshooting.ErrorInfo.{ErrorCode, ErrorDetails, ErrorMessage}
 import org.fiume.sketch.shared.common.troubleshooting.ErrorInfo.json.given
+import org.fiume.sketch.shared.common.troubleshooting.syntax.ErrorInfoSyntax.*
 import org.http4s.*
 import org.http4s.circe.CirceEntityEncoder.*
 import org.http4s.dsl.Http4sDsl
@@ -37,9 +38,9 @@ object SemanticValidationMiddleware:
                 .flatMap { body =>
                   UnprocessableEntity(
                     ErrorInfo.make(
-                      ErrorCode("9000"),
-                      ErrorMessage("The request body could not be processed"),
-                      ErrorDetails("input.semantic.error" -> body)
+                      "9000".code,
+                      "The request body could not be processed".message,
+                      ("input.semantic.error" -> body).details
                     )
                   )
                 }

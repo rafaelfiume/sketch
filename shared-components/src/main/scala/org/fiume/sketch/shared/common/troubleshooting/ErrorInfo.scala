@@ -23,7 +23,6 @@ object ErrorInfo:
   object ErrorDetails:
     def apply(details: (String, String)*): ErrorDetails = ErrorDetails(details.toMap)
 
-    // TODO Test this
     given Semigroup[ErrorDetails] with
       def combine(x: ErrorDetails, y: ErrorDetails): ErrorDetails = ErrorDetails(x.tips.combine(y.tips))
 

@@ -6,14 +6,14 @@ import io.circe.parser.parse
 import munit.{CatsEffectSuite, ScalaCheckEffectSuite}
 import munit.Assertions.*
 import org.fiume.sketch.auth.testkit.AuthenticatorContext
-import org.fiume.sketch.shared.auth.domain.{Jwt, JwtError, User}
+import org.fiume.sketch.shared.auth.domain.{Jwt, JwtVerificationError, User}
 import org.fiume.sketch.shared.auth.domain.Passwords.PlainPassword
 import org.fiume.sketch.shared.auth.testkit.JwtGens.given
 import org.fiume.sketch.shared.auth.testkit.PasswordsGens.given
 import org.fiume.sketch.shared.auth.testkit.UserGens.given
 import org.fiume.sketch.shared.common.troubleshooting.ErrorInfo
-import org.fiume.sketch.shared.common.troubleshooting.ErrorInfo.{ErrorCode, ErrorDetails, ErrorMessage}
 import org.fiume.sketch.shared.common.troubleshooting.ErrorInfo.json.given
+import org.fiume.sketch.shared.common.troubleshooting.syntax.ErrorInfoSyntax.*
 import org.fiume.sketch.shared.testkit.syntax.EitherSyntax.*
 import org.http4s.{AuthedRoutes, Headers, Response, Status}
 import org.http4s.circe.CirceEntityDecoder.*
@@ -53,7 +53,7 @@ class Auth0MiddlewareSpec
     }
 
   test("attempt to access with an invalid token is rejected"):
-    forAllF { (user: User, jwt: Jwt, jwtError: JwtError) =>
+    forAllF { (user: User, jwt: Jwt, jwtError: JwtVerificationError) =>
       for
         authenticator <- makeFailingAuthenticator(jwtError)
         authedRoutes = AuthedRoutes.of[User, IO] { case GET -> Root / "user" as user => Ok(user.toString) }
@@ -67,10 +67,6 @@ class Auth0MiddlewareSpec
         assertEquals(response.status, Status.Unauthorized)
         assertEquals(
           payload,
-          ErrorInfo.make(
-            ErrorCode("1011"),
-            ErrorMessage("Invalid credentials"),
-            ErrorDetails("invalid.jwt" -> jwtError.toString)
-          )
+          ErrorInfo.make("1011".code, "Invalid credentials".message, ("invalid.jwt" -> jwtError.toString).details)
         )
     }

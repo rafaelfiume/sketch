@@ -3,11 +3,11 @@ package org.fiume.sketch.auth.http
 import cats.effect.IO
 import cats.implicits.*
 import munit.{CatsEffectSuite, ScalaCheckEffectSuite}
-import org.fiume.sketch.auth.http.UsersRoutes.model.ScheduledForPermanentDeletionResponse
-import org.fiume.sketch.auth.http.UsersRoutes.model.json.given
 import org.fiume.sketch.shared.auth.domain.{Account, AccountState, User, UserId}
 import org.fiume.sketch.shared.auth.domain.AccountState.*
 import org.fiume.sketch.shared.auth.domain.User.UserCredentials
+import org.fiume.sketch.shared.auth.http.model.Users.ScheduledForPermanentDeletionResponse
+import org.fiume.sketch.shared.auth.http.model.Users.json.given
 import org.fiume.sketch.shared.auth.testkit.{AuthMiddlewareContext, UserGens, UsersStoreContext}
 import org.fiume.sketch.shared.auth.testkit.AccountGens.given
 import org.fiume.sketch.shared.auth.testkit.UserGens.given
@@ -16,8 +16,8 @@ import org.fiume.sketch.shared.authorisation.ContextualRole.Owner
 import org.fiume.sketch.shared.authorisation.GlobalRole.Admin
 import org.fiume.sketch.shared.authorisation.testkit.AccessControlContext
 import org.fiume.sketch.shared.common.troubleshooting.ErrorInfo
-import org.fiume.sketch.shared.common.troubleshooting.ErrorInfo.{ErrorCode, ErrorMessage}
 import org.fiume.sketch.shared.common.troubleshooting.ErrorInfo.json.given
+import org.fiume.sketch.shared.common.troubleshooting.syntax.ErrorInfoSyntax.*
 import org.fiume.sketch.shared.testkit.{ClockContext, ContractContext, Http4sRoutesContext}
 import org.fiume.sketch.shared.testkit.syntax.OptionSyntax.*
 import org.http4s.*
@@ -70,12 +70,14 @@ class UsersRoutesSpec
           .whenA(!isAdminMarkingForDeletion)
         account <- store.fetchAccount(ownerId).map(_.someOrFail)
         grantRemoved <- accessControl.canAccess(ownerId, ownerId).map(!_)
+        jobId <- store.getScheduledJob(ownerId).map(_.someOrFail.uuid)
       yield
         assert(account.isMarkedForDeletion)
         assert(grantRemoved)
         assertEquals(
           result,
           ScheduledForPermanentDeletionResponse(
+            jobId,
             ownerId,
             deletedAt.plusSeconds(permantDeletionDelay.toSeconds).truncatedTo(MILLIS)
           )
@@ -101,7 +103,7 @@ class UsersRoutesSpec
           .to(usersRoutes.router())
 //
           .expectJsonResponseWith[ErrorInfo](Status.Forbidden)
-      yield assertEquals(result, ErrorInfo.make(ErrorCode("3000"), ErrorMessage("Unauthorised operation")))
+      yield assertEquals(result, ErrorInfo.make("3000".code, "Unauthorised operation".message))
     }
   }
   // TODO Check mark for deletion also with AccountAlreadyPendingDeletion and AccountNotFound sad path
@@ -149,7 +151,7 @@ class UsersRoutesSpec
         account <- store.fetchAccount(owner.uuid).map(_.someOrFail)
       yield
         assert(account.isMarkedForDeletion, clue = "account should remain marked for deletion")
-        assertEquals(result, ErrorInfo.make(ErrorCode("3000"), ErrorMessage("Unauthorised operation")))
+        assertEquals(result, ErrorInfo.make("3000".code, "Unauthorised operation".message))
     }
 
   test("ScheduledForPermanentDeletionResponse encode and decode form a bijective relationship"):

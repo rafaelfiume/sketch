@@ -1,9 +1,5 @@
 package org.fiume.sketch.shared.common.troubleshooting
 
-import cats.data.NonEmptyChain
-import cats.implicits.*
-import org.fiume.sketch.shared.common.troubleshooting.ErrorInfo.ErrorDetails
-
 /*
  * Invariants: set of properties a component must hold at all times to be valid.
  *
@@ -18,11 +14,3 @@ import org.fiume.sketch.shared.common.troubleshooting.ErrorInfo.ErrorDetails
 trait InvariantError:
   def key: String
   def detail: String
-
-object InvariantErrorSyntax:
-  extension [T <: InvariantError](
-    inputError: T
-  ) def asDetails: ErrorDetails = ErrorDetails(inputError.key -> inputError.detail) // Yolo
-
-  extension (inputErrors: NonEmptyChain[InvariantError])
-    def asDetails: ErrorDetails = ErrorDetails(inputErrors.map(e => e.key -> e.detail).toList*)

@@ -1,7 +1,7 @@
 package org.fiume.sketch.shared.auth.testkit
 
-import org.fiume.sketch.shared.auth.domain.{Jwt, JwtError}
-import org.fiume.sketch.shared.auth.domain.JwtError.*
+import org.fiume.sketch.shared.auth.domain.{Jwt, JwtVerificationError}
+import org.fiume.sketch.shared.auth.domain.JwtVerificationError.*
 import org.scalacheck.{Arbitrary, Gen}
 
 object JwtGens:
@@ -13,8 +13,8 @@ object JwtGens:
     )
     .map(Jwt.makeUnsafeFromString)
 
-  given Arbitrary[JwtError] = Arbitrary(jwtErrors)
-  def jwtErrors: Gen[JwtError] =
+  given Arbitrary[JwtVerificationError] = Arbitrary(jwtErrors)
+  def jwtErrors: Gen[JwtVerificationError] =
     val d = "a jwt error details"
     Gen
       .oneOf(

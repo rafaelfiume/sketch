@@ -8,8 +8,9 @@ import org.fiume.sketch.shared.auth.domain.Passwords.PlainPassword
 import org.fiume.sketch.shared.auth.domain.User.Username
 import org.fiume.sketch.shared.common.http.middlewares.SemanticInputError
 import org.fiume.sketch.shared.common.troubleshooting.ErrorInfo
-import org.fiume.sketch.shared.common.troubleshooting.ErrorInfo.{ErrorCode, ErrorDetails, ErrorMessage}
-import org.fiume.sketch.shared.common.troubleshooting.InvariantErrorSyntax.asDetails
+import org.fiume.sketch.shared.common.troubleshooting.ErrorInfo.ErrorDetails
+import org.fiume.sketch.shared.common.troubleshooting.syntax.ErrorInfoSyntax.*
+import org.fiume.sketch.shared.common.troubleshooting.syntax.InvariantErrorSyntax.asDetails
 
 object Login:
 
@@ -29,15 +30,15 @@ object Login:
 
   object Error:
     private[model] def makeSemanticInputError(errorDetails: ErrorDetails) =
-      SemanticInputError.make(ErrorCode("1000"), ErrorMessage("Invalid username or password"), errorDetails)
+      SemanticInputError.make("1000".code, "Invalid username or password".message, errorDetails)
 
     extension (error: AuthenticationError)
       def toErrorInfo =
         val errorCode = error match
-          case UserNotFoundError     => ErrorCode("1001")
-          case InvalidPasswordError  => ErrorCode("1002")
-          case AccountNotActiveError => ErrorCode("1003")
-        ErrorInfo.make(errorCode, ErrorMessage("Attempt to login failed"))
+          case UserNotFoundError     => "1001".code
+          case InvalidPasswordError  => "1002".code
+          case AccountNotActiveError => "1003".code
+        ErrorInfo.make(errorCode, "Attempt to login failed".message)
 
   object json:
     import io.circe.{Decoder, Encoder}

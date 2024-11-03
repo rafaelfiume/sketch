@@ -2,6 +2,7 @@ package org.fiume.sketch.shared.auth.http
 
 import cats.effect.Async
 import cats.implicits.*
+import com.comcast.ip4s.{Host, Port}
 import org.fiume.sketch.shared.auth.domain.{AuthenticationError, Jwt}
 import org.fiume.sketch.shared.auth.domain.AuthenticationError.*
 import org.fiume.sketch.shared.auth.domain.Passwords.PlainPassword
@@ -19,7 +20,10 @@ import org.http4s.circe.CirceEntityEncoder.*
 import org.http4s.client.*
 
 object HttpAuthClient:
-  def make[F[_]: Async](config: HttpClientConfig, client: Client[F]): HttpAuthClient[F] =
+  case class Config(private val host: Host, private val port: Port):
+    val baseUri: Uri = Uri.unsafeFromString(s"http://$host:$port")
+
+  def make[F[_]: Async](config: Config, client: Client[F]): HttpAuthClient[F] =
     new HttpAuthClient(config.baseUri, client)
 
 class HttpAuthClient[F[_]: Async] private (baseUri: Uri, client: Client[F]):

@@ -2,30 +2,25 @@ package org.fiume.sketch.auth.http
 
 import cats.effect.{Concurrent, Sync}
 import cats.implicits.*
-import io.circe.{Decoder, Encoder}
-import org.fiume.sketch.auth.http.UsersRoutes.*
-import org.fiume.sketch.auth.http.UsersRoutes.model.Error.*
-import org.fiume.sketch.auth.http.UsersRoutes.model.asResponsePayload
-import org.fiume.sketch.auth.http.UsersRoutes.model.json.given
+import org.fiume.sketch.shared.account.management.http.model.AccountStateTransitionErrorSyntax.*
 import org.fiume.sketch.shared.auth.algebras.UsersStore
-import org.fiume.sketch.shared.auth.domain.{Account, ActivateAccountError, SoftDeleteAccountError, User, UserEntity, UserId}
+import org.fiume.sketch.shared.auth.domain.{Account, ActivateAccountError, SoftDeleteAccountError, User, UserId}
 import org.fiume.sketch.shared.auth.domain.ActivateAccountError.*
 import org.fiume.sketch.shared.auth.domain.SoftDeleteAccountError.*
+import org.fiume.sketch.shared.auth.http.model.Users.{UserIdVar, *}
+import org.fiume.sketch.shared.auth.http.model.Users.json.given
 import org.fiume.sketch.shared.auth.jobs.ScheduledAccountDeletion
-import org.fiume.sketch.shared.authorisation.{AccessControl, AuthorisationError, ContextualRole}
-import org.fiume.sketch.shared.authorisation.AuthorisationError.UnauthorisedError
+import org.fiume.sketch.shared.authorisation.{AccessControl, AccessDenied, ContextualRole}
 import org.fiume.sketch.shared.authorisation.ContextualRole.Owner
+import org.fiume.sketch.shared.authorisation.syntax.AccessDeniedSyntax.*
 import org.fiume.sketch.shared.common.algebras.syntax.StoreSyntax.*
-import org.fiume.sketch.shared.common.http.json.JsonCodecs.given
 import org.fiume.sketch.shared.common.troubleshooting.ErrorInfo
-import org.fiume.sketch.shared.common.troubleshooting.ErrorInfo.{ErrorCode, ErrorMessage}
 import org.fiume.sketch.shared.common.troubleshooting.ErrorInfo.json.given
 import org.http4s.{HttpRoutes, *}
 import org.http4s.circe.CirceEntityEncoder.*
 import org.http4s.dsl.Http4sDsl
 import org.http4s.server.{AuthMiddleware, Router}
 
-import java.time.Instant
 import scala.concurrent.duration.Duration
 
 class UsersRoutes[F[_]: Concurrent, Txn[_]: Sync](
@@ -54,7 +49,7 @@ class UsersRoutes[F[_]: Concurrent, Txn[_]: Sync](
                 // The request conflicts with the current state of the account (state machine transition error).
                 case AccountAlreadyPendingDeletion          => Conflict(error.toErrorInfo)
                 case SoftDeleteAccountError.AccountNotFound => NotFound(error.toErrorInfo)
-            case Left(error: AuthorisationError) => Forbidden(error.toErrorInfo)
+            case Left(error: AccessDenied.type) => Forbidden(error.toErrorInfo)
           }
 
       case POST -> Root / "users" / UserIdVar(uuid) / "restore" as authed =>
@@ -66,31 +61,31 @@ class UsersRoutes[F[_]: Concurrent, Txn[_]: Sync](
               error match
                 case AccountAlreadyActive                 => Conflict(error.toActivateErrorInfo)
                 case ActivateAccountError.AccountNotFound => NotFound(error.toActivateErrorInfo)
-            case Left(error: AuthorisationError) => Forbidden(error.toActivateErrorInfo)
+            case Left(error: AccessDenied.type) => Forbidden(error.toActivateErrorInfo)
           }
     }
 
   private def markAccountForDeletion(
     authedId: UserId,
     userId: UserId
-  ): Txn[Either[AuthorisationError | SoftDeleteAccountError, ScheduledAccountDeletion]] =
+  ): Txn[Either[AccessDenied.type | SoftDeleteAccountError, ScheduledAccountDeletion]] =
     canManageAccount(authedId, userId).ifM(
       ifTrue = accessControl
         .ensureRevoked(userId, userId) {
           store.markForDeletion(_, delayUntilPermanentDeletion).map(_.widenErrorType)
         },
-      ifFalse = AuthorisationError.UnauthorisedError.asLeft.pure[Txn]
+      ifFalse = AccessDenied.asLeft.pure[Txn]
     )
 
   private def restoreAccount(
     authedId: UserId,
     userToBeRestoredId: UserId
-  ): Txn[Either[AuthorisationError | ActivateAccountError, Account]] =
+  ): Txn[Either[AccessDenied.type | ActivateAccountError, Account]] =
     canManageAccount(authedId, userToBeRestoredId).ifM(
       ifTrue = accessControl.ensureAccess(userToBeRestoredId, Owner) {
         store.restoreAccount(userToBeRestoredId).map(_.widenErrorType)
       },
-      ifFalse = AuthorisationError.UnauthorisedError.asLeft.pure[Txn]
+      ifFalse = AccessDenied.asLeft.pure[Txn]
     )
 
   /*
@@ -102,41 +97,3 @@ class UsersRoutes[F[_]: Concurrent, Txn[_]: Sync](
       isAuthenticatedAccountActive(authedId), // for when the user deactivates their own account
       accessControl.canAccess(authedId, account)
     ).mapN(_ && _)
-
-private[http] object UsersRoutes:
-  object UserIdVar:
-    import org.fiume.sketch.shared.auth.domain.UserId.given
-    def unapply(uuid: String): Option[UserId] = uuid.parsed().toOption
-
-  // TODO Move this extension fn to `access-control` module?
-  extension [E, R](result: Either[E, R]) def widenErrorType = result.leftMap[AuthorisationError | E](identity)
-
-  object model:
-    object Error:
-      extension (error: SoftDeleteAccountError | AuthorisationError)
-        def toErrorInfo =
-          val (errorCode, errorMessage) = error match
-            case AccountAlreadyPendingDeletion => ErrorCode("1200") -> ErrorMessage("Account already marked for deletion")
-            case SoftDeleteAccountError.AccountNotFound => ErrorCode("1201") -> ErrorMessage("Account not found")
-            case UnauthorisedError                      => ErrorCode("3000") -> ErrorMessage("Unauthorised operation")
-          ErrorInfo.make(errorCode, errorMessage)
-
-      extension (error: ActivateAccountError | AuthorisationError)
-        def toActivateErrorInfo =
-          val (errorCode, errorMessage) = error match
-            case AccountAlreadyActive                 => ErrorCode("1210") -> ErrorMessage("Account is already active")
-            case ActivateAccountError.AccountNotFound => ErrorCode("1211") -> ErrorMessage("Account not found")
-            case UnauthorisedError                    => ErrorCode("3000") -> ErrorMessage("Unauthorised operation")
-          ErrorInfo.make(errorCode, errorMessage)
-
-    case class ScheduledForPermanentDeletionResponse(userId: UserId, permanentDeletionAt: Instant)
-
-    extension (job: ScheduledAccountDeletion)
-      def asResponsePayload: ScheduledForPermanentDeletionResponse =
-        ScheduledForPermanentDeletionResponse(job.userId, job.permanentDeletionAt)
-
-    object json:
-      import io.circe.generic.semiauto.*
-      given Decoder[UserId] = Decoder.decodeUUID.map(UserId(_))
-      given Encoder[ScheduledForPermanentDeletionResponse] = deriveEncoder
-      given Decoder[ScheduledForPermanentDeletionResponse] = deriveDecoder
