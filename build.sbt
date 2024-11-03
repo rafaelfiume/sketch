@@ -66,7 +66,6 @@ lazy val service =
    project.in(file("service"))
      .dependsOn(auth)
      .dependsOn(sharedAccessControl % "compile->compile;test->test")
-     .dependsOn(sharedAccountManagement)
      .dependsOn(sharedAuth % "compile->compile;test->test")
      .dependsOn(sharedComponents % "compile->compile;test->test")
      .dependsOn(sharedDomain % "compile->compile;test->test")
@@ -162,7 +161,7 @@ lazy val sharedAccountManagement =
       inConfig(IntegrationTests)(Defaults.testSettings ++ scalafixConfigSettings(IntegrationTests))
     )
     .settings(
-      name := "shared-auth",
+      name := "shared-account-management",
       libraryDependencies ++= Seq(
         Dependency.circeGeneric,
         Dependency.http4sEmberClient,
@@ -302,7 +301,6 @@ lazy val testAcceptance =
          Dependency.http4sCirce % Test,
          Dependency.gatlingHighcharts % Test,
          Dependency.gatlingTestFramework % Test,
-         Dependency.jbcrypt % Test,
          Dependency.logstashLogbackEncoder % Test,
          Dependency.munit % Test,
          Dependency.munitCatsEffect % Test
