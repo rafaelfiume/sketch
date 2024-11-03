@@ -47,7 +47,7 @@ class HttpUsersClient[F[_]: Async] private (baseUri: Uri, client: Client[F]):
   def restoreAccount(id: UserId, jwt: Jwt): F[Either[AuthorisationError | ActivateAccountError, Unit]] =
     for
       authHeader <- Async[F].delay { Authorization.parse(s"Bearer ${jwt.value}") }
-      request = Request[F](POST, baseUri / "users" / id.value / "restore")
+      request = Request[F](POST, baseUri / "users" / id.value / "restore").withHeaders(authHeader)
       result <- client.run(request).use {
         case NoContent(_) => ().asRight.pure[F]
         case Conflict(_)  => ActivateAccountError.AccountAlreadyActive.asLeft.pure[F]
