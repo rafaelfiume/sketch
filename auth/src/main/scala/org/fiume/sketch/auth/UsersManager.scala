@@ -38,6 +38,11 @@ object UsersManager:
     given UsersStore[F, Txn] = store
 
     new UsersManager[F]:
+      /*
+       * Careful: there is no access control to this function!
+       * It's not clear such access control is necessary or not, however...
+       * Its present incarnation is meant to be used through an internal admin account setup script.
+       */
       override def createAccount(username: Username, password: PlainPassword, globalRole: Option[GlobalRole]): F[UserId] =
         val credentials = for
           salt <- Salt.generate()

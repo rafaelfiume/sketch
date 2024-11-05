@@ -5,7 +5,9 @@ import cats.implicits.*
 import munit.{CatsEffectSuite, ScalaCheckEffectSuite}
 import org.fiume.sketch.auth.UsersManager
 import org.fiume.sketch.shared.auth.domain.{Account, ActivateAccountError, SoftDeleteAccountError, User, UserId}
+import org.fiume.sketch.shared.auth.domain.ActivateAccountError.AccountAlreadyActive
 import org.fiume.sketch.shared.auth.domain.Passwords.PlainPassword
+import org.fiume.sketch.shared.auth.domain.SoftDeleteAccountError.{AccountAlreadyPendingDeletion, AccountNotFound}
 import org.fiume.sketch.shared.auth.domain.User.Username
 import org.fiume.sketch.shared.auth.http.model.Users.ScheduledForPermanentDeletionResponse
 import org.fiume.sketch.shared.auth.http.model.Users.json.given
@@ -66,23 +68,29 @@ class UsersRoutesSpec
       )
     }
 
-  // TODO Table test the other errors
-  test("handles marking account for deletion errors") {
-    forAllF { (ownerId: UserId, authed: User, isSuperuser: Boolean) =>
-      val authMiddleware = makeAuthMiddleware(authenticated = authed)
-      val usersManager = primeMarkAccountForDeletion(authed.uuid, ownerId, toReturn = AccessDenied.asLeft)
-      val usersRoutes = new UsersRoutes[IO, IO](authMiddleware, usersManager)
+  List(
+    // format: off
+    ("access is denied"       , AccessDenied                 , Status.Forbidden, ErrorInfo.make("3000".code, "Unauthorised operation".message)),
+    ("invalid state transtion", AccountAlreadyPendingDeletion, Status.Conflict , ErrorInfo.make("1200".code, "Account already marked for deletion".message)),
+    ("account is not found"   , AccountNotFound              , Status.NotFound , ErrorInfo.make("1201".code, "Account not found".message))
+    // format: on
+  ).foreach { (description, error, expectedStatusCode, expectedErrorInfo) =>
+    test(s"handles marking account for deletion when $description") {
+      forAllF { (ownerId: UserId, authed: User, isSuperuser: Boolean) =>
+        val authMiddleware = makeAuthMiddleware(authenticated = authed)
+        val usersManager = primeMarkAccountForDeletion(authed.uuid, ownerId, toReturn = error.asLeft)
+        val usersRoutes = new UsersRoutes[IO, IO](authMiddleware, usersManager)
 
-      assertIO(
-        send(DELETE(Uri.unsafeFromString(s"/users/${ownerId.value}")))
-          .to(usersRoutes.router())
+        assertIO(
+          send(DELETE(Uri.unsafeFromString(s"/users/${ownerId.value}")))
+            .to(usersRoutes.router())
 //
-          .expectJsonResponseWith[ErrorInfo](Status.Forbidden),
-        ErrorInfo.make("3000".code, "Unauthorised operation".message)
-      )
+            .expectJsonResponseWith[ErrorInfo](expectedStatusCode),
+          expectedErrorInfo
+        )
+      }
     }
   }
-  // TODO Check mark for deletion also with AccountAlreadyPendingDeletion and AccountNotFound sad path
 
   test("restores user accounts"):
     forAllF { (ownerAccount: Account, authed: User) =>
@@ -96,21 +104,28 @@ class UsersRoutesSpec
         .expectEmptyResponseWith(Status.NoContent)
     }
 
-  // TODO Table test the other errors
-  test("handles restoring account errors"):
-    forAllF { (ownerAccount: Account, authed: User) =>
-      val authMiddleware = makeAuthMiddleware(authenticated = authed)
-      val usersManager = primeRestoreAccount(authed.uuid, ownerAccount.uuid, toReturn = AccessDenied.asLeft)
-      val usersRoutes = new UsersRoutes[IO, IO](authMiddleware, usersManager)
+  List(
+    // format: off
+    ("access is denied"       , AccessDenied                        , Status.Forbidden, ErrorInfo.make("3000".code, "Unauthorised operation".message)),
+    ("invalid state transtion", AccountAlreadyActive                , Status.Conflict , ErrorInfo.make("1210".code, "Account is already active".message)),
+    ("account is not found"   , ActivateAccountError.AccountNotFound, Status.NotFound , ErrorInfo.make("1211".code, "Account not found".message))
+    // format: on
+  ).foreach { (description, error, expectedStatusCode, expectedErrorInfo) =>
+    test(s"handles restoring account when $description"):
+      forAllF { (ownerAccount: Account, authed: User) =>
+        val authMiddleware = makeAuthMiddleware(authenticated = authed)
+        val usersManager = primeRestoreAccount(authed.uuid, ownerAccount.uuid, toReturn = error.asLeft)
+        val usersRoutes = new UsersRoutes[IO, IO](authMiddleware, usersManager)
 
-      assertIO(
-        send(POST(Uri.unsafeFromString(s"/users/${ownerAccount.uuid.value}/restore")))
-          .to(usersRoutes.router())
+        assertIO(
+          send(POST(Uri.unsafeFromString(s"/users/${ownerAccount.uuid.value}/restore")))
+            .to(usersRoutes.router())
 //
-          .expectJsonResponseWith[ErrorInfo](Status.Forbidden),
-        ErrorInfo.make("3000".code, "Unauthorised operation".message)
-      )
-    }
+            .expectJsonResponseWith[ErrorInfo](expectedStatusCode),
+          expectedErrorInfo
+        )
+      }
+  }
 
   test("ScheduledForPermanentDeletionResponse encode and decode form a bijective relationship"):
     assertBijectiveRelationshipBetweenEncoderAndDecoder[ScheduledForPermanentDeletionResponse](

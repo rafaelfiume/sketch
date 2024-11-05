@@ -4,7 +4,7 @@ import cats.effect.IO
 import cats.implicits.*
 import munit.{CatsEffectSuite, ScalaCheckEffectSuite}
 import munit.Assertions.*
-import org.fiume.sketch.shared.auth.domain.{Account, AccountState, ActivateAccountError, SoftDeleteAccountError}
+import org.fiume.sketch.shared.auth.domain.{Account, AccountState, ActivateAccountError, SoftDeleteAccountError, UserId}
 import org.fiume.sketch.shared.auth.domain.Passwords.PlainPassword
 import org.fiume.sketch.shared.auth.domain.User.{UserCredentials, Username}
 import org.fiume.sketch.shared.auth.jobs.ScheduledAccountDeletion
@@ -55,7 +55,7 @@ class UsersManagerSpec
         else assert(assignedGlobalRole.isEmpty)
     }
 
-  test("only the owner or an Admin can mark an account for deletion") {
+  test("only the owner or an Admin can mark an account for deletion"):
     forAllF { (owner: UserCredentials, admin: UserCredentials, isAdminMarkingForDeletion: Boolean) =>
       val deletedAt = Instant.now()
       val permantDeletionDelay = 1.second
@@ -64,16 +64,18 @@ class UsersManagerSpec
         accessControl <- makeAccessControl()
         ownerId <- store.createAccount(owner).flatTap { id => accessControl.grantAccess(id, id, ContextualRole.Owner) }
         adminId <- store.createAccount(admin).flatTap { id => accessControl.grantGlobalAccess(id, GlobalRole.Admin) }
-        authedId = if isAdminMarkingForDeletion then adminId else ownerId
+        authorisedId = if isAdminMarkingForDeletion then adminId else ownerId
         usersManager = UsersManager.make[IO, IO](store, accessControl, delayUntilPermanentDeletion)
 
-        result <- usersManager.markAccountForDeletion(authedId, ownerId).map(_.rightOrFail)
+        result <- usersManager.markAccountForDeletion(authorisedId, ownerId).map(_.rightOrFail)
 
         // The Api is idempotent in behaviour but not in response
-        _ <- assertIO(
-          usersManager.markAccountForDeletion(authedId, ownerId).map(_.leftOrFail),
-          SoftDeleteAccountError.AccountAlreadyPendingDeletion
-        )
+        resp = usersManager.markAccountForDeletion(authorisedId, ownerId).map(_.leftOrFail)
+        _ <-
+          if isAdminMarkingForDeletion
+          then assertIO(resp, SoftDeleteAccountError.AccountAlreadyPendingDeletion)
+          else assertIO(resp, AccessDenied)
+
         account <- store.fetchAccount(ownerId).map(_.someOrFail)
         grantRemoved <- accessControl.canAccess(ownerId, ownerId).map(!_)
         jobId <- store.getScheduledJob(ownerId).map(_.someOrFail.uuid)
@@ -89,37 +91,58 @@ class UsersManagerSpec
           )
         )
     }
-  }
 
-  test("users are forbidden to attempt to mark an account for deletion with lack of permission") {
-    forAllF { (owner: UserCredentials, ownerExists: Boolean, authed: UserCredentials, isSuperuser: Boolean) =>
+  test("users cannot mark an account for deletion without permission"):
+    forAllF { (owner: UserCredentials, authed: UserCredentials, isSuperuser: Boolean) =>
       for
         store <- makeEmptyUsersStore()
         accessControl <- makeAccessControl()
         authedId <- store.createAccount(authed).flatTap { id => accessControl.grantAccess(id, id, ContextualRole.Owner) }
         _ <- accessControl.grantGlobalAccess(authedId, GlobalRole.Superuser).whenA(isSuperuser)
-        ownerId <-
-          if ownerExists then store.createAccount(owner).flatTap { id => accessControl.grantAccess(id, id, ContextualRole.Owner) }
-          else UserGens.userIds.sample.someOrFail.pure[IO]
+        ownerId <- store.createAccount(owner).flatTap { id => accessControl.grantAccess(id, id, ContextualRole.Owner) }
 
         usersManager = UsersManager.make[IO, IO](store, accessControl, delayUntilPermanentDeletion)
         result <- usersManager.markAccountForDeletion(authedId, ownerId).map(_.leftOrFail)
+//
       yield assertEquals(result, AccessDenied)
     }
-  }
-  // TODO Check mark for deletion and restore account with AccountNotFound sad path
 
-  test("only Admin users can restore user accounts"):
-    forAllF { (owner: UserCredentials, authed: UserCredentials) =>
+  test("users cannot mark an inexistent account for deletion"):
+    forAllF { (ownerId: UserId, authed: UserCredentials, maybeGlobalRole: Option[GlobalRole]) =>
       for
         store <- makeEmptyUsersStore()
         accessControl <- makeAccessControl()
+        authedId <- store.createAccount(authed).flatTap { id => accessControl.grantAccess(id, id, ContextualRole.Owner) }
+        _ <- accessControl.grantGlobalAccess(authedId, maybeGlobalRole.someOrFail).whenA(maybeGlobalRole.isDefined)
+        usersManager = UsersManager.make[IO, IO](store, accessControl, delayUntilPermanentDeletion)
+
+        result <- usersManager.markAccountForDeletion(authedId, ownerId).map(_.leftOrFail)
+//
+      yield
+        if maybeGlobalRole.exists(_ == GlobalRole.Admin)
+        then assertEquals(result, SoftDeleteAccountError.AccountNotFound)
+        else assertEquals(result, AccessDenied)
+    }
+
+  test("only Admin users can restore user accounts"):
+    forAllF { (owner: UserCredentials, authed: UserCredentials) =>
+      val accountActivationDate = Instant.now
+      val clock = makeFrozenClock(accountActivationDate)
+      for
+        store <- makeEmptyUsersStore(clock)
+        accessControl <- makeAccessControl()
         ownerId <- store.createAccount(owner).flatTap(store.markForDeletion(_, 0.seconds))
-        adminId <- store.createAccount(authed).flatTap { id => accessControl.grantGlobalAccess(id, GlobalRole.Admin) }
+        adminId <- store.createAccount(authed).flatTap { accessControl.grantGlobalAccess(_, GlobalRole.Admin) }
         usersManager = UsersManager.make[IO, IO](store, accessControl, delayUntilPermanentDeletion)
 
         result <- usersManager.restoreAccount(adminId, ownerId).map(_.rightOrFail)
 
+        _ <- IO {
+          assertEquals(result.credentials, owner)
+          assertEquals(result.state,
+                       AccountState.Active(accountActivationDate.truncatedTo(MILLIS))
+          ) // it keeps the original activation date
+        }
         // The Api is idempotent in behaviour but not in response
         _ <- assertIO(
           usersManager.restoreAccount(adminId, ownerId).map(_.leftOrFail),
@@ -132,13 +155,13 @@ class UsersManagerSpec
         assert(userCanAccessHerAccount, clue = "user should be able to access her account after restore")
     }
 
-  test("users are forbidden to attempt to restore an account without permission"):
+  test("users cannot restore an account without permission"):
     forAllF { (owner: Account, authed: UserCredentials, isSuperuser: Boolean) =>
       for
         store <- makeUsersStoreForAccount(owner.copy(state = AccountState.SoftDeleted(Instant.now())))
         accessControl <- makeAccessControl()
-        nonAdminUserId <- store.createAccount(authed).flatTap { id =>
-          accessControl.grantGlobalAccess(id, GlobalRole.Superuser).whenA(isSuperuser)
+        nonAdminUserId <- store.createAccount(authed).flatTap {
+          accessControl.grantGlobalAccess(_, GlobalRole.Superuser).whenA(isSuperuser)
         }
         usersManager = UsersManager.make[IO, IO](store, accessControl, delayUntilPermanentDeletion)
 
@@ -148,6 +171,24 @@ class UsersManagerSpec
       yield
         assert(account.isMarkedForDeletion, clue = "account should remain marked for deletion")
         assertEquals(result, AccessDenied)
+    }
+
+  test("users cannot restore an inexistent account"):
+    forAllF { (ownerId: UserId, authed: UserCredentials, maybeGlobalRole: Option[GlobalRole]) =>
+      for
+        store <- makeEmptyUsersStore()
+        accessControl <- makeAccessControl()
+        authedId <- store.createAccount(authed).flatTap {
+          accessControl.grantGlobalAccess(_, maybeGlobalRole.someOrFail).whenA(maybeGlobalRole.isDefined)
+        }
+        usersManager = UsersManager.make[IO, IO](store, accessControl, delayUntilPermanentDeletion)
+
+        result <- usersManager.restoreAccount(authedId, ownerId).map(_.leftOrFail)
+//
+      yield
+        if maybeGlobalRole.exists(_ == GlobalRole.Admin)
+        then assertEquals(result, ActivateAccountError.AccountNotFound)
+        else assertEquals(result, AccessDenied)
     }
 
 trait UsersManagerSpecContext:
