@@ -40,6 +40,7 @@ lazy val auth =
      .dependsOn(sharedAccessControl % "compile->compile;test->test")
      .dependsOn(sharedAuth % "compile->compile;test->test")
      .dependsOn(sharedAccountManagement)
+     .dependsOn(sharedComponents % "compile->compile;test->test")
      .dependsOn(sharedTestComponents % Test)
      .dependsOn(storage)
      .dependsOn(testContracts % "test->test")

@@ -2,18 +2,15 @@ package org.fiume.sketch.auth.http
 
 import cats.effect.{Concurrent, Sync}
 import cats.implicits.*
+import org.fiume.sketch.auth.UsersManager
 import org.fiume.sketch.shared.account.management.http.model.AccountStateTransitionErrorSyntax.*
-import org.fiume.sketch.shared.auth.algebras.UsersStore
-import org.fiume.sketch.shared.auth.domain.{Account, ActivateAccountError, SoftDeleteAccountError, User, UserId}
+import org.fiume.sketch.shared.auth.domain.{Account, ActivateAccountError, SoftDeleteAccountError, User}
 import org.fiume.sketch.shared.auth.domain.ActivateAccountError.*
 import org.fiume.sketch.shared.auth.domain.SoftDeleteAccountError.*
 import org.fiume.sketch.shared.auth.http.model.Users.{UserIdVar, *}
 import org.fiume.sketch.shared.auth.http.model.Users.json.given
 import org.fiume.sketch.shared.auth.jobs.ScheduledAccountDeletion
-import org.fiume.sketch.shared.authorisation.{AccessControl, AccessDenied, ContextualRole}
-import org.fiume.sketch.shared.authorisation.ContextualRole.Owner
-import org.fiume.sketch.shared.authorisation.syntax.AccessDeniedSyntax.*
-import org.fiume.sketch.shared.common.algebras.syntax.StoreSyntax.*
+import org.fiume.sketch.shared.authorisation.AccessDenied
 import org.fiume.sketch.shared.common.troubleshooting.ErrorInfo
 import org.fiume.sketch.shared.common.troubleshooting.ErrorInfo.json.given
 import org.http4s.{HttpRoutes, *}
@@ -21,27 +18,20 @@ import org.http4s.circe.CirceEntityEncoder.*
 import org.http4s.dsl.Http4sDsl
 import org.http4s.server.{AuthMiddleware, Router}
 
-import scala.concurrent.duration.Duration
-
 class UsersRoutes[F[_]: Concurrent, Txn[_]: Sync](
   authMiddleware: AuthMiddleware[F, User],
-  accessControl: AccessControl[F, Txn],
-  store: UsersStore[F, Txn],
-  delayUntilPermanentDeletion: Duration
+  usersManager: UsersManager[F]
 ) extends Http4sDsl[F]:
 
   private val prefix = "/"
-
-  // enable Store's syntax
-  given UsersStore[F, Txn] = store
 
   def router(): HttpRoutes[F] = Router(prefix -> authMiddleware(authedRoutes))
 
   private val authedRoutes: AuthedRoutes[User, F] =
     AuthedRoutes.of {
       case DELETE -> Root / "users" / UserIdVar(uuid) as authed =>
-        markAccountForDeletion(authed.uuid, uuid)
-          .commit()
+        usersManager
+          .markAccountForDeletion(authed.uuid, uuid)
           .flatMap {
             case Right(job) => Ok(job.asResponsePayload)
             case Left(error: SoftDeleteAccountError) =>
@@ -53,8 +43,8 @@ class UsersRoutes[F[_]: Concurrent, Txn[_]: Sync](
           }
 
       case POST -> Root / "users" / UserIdVar(uuid) / "restore" as authed =>
-        restoreAccount(authed.uuid, uuid)
-          .commit()
+        usersManager
+          .restoreAccount(authed.uuid, uuid)
           .flatMap {
             case Right(_) => NoContent()
             case Left(error: ActivateAccountError) =>
@@ -64,36 +54,3 @@ class UsersRoutes[F[_]: Concurrent, Txn[_]: Sync](
             case Left(error: AccessDenied.type) => Forbidden(error.toActivateErrorInfo)
           }
     }
-
-  private def markAccountForDeletion(
-    authedId: UserId,
-    userId: UserId
-  ): Txn[Either[AccessDenied.type | SoftDeleteAccountError, ScheduledAccountDeletion]] =
-    canManageAccount(authedId, userId).ifM(
-      ifTrue = accessControl
-        .ensureRevoked(userId, userId) {
-          store.markForDeletion(_, delayUntilPermanentDeletion).map(_.widenErrorType)
-        },
-      ifFalse = AccessDenied.asLeft.pure[Txn]
-    )
-
-  private def restoreAccount(
-    authedId: UserId,
-    userToBeRestoredId: UserId
-  ): Txn[Either[AccessDenied.type | ActivateAccountError, Account]] =
-    canManageAccount(authedId, userToBeRestoredId).ifM(
-      ifTrue = accessControl.ensureAccess(userToBeRestoredId, Owner) {
-        store.restoreAccount(userToBeRestoredId).map(_.widenErrorType)
-      },
-      ifFalse = AccessDenied.asLeft.pure[Txn]
-    )
-
-  /*
-   * An example of a custom `canAccess` fn.
-   */
-  private def canManageAccount(authedId: UserId, account: UserId): Txn[Boolean] =
-    def isAuthenticatedAccountActive(uuid: UserId): Txn[Boolean] = store.fetchAccountWith(uuid) { _.fold(false)(_.isActive) }
-    (
-      isAuthenticatedAccountActive(authedId), // for when the user deactivates their own account
-      accessControl.canAccess(authedId, account)
-    ).mapN(_ && _)
