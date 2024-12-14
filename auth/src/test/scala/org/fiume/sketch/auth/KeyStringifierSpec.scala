@@ -37,8 +37,3 @@ class KeyStringifierSpec extends ScalaCheckSuite with EcKeysGens:
       val result = KeyStringifier.ecPublicKeyFromPem(invalidPemString)
       assert(result.isLeft)
     }
-
-  /* Note that "ECPrivateKey toPemString and fromPemString _are_ isomorphic"
-   * is not correct because it implies that the functions themselves are isomorphic.
-   * Isomorphism, however, is a property that relates two structures.
-   */

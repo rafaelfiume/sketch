@@ -13,6 +13,10 @@ A user can have at most one global role.
 Access to entities is granted based on ownership of the entity, making it contextual.
 A user can be a contributor to one document, the owner of another, and unable to access others.
 
+`Owner` is the user that creates the entity.
+Note that, for example, if an user uploads a document ID on behalf of another user or person,
+the former is still the "owner" of the document ID.
+
 ### Access
 
 `Admin`s can fetch all entities, regardless of ownership.

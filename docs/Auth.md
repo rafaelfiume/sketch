@@ -23,14 +23,14 @@ In sketch's authentication system, hash-based authentication is combined with JW
 
 ### Hash-based Authentication
 
-#### Sault
+#### Salt
 
 Salt is an additional random value that is combined with the user's password before hashing it. It adds an extra layer of security to the password storage and unique salts help to protect against pre-computed or rainbow table attacks. Besides, salt makes each user's hashed password unique, even if they have the same password.
 
 Note that BCrypt includes the salt in the hashed password and thus doesn't require salt when verifying password.
 Including a salt column in the users table allows unique salt value for each user during the registration process and increased flexibility if changing hash algorithm.
 
-#### Hashed Password and Salt Uniqueness
+#### Hashed Password and Salt Uniqueness
 
 Enforcing salt uniqueness prevents precomputed hash attacks. Note that salt should be retained during updates.
 

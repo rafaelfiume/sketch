@@ -150,7 +150,6 @@ private[http] object DocumentsRoutes:
               EitherT.pure(Description(payload.description)),
               EitherT.pure(stream)
             ).parMapN((name, description, bytes) => Document.make[F](bytes, Metadata(name, description)))
-
           }
           .leftMap(details => SemanticInputError.make(errorCode, details))
 

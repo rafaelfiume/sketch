@@ -10,8 +10,9 @@ import scala.concurrent.duration.*
 class PeriodicJobSpec extends CatsEffectSuite with JobErrorHandlerContext:
 
   /*
-   * this tests are flickering. fix them
+   * Fix: these tests flicker ocasionally.
    */
+
   test("runs job periodically, even after encountering errors"):
     // given
     def makeBrokenJob(): IO[(Ref[IO, Int], Job[IO, Int])] = IO.ref(0).map { counter =>
