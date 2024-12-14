@@ -4,7 +4,7 @@ import cats.effect.{Async, Clock, Resource, Sync}
 import doobie.ConnectionIO
 import fs2.io.net.Network
 import org.fiume.sketch.app.SketchVersions.VersionFile
-import org.fiume.sketch.auth.Authenticator
+import org.fiume.sketch.auth.{Authenticator, UsersManager}
 import org.fiume.sketch.rustic.RusticHealthCheck
 import org.fiume.sketch.shared.auth.algebras.UsersStore
 import org.fiume.sketch.shared.authorisation.AccessControl
@@ -34,6 +34,7 @@ trait Resources[F[_]]:
   val accessControl: AccessControl[F, ConnectionIO]
   val usersStore: UsersStore[F, ConnectionIO]
   val documentsStore: DocumentsStore[F, ConnectionIO]
+  val userManager: UsersManager[F]
 
 object Resources:
   given [F[_]: Sync]: LoggerFactory[F] = Slf4jFactory.create[F]
@@ -67,6 +68,8 @@ object Resources:
       override val accessControl: AccessControl[F, ConnectionIO] = accessControl0
       override val usersStore: UsersStore[F, ConnectionIO] = usersStore0
       override val documentsStore: DocumentsStore[F, ConnectionIO] = documentsStore0
+      override val userManager: UsersManager[F] =
+        UsersManager.make[F, ConnectionIO](usersStore0, accessControl0, config.account.delayUntilPermanentDeletion)
 
   private def newCustomWorkerThreadPool[F[_]: Sync]() = Resource
     .make(

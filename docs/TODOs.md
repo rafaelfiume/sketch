@@ -3,7 +3,6 @@
 
 ### Missing steps:
 
-1) Define process to enable Admin to reactivate an account
 1) Clean up all entities upon permanent deletion
 
 Use callback to delete all entities of user with deleted account

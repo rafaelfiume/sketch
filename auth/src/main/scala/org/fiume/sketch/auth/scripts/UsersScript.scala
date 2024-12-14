@@ -7,6 +7,7 @@ import cats.implicits.*
 import doobie.ConnectionIO
 import org.fiume.sketch.auth.UsersManager
 import org.fiume.sketch.auth.scripts.UsersScript.Args
+import org.fiume.sketch.shared.auth.AccountConfig
 import org.fiume.sketch.shared.auth.domain.{User, UserId}
 import org.fiume.sketch.shared.auth.domain.Passwords.PlainPassword
 import org.fiume.sketch.shared.auth.domain.User.Username
@@ -20,6 +21,7 @@ import org.fiume.sketch.storage.auth.postgres.PostgresUsersStore
 import org.fiume.sketch.storage.authorisation.postgres.PostgresAccessControl
 import org.fiume.sketch.storage.postgres.{DatabaseConfig, DbTransactor}
 
+import scala.concurrent.duration.*
 import scala.util.Try
 
 object UsersScript extends IOApp:
@@ -35,7 +37,12 @@ object UsersScript extends IOApp:
           IO.pure(scriptErrorCode)
 
   def makeScript(): IO[UsersScript] =
-    DatabaseConfig.envs[IO](dbPoolThreads = 2).load[IO].map(UsersScript(_, Clock[IO]))
+    // TODO Load for the environment
+    val accountConfig = AccountConfig(
+      delayUntilPermanentDeletion = 90.days,
+      permanentDeletionJobInterval = 15.seconds
+    )
+    DatabaseConfig.envs[IO](dbPoolThreads = 2).load[IO].map(UsersScript(_, accountConfig, Clock[IO]))
 
   /*
    * An experimental implementation of `AsString` for `ErrorInfo`
@@ -99,16 +106,15 @@ object UsersScript extends IOApp:
 
   case class Args(username: Username, password: PlainPassword, globalRole: Option[GlobalRole])
 
-class UsersScript private (config: DatabaseConfig, clock: Clock[IO]):
+class UsersScript private (dbConfig: DatabaseConfig, accountConfig: AccountConfig, clock: Clock[IO]):
   def createUserAccount(args: Args): IO[UserId] =
     DbTransactor
-      .make[IO](config)
+      .make[IO](dbConfig)
       .flatMap { transactor =>
         (PostgresUsersStore.make[IO](transactor, clock), PostgresAccessControl.make[IO](transactor)).tupled
       }
       .use { case (usersStore, accessControl) =>
-        for
-          usersManager <- UsersManager.make[IO, ConnectionIO](usersStore, accessControl)
-          userId <- usersManager.createAccount(args.username, args.password, args.globalRole)
-        yield userId
+        UsersManager
+          .make[IO, ConnectionIO](usersStore, accessControl, accountConfig.delayUntilPermanentDeletion)
+          .createAccount(args.username, args.password, args.globalRole)
       }

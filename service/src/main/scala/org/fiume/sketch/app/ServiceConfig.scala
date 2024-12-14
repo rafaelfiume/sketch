@@ -60,6 +60,7 @@ object ServiceConfig:
       keyPair = EcKeyPairConfig(privateKey, publicKey),
       db = databaseConfig,
       rusticClient = RusticClientConfig(rusticHost, rusticPort),
+      // TODO Load from the environment
       account = AccountConfig(
         delayUntilPermanentDeletion = 90.days,
         permanentDeletionJobInterval = 15.seconds

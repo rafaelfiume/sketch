@@ -69,12 +69,7 @@ object HttpApi:
     val authMiddleware = Auth0Middleware(res.authenticator)
 
     val authRoutes: HttpRoutes[F] = new AuthRoutes[F](res.authenticator).router()
-    val usersRoutes: HttpRoutes[F] = new UsersRoutes[F, ConnectionIO](
-      authMiddleware,
-      res.accessControl,
-      res.usersStore,
-      config.account.delayUntilPermanentDeletion
-    ).router()
+    val usersRoutes: HttpRoutes[F] = new UsersRoutes[F, ConnectionIO](authMiddleware, res.userManager).router()
     val documentsRoutes: HttpRoutes[F] =
       new DocumentsRoutes[F, ConnectionIO](
         authMiddleware,
