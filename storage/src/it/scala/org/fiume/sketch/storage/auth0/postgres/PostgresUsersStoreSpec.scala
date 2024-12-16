@@ -6,11 +6,12 @@ import doobie.ConnectionIO
 import doobie.implicits.*
 import doobie.postgres.implicits.*
 import munit.ScalaCheckEffectSuite
-import org.fiume.sketch.shared.auth.domain.{AccountState, Passwords, User, UserId}
-import org.fiume.sketch.shared.auth.domain.AccountState.SoftDeleted
-import org.fiume.sketch.shared.auth.domain.Passwords.HashedPassword
-import org.fiume.sketch.shared.auth.domain.User.*
-import org.fiume.sketch.shared.auth.jobs.ScheduledAccountDeletion
+import org.fiume.sketch.shared.auth.{Passwords, UserId}
+import org.fiume.sketch.shared.auth.Passwords.HashedPassword
+import org.fiume.sketch.shared.auth.User.*
+import org.fiume.sketch.shared.auth.accounts.AccountState
+import org.fiume.sketch.shared.auth.accounts.AccountState.SoftDeleted
+import org.fiume.sketch.shared.auth.accounts.jobs.ScheduledAccountDeletion
 import org.fiume.sketch.shared.auth.testkit.PasswordsGens.given
 import org.fiume.sketch.shared.auth.testkit.UserGens
 import org.fiume.sketch.shared.auth.testkit.UserGens.given

@@ -4,7 +4,8 @@ import cats.effect.{Async, Clock, Resource, Sync}
 import doobie.ConnectionIO
 import fs2.io.net.Network
 import org.fiume.sketch.app.SketchVersions.VersionFile
-import org.fiume.sketch.auth.{Authenticator, UsersManager}
+import org.fiume.sketch.auth.Authenticator
+import org.fiume.sketch.auth.accounts.UsersManager
 import org.fiume.sketch.rustic.RusticHealthCheck
 import org.fiume.sketch.shared.auth.algebras.UsersStore
 import org.fiume.sketch.shared.authorisation.AccessControl

@@ -3,7 +3,7 @@ package org.fiume.sketch.shared.auth
 import cats.effect.IO
 import cats.effect.unsafe.IORuntime
 import munit.ScalaCheckSuite
-import org.fiume.sketch.shared.auth.domain.Passwords.{HashedPassword, PlainPassword, Salt}
+import org.fiume.sketch.shared.auth.Passwords.{HashedPassword, PlainPassword, Salt}
 import org.fiume.sketch.shared.auth.testkit.PasswordsGens.given
 import org.scalacheck.{Prop, ShrinkLowPriority}
 import org.scalacheck.Prop.{forAll, propBoolean}

@@ -1,13 +1,14 @@
-package org.fiume.sketch.auth
+package org.fiume.sketch.auth.accounts
 
 import cats.effect.IO
 import cats.implicits.*
 import munit.{CatsEffectSuite, ScalaCheckEffectSuite}
 import munit.Assertions.*
-import org.fiume.sketch.shared.auth.domain.{Account, AccountState, ActivateAccountError, SoftDeleteAccountError, UserId}
-import org.fiume.sketch.shared.auth.domain.Passwords.PlainPassword
-import org.fiume.sketch.shared.auth.domain.User.{UserCredentials, Username}
-import org.fiume.sketch.shared.auth.jobs.ScheduledAccountDeletion
+import org.fiume.sketch.shared.auth.Passwords.PlainPassword
+import org.fiume.sketch.shared.auth.User.{UserCredentials, Username}
+import org.fiume.sketch.shared.auth.UserId
+import org.fiume.sketch.shared.auth.accounts.{Account, AccountState, ActivateAccountError, SoftDeleteAccountError}
+import org.fiume.sketch.shared.auth.accounts.jobs.ScheduledAccountDeletion
 import org.fiume.sketch.shared.auth.testkit.{UserGens, UsersStoreContext}
 import org.fiume.sketch.shared.auth.testkit.AccountGens.given
 import org.fiume.sketch.shared.auth.testkit.PasswordsGens.given

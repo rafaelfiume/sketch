@@ -3,11 +3,12 @@ package org.fiume.sketch.shared.auth.algebras
 import cats.Monad
 import cats.effect.kernel.Clock
 import cats.implicits.*
-import org.fiume.sketch.shared.auth.domain.{Account, AccountState, ActivateAccountError, SoftDeleteAccountError, User, UserId}
-import org.fiume.sketch.shared.auth.domain.Passwords.HashedPassword
-import org.fiume.sketch.shared.auth.domain.SoftDeleteAccountError.*
-import org.fiume.sketch.shared.auth.domain.User.*
-import org.fiume.sketch.shared.auth.jobs.ScheduledAccountDeletion
+import org.fiume.sketch.shared.auth.{User, UserId}
+import org.fiume.sketch.shared.auth.Passwords.HashedPassword
+import org.fiume.sketch.shared.auth.User.*
+import org.fiume.sketch.shared.auth.accounts.{Account, AccountState, ActivateAccountError, SoftDeleteAccountError}
+import org.fiume.sketch.shared.auth.accounts.SoftDeleteAccountError.*
+import org.fiume.sketch.shared.auth.accounts.jobs.ScheduledAccountDeletion
 import org.fiume.sketch.shared.common.algebras.Store
 
 import java.time.Instant

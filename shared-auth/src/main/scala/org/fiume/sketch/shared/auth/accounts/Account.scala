@@ -1,9 +1,10 @@
-package org.fiume.sketch.shared.auth.domain
+package org.fiume.sketch.shared.auth.accounts
 
 import cats.implicits.*
-import org.fiume.sketch.shared.auth.domain.ActivateAccountError.*
-import org.fiume.sketch.shared.auth.domain.SoftDeleteAccountError.AccountAlreadyPendingDeletion
-import org.fiume.sketch.shared.auth.domain.User.UserCredentials
+import org.fiume.sketch.shared.auth.User.UserCredentials
+import org.fiume.sketch.shared.auth.UserId
+import org.fiume.sketch.shared.auth.accounts.ActivateAccountError.*
+import org.fiume.sketch.shared.auth.accounts.SoftDeleteAccountError.AccountAlreadyPendingDeletion
 import org.fiume.sketch.shared.common.WithUuid
 
 import java.time.Instant

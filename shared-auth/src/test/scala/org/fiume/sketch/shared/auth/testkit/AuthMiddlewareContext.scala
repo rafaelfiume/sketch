@@ -3,7 +3,7 @@ package org.fiume.sketch.shared.auth.testkit
 import cats.data.{Kleisli, OptionT}
 import cats.effect.IO
 import cats.implicits.*
-import org.fiume.sketch.shared.auth.domain.User
+import org.fiume.sketch.shared.auth.User
 import org.fiume.sketch.shared.auth.testkit.UserGens.*
 import org.fiume.sketch.shared.common.troubleshooting.ErrorInfo
 import org.fiume.sketch.shared.common.troubleshooting.ErrorInfo.json.given

@@ -4,10 +4,10 @@ import cats.effect.{IO, Resource}
 import cats.implicits.*
 import com.comcast.ip4s.*
 import munit.{AnyFixture, CatsEffectSuite}
-import org.fiume.sketch.shared.auth.domain.{AuthenticationError, Jwt}
-import org.fiume.sketch.shared.auth.domain.AuthenticationError.*
-import org.fiume.sketch.shared.auth.domain.Passwords.PlainPassword
-import org.fiume.sketch.shared.auth.domain.User.Username
+import org.fiume.sketch.shared.auth.accounts.{AuthenticationError, Jwt}
+import org.fiume.sketch.shared.auth.AuthenticationError.*
+import org.fiume.sketch.shared.auth.Passwords.PlainPassword
+import org.fiume.sketch.shared.auth.User.Username
 import org.fiume.sketch.shared.auth.http.model.Login.Error.toErrorInfo
 import org.fiume.sketch.shared.auth.http.model.Login.LoginRequestPayload
 import org.fiume.sketch.shared.auth.http.model.Login.json.given

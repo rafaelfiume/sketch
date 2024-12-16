@@ -5,8 +5,8 @@ import cats.implicits.*
 import doobie.ConnectionIO
 import doobie.implicits.*
 import munit.ScalaCheckEffectSuite
-import org.fiume.sketch.shared.auth.domain.User.UserCredentials
-import org.fiume.sketch.shared.auth.domain.UserId
+import org.fiume.sketch.shared.auth.User.UserCredentials
+import org.fiume.sketch.shared.auth.UserId
 import org.fiume.sketch.shared.auth.testkit.UserGens.*
 import org.fiume.sketch.shared.auth.testkit.UserGens.given
 import org.fiume.sketch.shared.auth.testkit.UsersStoreContext

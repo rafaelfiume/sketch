@@ -4,12 +4,13 @@ import cats.effect.IO
 import munit.{CatsEffectSuite, ScalaCheckEffectSuite}
 import org.bouncycastle.jce.provider.BouncyCastleProvider
 import org.fiume.sketch.auth.testkit.EcKeysGens
-import org.fiume.sketch.shared.auth.domain.{Account, AccountState, Jwt, User}
-import org.fiume.sketch.shared.auth.domain.AccountState.SoftDeleted
-import org.fiume.sketch.shared.auth.domain.AuthenticationError.*
-import org.fiume.sketch.shared.auth.domain.JwtVerificationError.*
-import org.fiume.sketch.shared.auth.domain.Passwords.PlainPassword
-import org.fiume.sketch.shared.auth.domain.User.Username
+import org.fiume.sketch.shared.auth.{Jwt, User}
+import org.fiume.sketch.shared.auth.AuthenticationError.*
+import org.fiume.sketch.shared.auth.JwtVerificationError.*
+import org.fiume.sketch.shared.auth.Passwords.PlainPassword
+import org.fiume.sketch.shared.auth.User.Username
+import org.fiume.sketch.shared.auth.accounts.{Account, AccountState}
+import org.fiume.sketch.shared.auth.accounts.AccountState.SoftDeleted
 import org.fiume.sketch.shared.auth.testkit.{UserGens, UsersStoreContext}
 import org.fiume.sketch.shared.auth.testkit.UserGens.*
 import org.fiume.sketch.shared.testkit.ClockContext

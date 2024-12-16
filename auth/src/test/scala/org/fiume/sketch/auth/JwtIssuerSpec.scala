@@ -5,8 +5,8 @@ import munit.Assertions.*
 import munit.ScalaCheckSuite
 import org.bouncycastle.jce.provider.BouncyCastleProvider
 import org.fiume.sketch.auth.testkit.EcKeysGens
-import org.fiume.sketch.shared.auth.domain.Jwt
-import org.fiume.sketch.shared.auth.domain.JwtVerificationError.*
+import org.fiume.sketch.shared.auth.Jwt
+import org.fiume.sketch.shared.auth.JwtVerificationError.*
 import org.fiume.sketch.shared.auth.testkit.UserGens.*
 import org.fiume.sketch.shared.testkit.ClockContext
 import org.fiume.sketch.shared.testkit.Gens.DateAndTime.*

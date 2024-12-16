@@ -2,9 +2,9 @@ package org.fiume.sketch.shared.auth.http.model
 
 import io.circe.{Decoder, Encoder}
 import io.circe.generic.semiauto.*
-import org.fiume.sketch.shared.auth.domain.UserId
-import org.fiume.sketch.shared.auth.domain.UserId.given
-import org.fiume.sketch.shared.auth.jobs.ScheduledAccountDeletion
+import org.fiume.sketch.shared.auth.UserId
+import org.fiume.sketch.shared.auth.UserId.given
+import org.fiume.sketch.shared.auth.accounts.jobs.ScheduledAccountDeletion
 import org.fiume.sketch.shared.common.jobs.JobId
 import org.fiume.sketch.shared.common.troubleshooting.syntax.ErrorInfoSyntax.*
 

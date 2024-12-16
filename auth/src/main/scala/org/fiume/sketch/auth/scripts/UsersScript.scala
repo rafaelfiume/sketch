@@ -5,12 +5,12 @@ import cats.effect.{Clock, ExitCode, IO, IOApp}
 import cats.effect.std.Console
 import cats.implicits.*
 import doobie.ConnectionIO
-import org.fiume.sketch.auth.UsersManager
+import org.fiume.sketch.auth.accounts.UsersManager
 import org.fiume.sketch.auth.scripts.UsersScript.Args
-import org.fiume.sketch.shared.auth.AccountConfig
-import org.fiume.sketch.shared.auth.domain.{User, UserId}
-import org.fiume.sketch.shared.auth.domain.Passwords.PlainPassword
-import org.fiume.sketch.shared.auth.domain.User.Username
+import org.fiume.sketch.shared.auth.{User, UserId}
+import org.fiume.sketch.shared.auth.Passwords.PlainPassword
+import org.fiume.sketch.shared.auth.User.Username
+import org.fiume.sketch.shared.auth.accounts.AccountConfig
 import org.fiume.sketch.shared.authorisation.GlobalRole
 import org.fiume.sketch.shared.common.troubleshooting.{ErrorInfo, InvariantError}
 import org.fiume.sketch.shared.common.troubleshooting.ErrorInfo.ErrorDetails

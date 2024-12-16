@@ -7,7 +7,7 @@ import munit.{CatsEffectSuite, ScalaCheckEffectSuite}
 import munit.Assertions.*
 import org.fiume.sketch.http.DocumentsRoutes.Model.*
 import org.fiume.sketch.http.DocumentsRoutes.Model.json.given
-import org.fiume.sketch.shared.auth.domain.User
+import org.fiume.sketch.shared.auth.User
 import org.fiume.sketch.shared.auth.testkit.AuthMiddlewareContext
 import org.fiume.sketch.shared.auth.testkit.UserGens.given
 import org.fiume.sketch.shared.authorisation.{AccessControl, ContextualRole}

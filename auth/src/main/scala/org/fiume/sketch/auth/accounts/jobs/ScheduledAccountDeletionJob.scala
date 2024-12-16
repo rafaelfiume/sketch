@@ -1,10 +1,10 @@
-package org.fiume.sketch.auth.jobs
+package org.fiume.sketch.auth.accounts.jobs
 
 import cats.Monad
 import cats.effect.Sync
 import cats.implicits.*
+import org.fiume.sketch.shared.auth.UserId
 import org.fiume.sketch.shared.auth.algebras.UsersStore
-import org.fiume.sketch.shared.auth.domain.UserId
 import org.fiume.sketch.shared.common.jobs.{Job, JobId}
 import org.typelevel.log4cats.Logger
 import org.typelevel.log4cats.slf4j.Slf4jLogger

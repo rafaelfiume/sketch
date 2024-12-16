@@ -5,11 +5,11 @@ import cats.implicits.*
 import munit.{CatsEffectSuite, ScalaCheckEffectSuite}
 import munit.Assertions.*
 import org.fiume.sketch.auth.testkit.AuthenticatorContext
-import org.fiume.sketch.shared.auth.domain.Passwords.PlainPassword
-import org.fiume.sketch.shared.auth.domain.Passwords.PlainPassword.WeakPasswordError
-import org.fiume.sketch.shared.auth.domain.User
-import org.fiume.sketch.shared.auth.domain.User.Username
-import org.fiume.sketch.shared.auth.domain.User.Username.WeakUsernameError
+import org.fiume.sketch.shared.auth.Passwords.PlainPassword
+import org.fiume.sketch.shared.auth.Passwords.PlainPassword.WeakPasswordError
+import org.fiume.sketch.shared.auth.User
+import org.fiume.sketch.shared.auth.User.Username
+import org.fiume.sketch.shared.auth.User.Username.WeakUsernameError
 import org.fiume.sketch.shared.auth.http.model.Login.{LoginRequestPayload, LoginResponsePayload}
 import org.fiume.sketch.shared.auth.http.model.Login.json.given
 import org.fiume.sketch.shared.auth.testkit.JwtGens.jwts

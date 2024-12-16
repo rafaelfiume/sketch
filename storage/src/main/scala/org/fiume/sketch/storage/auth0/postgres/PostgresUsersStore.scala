@@ -7,11 +7,12 @@ import doobie.*
 import doobie.free.connection.ConnectionIO
 import doobie.implicits.*
 import doobie.postgres.implicits.*
+import org.fiume.sketch.shared.auth.{Passwords, UserId}
+import org.fiume.sketch.shared.auth.Passwords.{HashedPassword, Salt}
+import org.fiume.sketch.shared.auth.User.*
+import org.fiume.sketch.shared.auth.accounts.{Account, AccountState}
+import org.fiume.sketch.shared.auth.accounts.jobs.ScheduledAccountDeletion
 import org.fiume.sketch.shared.auth.algebras.UsersStore
-import org.fiume.sketch.shared.auth.domain.{Account, AccountState, Passwords, User, UserId}
-import org.fiume.sketch.shared.auth.domain.Passwords.{HashedPassword, Salt}
-import org.fiume.sketch.shared.auth.domain.User.*
-import org.fiume.sketch.shared.auth.jobs.ScheduledAccountDeletion
 import org.fiume.sketch.shared.common.jobs.JobId
 import org.fiume.sketch.storage.auth.postgres.DatabaseCodecs.given
 import org.fiume.sketch.storage.auth.postgres.Statements.*

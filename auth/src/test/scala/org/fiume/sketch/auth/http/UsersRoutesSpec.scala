@@ -3,15 +3,16 @@ package org.fiume.sketch.auth.http
 import cats.effect.IO
 import cats.implicits.*
 import munit.{CatsEffectSuite, ScalaCheckEffectSuite}
-import org.fiume.sketch.auth.UsersManager
-import org.fiume.sketch.shared.auth.domain.{Account, ActivateAccountError, SoftDeleteAccountError, User, UserId}
-import org.fiume.sketch.shared.auth.domain.ActivateAccountError.AccountAlreadyActive
-import org.fiume.sketch.shared.auth.domain.Passwords.PlainPassword
-import org.fiume.sketch.shared.auth.domain.SoftDeleteAccountError.{AccountAlreadyPendingDeletion, AccountNotFound}
-import org.fiume.sketch.shared.auth.domain.User.Username
+import org.fiume.sketch.auth.accounts.UsersManager
+import org.fiume.sketch.shared.auth.{User, UserId}
+import org.fiume.sketch.shared.auth.Passwords.PlainPassword
+import org.fiume.sketch.shared.auth.User.Username
+import org.fiume.sketch.shared.auth.accounts.{Account, ActivateAccountError, SoftDeleteAccountError}
+import org.fiume.sketch.shared.auth.accounts.ActivateAccountError.AccountAlreadyActive
+import org.fiume.sketch.shared.auth.accounts.SoftDeleteAccountError.{AccountAlreadyPendingDeletion, AccountNotFound}
+import org.fiume.sketch.shared.auth.accounts.jobs.ScheduledAccountDeletion
 import org.fiume.sketch.shared.auth.http.model.Users.ScheduledForPermanentDeletionResponse
 import org.fiume.sketch.shared.auth.http.model.Users.json.given
-import org.fiume.sketch.shared.auth.jobs.ScheduledAccountDeletion
 import org.fiume.sketch.shared.auth.testkit.{AuthMiddlewareContext, UserGens}
 import org.fiume.sketch.shared.auth.testkit.AccountGens.given
 import org.fiume.sketch.shared.auth.testkit.UserGens.given

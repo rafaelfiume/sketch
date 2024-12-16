@@ -4,7 +4,7 @@ import cats.data.{Kleisli, OptionT}
 import cats.effect.Sync
 import cats.implicits.*
 import org.fiume.sketch.auth.Authenticator
-import org.fiume.sketch.shared.auth.domain.{Jwt, User}
+import org.fiume.sketch.shared.auth.{Jwt, User}
 import org.fiume.sketch.shared.common.troubleshooting.ErrorInfo
 import org.fiume.sketch.shared.common.troubleshooting.ErrorInfo.json.given
 import org.fiume.sketch.shared.common.troubleshooting.syntax.ErrorInfoSyntax.*

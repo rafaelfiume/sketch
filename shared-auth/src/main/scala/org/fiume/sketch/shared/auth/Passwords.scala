@@ -1,10 +1,10 @@
-package org.fiume.sketch.shared.auth.domain
+package org.fiume.sketch.shared.auth
 
 import cats.{Eq, Show}
 import cats.data.{EitherNec, Validated}
 import cats.effect.Sync
 import cats.implicits.*
-import org.fiume.sketch.shared.auth.domain.Passwords.PlainPassword.WeakPasswordError.*
+import org.fiume.sketch.shared.auth.Passwords.PlainPassword.WeakPasswordError.*
 import org.fiume.sketch.shared.common.troubleshooting.InvariantError
 import org.mindrot.jbcrypt.BCrypt
 

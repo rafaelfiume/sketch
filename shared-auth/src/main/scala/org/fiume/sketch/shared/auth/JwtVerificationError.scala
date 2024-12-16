@@ -1,4 +1,4 @@
-package org.fiume.sketch.shared.auth.domain
+package org.fiume.sketch.shared.auth
 
 import cats.Show
 

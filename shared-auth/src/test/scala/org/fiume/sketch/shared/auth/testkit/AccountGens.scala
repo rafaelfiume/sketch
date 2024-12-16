@@ -1,7 +1,7 @@
 package org.fiume.sketch.shared.auth.testkit
 
-import org.fiume.sketch.shared.auth.domain.{Account, AccountState}
-import org.fiume.sketch.shared.auth.domain.AccountState.*
+import org.fiume.sketch.shared.auth.accounts.{Account, AccountState}
+import org.fiume.sketch.shared.auth.accounts.AccountState.*
 import org.fiume.sketch.shared.auth.testkit.UserGens.*
 import org.scalacheck.{Arbitrary, Gen}
 

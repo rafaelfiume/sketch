@@ -5,8 +5,9 @@ import cats.implicits.*
 import com.comcast.ip4s.*
 import munit.CatsEffectSuite
 import org.fiume.sketch.shared.account.management.http.model.AccountStateTransitionErrorSyntax.*
-import org.fiume.sketch.shared.auth.domain.{ActivateAccountError, Jwt, SoftDeleteAccountError, UserId}
-import org.fiume.sketch.shared.auth.domain.SoftDeleteAccountError.*
+import org.fiume.sketch.shared.auth.{Jwt, UserId}
+import org.fiume.sketch.shared.auth.accounts.{ActivateAccountError, SoftDeleteAccountError}
+import org.fiume.sketch.shared.auth.accounts.SoftDeleteAccountError.*
 import org.fiume.sketch.shared.auth.http.model.Users.UserIdVar
 import org.fiume.sketch.shared.auth.testkit.JwtGens.*
 import org.fiume.sketch.shared.auth.testkit.UserGens.*

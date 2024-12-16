@@ -4,7 +4,7 @@ import cats.effect.IO
 import com.comcast.ip4s.*
 import org.fiume.sketch.auth.scripts.UsersScript
 import org.fiume.sketch.auth.scripts.UsersScript.Args
-import org.fiume.sketch.shared.auth.domain.Jwt
+import org.fiume.sketch.shared.auth.Jwt
 import org.fiume.sketch.shared.auth.http.HttpAuthClient
 import org.fiume.sketch.shared.auth.testkit.PasswordsGens.*
 import org.fiume.sketch.shared.auth.testkit.UserGens.*

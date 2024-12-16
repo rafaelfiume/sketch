@@ -2,10 +2,10 @@ package org.fiume.sketch.shared.auth.http.model
 
 import cats.effect.Async
 import cats.implicits.*
-import org.fiume.sketch.shared.auth.domain.AuthenticationError
-import org.fiume.sketch.shared.auth.domain.AuthenticationError.*
-import org.fiume.sketch.shared.auth.domain.Passwords.PlainPassword
-import org.fiume.sketch.shared.auth.domain.User.Username
+import org.fiume.sketch.shared.auth.AuthenticationError
+import org.fiume.sketch.shared.auth.AuthenticationError.*
+import org.fiume.sketch.shared.auth.Passwords.PlainPassword
+import org.fiume.sketch.shared.auth.User.Username
 import org.fiume.sketch.shared.common.http.middlewares.SemanticInputError
 import org.fiume.sketch.shared.common.troubleshooting.ErrorInfo
 import org.fiume.sketch.shared.common.troubleshooting.ErrorInfo.ErrorDetails

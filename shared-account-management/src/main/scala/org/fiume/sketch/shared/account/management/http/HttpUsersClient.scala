@@ -3,12 +3,13 @@ package org.fiume.sketch.shared.account.management.http
 import cats.effect.Async
 import cats.implicits.*
 import com.comcast.ip4s.{Host, Port}
-import org.fiume.sketch.shared.auth.domain.{ActivateAccountError, Jwt, SoftDeleteAccountError, UserId}
-import org.fiume.sketch.shared.auth.domain.SoftDeleteAccountError.AccountAlreadyPendingDeletion
+import org.fiume.sketch.shared.auth.{Jwt, UserId}
+import org.fiume.sketch.shared.auth.accounts.{ActivateAccountError, SoftDeleteAccountError}
+import org.fiume.sketch.shared.auth.accounts.SoftDeleteAccountError.AccountAlreadyPendingDeletion
+import org.fiume.sketch.shared.auth.accounts.jobs.ScheduledAccountDeletion
 import org.fiume.sketch.shared.auth.http.ClientAuthorisationError
 import org.fiume.sketch.shared.auth.http.model.Users.ScheduledForPermanentDeletionResponse
 import org.fiume.sketch.shared.auth.http.model.Users.json.given
-import org.fiume.sketch.shared.auth.jobs.ScheduledAccountDeletion
 import org.fiume.sketch.shared.authorisation.AccessDenied
 import org.http4s.{Request, Uri}
 import org.http4s.Method.*

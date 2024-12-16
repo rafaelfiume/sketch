@@ -2,11 +2,12 @@ package org.fiume.sketch.shared.auth.testkit
 
 import cats.effect.IO
 import cats.effect.kernel.Clock
+import org.fiume.sketch.shared.auth.Passwords.HashedPassword
+import org.fiume.sketch.shared.auth.User.{UserCredentials, UserCredentialsWithId, Username}
+import org.fiume.sketch.shared.auth.UserId
+import org.fiume.sketch.shared.auth.accounts.{Account, AccountState}
+import org.fiume.sketch.shared.auth.accounts.jobs.ScheduledAccountDeletion
 import org.fiume.sketch.shared.auth.algebras.UsersStore
-import org.fiume.sketch.shared.auth.domain.{Account, AccountState, User, UserId}
-import org.fiume.sketch.shared.auth.domain.Passwords.HashedPassword
-import org.fiume.sketch.shared.auth.domain.User.{UserCredentials, UserCredentialsWithId, Username}
-import org.fiume.sketch.shared.auth.jobs.ScheduledAccountDeletion
 import org.fiume.sketch.shared.common.jobs.JobId
 import org.fiume.sketch.shared.testkit.syntax.OptionSyntax.*
 

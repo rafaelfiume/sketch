@@ -6,8 +6,8 @@ import io.circe.parser.parse
 import munit.{CatsEffectSuite, ScalaCheckEffectSuite}
 import munit.Assertions.*
 import org.fiume.sketch.auth.testkit.AuthenticatorContext
-import org.fiume.sketch.shared.auth.domain.{Jwt, JwtVerificationError, User}
-import org.fiume.sketch.shared.auth.domain.Passwords.PlainPassword
+import org.fiume.sketch.shared.auth.{Jwt, JwtVerificationError, User}
+import org.fiume.sketch.shared.auth.Passwords.PlainPassword
 import org.fiume.sketch.shared.auth.testkit.JwtGens.given
 import org.fiume.sketch.shared.auth.testkit.PasswordsGens.given
 import org.fiume.sketch.shared.auth.testkit.UserGens.given

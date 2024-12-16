@@ -1,8 +1,8 @@
 package org.fiume.sketch.shared.account.management.http.model
 
-import org.fiume.sketch.shared.auth.domain.{ActivateAccountError, SoftDeleteAccountError}
-import org.fiume.sketch.shared.auth.domain.ActivateAccountError.*
-import org.fiume.sketch.shared.auth.domain.SoftDeleteAccountError.*
+import org.fiume.sketch.shared.auth.accounts.{ActivateAccountError, SoftDeleteAccountError}
+import org.fiume.sketch.shared.auth.accounts.ActivateAccountError.*
+import org.fiume.sketch.shared.auth.accounts.SoftDeleteAccountError.*
 import org.fiume.sketch.shared.authorisation.AccessDenied
 import org.fiume.sketch.shared.common.troubleshooting.ErrorInfo
 import org.fiume.sketch.shared.common.troubleshooting.syntax.ErrorInfoSyntax.*

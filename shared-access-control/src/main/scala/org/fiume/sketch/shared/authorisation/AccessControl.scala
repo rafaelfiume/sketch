@@ -2,7 +2,7 @@ package org.fiume.sketch.shared.authorisation
 
 import cats.Monad
 import cats.implicits.*
-import org.fiume.sketch.shared.auth.domain.UserId
+import org.fiume.sketch.shared.auth.UserId
 import org.fiume.sketch.shared.authorisation.ContextualRole.*
 import org.fiume.sketch.shared.authorisation.GlobalRole.*
 import org.fiume.sketch.shared.authorisation.Role.{Contextual, Global}

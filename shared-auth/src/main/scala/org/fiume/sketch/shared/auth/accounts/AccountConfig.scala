@@ -1,4 +1,4 @@
-package org.fiume.sketch.shared.auth
+package org.fiume.sketch.shared.auth.accounts
 
 import scala.concurrent.duration.{Duration, FiniteDuration}
 

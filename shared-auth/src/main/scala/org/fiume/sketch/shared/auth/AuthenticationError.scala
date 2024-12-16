@@ -1,4 +1,4 @@
-package org.fiume.sketch.shared.auth.domain
+package org.fiume.sketch.shared.auth
 
 enum AuthenticationError(val details: String):
   case UserNotFoundError extends AuthenticationError("User not found")

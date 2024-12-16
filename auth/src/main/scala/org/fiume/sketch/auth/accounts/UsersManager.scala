@@ -1,13 +1,14 @@
-package org.fiume.sketch.auth
+package org.fiume.sketch.auth.accounts
 
 import cats.Monad
 import cats.effect.Sync
 import cats.implicits.*
+import org.fiume.sketch.shared.auth.Passwords.{HashedPassword, PlainPassword, Salt}
+import org.fiume.sketch.shared.auth.User.*
+import org.fiume.sketch.shared.auth.UserId
+import org.fiume.sketch.shared.auth.accounts.{Account, ActivateAccountError, SoftDeleteAccountError}
+import org.fiume.sketch.shared.auth.accounts.jobs.ScheduledAccountDeletion
 import org.fiume.sketch.shared.auth.algebras.UsersStore
-import org.fiume.sketch.shared.auth.domain.{Account, ActivateAccountError, SoftDeleteAccountError, User, UserId}
-import org.fiume.sketch.shared.auth.domain.Passwords.{HashedPassword, PlainPassword, Salt}
-import org.fiume.sketch.shared.auth.domain.User.*
-import org.fiume.sketch.shared.auth.jobs.ScheduledAccountDeletion
 import org.fiume.sketch.shared.authorisation.{AccessControl, AccessDenied, ContextualRole, GlobalRole}
 import org.fiume.sketch.shared.authorisation.ContextualRole.Owner
 import org.fiume.sketch.shared.authorisation.syntax.AccessDeniedSyntax.*
