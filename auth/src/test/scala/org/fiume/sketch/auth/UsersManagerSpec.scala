@@ -126,8 +126,8 @@ class UsersManagerSpec
 
   test("only Admin users can restore user accounts"):
     forAllF { (owner: UserCredentials, authed: UserCredentials) =>
-      val accountActivationDate = Instant.now
-      val clock = makeFrozenClock(accountActivationDate)
+      val accountReactivationDate = Instant.now
+      val clock = makeFrozenClock(accountReactivationDate)
       for
         store <- makeEmptyUsersStore(clock)
         accessControl <- makeAccessControl()
@@ -140,8 +140,8 @@ class UsersManagerSpec
         _ <- IO {
           assertEquals(result.credentials, owner)
           assertEquals(result.state,
-                       AccountState.Active(accountActivationDate.truncatedTo(MILLIS))
-          ) // it keeps the original activation date
+                       AccountState.Active(accountReactivationDate.truncatedTo(MILLIS))
+          )
         }
         // The Api is idempotent in behaviour but not in response
         _ <- assertIO(

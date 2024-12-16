@@ -88,7 +88,7 @@ class DocumentsRoutes[F[_]: Concurrent, Txn[_]: FlatMap](
 
       case GET -> Root / "documents" as user =>
         val stream = accessControl
-          .fetchAllAuthorisedEntityIds(user.uuid, "DocumentEntity") // always returns 200!
+          .fetchAllAuthorisedEntityIds(user.uuid, "DocumentEntity") // always return 200
           .through(store.fetchDocuments)
           .commitStream()
           .map(_.asResponsePayload.asJson)
