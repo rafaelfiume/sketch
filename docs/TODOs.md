@@ -8,8 +8,10 @@
  . . . steps coming soon
 
 
- - Create the events table
- - Query to select and lock an event for processing:
+ - Register event
+ - Poll event
+ - Process event
+
 
 
 
