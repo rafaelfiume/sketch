@@ -89,8 +89,6 @@ trait UsersStoreContext:
 
         override def deleteAccount(userId: UserId): IO[Unit] = storage.update { _.--(userId) }.void
 
-        override def claimNextJob(): IO[Option[ScheduledAccountDeletion]] = ???
-
         override protected def updateAccount(account: Account): IO[Unit] = storage.update { _.++(account) }.void
 
         override protected def schedulePermanentDeletion(

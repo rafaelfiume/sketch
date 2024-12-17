@@ -42,8 +42,6 @@ private class PostgresUsersStore[F[_]: Async] private (lift: F ~> ConnectionIO, 
 
   override def deleteAccount(userId: UserId): ConnectionIO[Unit] = Statements.delete(userId).run.void
 
-  override def claimNextJob(): ConnectionIO[Option[ScheduledAccountDeletion]] = JobStatements.lockAndRemoveNextJob().option
-
   override protected def updateAccount(account: Account): ConnectionIO[Unit] =
     Statements.update(account).run.void
 
@@ -148,20 +146,6 @@ private object JobStatements:
          |)
     """.stripMargin.update
       .withUniqueGeneratedKeys[ScheduledAccountDeletion]("uuid", "user_id", "permanent_deletion_at")
-
-  def lockAndRemoveNextJob(): Query0[ScheduledAccountDeletion] =
-    // Writing the same query with CTE would be equally doable
-    sql"""
-         |DELETE FROM auth.account_permanent_deletion_queue
-         |WHERE uuid = (
-         |  SELECT uuid
-         |  FROM auth.account_permanent_deletion_queue
-         |  WHERE permanent_deletion_at < now()
-         |  FOR UPDATE SKIP LOCKED
-         |  LIMIT 1
-         |)
-         |RETURNING *
-    """.stripMargin.query[ScheduledAccountDeletion]
 
   def deleteJob(userId: UserId): Update0 =
     sql"DELETE FROM auth.account_permanent_deletion_queue WHERE user_id = $userId".update

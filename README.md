@@ -44,7 +44,7 @@ and a [start-local.sh](/tools/stack/start-local.sh) script to initialise the ser
  - [Applicatives and validation](shared-auth/src/main/scala/org/fiume/sketch/shared/auth/domain/Passwords.scala)
  - [Controlling (Db) transactions in business domain components with Functor Transformation](shared-components/src/main/scala/org/fiume/sketch/shared/common/algebras/Store.scala) (`FunctionK` or `~>`)
  - [Basic fs2.Stream](shared-components/src/main/scala/org/fiume/sketch/shared/common/jobs/PeriodicJob.scala)
- - [fs2.Stream to test a job queue](storage/src/it/scala/org/fiume/sketch/storage/auth0/postgres/PostgresUsersStoreSpec.scala): see `"claims next job and return it to the queue if processing fails"`
+ - [fs2.Stream to test a job queue](storage/src/it/scala/org/fiume/sketch/storage/auth0/postgres/PostgresEventConsumerSpec.scala)
 
 ### A few Scala features in action
 

@@ -140,9 +140,7 @@ class UsersManagerSpec
 
         _ <- IO {
           assertEquals(result.credentials, owner)
-          assertEquals(result.state,
-                       AccountState.Active(accountReactivationDate.truncatedTo(MILLIS))
-          )
+          assertEquals(result.state, AccountState.Active(accountReactivationDate.truncatedTo(MILLIS)))
         }
         // The Api is idempotent in behaviour but not in response
         _ <- assertIO(

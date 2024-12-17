@@ -55,8 +55,6 @@ trait UsersStore[F[_], Txn[_]: Monad](clock: Clock[F]) extends Store[F, Txn]:
         }
     }
 
-  def claimNextJob(): Txn[Option[ScheduledAccountDeletion]]
-
   protected def updateAccount(account: Account): Txn[Unit]
 
   protected def schedulePermanentDeletion(userId: UserId, permanentDeletionAt: Instant): Txn[ScheduledAccountDeletion]
