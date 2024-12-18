@@ -1,6 +1,6 @@
 package org.fiume.sketch.storage.auth.postgres
 
-import cats.effect.{Async, Clock, Resource}
+import cats.effect.{Async, Resource}
 import cats.implicits.*
 import cats.~>
 import doobie.*
@@ -11,22 +11,18 @@ import org.fiume.sketch.shared.auth.{Passwords, UserId}
 import org.fiume.sketch.shared.auth.Passwords.{HashedPassword, Salt}
 import org.fiume.sketch.shared.auth.User.*
 import org.fiume.sketch.shared.auth.accounts.{Account, AccountState}
-import org.fiume.sketch.shared.auth.accounts.jobs.AccountDeletionEvent
 import org.fiume.sketch.shared.auth.algebras.UsersStore
-import org.fiume.sketch.shared.common.jobs.JobId
 import org.fiume.sketch.storage.auth.postgres.DatabaseCodecs.given
 import org.fiume.sketch.storage.auth.postgres.Statements.*
 import org.fiume.sketch.storage.postgres.AbstractPostgresStore
 
-import java.time.Instant
-
 object PostgresUsersStore:
-  def make[F[_]: Async](tx: Transactor[F], clock: Clock[F]): Resource[F, PostgresUsersStore[F]] =
-    WeakAsync.liftK[F, ConnectionIO].map(lift => new PostgresUsersStore[F](lift, tx, clock))
+  def make[F[_]: Async](tx: Transactor[F]): Resource[F, PostgresUsersStore[F]] =
+    WeakAsync.liftK[F, ConnectionIO].map(lift => new PostgresUsersStore[F](lift, tx))
 
-private class PostgresUsersStore[F[_]: Async] private (lift: F ~> ConnectionIO, tx: Transactor[F], clock: Clock[F])
+private class PostgresUsersStore[F[_]: Async] private (lift: F ~> ConnectionIO, tx: Transactor[F])
     extends AbstractPostgresStore[F](lift, tx)
-    with UsersStore[F, ConnectionIO](clock):
+    with UsersStore[F, ConnectionIO]:
 
   override def createAccount(credentials: UserCredentials): ConnectionIO[UserId] =
     insertUserCredentials(credentials.username, credentials.hashedPassword, credentials.salt)
@@ -42,16 +38,8 @@ private class PostgresUsersStore[F[_]: Async] private (lift: F ~> ConnectionIO, 
 
   override def deleteAccount(userId: UserId): ConnectionIO[Unit] = Statements.delete(userId).run.void
 
-  override protected def updateAccount(account: Account): ConnectionIO[Unit] =
+  override def updateAccount(account: Account): ConnectionIO[Unit] =
     Statements.update(account).run.void
-
-  override protected def schedulePermanentDeletion(
-    event: AccountDeletionEvent.Unscheduled
-  ): ConnectionIO[AccountDeletionEvent.Scheduled] =
-    JobStatements.insertPermanentDeletionEvent(event)
-
-  override protected def unschedulePermanentDeletion(userId: UserId): ConnectionIO[Unit] =
-    JobStatements.deleteJob(userId).run.void
 
 private object Statements:
   def insertUserCredentials(username: Username, password: HashedPassword, salt: Salt): ConnectionIO[UserId] =
@@ -132,19 +120,3 @@ private object Statements:
 
   def delete(userId: UserId): Update0 =
     sql"DELETE FROM auth.users WHERE uuid = $userId".update
-
-private object JobStatements:
-  def insertPermanentDeletionEvent(event: AccountDeletionEvent.Unscheduled): ConnectionIO[AccountDeletionEvent.Scheduled] =
-    sql"""
-         |INSERT INTO auth.account_permanent_deletion_queue (
-         |  user_id,
-         |  permanent_deletion_at
-         |) VALUES (
-         |  ${event.userId},
-         |  ${event.permanentDeletionAt}
-         |)
-    """.stripMargin.update
-      .withUniqueGeneratedKeys[AccountDeletionEvent.Scheduled]("uuid", "user_id", "permanent_deletion_at")
-
-  def deleteJob(userId: UserId): Update0 =
-    sql"DELETE FROM auth.account_permanent_deletion_queue WHERE user_id = $userId".update

@@ -7,15 +7,14 @@ import org.fiume.sketch.app.SketchVersions.VersionFile
 import org.fiume.sketch.auth.Authenticator
 import org.fiume.sketch.auth.accounts.UsersManager
 import org.fiume.sketch.rustic.RusticHealthCheck
-import org.fiume.sketch.shared.auth.accounts.jobs.AccountDeletionEvent
+import org.fiume.sketch.shared.auth.accounts.jobs.AccountDeletionEventConsumer
 import org.fiume.sketch.shared.auth.algebras.UsersStore
 import org.fiume.sketch.shared.authorisation.AccessControl
 import org.fiume.sketch.shared.common.ServiceStatus.Dependency.*
 import org.fiume.sketch.shared.common.algebras.{HealthChecker, Versions}
 import org.fiume.sketch.shared.common.algebras.HealthChecker.*
-import org.fiume.sketch.shared.common.jobs.EventConsumer
 import org.fiume.sketch.shared.domain.documents.algebras.DocumentsStore
-import org.fiume.sketch.storage.auth.postgres.{PostgresEventConsumer, PostgresUsersStore}
+import org.fiume.sketch.storage.auth.postgres.{PostgresEventsStore, PostgresUsersStore}
 import org.fiume.sketch.storage.authorisation.postgres.PostgresAccessControl
 import org.fiume.sketch.storage.documents.postgres.PostgresDocumentsStore
 import org.fiume.sketch.storage.postgres.{DbTransactor, PostgresHealthCheck}
@@ -35,7 +34,7 @@ trait Resources[F[_]]:
   val versions: Versions[F]
   val authenticator: Authenticator[F]
   val accessControl: AccessControl[F, ConnectionIO]
-  val accountDeletionConsumer: EventConsumer[ConnectionIO, AccountDeletionEvent.Scheduled]
+  val accountDeletionConsumer: AccountDeletionEventConsumer[ConnectionIO]
   val usersStore: UsersStore[F, ConnectionIO]
   val documentsStore: DocumentsStore[F, ConnectionIO]
   val userManager: UsersManager[F]
@@ -51,8 +50,8 @@ object Resources:
       httpClient <- EmberClientBuilder.default[F].build
       rusticHealthCheck0 = RusticHealthCheck.make[F](config.rusticClient, httpClient)
       versions0 <- SketchVersions.make[F](config.env, VersionFile("sketch.version"))
-      accountDeletionConsumer0 <- PostgresEventConsumer.make[F]()
-      usersStore0 <- PostgresUsersStore.make[F](transactor, Clock[F])
+      accountDeletionEventsStore0 <- PostgresEventsStore.make[F]()
+      usersStore0 <- PostgresUsersStore.make[F](transactor)
       authenticator0 <- Resource.liftK {
         Authenticator.make[F, ConnectionIO](
           Clock[F],
@@ -71,12 +70,17 @@ object Resources:
       override val versions: Versions[F] = versions0
       override val authenticator: Authenticator[F] = authenticator0
       override val accessControl: AccessControl[F, ConnectionIO] = accessControl0
-      override val accountDeletionConsumer: EventConsumer[ConnectionIO, AccountDeletionEvent.Scheduled] =
-        accountDeletionConsumer0
+      override val accountDeletionConsumer: AccountDeletionEventConsumer[ConnectionIO] =
+        accountDeletionEventsStore0
       override val usersStore: UsersStore[F, ConnectionIO] = usersStore0
       override val documentsStore: DocumentsStore[F, ConnectionIO] = documentsStore0
       override val userManager: UsersManager[F] =
-        UsersManager.make[F, ConnectionIO](usersStore0, accessControl0, config.account.delayUntilPermanentDeletion)
+        UsersManager.make[F, ConnectionIO](usersStore0,
+                                           accountDeletionEventsStore0,
+                                           accessControl0,
+                                           Clock[F],
+                                           config.account.delayUntilPermanentDeletion
+        )
 
   private def newCustomWorkerThreadPool[F[_]: Sync]() = Resource
     .make(

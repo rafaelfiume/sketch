@@ -5,17 +5,17 @@ import cats.implicits.*
 import doobie.ConnectionIO
 import doobie.implicits.*
 import munit.ScalaCheckEffectSuite
-import org.fiume.sketch.shared.auth.User.*
+import org.fiume.sketch.shared.auth.UserId
+import org.fiume.sketch.shared.auth.accounts.jobs.AccountDeletionEvent
 import org.fiume.sketch.shared.auth.testkit.UserGens
 import org.fiume.sketch.shared.auth.testkit.UserGens.given
 import org.fiume.sketch.shared.testkit.ClockContext
-import org.fiume.sketch.shared.testkit.syntax.EitherSyntax.*
 import org.fiume.sketch.shared.testkit.syntax.OptionSyntax.*
 import org.fiume.sketch.storage.testkit.DockerPostgresSuite
 import org.scalacheck.ShrinkLowPriority
 import org.scalacheck.effect.PropF.forAllF
 
-import scala.concurrent.duration.*
+import java.time.Instant
 
 class PostgresEventConsumerSpec
     extends ScalaCheckEffectSuite
@@ -29,19 +29,19 @@ class PostgresEventConsumerSpec
     forAllF { () =>
       will(cleanStorage) {
         (
-          PostgresUsersStore.make[IO](transactor(), makeFrozenClock()),
-          PostgresEventConsumer.make[IO]()
-        ).tupled.use { case (usersStore, eventsConsumer) =>
+          PostgresUsersStore.make[IO](transactor()),
+          PostgresEventsStore.make[IO]()
+        ).tupled.use { case (usersStore, eventsStore) =>
           // given
           val numQueuedJobs = 1000
-          val now = 0.seconds
+          val now = Instant.now()
           for
             queuedJobs <- fs2.Stream
               .range(0, numQueuedJobs)
               .covary[IO]
               .parEvalMapUnbounded { _ =>
-                val user = UserGens.credentials.sample.someOrFail
-                usersStore.createAccountMarkedForDeletion(user, now).map(_.rightOrFail.uuid)
+                val userId = UserGens.userIds.sample.someOrFail
+                eventsStore.produceEvent(AccountDeletionEvent.Unscheduled(userId, now)).map(_.uuid).ccommit
               }
               // .evalTap { jobId => IO.println(s"new job: $jobId") } // uncomment to debug
               .compile
@@ -54,7 +54,7 @@ class PostgresEventConsumerSpec
                 .range(0, 2 * numQueuedJobs + 50)
                 .covary[IO]
                 .parEvalMapUnorderedUnbounded { i =>
-                  eventsConsumer
+                  eventsStore
                     .claimNextJob()
                     .flatMap { job =>
                       if i % 2 == 0 then usersStore.lift { RuntimeException(s"failed: ${job.map(_.uuid)}").raiseError }
@@ -81,34 +81,34 @@ class PostgresEventConsumerSpec
     }
 
   test("skips job if permanent deletion is not yet due"):
-    forAllF { (fstUser: UserCredentials, sndUser: UserCredentials, trdUser: UserCredentials, fthUser: UserCredentials) =>
+    forAllF { (fstUserId: UserId, sndUserId: UserId, trdUserId: UserId, fthUserId: UserId) =>
       will(cleanStorage) {
         (
-          PostgresUsersStore.make[IO](transactor(), makeFrozenClock()),
-          PostgresEventConsumer.make[IO]()
-        ).tupled.use { case (usersStore, eventsConsumer) =>
-          val now = 0.seconds
-          val future = 60.seconds
+          PostgresUsersStore.make[IO](transactor()),
+          PostgresEventsStore.make[IO]()
+        ).tupled.use { case (usersStore, eventsStore) =>
+          val now = Instant.now()
+          val future = now.plusSeconds(60)
           for
-            _ <- usersStore.createAccountMarkedForDeletion(fstUser, future)
-            _ <- usersStore.createAccountMarkedForDeletion(sndUser, future)
-            trdScheduledDeletion <- usersStore.createAccountMarkedForDeletion(trdUser, now)
-            _ <- usersStore.createAccountMarkedForDeletion(fthUser, future)
+            _ <- eventsStore.produceEvent(AccountDeletionEvent.Unscheduled(fstUserId, future)).ccommit
+            _ <- eventsStore.produceEvent(AccountDeletionEvent.Unscheduled(sndUserId, future)).ccommit
+            _ <- eventsStore.produceEvent(AccountDeletionEvent.Unscheduled(trdUserId, now)).ccommit
+            _ <- eventsStore.produceEvent(AccountDeletionEvent.Unscheduled(fthUserId, future)).ccommit
 
-            result <- fs2.Stream.repeatEval { eventsConsumer.claimNextJob().ccommit }.unNone.take(1).compile.toList
+            result <- fs2.Stream
+              .repeatEval {
+                eventsStore.claimNextJob().ccommit
+              }
+              .unNone
+              .take(1)
+              .compile
+              .toList
 //
-          yield assertEquals(result.toSet, List(trdScheduledDeletion.rightOrFail).toSet)
+          yield assertEquals(result.map(_.userId).toSet, List(trdUserId).toSet)
         }
       }
     }
 
 trait PostgresEventStoreSpecContext extends DockerPostgresSuite:
   def cleanStorage: ConnectionIO[Unit] =
-    sql"TRUNCATE TABLE auth.account_permanent_deletion_queue, auth.users".update.run.void
-
-  extension (store: PostgresUsersStore[IO])
-    def createAccountMarkedForDeletion(user: UserCredentials, timeUntilPermanentDeletion: Duration) =
-      store
-        .createAccount(user)
-        .flatMap { store.markForDeletion(_, timeUntilPermanentDeletion) }
-        .ccommit
+    sql"TRUNCATE TABLE auth.account_permanent_deletion_queue".update.run.void

@@ -6,21 +6,14 @@ import org.fiume.sketch.shared.auth.Passwords.HashedPassword
 import org.fiume.sketch.shared.auth.User.{UserCredentials, UserCredentialsWithId, Username}
 import org.fiume.sketch.shared.auth.UserId
 import org.fiume.sketch.shared.auth.accounts.{Account, AccountState}
-import org.fiume.sketch.shared.auth.accounts.jobs.AccountDeletionEvent
 import org.fiume.sketch.shared.auth.algebras.UsersStore
-import org.fiume.sketch.shared.common.jobs.JobId
 import org.fiume.sketch.shared.testkit.syntax.OptionSyntax.*
 
 import java.time.Instant
-import java.util.UUID
-import scala.concurrent.duration.*
 
 trait UsersStoreContext:
 
-  private case class State(
-    accounts: Map[UserId, Account],
-    scheduledDeletions: Map[JobId, AccountDeletionEvent.Scheduled]
-  ):
+  private case class State(accounts: Map[UserId, Account]):
     def ++(account: Account): State = copy(accounts = accounts + (account.uuid -> account))
     def getAccount(uuid: UserId): Option[Account] = accounts.get(uuid)
     def getAccount(username: Username): Option[Account] = accounts.collectFirst {
@@ -28,52 +21,22 @@ trait UsersStoreContext:
     }
     def --(uuid: UserId): State = copy(accounts = accounts - uuid)
 
-    def +++(scheduledDeletion: AccountDeletionEvent.Scheduled): State =
-      copy(scheduledDeletions = scheduledDeletions + (JobId(UUID.randomUUID()) -> scheduledDeletion))
-
-    def ---(userId: UserId): State =
-      scheduledDeletions
-        .collectFirst {
-          case (jobId, deletion) if deletion.userId == userId => jobId
-        }
-        .fold(this)(jobId => copy(scheduledDeletions = scheduledDeletions - jobId))
-
-    def getScheduledJob(userId: UserId): Option[AccountDeletionEvent.Scheduled] =
-      scheduledDeletions.collectFirst {
-        case (_, schedule) if schedule.userId == userId => schedule
-      }
-
   private object State:
-    val empty = State(Map.empty, Map.empty)
-    def makeWith(account: Account): State = State(Map(account.uuid -> account), Map.empty)
+    val empty = State(Map.empty)
+    def makeWith(account: Account): State = State(Map(account.uuid -> account))
 
-  def makeEmptyUsersStore(
-    clock: Clock[IO] = Clock[IO],
-    delayUntilPermanentDeletion: Duration = 1.second
-  ): IO[UsersStore[IO, IO] & JobInspector] = makeUsersStore(State.empty, clock, delayUntilPermanentDeletion)
+  def makeEmptyUsersStore(clock: Clock[IO] = Clock[IO]): IO[UsersStore[IO, IO]] = makeUsersStore(State.empty, clock)
 
-  def makeUsersStore(
-    credentials: UserCredentialsWithId,
-    clock: Clock[IO] = Clock[IO],
-    delayUntilPermanentDeletion: Duration = 1.second
-  ): IO[UsersStore[IO, IO] & JobInspector] =
+  def makeUsersStore(credentials: UserCredentialsWithId, clock: Clock[IO] = Clock[IO]): IO[UsersStore[IO, IO]] =
     val account = Account(credentials.uuid, credentials, AccountState.Active(Instant.now()))
-    makeUsersStoreForAccount(account, clock, delayUntilPermanentDeletion)
+    makeUsersStoreForAccount(account, clock)
 
-  def makeUsersStoreForAccount(
-    account: Account,
-    clock: Clock[IO] = Clock[IO],
-    delayUntilPermanentDeletion: Duration = 1.second
-  ): IO[UsersStore[IO, IO] & JobInspector] =
-    makeUsersStore(State.makeWith(account), clock, delayUntilPermanentDeletion)
+  def makeUsersStoreForAccount(account: Account, clock: Clock[IO] = Clock[IO]): IO[UsersStore[IO, IO]] =
+    makeUsersStore(State.makeWith(account), clock)
 
-  private def makeUsersStore(
-    state: State,
-    clock: Clock[IO],
-    delayUntilPermanentDeletion: Duration
-  ): IO[UsersStore[IO, IO] & JobInspector] =
+  private def makeUsersStore(state: State, clock: Clock[IO]): IO[UsersStore[IO, IO]] =
     IO.ref(state).map { storage =>
-      new UsersStore[IO, IO](clock) with JobInspector:
+      new UsersStore[IO, IO]:
         override def createAccount(credentials: UserCredentials): IO[UserId] =
           for
             uuid <- IO.randomUUID.map(UserId(_))
@@ -89,34 +52,11 @@ trait UsersStoreContext:
 
         override def deleteAccount(userId: UserId): IO[Unit] = storage.update { _.--(userId) }.void
 
-        override protected def updateAccount(account: Account): IO[Unit] = storage.update { _.++(account) }.void
-
-        override protected def schedulePermanentDeletion(
-          event: AccountDeletionEvent.Unscheduled
-        ): IO[AccountDeletionEvent.Scheduled] =
-          for
-            jobId <- IO.randomUUID.map(JobId(_))
-            account <- fetchAccount(event.userId).map(_.someOrFail)
-            permanentDeletionAt = account.state
-              .asInstanceOf[AccountState.SoftDeleted]
-              .deletedAt
-              .plusSeconds(delayUntilPermanentDeletion.toSeconds)
-            job = AccountDeletionEvent.scheduled(jobId, event.userId, permanentDeletionAt)
-            _ <- storage.update { _.+++(job) }
-          yield job
-
-        override protected def unschedulePermanentDeletion(uuid: UserId): IO[Unit] =
-          storage.update { _.---(uuid) }.void
+        override def updateAccount(account: Account): IO[Unit] = storage.update { _.++(account) }.void
 
         override val lift: [A] => IO[A] => IO[A] = [A] => (action: IO[A]) => action
 
         override val commit: [A] => IO[A] => IO[A] = [A] => (action: IO[A]) => action
 
         override val commitStream: [A] => fs2.Stream[IO, A] => fs2.Stream[IO, A] = [A] => (action: fs2.Stream[IO, A]) => action
-
-        override def getScheduledJob(userId: UserId): IO[Option[AccountDeletionEvent.Scheduled]] =
-          storage.get.map(_.getScheduledJob(userId))
     }
-
-trait JobInspector:
-  def getScheduledJob(userId: UserId): IO[Option[AccountDeletionEvent.Scheduled]]

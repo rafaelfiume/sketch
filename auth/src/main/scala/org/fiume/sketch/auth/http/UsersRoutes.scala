@@ -32,7 +32,7 @@ class UsersRoutes[F[_]: Concurrent, Txn[_]: Sync](
     AuthedRoutes.of {
       case DELETE -> Root / "users" / UserIdVar(uuid) as authed =>
         usersManager
-          .markAccountForDeletion(authed.uuid, uuid)
+          .attemptToMarkAccountForDeletion(authed.uuid, uuid)
           .flatMap {
             case Right(job) => Ok(job.asResponsePayload)
             case Left(error: SoftDeleteAccountError) =>
@@ -45,7 +45,7 @@ class UsersRoutes[F[_]: Concurrent, Txn[_]: Sync](
 
       case POST -> Root / "users" / UserIdVar(uuid) / "restore" as authed =>
         usersManager
-          .restoreAccount(authed.uuid, uuid)
+          .attemptToRestoreAccount(authed.uuid, uuid)
           .flatMap {
             case Right(_) => NoContent()
             case Left(error: ActivateAccountError) =>

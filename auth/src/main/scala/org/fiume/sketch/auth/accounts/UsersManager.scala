@@ -2,12 +2,13 @@ package org.fiume.sketch.auth.accounts
 
 import cats.Monad
 import cats.effect.Sync
+import cats.effect.kernel.Clock
 import cats.implicits.*
 import org.fiume.sketch.shared.auth.Passwords.{HashedPassword, PlainPassword, Salt}
 import org.fiume.sketch.shared.auth.User.*
 import org.fiume.sketch.shared.auth.UserId
-import org.fiume.sketch.shared.auth.accounts.{Account, ActivateAccountError, SoftDeleteAccountError}
-import org.fiume.sketch.shared.auth.accounts.jobs.AccountDeletionEvent
+import org.fiume.sketch.shared.auth.accounts.{Account, AccountState, ActivateAccountError, SoftDeleteAccountError}
+import org.fiume.sketch.shared.auth.accounts.jobs.{AccountDeletionEvent, AccountDeletionEventProducer}
 import org.fiume.sketch.shared.auth.algebras.UsersStore
 import org.fiume.sketch.shared.authorisation.{AccessControl, AccessDenied, ContextualRole, GlobalRole}
 import org.fiume.sketch.shared.authorisation.ContextualRole.Owner
@@ -19,31 +20,35 @@ import scala.concurrent.duration.Duration
 trait UsersManager[F[_]]:
   def createAccount(username: Username, password: PlainPassword, globalRole: Option[GlobalRole] = none): F[UserId]
 
-  def markAccountForDeletion(
+  def attemptToMarkAccountForDeletion(
     markingForDeletion: UserId,
     toBeMarkedForDeletion: UserId
   ): F[Either[AccessDenied.type | SoftDeleteAccountError, AccountDeletionEvent.Scheduled]]
 
-  def restoreAccount(
+  def attemptToRestoreAccount(
     restoringAccount: UserId,
     accountToBeRestored: UserId
   ): F[Either[AccessDenied.type | ActivateAccountError, Account]]
 
+  def markForDeletion(
+    userId: UserId,
+    timeUntilPermanentDeletion: Duration
+  ): F[Either[SoftDeleteAccountError, AccountDeletionEvent.Scheduled]]
+
+  def restoreAccount(userId: UserId): F[Either[ActivateAccountError, Account]]
+
 object UsersManager:
   def make[F[_]: Sync, Txn[_]: Monad](
     store: UsersStore[F, Txn],
+    producer: AccountDeletionEventProducer[Txn],
     accessControl: AccessControl[F, Txn],
+    clock: Clock[F],
     delayUntilPermanentDeletion: Duration
   ): UsersManager[F] =
     // enable Store's syntax
     given UsersStore[F, Txn] = store
 
     new UsersManager[F]:
-      /*
-       * Careful: there is no access control to this function!
-       * It's not clear such access control is necessary or not, however...
-       * Its present incarnation is meant to be used through an internal admin account setup script.
-       */
       override def createAccount(username: Username, password: PlainPassword, globalRole: Option[GlobalRole]): F[UserId] =
         val credentials = for
           salt <- Salt.generate()
@@ -59,7 +64,7 @@ object UsersManager:
 
         setUpAccount.commit()
 
-      override def markAccountForDeletion(
+      override def attemptToMarkAccountForDeletion(
         markingForDeletion: UserId,
         toBeMarkedForDeletion: UserId
       ): F[Either[AccessDenied.type | SoftDeleteAccountError, AccountDeletionEvent.Scheduled]] =
@@ -67,24 +72,70 @@ object UsersManager:
           .ifM(
             ifTrue = accessControl
               .ensureRevoked(toBeMarkedForDeletion, toBeMarkedForDeletion) {
-                store.markForDeletion(_, delayUntilPermanentDeletion).map(_.widenErrorType)
+                doMarkForDeletion(_, delayUntilPermanentDeletion).map(_.widenErrorType)
               },
             ifFalse = AccessDenied.asLeft.pure[Txn]
           )
           .commit()
 
-      override def restoreAccount(
+      override def attemptToRestoreAccount(
         restoringAccount: UserId,
         accountToBeRestored: UserId
       ): F[Either[AccessDenied.type | ActivateAccountError, Account]] =
         canManageAccount(restoringAccount, accountToBeRestored)
           .ifM(
             ifTrue = accessControl.ensureAccess(accountToBeRestored, Owner) {
-              store.restoreAccount(accountToBeRestored).map(_.widenErrorType)
+              doRestoreAccount(accountToBeRestored).map(_.widenErrorType)
             },
             ifFalse = AccessDenied.asLeft.pure[Txn]
           )
           .commit()
+
+      // commits the transaction... for now
+      override def markForDeletion(
+        userId: UserId,
+        timeUntilPermanentDeletion: Duration
+      ): F[Either[SoftDeleteAccountError, AccountDeletionEvent.Scheduled]] =
+        doMarkForDeletion(userId, timeUntilPermanentDeletion).commit()
+
+      private def doMarkForDeletion(
+        userId: UserId,
+        timeUntilPermanentDeletion: Duration
+      ): Txn[Either[SoftDeleteAccountError, AccountDeletionEvent.Scheduled]] =
+        store.lift { clock.realTimeInstant }.flatMap { now =>
+          val permanentDeletionAt = now.plusSeconds(timeUntilPermanentDeletion.toSeconds)
+          store
+            .fetchAccountWith(userId) {
+              _.fold(SoftDeleteAccountError.AccountNotFound.asLeft)(AccountState.transitionToSoftDelete(_, now))
+            }
+            .flatMap {
+              case Right(account) =>
+                store.updateAccount(account).flatMap { _ =>
+                  producer.produceEvent(AccountDeletionEvent.Unscheduled(userId, permanentDeletionAt)).map(_.asRight)
+                }
+              case Left(error) => error.asLeft[AccountDeletionEvent.Scheduled].pure[Txn]
+            }
+        }
+
+      // commits the transaction... for now
+      def restoreAccount(userId: UserId): F[Either[ActivateAccountError, Account]] =
+        doRestoreAccount(userId).commit()
+
+      private def doRestoreAccount(userId: UserId): Txn[Either[ActivateAccountError, Account]] =
+        store.lift { clock.realTimeInstant }.flatMap { now =>
+          store
+            .fetchAccountWith(userId) {
+              _.fold(ActivateAccountError.AccountNotFound.asLeft)(AccountState.transitionToActive(_, now))
+            }
+            .flatMap {
+              case Right(account) =>
+                store
+                  .updateAccount(account)
+                  .flatTap { _ => producer.removeEvent(account.uuid) }
+                  .as(account.asRight)
+              case error => error.pure[Txn]
+            }
+        }
 
       /*
        * An example of a custom `canAccess` fn.

@@ -11,6 +11,7 @@ import org.fiume.sketch.shared.auth.accounts.{Account, ActivateAccountError, Sof
 import org.fiume.sketch.shared.auth.accounts.ActivateAccountError.AccountAlreadyActive
 import org.fiume.sketch.shared.auth.accounts.SoftDeleteAccountError.{AccountAlreadyPendingDeletion, AccountNotFound}
 import org.fiume.sketch.shared.auth.accounts.jobs.AccountDeletionEvent
+import org.fiume.sketch.shared.auth.accounts.jobs.AccountDeletionEvent.Scheduled
 import org.fiume.sketch.shared.auth.http.model.Users.ScheduledForPermanentDeletionResponse
 import org.fiume.sketch.shared.auth.http.model.Users.json.given
 import org.fiume.sketch.shared.auth.testkit.{AuthMiddlewareContext, UserGens}
@@ -139,7 +140,7 @@ trait UsersManagerContext:
     expectedToBeMarkedForDeletion: UserId,
     toReturn: Either[AccessDenied.type | SoftDeleteAccountError, AccountDeletionEvent.Scheduled]
   ): UsersManager[IO] = new UnimplementedUsersManager:
-    override def markAccountForDeletion(
+    override def attemptToMarkAccountForDeletion(
       markingForDeletion: UserId,
       toBeMarkedForDeletion: UserId
     ): IO[Either[AccessDenied.type | SoftDeleteAccountError, AccountDeletionEvent.Scheduled]] =
@@ -155,7 +156,7 @@ trait UsersManagerContext:
     expectedAccountToBeRestoredId: UserId,
     toReturn: Either[AccessDenied.type | ActivateAccountError, Account]
   ): UsersManager[IO] = new UnimplementedUsersManager:
-    override def restoreAccount(
+    override def attemptToRestoreAccount(
       restoringAccount: UserId,
       accountToBeRestored: UserId
     ): IO[Either[AccessDenied.type | ActivateAccountError, Account]] =
@@ -169,12 +170,18 @@ trait UsersManagerContext:
   private class UnimplementedUsersManager() extends UsersManager[IO]:
     override def createAccount(username: Username, password: PlainPassword, globalRole: Option[GlobalRole]): IO[UserId] = ???
 
-    override def markAccountForDeletion(
+    override def attemptToMarkAccountForDeletion(
       markingForDeletion: UserId,
       toBeMarkedForDeletion: UserId
     ): IO[Either[AccessDenied.type | SoftDeleteAccountError, AccountDeletionEvent.Scheduled]] = ???
 
-    override def restoreAccount(
+    override def attemptToRestoreAccount(
       restoringAccount: UserId,
       accountToBeRestored: UserId
     ): IO[Either[AccessDenied.type | ActivateAccountError, Account]] = ???
+
+    override def markForDeletion(userId: UserId,
+                                 timeUntilPermanentDeletion: Duration
+    ): IO[Either[SoftDeleteAccountError, Scheduled]] = ???
+
+    override def restoreAccount(userId: UserId): IO[Either[ActivateAccountError, Account]] = ???

@@ -1,6 +1,6 @@
 package org.fiume.sketch.storage.authorisation.postgres
 
-import cats.effect.{Clock, IO}
+import cats.effect.IO
 import cats.implicits.*
 import doobie.ConnectionIO
 import doobie.implicits.*
@@ -81,7 +81,7 @@ class PostgresAccessControlSpec
           (
             PostgresAccessControl.make[IO](transactor()),
             PostgresDocumentsStore.make[IO](transactor()),
-            PostgresUsersStore.make[IO](transactor(), Clock[IO])
+            PostgresUsersStore.make[IO](transactor())
           ).tupled.use { case (accessControl, docStore, usersStore) =>
             for
               fstUserId <- usersStore
@@ -114,7 +114,7 @@ class PostgresAccessControlSpec
       will(cleanStorage) {
         (
           PostgresAccessControl.make[IO](transactor()),
-          PostgresUsersStore.make[IO](transactor(), Clock[IO])
+          PostgresUsersStore.make[IO](transactor())
         ).tupled.use { case (accessControl, usersStore) =>
           for
             fstUserId <- usersStore

@@ -8,7 +8,8 @@ import org.fiume.sketch.shared.auth.Passwords.PlainPassword
 import org.fiume.sketch.shared.auth.User.{UserCredentials, Username}
 import org.fiume.sketch.shared.auth.UserId
 import org.fiume.sketch.shared.auth.accounts.{Account, AccountState, ActivateAccountError, SoftDeleteAccountError}
-import org.fiume.sketch.shared.auth.accounts.jobs.AccountDeletionEvent
+import org.fiume.sketch.shared.auth.accounts.jobs.{AccountDeletionEvent, AccountDeletionEventProducer}
+import org.fiume.sketch.shared.auth.accounts.jobs.AccountDeletionEvent.*
 import org.fiume.sketch.shared.auth.testkit.{UserGens, UsersStoreContext}
 import org.fiume.sketch.shared.auth.testkit.AccountGens.given
 import org.fiume.sketch.shared.auth.testkit.PasswordsGens.given
@@ -16,6 +17,7 @@ import org.fiume.sketch.shared.auth.testkit.UserGens.given
 import org.fiume.sketch.shared.authorisation.{AccessDenied, ContextualRole, GlobalRole}
 import org.fiume.sketch.shared.authorisation.testkit.AccessControlContext
 import org.fiume.sketch.shared.authorisation.testkit.AccessControlGens.given
+import org.fiume.sketch.shared.common.jobs.JobId
 import org.fiume.sketch.shared.testkit.ClockContext
 import org.fiume.sketch.shared.testkit.syntax.EitherSyntax.*
 import org.fiume.sketch.shared.testkit.syntax.OptionSyntax.*
@@ -30,6 +32,7 @@ class UsersManagerSpec
     extends CatsEffectSuite
     with ScalaCheckEffectSuite
     with UsersStoreContext
+    with EventSchedulerContext
     with AccessControlContext
     with ClockContext
     with UsersManagerSpecContext
@@ -41,8 +44,15 @@ class UsersManagerSpec
     forAllF { (username: Username, password: PlainPassword, globalRole: Option[GlobalRole]) =>
       for
         usersStore <- makeEmptyUsersStore()
+        eventProducer <- makeEventProducer()
         accessControl <- makeAccessControl()
-        usersManager = UsersManager.make[IO, IO](usersStore, accessControl, delayUntilPermanentDeletion)
+        usersManager = UsersManager.make[IO, IO](
+          usersStore,
+          eventProducer,
+          accessControl,
+          makeFrozenClock(),
+          delayUntilPermanentDeletion
+        )
 
         userId <- usersManager.createAccount(username, password, globalRole)
 
@@ -58,20 +68,21 @@ class UsersManagerSpec
 
   test("only the owner or an Admin can mark an account for deletion"):
     forAllF { (owner: UserCredentials, admin: UserCredentials, isAdminMarkingForDeletion: Boolean) =>
-      val deletedAt = Instant.now()
-      val permantDeletionDelay = 1.second
+      val markedForDeletionAt = Instant.now()
+      val clock = makeFrozenClock(markedForDeletionAt)
       for
-        store <- makeEmptyUsersStore(makeFrozenClock(deletedAt), permantDeletionDelay)
+        store <- makeEmptyUsersStore()
+        eventProducer <- makeEventProducer()
         accessControl <- makeAccessControl()
         ownerId <- store.createAccount(owner).flatTap { id => accessControl.grantAccess(id, id, ContextualRole.Owner) }
         adminId <- store.createAccount(admin).flatTap { id => accessControl.grantGlobalAccess(id, GlobalRole.Admin) }
         authorisedId = if isAdminMarkingForDeletion then adminId else ownerId
-        usersManager = UsersManager.make[IO, IO](store, accessControl, delayUntilPermanentDeletion)
+        usersManager = UsersManager.make[IO, IO](store, eventProducer, accessControl, clock, delayUntilPermanentDeletion)
 
-        result <- usersManager.markAccountForDeletion(authorisedId, ownerId).map(_.rightOrFail)
+        result <- usersManager.attemptToMarkAccountForDeletion(authorisedId, ownerId).map(_.rightOrFail)
 
         // The Api is idempotent in behaviour but not in response
-        resp = usersManager.markAccountForDeletion(authorisedId, ownerId).map(_.leftOrFail)
+        resp = usersManager.attemptToMarkAccountForDeletion(authorisedId, ownerId).map(_.leftOrFail)
         _ <-
           if isAdminMarkingForDeletion
           then assertIO(resp, SoftDeleteAccountError.AccountAlreadyPendingDeletion)
@@ -79,7 +90,7 @@ class UsersManagerSpec
 
         account <- store.fetchAccount(ownerId).map(_.someOrFail)
         grantRemoved <- accessControl.canAccess(ownerId, ownerId).map(!_)
-        jobId <- store.getScheduledJob(ownerId).map(_.someOrFail.uuid)
+        jobId <- eventProducer.inspectProducedEvent(ownerId).map(_.someOrFail.uuid)
       yield
         assert(account.isMarkedForDeletion)
         assert(grantRemoved)
@@ -88,7 +99,7 @@ class UsersManagerSpec
           AccountDeletionEvent.Scheduled(
             jobId,
             ownerId,
-            deletedAt.plusSeconds(permantDeletionDelay.toSeconds).truncatedTo(MILLIS)
+            markedForDeletionAt.plusSeconds(delayUntilPermanentDeletion.toSeconds).truncatedTo(MILLIS)
           )
         )
     }
@@ -97,13 +108,20 @@ class UsersManagerSpec
     forAllF { (owner: UserCredentials, authed: UserCredentials, isSuperuser: Boolean) =>
       for
         store <- makeEmptyUsersStore()
+        eventProducer <- makeEventProducer()
         accessControl <- makeAccessControl()
         authedId <- store.createAccount(authed).flatTap { id => accessControl.grantAccess(id, id, ContextualRole.Owner) }
         _ <- accessControl.grantGlobalAccess(authedId, GlobalRole.Superuser).whenA(isSuperuser)
         ownerId <- store.createAccount(owner).flatTap { id => accessControl.grantAccess(id, id, ContextualRole.Owner) }
 
-        usersManager = UsersManager.make[IO, IO](store, accessControl, delayUntilPermanentDeletion)
-        result <- usersManager.markAccountForDeletion(authedId, ownerId).map(_.leftOrFail)
+        usersManager = UsersManager.make[IO, IO](
+          store,
+          eventProducer,
+          accessControl,
+          makeFrozenClock(),
+          delayUntilPermanentDeletion
+        )
+        result <- usersManager.attemptToMarkAccountForDeletion(authedId, ownerId).map(_.leftOrFail)
 //
       yield assertEquals(result, AccessDenied)
     }
@@ -112,12 +130,19 @@ class UsersManagerSpec
     forAllF { (ownerId: UserId, authed: UserCredentials, maybeGlobalRole: Option[GlobalRole]) =>
       for
         store <- makeEmptyUsersStore()
+        eventProducer <- makeEventProducer()
         accessControl <- makeAccessControl()
         authedId <- store.createAccount(authed).flatTap { id => accessControl.grantAccess(id, id, ContextualRole.Owner) }
         _ <- accessControl.grantGlobalAccess(authedId, maybeGlobalRole.someOrFail).whenA(maybeGlobalRole.isDefined)
-        usersManager = UsersManager.make[IO, IO](store, accessControl, delayUntilPermanentDeletion)
+        usersManager = UsersManager.make[IO, IO](
+          store,
+          eventProducer,
+          accessControl,
+          makeFrozenClock(),
+          delayUntilPermanentDeletion
+        )
 
-        result <- usersManager.markAccountForDeletion(authedId, ownerId).map(_.leftOrFail)
+        result <- usersManager.attemptToMarkAccountForDeletion(authedId, ownerId).map(_.leftOrFail)
 //
       yield
         if maybeGlobalRole.exists(_ == GlobalRole.Admin)
@@ -130,13 +155,15 @@ class UsersManagerSpec
       val accountReactivationDate = Instant.now
       val clock = makeFrozenClock(accountReactivationDate)
       for
-        store <- makeEmptyUsersStore(clock)
+        store <- makeEmptyUsersStore()
+        eventProducer <- makeEventProducer()
         accessControl <- makeAccessControl()
-        ownerId <- store.createAccount(owner).flatTap(store.markForDeletion(_, 0.seconds))
+        ownerId <- store.createAccount(owner)
         adminId <- store.createAccount(authed).flatTap { accessControl.grantGlobalAccess(_, GlobalRole.Admin) }
-        usersManager = UsersManager.make[IO, IO](store, accessControl, delayUntilPermanentDeletion)
+        usersManager = UsersManager.make[IO, IO](store, eventProducer, accessControl, clock, delayUntilPermanentDeletion)
+        _ <- usersManager.markForDeletion(ownerId, 0.seconds)
 
-        result <- usersManager.restoreAccount(adminId, ownerId).map(_.rightOrFail)
+        result <- usersManager.attemptToRestoreAccount(adminId, ownerId).map(_.rightOrFail)
 
         _ <- IO {
           assertEquals(result.credentials, owner)
@@ -144,7 +171,7 @@ class UsersManagerSpec
         }
         // The Api is idempotent in behaviour but not in response
         _ <- assertIO(
-          usersManager.restoreAccount(adminId, ownerId).map(_.leftOrFail),
+          usersManager.attemptToRestoreAccount(adminId, ownerId).map(_.leftOrFail),
           ActivateAccountError.AccountAlreadyActive
         )
         account <- store.fetchAccount(ownerId).map(_.someOrFail)
@@ -158,13 +185,20 @@ class UsersManagerSpec
     forAllF { (owner: Account, authed: UserCredentials, isSuperuser: Boolean) =>
       for
         store <- makeUsersStoreForAccount(owner.copy(state = AccountState.SoftDeleted(Instant.now())))
+        eventProducer <- makeEventProducer()
         accessControl <- makeAccessControl()
         nonAdminUserId <- store.createAccount(authed).flatTap {
           accessControl.grantGlobalAccess(_, GlobalRole.Superuser).whenA(isSuperuser)
         }
-        usersManager = UsersManager.make[IO, IO](store, accessControl, delayUntilPermanentDeletion)
+        usersManager = UsersManager.make[IO, IO](
+          store,
+          eventProducer,
+          accessControl,
+          makeFrozenClock(),
+          delayUntilPermanentDeletion
+        )
 
-        result <- usersManager.restoreAccount(nonAdminUserId, owner.uuid).map(_.leftOrFail)
+        result <- usersManager.attemptToRestoreAccount(nonAdminUserId, owner.uuid).map(_.leftOrFail)
 
         account <- store.fetchAccount(owner.uuid).map(_.someOrFail)
       yield
@@ -176,13 +210,20 @@ class UsersManagerSpec
     forAllF { (ownerId: UserId, authed: UserCredentials, maybeGlobalRole: Option[GlobalRole]) =>
       for
         store <- makeEmptyUsersStore()
+        eventProducer <- makeEventProducer()
         accessControl <- makeAccessControl()
         authedId <- store.createAccount(authed).flatTap {
           accessControl.grantGlobalAccess(_, maybeGlobalRole.someOrFail).whenA(maybeGlobalRole.isDefined)
         }
-        usersManager = UsersManager.make[IO, IO](store, accessControl, delayUntilPermanentDeletion)
+        usersManager = UsersManager.make[IO, IO](
+          store,
+          eventProducer,
+          accessControl,
+          makeFrozenClock(),
+          delayUntilPermanentDeletion
+        )
 
-        result <- usersManager.restoreAccount(authedId, ownerId).map(_.leftOrFail)
+        result <- usersManager.attemptToRestoreAccount(authedId, ownerId).map(_.leftOrFail)
 //
       yield
         if maybeGlobalRole.exists(_ == GlobalRole.Admin)
@@ -192,3 +233,47 @@ class UsersManagerSpec
 
 trait UsersManagerSpecContext:
   val delayUntilPermanentDeletion = 30.days
+
+trait EventSchedulerContext:
+
+  private case class State(events: Map[JobId, AccountDeletionEvent.Scheduled]):
+    def +++(event: AccountDeletionEvent.Scheduled): State =
+      copy(events = events + (event.uuid -> event))
+
+    def ---(userId: UserId): State =
+      events
+        .collectFirst {
+          case (jobId, event) if event.userId == userId => jobId
+        }
+        .fold(this)(jobId => copy(events = events - jobId))
+
+    def getEvent(userId: UserId): Option[AccountDeletionEvent.Scheduled] =
+      events.collectFirst {
+        case (_, event) if event.userId == userId => event
+      }
+
+  private object State:
+    val empty = State(Map.empty)
+
+  def makeEventProducer(): IO[AccountDeletionEventProducer[IO] & EventsInspector] = makeEventProducer(
+    State.empty
+  )
+
+  private def makeEventProducer(state: State): IO[AccountDeletionEventProducer[IO] & EventsInspector] =
+    IO.ref(state).map { storage =>
+      new AccountDeletionEventProducer[IO] with EventsInspector:
+        override def produceEvent(event: AccountDeletionEvent.Unscheduled): IO[AccountDeletionEvent.Scheduled] =
+          for
+            jobId <- IO.randomUUID.map(JobId(_))
+            job = AccountDeletionEvent.scheduled(jobId, event.userId, event.permanentDeletionAt)
+            _ <- storage.update { _.+++(job) }
+          yield job
+
+        override def removeEvent(uuid: UserId): IO[Unit] = storage.update { _.---(uuid) }.void
+
+        override def inspectProducedEvent(userId: UserId): IO[Option[AccountDeletionEvent.Scheduled]] =
+          storage.get.map(_.getEvent(userId))
+    }
+
+trait EventsInspector:
+  def inspectProducedEvent(userId: UserId): IO[Option[AccountDeletionEvent.Scheduled]]
