@@ -8,7 +8,7 @@ import org.fiume.sketch.shared.auth.Passwords.PlainPassword
 import org.fiume.sketch.shared.auth.User.{UserCredentials, Username}
 import org.fiume.sketch.shared.auth.UserId
 import org.fiume.sketch.shared.auth.accounts.{Account, AccountState, ActivateAccountError, SoftDeleteAccountError}
-import org.fiume.sketch.shared.auth.accounts.jobs.ScheduledAccountDeletion
+import org.fiume.sketch.shared.auth.accounts.jobs.AccountDeletionEvent
 import org.fiume.sketch.shared.auth.testkit.{UserGens, UsersStoreContext}
 import org.fiume.sketch.shared.auth.testkit.AccountGens.given
 import org.fiume.sketch.shared.auth.testkit.PasswordsGens.given
@@ -85,7 +85,7 @@ class UsersManagerSpec
         assert(grantRemoved)
         assertEquals(
           result,
-          ScheduledAccountDeletion(
+          AccountDeletionEvent.Scheduled(
             jobId,
             ownerId,
             deletedAt.plusSeconds(permantDeletionDelay.toSeconds).truncatedTo(MILLIS)

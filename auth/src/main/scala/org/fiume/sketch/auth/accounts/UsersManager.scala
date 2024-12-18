@@ -7,7 +7,7 @@ import org.fiume.sketch.shared.auth.Passwords.{HashedPassword, PlainPassword, Sa
 import org.fiume.sketch.shared.auth.User.*
 import org.fiume.sketch.shared.auth.UserId
 import org.fiume.sketch.shared.auth.accounts.{Account, ActivateAccountError, SoftDeleteAccountError}
-import org.fiume.sketch.shared.auth.accounts.jobs.ScheduledAccountDeletion
+import org.fiume.sketch.shared.auth.accounts.jobs.AccountDeletionEvent
 import org.fiume.sketch.shared.auth.algebras.UsersStore
 import org.fiume.sketch.shared.authorisation.{AccessControl, AccessDenied, ContextualRole, GlobalRole}
 import org.fiume.sketch.shared.authorisation.ContextualRole.Owner
@@ -22,7 +22,7 @@ trait UsersManager[F[_]]:
   def markAccountForDeletion(
     markingForDeletion: UserId,
     toBeMarkedForDeletion: UserId
-  ): F[Either[AccessDenied.type | SoftDeleteAccountError, ScheduledAccountDeletion]]
+  ): F[Either[AccessDenied.type | SoftDeleteAccountError, AccountDeletionEvent.Scheduled]]
 
   def restoreAccount(
     restoringAccount: UserId,
@@ -62,7 +62,7 @@ object UsersManager:
       override def markAccountForDeletion(
         markingForDeletion: UserId,
         toBeMarkedForDeletion: UserId
-      ): F[Either[AccessDenied.type | SoftDeleteAccountError, ScheduledAccountDeletion]] =
+      ): F[Either[AccessDenied.type | SoftDeleteAccountError, AccountDeletionEvent.Scheduled]] =
         canManageAccount(markingForDeletion, toBeMarkedForDeletion)
           .ifM(
             ifTrue = accessControl

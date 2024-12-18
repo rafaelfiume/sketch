@@ -6,7 +6,7 @@ import com.comcast.ip4s.{Host, Port}
 import org.fiume.sketch.shared.auth.{Jwt, UserId}
 import org.fiume.sketch.shared.auth.accounts.{ActivateAccountError, SoftDeleteAccountError}
 import org.fiume.sketch.shared.auth.accounts.SoftDeleteAccountError.AccountAlreadyPendingDeletion
-import org.fiume.sketch.shared.auth.accounts.jobs.ScheduledAccountDeletion
+import org.fiume.sketch.shared.auth.accounts.jobs.AccountDeletionEvent
 import org.fiume.sketch.shared.auth.http.ClientAuthorisationError
 import org.fiume.sketch.shared.auth.http.model.Users.ScheduledForPermanentDeletionResponse
 import org.fiume.sketch.shared.auth.http.model.Users.json.given
@@ -34,7 +34,7 @@ class HttpUsersClient[F[_]: Async] private (baseUri: Uri, client: Client[F]):
   def markAccountForDeletion(
     id: UserId,
     jwt: Jwt
-  ): F[Either[ClientAuthorisationError | AccessDenied.type | SoftDeleteAccountError, ScheduledAccountDeletion]] =
+  ): F[Either[ClientAuthorisationError | AccessDenied.type | SoftDeleteAccountError, AccountDeletionEvent.Scheduled]] =
     for
       authHeader <- Async[F].delay { Authorization.parse(s"Bearer ${jwt.value}") }
       request = Request[F](DELETE, baseUri / "users" / id.value).withHeaders(authHeader)
@@ -42,8 +42,8 @@ class HttpUsersClient[F[_]: Async] private (baseUri: Uri, client: Client[F]):
         case Ok(resp) =>
           resp
             .as[ScheduledForPermanentDeletionResponse]
-            .map(p => ScheduledAccountDeletion(p.jobId, p.userId, p.permanentDeletionAt).asRight)
-        case Conflict(_)        => AccountAlreadyPendingDeletion.asLeft[ScheduledAccountDeletion].pure[F]
+            .map(p => AccountDeletionEvent.Scheduled(p.jobId, p.userId, p.permanentDeletionAt).asRight)
+        case Conflict(_)        => AccountAlreadyPendingDeletion.asLeft[AccountDeletionEvent.Scheduled].pure[F]
         case NotFound(_)        => SoftDeleteAccountError.AccountNotFound.asLeft.pure[F]
         case Unauthorized(resp) =>
           /* There is a chance an Api gateway will take care of verifying an issued token,

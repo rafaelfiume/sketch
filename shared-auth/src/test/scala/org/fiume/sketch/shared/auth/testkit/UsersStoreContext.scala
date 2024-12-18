@@ -6,7 +6,7 @@ import org.fiume.sketch.shared.auth.Passwords.HashedPassword
 import org.fiume.sketch.shared.auth.User.{UserCredentials, UserCredentialsWithId, Username}
 import org.fiume.sketch.shared.auth.UserId
 import org.fiume.sketch.shared.auth.accounts.{Account, AccountState}
-import org.fiume.sketch.shared.auth.accounts.jobs.ScheduledAccountDeletion
+import org.fiume.sketch.shared.auth.accounts.jobs.AccountDeletionEvent
 import org.fiume.sketch.shared.auth.algebras.UsersStore
 import org.fiume.sketch.shared.common.jobs.JobId
 import org.fiume.sketch.shared.testkit.syntax.OptionSyntax.*
@@ -19,7 +19,7 @@ trait UsersStoreContext:
 
   private case class State(
     accounts: Map[UserId, Account],
-    scheduledDeletions: Map[JobId, ScheduledAccountDeletion]
+    scheduledDeletions: Map[JobId, AccountDeletionEvent.Scheduled]
   ):
     def ++(account: Account): State = copy(accounts = accounts + (account.uuid -> account))
     def getAccount(uuid: UserId): Option[Account] = accounts.get(uuid)
@@ -28,7 +28,7 @@ trait UsersStoreContext:
     }
     def --(uuid: UserId): State = copy(accounts = accounts - uuid)
 
-    def +++(scheduledDeletion: ScheduledAccountDeletion): State =
+    def +++(scheduledDeletion: AccountDeletionEvent.Scheduled): State =
       copy(scheduledDeletions = scheduledDeletions + (JobId(UUID.randomUUID()) -> scheduledDeletion))
 
     def ---(userId: UserId): State =
@@ -38,7 +38,7 @@ trait UsersStoreContext:
         }
         .fold(this)(jobId => copy(scheduledDeletions = scheduledDeletions - jobId))
 
-    def getScheduledJob(userId: UserId): Option[ScheduledAccountDeletion] =
+    def getScheduledJob(userId: UserId): Option[AccountDeletionEvent.Scheduled] =
       scheduledDeletions.collectFirst {
         case (_, schedule) if schedule.userId == userId => schedule
       }
@@ -92,17 +92,16 @@ trait UsersStoreContext:
         override protected def updateAccount(account: Account): IO[Unit] = storage.update { _.++(account) }.void
 
         override protected def schedulePermanentDeletion(
-          userId: UserId,
-          permanentDeletionAt: Instant
-        ): IO[ScheduledAccountDeletion] =
+          event: AccountDeletionEvent.Unscheduled
+        ): IO[AccountDeletionEvent.Scheduled] =
           for
             jobId <- IO.randomUUID.map(JobId(_))
-            account <- fetchAccount(userId).map(_.someOrFail)
+            account <- fetchAccount(event.userId).map(_.someOrFail)
             permanentDeletionAt = account.state
               .asInstanceOf[AccountState.SoftDeleted]
               .deletedAt
               .plusSeconds(delayUntilPermanentDeletion.toSeconds)
-            job = ScheduledAccountDeletion(jobId, userId, permanentDeletionAt)
+            job = AccountDeletionEvent.scheduled(jobId, event.userId, permanentDeletionAt)
             _ <- storage.update { _.+++(job) }
           yield job
 
@@ -115,9 +114,9 @@ trait UsersStoreContext:
 
         override val commitStream: [A] => fs2.Stream[IO, A] => fs2.Stream[IO, A] = [A] => (action: fs2.Stream[IO, A]) => action
 
-        override def getScheduledJob(userId: UserId): IO[Option[ScheduledAccountDeletion]] =
+        override def getScheduledJob(userId: UserId): IO[Option[AccountDeletionEvent.Scheduled]] =
           storage.get.map(_.getScheduledJob(userId))
     }
 
 trait JobInspector:
-  def getScheduledJob(userId: UserId): IO[Option[ScheduledAccountDeletion]]
+  def getScheduledJob(userId: UserId): IO[Option[AccountDeletionEvent.Scheduled]]

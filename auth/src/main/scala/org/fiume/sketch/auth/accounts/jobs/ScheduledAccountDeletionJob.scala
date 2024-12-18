@@ -4,7 +4,7 @@ import cats.Monad
 import cats.effect.Sync
 import cats.implicits.*
 import org.fiume.sketch.shared.auth.UserId
-import org.fiume.sketch.shared.auth.accounts.jobs.ScheduledAccountDeletion
+import org.fiume.sketch.shared.auth.accounts.jobs.AccountDeletionEvent
 import org.fiume.sketch.shared.auth.algebras.UsersStore
 import org.fiume.sketch.shared.common.jobs.{EventConsumer, Job, JobId}
 import org.typelevel.log4cats.Logger
@@ -12,11 +12,13 @@ import org.typelevel.log4cats.slf4j.Slf4jLogger
 import org.typelevel.log4cats.syntax.LoggerInterpolator
 
 object ScheduledAccountDeletionJob:
-  def make[F[_]: Sync, Txn[_]: Monad](eventConsumer: EventConsumer[Txn, ScheduledAccountDeletion], store: UsersStore[F, Txn]) =
-    new ScheduledAccountDeletionJob(eventConsumer, store)
+  def make[F[_]: Sync, Txn[_]: Monad](
+    eventConsumer: EventConsumer[Txn, AccountDeletionEvent.Scheduled],
+    store: UsersStore[F, Txn]
+  ) = new ScheduledAccountDeletionJob(eventConsumer, store)
 
 private class ScheduledAccountDeletionJob[F[_]: Sync, Txn[_]: Monad] private (
-  eventConsumer: EventConsumer[Txn, ScheduledAccountDeletion],
+  eventConsumer: EventConsumer[Txn, AccountDeletionEvent.Scheduled],
   store: UsersStore[F, Txn]
 ) extends Job[F, Option[(JobId, UserId)]]:
 

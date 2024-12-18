@@ -11,7 +11,7 @@ import org.fiume.sketch.shared.auth.{Passwords, UserId}
 import org.fiume.sketch.shared.auth.Passwords.{HashedPassword, Salt}
 import org.fiume.sketch.shared.auth.User.*
 import org.fiume.sketch.shared.auth.accounts.{Account, AccountState}
-import org.fiume.sketch.shared.auth.accounts.jobs.ScheduledAccountDeletion
+import org.fiume.sketch.shared.auth.accounts.jobs.AccountDeletionEvent
 import org.fiume.sketch.shared.auth.algebras.UsersStore
 import org.fiume.sketch.shared.common.jobs.JobId
 import org.fiume.sketch.storage.auth.postgres.DatabaseCodecs.given
@@ -46,10 +46,9 @@ private class PostgresUsersStore[F[_]: Async] private (lift: F ~> ConnectionIO, 
     Statements.update(account).run.void
 
   override protected def schedulePermanentDeletion(
-    userId: UserId,
-    permanentDeletionAt: Instant
-  ): ConnectionIO[ScheduledAccountDeletion] =
-    JobStatements.insertPermanentDeletionJob(userId, permanentDeletionAt)
+    event: AccountDeletionEvent.Unscheduled
+  ): ConnectionIO[AccountDeletionEvent.Scheduled] =
+    JobStatements.insertPermanentDeletionEvent(event)
 
   override protected def unschedulePermanentDeletion(userId: UserId): ConnectionIO[Unit] =
     JobStatements.deleteJob(userId).run.void
@@ -135,17 +134,17 @@ private object Statements:
     sql"DELETE FROM auth.users WHERE uuid = $userId".update
 
 private object JobStatements:
-  def insertPermanentDeletionJob(userId: UserId, permanentDeletionAt: Instant): ConnectionIO[ScheduledAccountDeletion] =
+  def insertPermanentDeletionEvent(event: AccountDeletionEvent.Unscheduled): ConnectionIO[AccountDeletionEvent.Scheduled] =
     sql"""
          |INSERT INTO auth.account_permanent_deletion_queue (
          |  user_id,
          |  permanent_deletion_at
          |) VALUES (
-         |  $userId,
-         |  $permanentDeletionAt
+         |  ${event.userId},
+         |  ${event.permanentDeletionAt}
          |)
     """.stripMargin.update
-      .withUniqueGeneratedKeys[ScheduledAccountDeletion]("uuid", "user_id", "permanent_deletion_at")
+      .withUniqueGeneratedKeys[AccountDeletionEvent.Scheduled]("uuid", "user_id", "permanent_deletion_at")
 
   def deleteJob(userId: UserId): Update0 =
     sql"DELETE FROM auth.account_permanent_deletion_queue WHERE user_id = $userId".update

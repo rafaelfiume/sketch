@@ -6,7 +6,6 @@ import doobie.ConnectionIO
 import doobie.implicits.*
 import munit.ScalaCheckEffectSuite
 import org.fiume.sketch.shared.auth.User.*
-import org.fiume.sketch.shared.auth.accounts.jobs.ScheduledAccountDeletion
 import org.fiume.sketch.shared.auth.testkit.UserGens
 import org.fiume.sketch.shared.auth.testkit.UserGens.given
 import org.fiume.sketch.shared.testkit.ClockContext

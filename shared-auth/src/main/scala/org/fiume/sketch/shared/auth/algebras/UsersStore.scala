@@ -8,10 +8,9 @@ import org.fiume.sketch.shared.auth.Passwords.HashedPassword
 import org.fiume.sketch.shared.auth.User.*
 import org.fiume.sketch.shared.auth.accounts.{Account, AccountState, ActivateAccountError, SoftDeleteAccountError}
 import org.fiume.sketch.shared.auth.accounts.SoftDeleteAccountError.*
-import org.fiume.sketch.shared.auth.accounts.jobs.ScheduledAccountDeletion
+import org.fiume.sketch.shared.auth.accounts.jobs.AccountDeletionEvent
 import org.fiume.sketch.shared.common.algebras.Store
 
-import java.time.Instant
 import scala.concurrent.duration.Duration
 
 trait UsersStore[F[_], Txn[_]: Monad](clock: Clock[F]) extends Store[F, Txn]:
@@ -29,15 +28,15 @@ trait UsersStore[F[_], Txn[_]: Monad](clock: Clock[F]) extends Store[F, Txn]:
   def markForDeletion(
     userId: UserId,
     timeUntilPermanentDeletion: Duration
-  ): Txn[Either[SoftDeleteAccountError, ScheduledAccountDeletion]] =
+  ): Txn[Either[SoftDeleteAccountError, AccountDeletionEvent.Scheduled]] =
     lift { clock.realTimeInstant }.flatMap { now =>
       val permanentDeletionAt = now.plusSeconds(timeUntilPermanentDeletion.toSeconds)
       fetchAccountWith(userId) { _.fold(AccountNotFound.asLeft)(AccountState.transitionToSoftDelete(_, now)) }.flatMap {
         case Right(account) =>
           updateAccount(account).flatMap { _ =>
-            schedulePermanentDeletion(userId, permanentDeletionAt).map(_.asRight)
+            schedulePermanentDeletion(AccountDeletionEvent.Unscheduled(userId, permanentDeletionAt)).map(_.asRight)
           }
-        case Left(error) => error.asLeft[ScheduledAccountDeletion].pure[Txn]
+        case Left(error) => error.asLeft[AccountDeletionEvent.Scheduled].pure[Txn]
       }
     }
 
@@ -57,6 +56,6 @@ trait UsersStore[F[_], Txn[_]: Monad](clock: Clock[F]) extends Store[F, Txn]:
 
   protected def updateAccount(account: Account): Txn[Unit]
 
-  protected def schedulePermanentDeletion(userId: UserId, permanentDeletionAt: Instant): Txn[ScheduledAccountDeletion]
+  protected def schedulePermanentDeletion(event: AccountDeletionEvent.Unscheduled): Txn[AccountDeletionEvent.Scheduled]
 
   protected def unschedulePermanentDeletion(userId: UserId): Txn[Unit]

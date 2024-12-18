@@ -5,7 +5,7 @@ import doobie.*
 import doobie.free.connection.ConnectionIO
 import doobie.implicits.*
 import doobie.postgres.implicits.*
-import org.fiume.sketch.shared.auth.accounts.jobs.ScheduledAccountDeletion
+import org.fiume.sketch.shared.auth.accounts.jobs.AccountDeletionEvent
 import org.fiume.sketch.shared.common.jobs.{EventConsumer, JobId}
 import org.fiume.sketch.storage.auth.postgres.DatabaseCodecs.given
 import org.fiume.sketch.storage.auth.postgres.Statements.*
@@ -16,12 +16,12 @@ object PostgresEventConsumer:
   def make[F[_]: Async](): Resource[F, PostgresEventConsumer] =
     Resource.pure[F, PostgresEventConsumer](new PostgresEventConsumer())
 
-private class PostgresEventConsumer private () extends EventConsumer[ConnectionIO, ScheduledAccountDeletion]:
+private class PostgresEventConsumer private () extends EventConsumer[ConnectionIO, AccountDeletionEvent.Scheduled]:
 
-  override def claimNextJob(): ConnectionIO[Option[ScheduledAccountDeletion]] = JobStatementss.lockAndRemoveNextJob().option
+  override def claimNextJob(): ConnectionIO[Option[AccountDeletionEvent.Scheduled]] = JobStatementss.lockAndRemoveNextJob().option
 
 private object JobStatementss:
-  def lockAndRemoveNextJob(): Query0[ScheduledAccountDeletion] =
+  def lockAndRemoveNextJob(): Query0[AccountDeletionEvent.Scheduled] =
     // Writing the same query with CTE would be equally doable
     sql"""
          |DELETE FROM auth.account_permanent_deletion_queue
@@ -33,4 +33,4 @@ private object JobStatementss:
          |  LIMIT 1
          |)
          |RETURNING *
-    """.stripMargin.query[ScheduledAccountDeletion]
+    """.stripMargin.query[AccountDeletionEvent.Scheduled]

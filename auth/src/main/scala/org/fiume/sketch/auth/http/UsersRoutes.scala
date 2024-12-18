@@ -8,7 +8,7 @@ import org.fiume.sketch.shared.auth.User
 import org.fiume.sketch.shared.auth.accounts.{Account, ActivateAccountError, SoftDeleteAccountError}
 import org.fiume.sketch.shared.auth.accounts.ActivateAccountError.*
 import org.fiume.sketch.shared.auth.accounts.SoftDeleteAccountError.*
-import org.fiume.sketch.shared.auth.accounts.jobs.ScheduledAccountDeletion
+import org.fiume.sketch.shared.auth.accounts.jobs.AccountDeletionEvent
 import org.fiume.sketch.shared.auth.http.model.Users.{UserIdVar, *}
 import org.fiume.sketch.shared.auth.http.model.Users.json.given
 import org.fiume.sketch.shared.authorisation.AccessDenied

@@ -4,7 +4,7 @@ import io.circe.{Decoder, Encoder}
 import io.circe.generic.semiauto.*
 import org.fiume.sketch.shared.auth.UserId
 import org.fiume.sketch.shared.auth.UserId.given
-import org.fiume.sketch.shared.auth.accounts.jobs.ScheduledAccountDeletion
+import org.fiume.sketch.shared.auth.accounts.jobs.AccountDeletionEvent
 import org.fiume.sketch.shared.common.jobs.JobId
 import org.fiume.sketch.shared.common.troubleshooting.syntax.ErrorInfoSyntax.*
 
@@ -14,7 +14,7 @@ object Users:
 
   case class ScheduledForPermanentDeletionResponse(jobId: JobId, userId: UserId, permanentDeletionAt: Instant)
 
-  extension (job: ScheduledAccountDeletion)
+  extension (job: AccountDeletionEvent.Scheduled)
     def asResponsePayload: ScheduledForPermanentDeletionResponse =
       ScheduledForPermanentDeletionResponse(job.uuid, job.userId, job.permanentDeletionAt)
 
