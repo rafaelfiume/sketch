@@ -9,8 +9,9 @@ import munit.ScalaCheckEffectSuite
 import org.fiume.sketch.shared.auth.{Passwords, UserId}
 import org.fiume.sketch.shared.auth.Passwords.HashedPassword
 import org.fiume.sketch.shared.auth.User.*
-import org.fiume.sketch.shared.auth.accounts.AccountState
+import org.fiume.sketch.shared.auth.accounts.{Account, AccountState}
 import org.fiume.sketch.shared.auth.accounts.jobs.AccountDeletionEvent
+import org.fiume.sketch.shared.auth.testkit.AccountGens.given
 import org.fiume.sketch.shared.auth.testkit.PasswordsGens.given
 import org.fiume.sketch.shared.auth.testkit.UserGens
 import org.fiume.sketch.shared.auth.testkit.UserGens.given
@@ -34,7 +35,7 @@ class PostgresUsersStoreSpec extends ScalaCheckEffectSuite with PostgresUsersSto
           for
             uuid <- store.createAccount(credentials).ccommit
 
-            result <- store.fetchAccount(credentials.username).ccommit.map(_.someOrFail)
+            result <- store.fetchAccount(credentials.username).map(_.someOrFail).ccommit
 //
           yield
             assertEquals(result.uuid, uuid)
@@ -57,6 +58,22 @@ class PostgresUsersStoreSpec extends ScalaCheckEffectSuite with PostgresUsersSto
 
             result <- store.fetchPassword(uuid).ccommit
           yield assertEquals(result, newPassword)
+        }
+      }
+    }
+
+  test("updates user account"):
+    forAllF { (credentials: UserCredentials, account: Account) =>
+      will(cleanStorage) {
+        PostgresUsersStore.make[IO](transactor()).use { store =>
+          for
+            uuid <- store.createAccount(credentials).ccommit
+            updated = account.copy(uuid = uuid)
+
+            _ <- store.updateAccount(updated).ccommit
+
+            result <- store.fetchAccount(uuid).map(_.someOrFail).ccommit
+          yield assertEquals(result, updated)
         }
       }
     }

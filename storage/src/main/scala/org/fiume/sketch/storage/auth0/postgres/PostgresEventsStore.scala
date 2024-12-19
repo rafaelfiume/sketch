@@ -7,7 +7,11 @@ import doobie.free.connection.ConnectionIO
 import doobie.implicits.*
 import doobie.postgres.implicits.*
 import org.fiume.sketch.shared.auth.UserId
-import org.fiume.sketch.shared.auth.accounts.jobs.{AccountDeletionEvent, AccountDeletionEventConsumer, AccountDeletionEventProducer}
+import org.fiume.sketch.shared.auth.accounts.jobs.{
+  AccountDeletionEvent,
+  AccountDeletionEventConsumer,
+  AccountDeletionEventProducer
+}
 import org.fiume.sketch.shared.auth.accounts.jobs.AccountDeletionEvent.{Scheduled, Unscheduled}
 import org.fiume.sketch.shared.common.jobs.JobId
 import org.fiume.sketch.storage.auth.postgres.DatabaseCodecs.given

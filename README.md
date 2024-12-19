@@ -43,8 +43,9 @@ and a [start-local.sh](/tools/stack/start-local.sh) script to initialise the ser
 
  - [Applicatives and validation](shared-auth/src/main/scala/org/fiume/sketch/shared/auth/domain/Passwords.scala)
  - [Controlling (Db) transactions in business domain components with Functor Transformation](shared-components/src/main/scala/org/fiume/sketch/shared/common/algebras/Store.scala) (`FunctionK` or `~>`)
- - [Basic fs2.Stream](shared-components/src/main/scala/org/fiume/sketch/shared/common/jobs/PeriodicJob.scala)
+ - [fs2.Stream, the basics](shared-components/src/main/scala/org/fiume/sketch/shared/common/jobs/PeriodicJob.scala)
  - [fs2.Stream to test a job queue](storage/src/it/scala/org/fiume/sketch/storage/auth0/postgres/PostgresEventsStoreSpec.scala)
+ - [Mutation is very much a part of pure functional programming](shared-auth/src/test/scala/org/fiume/sketch/shared/auth/testkit/ScheduledAccountDeletionEventFlowContext.scala)
 
 ### A few Scala features in action
 

@@ -14,12 +14,13 @@ trait UsersStore[F[_], Txn[_]: Monad] extends Store[F, Txn]:
 
   def fetchAccount(userId: UserId): Txn[Option[Account]]
 
-  def fetchAccountWith[T](userId: UserId)(f: Option[Account] => T): Txn[T] = fetchAccount(userId).map(f)
+  def fetchAccountWith[T](userId: UserId)(f: Option[Account] => T): Txn[T] =
+    fetchAccount(userId).map(f)
 
   def fetchAccount(username: Username): Txn[Option[Account]]
 
   def updatePassword(userId: UserId, password: HashedPassword): Txn[Unit]
 
-  def deleteAccount(userId: UserId): Txn[Unit]
-
   def updateAccount(account: Account): Txn[Unit]
+
+  def deleteAccount(userId: UserId): Txn[Unit]

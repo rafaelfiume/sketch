@@ -8,11 +8,12 @@ import org.fiume.sketch.shared.auth.Passwords.PlainPassword
 import org.fiume.sketch.shared.auth.User.{UserCredentials, Username}
 import org.fiume.sketch.shared.auth.UserId
 import org.fiume.sketch.shared.auth.accounts.{Account, AccountState, ActivateAccountError, SoftDeleteAccountError}
-import org.fiume.sketch.shared.auth.accounts.jobs.{AccountDeletionEvent, AccountDeletionEventProducer}
+import org.fiume.sketch.shared.auth.accounts.jobs.AccountDeletionEvent
 import org.fiume.sketch.shared.auth.accounts.jobs.AccountDeletionEvent.*
 import org.fiume.sketch.shared.auth.testkit.{UserGens, UsersStoreContext}
 import org.fiume.sketch.shared.auth.testkit.AccountGens.given
 import org.fiume.sketch.shared.auth.testkit.PasswordsGens.given
+import org.fiume.sketch.shared.auth.testkit.ScheduledAccountDeletionEventFlowContext.EventProducerContext
 import org.fiume.sketch.shared.auth.testkit.UserGens.given
 import org.fiume.sketch.shared.authorisation.{AccessDenied, ContextualRole, GlobalRole}
 import org.fiume.sketch.shared.authorisation.testkit.AccessControlContext
@@ -32,7 +33,7 @@ class UsersManagerSpec
     extends CatsEffectSuite
     with ScalaCheckEffectSuite
     with UsersStoreContext
-    with EventSchedulerContext
+    with EventProducerContext
     with AccessControlContext
     with ClockContext
     with UsersManagerSpecContext
@@ -152,7 +153,7 @@ class UsersManagerSpec
 
   test("only Admin users can restore user accounts"):
     forAllF { (owner: UserCredentials, authed: UserCredentials) =>
-      val accountReactivationDate = Instant.now
+      val accountReactivationDate = Instant.now.truncatedTo(MILLIS)
       val clock = makeFrozenClock(accountReactivationDate)
       for
         store <- makeEmptyUsersStore()
@@ -167,7 +168,7 @@ class UsersManagerSpec
 
         _ <- IO {
           assertEquals(result.credentials, owner)
-          assertEquals(result.state, AccountState.Active(accountReactivationDate.truncatedTo(MILLIS)))
+          assertEquals(result.state, AccountState.Active(accountReactivationDate))
         }
         // The Api is idempotent in behaviour but not in response
         _ <- assertIO(
@@ -233,47 +234,3 @@ class UsersManagerSpec
 
 trait UsersManagerSpecContext:
   val delayUntilPermanentDeletion = 30.days
-
-trait EventSchedulerContext:
-
-  private case class State(events: Map[JobId, AccountDeletionEvent.Scheduled]):
-    def +++(event: AccountDeletionEvent.Scheduled): State =
-      copy(events = events + (event.uuid -> event))
-
-    def ---(userId: UserId): State =
-      events
-        .collectFirst {
-          case (jobId, event) if event.userId == userId => jobId
-        }
-        .fold(this)(jobId => copy(events = events - jobId))
-
-    def getEvent(userId: UserId): Option[AccountDeletionEvent.Scheduled] =
-      events.collectFirst {
-        case (_, event) if event.userId == userId => event
-      }
-
-  private object State:
-    val empty = State(Map.empty)
-
-  def makeEventProducer(): IO[AccountDeletionEventProducer[IO] & EventsInspector] = makeEventProducer(
-    State.empty
-  )
-
-  private def makeEventProducer(state: State): IO[AccountDeletionEventProducer[IO] & EventsInspector] =
-    IO.ref(state).map { storage =>
-      new AccountDeletionEventProducer[IO] with EventsInspector:
-        override def produceEvent(event: AccountDeletionEvent.Unscheduled): IO[AccountDeletionEvent.Scheduled] =
-          for
-            jobId <- IO.randomUUID.map(JobId(_))
-            job = AccountDeletionEvent.scheduled(jobId, event.userId, event.permanentDeletionAt)
-            _ <- storage.update { _.+++(job) }
-          yield job
-
-        override def removeEvent(uuid: UserId): IO[Unit] = storage.update { _.---(uuid) }.void
-
-        override def inspectProducedEvent(userId: UserId): IO[Option[AccountDeletionEvent.Scheduled]] =
-          storage.get.map(_.getEvent(userId))
-    }
-
-trait EventsInspector:
-  def inspectProducedEvent(userId: UserId): IO[Option[AccountDeletionEvent.Scheduled]]

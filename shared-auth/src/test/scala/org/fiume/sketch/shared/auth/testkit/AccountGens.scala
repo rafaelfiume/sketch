@@ -6,6 +6,7 @@ import org.fiume.sketch.shared.auth.testkit.UserGens.*
 import org.scalacheck.{Arbitrary, Gen}
 
 import java.time.Instant
+import java.time.temporal.ChronoUnit.MILLIS
 
 object AccountGens:
 
@@ -18,6 +19,6 @@ object AccountGens:
 
   given Arbitrary[AccountState] = Arbitrary(accountStates)
   def accountStates: Gen[AccountState] = Gen.oneOf(
-    Gen.const(Active(Instant.now())),
-    Gen.const(SoftDeleted(Instant.now()))
+    Gen.const(Active(Instant.now().truncatedTo(MILLIS))),
+    Gen.const(SoftDeleted(Instant.now().truncatedTo(MILLIS)))
   )

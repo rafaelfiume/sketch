@@ -12,10 +12,8 @@ import org.typelevel.log4cats.slf4j.Slf4jLogger
 import org.typelevel.log4cats.syntax.LoggerInterpolator
 
 object ScheduledAccountDeletionJob:
-  def make[F[_]: Sync, Txn[_]: Monad](
-    eventConsumer: AccountDeletionEventConsumer[Txn],
-    store: UsersStore[F, Txn]
-  ) = new ScheduledAccountDeletionJob(eventConsumer, store)
+  def make[F[_]: Sync, Txn[_]: Monad](eventConsumer: AccountDeletionEventConsumer[Txn], store: UsersStore[F, Txn]) =
+    new ScheduledAccountDeletionJob(eventConsumer, store)
 
 private class ScheduledAccountDeletionJob[F[_]: Sync, Txn[_]: Monad] private (
   eventConsumer: AccountDeletionEventConsumer[Txn],
@@ -35,5 +33,4 @@ private class ScheduledAccountDeletionJob[F[_]: Sync, Txn[_]: Monad] private (
             store.lift { info"Job ${job.uuid} deleted account with id: ${job.userId}" }
         case None => none.pure[Txn]
     yield result
-
     store.commit { job }
