@@ -1,8 +1,8 @@
-package org.fiume.sketch.shared.auth.accounts.jobs
+package org.fiume.sketch.shared.auth.accounts
 
 import org.fiume.sketch.shared.auth.UserId
 import org.fiume.sketch.shared.common.WithUuid
-import org.fiume.sketch.shared.common.jobs.{EventConsumer, EventProducer, JobId}
+import org.fiume.sketch.shared.common.events.{EventConsumer, EventId, EventProducer}
 
 import java.time.Instant
 
@@ -12,8 +12,8 @@ type AccountDeletionEventConsumer[F[_]] = EventConsumer[F, AccountDeletionEvent.
 
 enum AccountDeletionEvent:
   case Unscheduled(userId: UserId, permanentDeletionAt: Instant)
-  case Scheduled(uuid: JobId, userId: UserId, permanentDeletionAt: Instant) extends AccountDeletionEvent with WithUuid[JobId]
+  case Scheduled(uuid: EventId, userId: UserId, permanentDeletionAt: Instant) extends AccountDeletionEvent with WithUuid[EventId]
 
 object AccountDeletionEvent:
-  def scheduled(uuid: JobId, userId: UserId, permanentDeletionAt: Instant): AccountDeletionEvent.Scheduled =
+  def scheduled(uuid: EventId, userId: UserId, permanentDeletionAt: Instant): AccountDeletionEvent.Scheduled =
     AccountDeletionEvent.Scheduled(uuid, userId, permanentDeletionAt)

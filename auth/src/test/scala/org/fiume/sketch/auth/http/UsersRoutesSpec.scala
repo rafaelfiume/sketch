@@ -7,19 +7,18 @@ import org.fiume.sketch.auth.accounts.UsersManager
 import org.fiume.sketch.shared.auth.{User, UserId}
 import org.fiume.sketch.shared.auth.Passwords.PlainPassword
 import org.fiume.sketch.shared.auth.User.Username
-import org.fiume.sketch.shared.auth.accounts.{Account, ActivateAccountError, SoftDeleteAccountError}
+import org.fiume.sketch.shared.auth.accounts.{Account, AccountDeletionEvent, ActivateAccountError, SoftDeleteAccountError}
+import org.fiume.sketch.shared.auth.accounts.AccountDeletionEvent.Scheduled
 import org.fiume.sketch.shared.auth.accounts.ActivateAccountError.AccountAlreadyActive
 import org.fiume.sketch.shared.auth.accounts.SoftDeleteAccountError.{AccountAlreadyPendingDeletion, AccountNotFound}
-import org.fiume.sketch.shared.auth.accounts.jobs.AccountDeletionEvent
-import org.fiume.sketch.shared.auth.accounts.jobs.AccountDeletionEvent.Scheduled
 import org.fiume.sketch.shared.auth.http.model.Users.ScheduledForPermanentDeletionResponse
 import org.fiume.sketch.shared.auth.http.model.Users.json.given
 import org.fiume.sketch.shared.auth.testkit.{AuthMiddlewareContext, UserGens}
 import org.fiume.sketch.shared.auth.testkit.AccountGens.given
 import org.fiume.sketch.shared.auth.testkit.UserGens.given
 import org.fiume.sketch.shared.authorisation.{AccessDenied, GlobalRole}
-import org.fiume.sketch.shared.common.jobs.JobId
-import org.fiume.sketch.shared.common.testkit.JobGens.given
+import org.fiume.sketch.shared.common.events.EventId
+import org.fiume.sketch.shared.common.testkit.EventGens.given
 import org.fiume.sketch.shared.common.troubleshooting.ErrorInfo
 import org.fiume.sketch.shared.common.troubleshooting.ErrorInfo.json.given
 import org.fiume.sketch.shared.common.troubleshooting.syntax.ErrorInfoSyntax.*
@@ -44,12 +43,12 @@ class UsersRoutesSpec
     with ShrinkLowPriority:
 
   test("marks accounts for deletion"):
-    forAllF { (authed: User, ownerId: UserId, jobId: JobId) =>
+    forAllF { (authed: User, ownerId: UserId, eventId: EventId) =>
 // given
       val deletedAt = Instant.now()
       val permantDeletionDelay = 1.second
       val scheduledJob = AccountDeletionEvent.scheduled(
-        jobId,
+        eventId,
         ownerId,
         deletedAt.plusSeconds(permantDeletionDelay.toSeconds).truncatedTo(MILLIS)
       )
@@ -63,7 +62,7 @@ class UsersRoutesSpec
 // then
           .expectJsonResponseWith[ScheduledForPermanentDeletionResponse](Status.Ok),
         ScheduledForPermanentDeletionResponse(
-          jobId,
+          eventId,
           ownerId,
           deletedAt.plusSeconds(permantDeletionDelay.toSeconds).truncatedTo(MILLIS)
         )

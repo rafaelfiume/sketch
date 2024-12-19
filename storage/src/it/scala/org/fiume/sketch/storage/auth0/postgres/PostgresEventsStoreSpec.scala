@@ -6,7 +6,7 @@ import doobie.ConnectionIO
 import doobie.implicits.*
 import munit.ScalaCheckEffectSuite
 import org.fiume.sketch.shared.auth.UserId
-import org.fiume.sketch.shared.auth.accounts.jobs.AccountDeletionEvent
+import org.fiume.sketch.shared.auth.accounts.AccountDeletionEvent
 import org.fiume.sketch.shared.auth.testkit.UserGens
 import org.fiume.sketch.shared.auth.testkit.UserGens.given
 import org.fiume.sketch.shared.testkit.ClockContext
@@ -25,37 +25,38 @@ class PostgresEventsStoreSpec
 
   override def scalaCheckTestParameters = super.scalaCheckTestParameters.withMinSuccessfulTests(1)
 
-  test("claims next job and return it to the queue if processing fails"):
+  // TODO We are testing two different properties here. It would be better to split them into two different tests.
+  test("consumes next event and return it to the queue if processing fails"): // TODO Is queue the correct terminology here?
     forAllF { () =>
       will(cleanStorage) {
         PostgresEventsStore.make[IO]().use { eventsStore =>
           // given
-          val numQueuedJobs = 1000
+          val numQueuedEvents = 1000
           val now = Instant.now()
           for
-            queuedJobs <- fs2.Stream
-              .range(0, numQueuedJobs)
+            queuedEvents <- fs2.Stream
+              .range(0, numQueuedEvents)
               .covary[IO]
               .parEvalMapUnbounded { _ =>
                 val userId = UserGens.userIds.sample.someOrFail
                 eventsStore.produceEvent(AccountDeletionEvent.Unscheduled(userId, now)).map(_.uuid).ccommit
               }
-              // .evalTap { jobId => IO.println(s"new job: $jobId") } // uncomment to debug
+              // .evalTap { eventId => IO.println(s"new event: $eventId") } // uncomment to debug
               .compile
               .toList
 
             // when
             result <-
               fs2.Stream
-                // runs twice the number of queued jobs + a few to compensate for the failures
-                .range(0, 2 * numQueuedJobs + 50)
+                // process twice the number of queued events + a few to compensate for the failures
+                .range(0, 2 * numQueuedEvents + 50)
                 .covary[IO]
                 .parEvalMapUnorderedUnbounded { i =>
                   eventsStore
-                    .claimNextJob()
-                    .flatMap { job =>
-                      if i % 2 == 0 then lift { RuntimeException(s"failed: ${job.map(_.uuid)}").raiseError }
-                      else job.pure[ConnectionIO]
+                    .consumeEvent()
+                    .flatMap { event =>
+                      if i % 2 == 0 then lift { RuntimeException(s"failed: ${event.map(_.uuid)}").raiseError }
+                      else event.pure[ConnectionIO]
                     }
                     .ccommit
                     .handleErrorWith { error =>
@@ -64,34 +65,34 @@ class PostgresEventsStoreSpec
                     }
                 }
                 .map(_.map(_.uuid))
-                // .evalTap { jobId => IO.println(s"claimed job: ${jobId}") } // uncomment to debug
+                // .evalTap { eventId => IO.println(s"consumed event: ${eventId}") } // uncomment to debug
                 .unNone
                 .compile
                 .toList
 
           // then
           yield
-            assert(result.size == numQueuedJobs, clue = s"Expected $numQueuedJobs jobs, got ${result.size}")
-            assertEquals(result.toSet, queuedJobs.toSet)
+            assert(result.size == numQueuedEvents, clue = s"Expected $numQueuedEvents events, got ${result.size}")
+            assertEquals(result.toSet, queuedEvents.toSet)
         }
       }
     }
 
-  test("skips job if permanent deletion is not yet due"):
+  test("skips event if permanent deletion is not yet due"):
     forAllF { (fstUserId: UserId, sndUserId: UserId, trdUserId: UserId, fthUserId: UserId) =>
       will(cleanStorage) {
         PostgresEventsStore.make[IO]().use { eventsStore =>
-          val now = Instant.now()
-          val future = now.plusSeconds(60)
+          val due = Instant.now()
+          val notYetDue = due.plusSeconds(60)
           for
-            _ <- eventsStore.produceEvent(AccountDeletionEvent.Unscheduled(fstUserId, future)).ccommit
-            _ <- eventsStore.produceEvent(AccountDeletionEvent.Unscheduled(sndUserId, future)).ccommit
-            _ <- eventsStore.produceEvent(AccountDeletionEvent.Unscheduled(trdUserId, now)).ccommit
-            _ <- eventsStore.produceEvent(AccountDeletionEvent.Unscheduled(fthUserId, future)).ccommit
+            _ <- eventsStore.produceEvent(AccountDeletionEvent.Unscheduled(fstUserId, notYetDue)).ccommit
+            _ <- eventsStore.produceEvent(AccountDeletionEvent.Unscheduled(sndUserId, notYetDue)).ccommit
+            _ <- eventsStore.produceEvent(AccountDeletionEvent.Unscheduled(trdUserId, due)).ccommit
+            _ <- eventsStore.produceEvent(AccountDeletionEvent.Unscheduled(fthUserId, notYetDue)).ccommit
 
             result <- fs2.Stream
               .repeatEval {
-                eventsStore.claimNextJob().ccommit
+                eventsStore.consumeEvent().ccommit
               }
               .unNone
               .take(1)

@@ -7,7 +7,7 @@ import org.fiume.sketch.shared.auth.Passwords.{HashedPassword, Salt}
 import org.fiume.sketch.shared.auth.User.*
 import org.fiume.sketch.shared.auth.UserId
 import org.fiume.sketch.shared.auth.accounts.{Account, AccountState}
-import org.fiume.sketch.shared.common.jobs.JobId
+import org.fiume.sketch.shared.common.events.EventId
 
 import java.time.Instant
 import java.util.UUID
@@ -43,4 +43,4 @@ private[storage] object DatabaseCodecs:
     Account(creds.uuid, creds, state)
   }
 
-  given Meta[JobId] = Meta[UUID].timap(JobId(_))(_.value)
+  given Meta[EventId] = Meta[UUID].timap(EventId(_))(_.value)

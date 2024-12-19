@@ -4,9 +4,10 @@ import cats.Monad
 import cats.effect.Sync
 import cats.implicits.*
 import org.fiume.sketch.shared.auth.UserId
-import org.fiume.sketch.shared.auth.accounts.jobs.{AccountDeletionEvent, AccountDeletionEventConsumer}
+import org.fiume.sketch.shared.auth.accounts.{AccountDeletionEvent, AccountDeletionEventConsumer}
 import org.fiume.sketch.shared.auth.algebras.UsersStore
-import org.fiume.sketch.shared.common.jobs.{Job, JobId}
+import org.fiume.sketch.shared.common.events.EventId
+import org.fiume.sketch.shared.common.jobs.Job
 import org.typelevel.log4cats.Logger
 import org.typelevel.log4cats.slf4j.Slf4jLogger
 import org.typelevel.log4cats.syntax.LoggerInterpolator
@@ -18,19 +19,18 @@ object ScheduledAccountDeletionJob:
 private class ScheduledAccountDeletionJob[F[_]: Sync, Txn[_]: Monad] private (
   eventConsumer: AccountDeletionEventConsumer[Txn],
   store: UsersStore[F, Txn]
-) extends Job[F, Option[(JobId, UserId)]]:
+) extends Job[F, Option[(EventId, UserId)]]:
 
   given Logger[F] = Slf4jLogger.getLogger[F]
 
   override val description: String = "permanent deletion of a user account"
 
-  override def run(): F[Option[(JobId, UserId)]] =
-    val job = for
-      job <- eventConsumer.claimNextJob()
-      result <- job match
-        case Some(job) =>
-          store.deleteAccount(job.userId).map(_ => Some((job.uuid, job.userId))) <*
-            store.lift { info"Job ${job.uuid} deleted account with id: ${job.userId}" }
+  override def run(): F[Option[(EventId, UserId)]] =
+    store.commit {
+      eventConsumer.consumeEvent().flatMap {
+        case Some(event) =>
+          store.deleteAccount(event.userId).map(_ => Some((event.uuid, event.userId))) <*
+            store.lift { info"Job ${event.uuid} deleted account with id: ${event.userId}" }
         case None => none.pure[Txn]
-    yield result
-    store.commit { job }
+      }
+    }

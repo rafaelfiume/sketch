@@ -7,8 +7,14 @@ import cats.implicits.*
 import org.fiume.sketch.shared.auth.Passwords.{HashedPassword, PlainPassword, Salt}
 import org.fiume.sketch.shared.auth.User.*
 import org.fiume.sketch.shared.auth.UserId
-import org.fiume.sketch.shared.auth.accounts.{Account, AccountState, ActivateAccountError, SoftDeleteAccountError}
-import org.fiume.sketch.shared.auth.accounts.jobs.{AccountDeletionEvent, AccountDeletionEventProducer}
+import org.fiume.sketch.shared.auth.accounts.{
+  Account,
+  AccountDeletionEvent,
+  AccountDeletionEventProducer,
+  AccountState,
+  ActivateAccountError,
+  SoftDeleteAccountError
+}
 import org.fiume.sketch.shared.auth.algebras.UsersStore
 import org.fiume.sketch.shared.authorisation.{AccessControl, AccessDenied, ContextualRole, GlobalRole}
 import org.fiume.sketch.shared.authorisation.ContextualRole.Owner

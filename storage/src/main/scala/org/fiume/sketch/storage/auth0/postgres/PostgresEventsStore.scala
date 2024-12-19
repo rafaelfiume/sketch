@@ -7,13 +7,9 @@ import doobie.free.connection.ConnectionIO
 import doobie.implicits.*
 import doobie.postgres.implicits.*
 import org.fiume.sketch.shared.auth.UserId
-import org.fiume.sketch.shared.auth.accounts.jobs.{
-  AccountDeletionEvent,
-  AccountDeletionEventConsumer,
-  AccountDeletionEventProducer
-}
-import org.fiume.sketch.shared.auth.accounts.jobs.AccountDeletionEvent.{Scheduled, Unscheduled}
-import org.fiume.sketch.shared.common.jobs.JobId
+import org.fiume.sketch.shared.auth.accounts.{AccountDeletionEvent, AccountDeletionEventConsumer, AccountDeletionEventProducer}
+import org.fiume.sketch.shared.auth.accounts.AccountDeletionEvent.{Scheduled, Unscheduled}
+import org.fiume.sketch.shared.common.events.EventId
 import org.fiume.sketch.storage.auth.postgres.DatabaseCodecs.given
 import org.fiume.sketch.storage.auth.postgres.Statements.*
 
@@ -32,12 +28,14 @@ private class PostgresEventsStore private ()
 
   override def removeEvent(userId: UserId): ConnectionIO[Unit] = EventStatements.deleteEvent(userId).run.void
 
-  override def claimNextJob(): ConnectionIO[Option[AccountDeletionEvent.Scheduled]] =
+  override def consumeEvent(): ConnectionIO[Option[AccountDeletionEvent.Scheduled]] =
     EventStatements.lockAndRemoveNextJob().option
 
 private object EventStatements:
   def lockAndRemoveNextJob(): Query0[AccountDeletionEvent.Scheduled] =
     // Writing the same query with CTE would be equally doable
+    // provides exactly-once semantics
+    // TODO ordering guarantees?
     sql"""
          |DELETE FROM auth.account_permanent_deletion_queue
          |WHERE uuid = (

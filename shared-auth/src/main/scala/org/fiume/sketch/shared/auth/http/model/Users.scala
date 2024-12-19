@@ -4,15 +4,15 @@ import io.circe.{Decoder, Encoder}
 import io.circe.generic.semiauto.*
 import org.fiume.sketch.shared.auth.UserId
 import org.fiume.sketch.shared.auth.UserId.given
-import org.fiume.sketch.shared.auth.accounts.jobs.AccountDeletionEvent
-import org.fiume.sketch.shared.common.jobs.JobId
+import org.fiume.sketch.shared.auth.accounts.AccountDeletionEvent
+import org.fiume.sketch.shared.common.events.EventId
 import org.fiume.sketch.shared.common.troubleshooting.syntax.ErrorInfoSyntax.*
 
 import java.time.Instant
 
 object Users:
 
-  case class ScheduledForPermanentDeletionResponse(jobId: JobId, userId: UserId, permanentDeletionAt: Instant)
+  case class ScheduledForPermanentDeletionResponse(eventId: EventId, userId: UserId, permanentDeletionAt: Instant)
 
   extension (job: AccountDeletionEvent.Scheduled)
     def asResponsePayload: ScheduledForPermanentDeletionResponse =
@@ -22,8 +22,8 @@ object Users:
     def unapply(uuid: String): Option[UserId] = uuid.parsed().toOption
 
   object json:
-    given Encoder[JobId] = Encoder.encodeUUID.contramap[JobId](_.value)
-    given Decoder[JobId] = Decoder.decodeUUID.map(JobId(_))
+    given Encoder[EventId] = Encoder.encodeUUID.contramap[EventId](_.value)
+    given Decoder[EventId] = Decoder.decodeUUID.map(EventId(_))
 
     given Encoder[UserId] = Encoder.encodeUUID.contramap[UserId](_.value)
     given Decoder[UserId] = Decoder.decodeUUID.map(UserId(_))

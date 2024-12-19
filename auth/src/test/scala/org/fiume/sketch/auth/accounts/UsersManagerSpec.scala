@@ -7,9 +7,14 @@ import munit.Assertions.*
 import org.fiume.sketch.shared.auth.Passwords.PlainPassword
 import org.fiume.sketch.shared.auth.User.{UserCredentials, Username}
 import org.fiume.sketch.shared.auth.UserId
-import org.fiume.sketch.shared.auth.accounts.{Account, AccountState, ActivateAccountError, SoftDeleteAccountError}
-import org.fiume.sketch.shared.auth.accounts.jobs.AccountDeletionEvent
-import org.fiume.sketch.shared.auth.accounts.jobs.AccountDeletionEvent.*
+import org.fiume.sketch.shared.auth.accounts.{
+  Account,
+  AccountDeletionEvent,
+  AccountState,
+  ActivateAccountError,
+  SoftDeleteAccountError
+}
+import org.fiume.sketch.shared.auth.accounts.AccountDeletionEvent.*
 import org.fiume.sketch.shared.auth.testkit.{UserGens, UsersStoreContext}
 import org.fiume.sketch.shared.auth.testkit.AccountGens.given
 import org.fiume.sketch.shared.auth.testkit.PasswordsGens.given
@@ -18,7 +23,7 @@ import org.fiume.sketch.shared.auth.testkit.UserGens.given
 import org.fiume.sketch.shared.authorisation.{AccessDenied, ContextualRole, GlobalRole}
 import org.fiume.sketch.shared.authorisation.testkit.AccessControlContext
 import org.fiume.sketch.shared.authorisation.testkit.AccessControlGens.given
-import org.fiume.sketch.shared.common.jobs.JobId
+import org.fiume.sketch.shared.common.events.EventId
 import org.fiume.sketch.shared.testkit.ClockContext
 import org.fiume.sketch.shared.testkit.syntax.EitherSyntax.*
 import org.fiume.sketch.shared.testkit.syntax.OptionSyntax.*
@@ -91,14 +96,14 @@ class UsersManagerSpec
 
         account <- store.fetchAccount(ownerId).map(_.someOrFail)
         grantRemoved <- accessControl.canAccess(ownerId, ownerId).map(!_)
-        jobId <- eventProducer.inspectProducedEvent(ownerId).map(_.someOrFail.uuid)
+        eventId <- eventProducer.inspectProducedEvent(ownerId).map(_.someOrFail.uuid)
       yield
         assert(account.isMarkedForDeletion)
         assert(grantRemoved)
         assertEquals(
           result,
           AccountDeletionEvent.Scheduled(
-            jobId,
+            eventId,
             ownerId,
             markedForDeletionAt.plusSeconds(delayUntilPermanentDeletion.toSeconds).truncatedTo(MILLIS)
           )

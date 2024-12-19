@@ -1,4 +1,4 @@
-package org.fiume.sketch.shared.common.jobs
+package org.fiume.sketch.shared.common.events
 
 trait EventProducer[F[_], Event, Outcome, Id]:
   def produceEvent(event: Event): F[Outcome]

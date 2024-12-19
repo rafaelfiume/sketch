@@ -4,9 +4,8 @@ import cats.effect.Async
 import cats.implicits.*
 import com.comcast.ip4s.{Host, Port}
 import org.fiume.sketch.shared.auth.{Jwt, UserId}
-import org.fiume.sketch.shared.auth.accounts.{ActivateAccountError, SoftDeleteAccountError}
+import org.fiume.sketch.shared.auth.accounts.{AccountDeletionEvent, ActivateAccountError, SoftDeleteAccountError}
 import org.fiume.sketch.shared.auth.accounts.SoftDeleteAccountError.AccountAlreadyPendingDeletion
-import org.fiume.sketch.shared.auth.accounts.jobs.AccountDeletionEvent
 import org.fiume.sketch.shared.auth.http.ClientAuthorisationError
 import org.fiume.sketch.shared.auth.http.model.Users.ScheduledForPermanentDeletionResponse
 import org.fiume.sketch.shared.auth.http.model.Users.json.given
@@ -42,7 +41,7 @@ class HttpUsersClient[F[_]: Async] private (baseUri: Uri, client: Client[F]):
         case Ok(resp) =>
           resp
             .as[ScheduledForPermanentDeletionResponse]
-            .map(p => AccountDeletionEvent.Scheduled(p.jobId, p.userId, p.permanentDeletionAt).asRight)
+            .map(p => AccountDeletionEvent.Scheduled(p.eventId, p.userId, p.permanentDeletionAt).asRight)
         case Conflict(_)        => AccountAlreadyPendingDeletion.asLeft[AccountDeletionEvent.Scheduled].pure[F]
         case NotFound(_)        => SoftDeleteAccountError.AccountNotFound.asLeft.pure[F]
         case Unauthorized(resp) =>

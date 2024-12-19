@@ -3,27 +3,22 @@ package org.fiume.sketch.shared.auth.testkit
 import cats.effect.IO
 import cats.implicits.*
 import org.fiume.sketch.shared.auth.UserId
-import org.fiume.sketch.shared.auth.accounts.jobs.{
-  AccountDeletionEvent,
-  AccountDeletionEventConsumer,
-  AccountDeletionEventProducer
-}
-import org.fiume.sketch.shared.auth.accounts.jobs.AccountDeletionEvent.*
-import org.fiume.sketch.shared.common.jobs.JobId
-
+import org.fiume.sketch.shared.auth.accounts.{AccountDeletionEvent, AccountDeletionEventConsumer, AccountDeletionEventProducer}
+import org.fiume.sketch.shared.auth.accounts.AccountDeletionEvent.*
+import org.fiume.sketch.shared.common.events.EventId
 object ScheduledAccountDeletionEventFlowContext:
 
   trait EventProducerContext:
-    private case class State(events: Map[JobId, AccountDeletionEvent.Scheduled]):
+    private case class State(events: Map[EventId, AccountDeletionEvent.Scheduled]):
       def +++(event: AccountDeletionEvent.Scheduled): State =
         copy(events = events + (event.uuid -> event))
 
       def ---(userId: UserId): State =
         events
           .collectFirst {
-            case (jobId, event) if event.userId == userId => jobId
+            case (eventId, event) if event.userId == userId => eventId
           }
-          .fold(this)(jobId => copy(events = events - jobId))
+          .fold(this)(eventId => copy(events = events - eventId))
 
       def getEvent(userId: UserId): Option[AccountDeletionEvent.Scheduled] =
         events.collectFirst {
@@ -42,10 +37,10 @@ object ScheduledAccountDeletionEventFlowContext:
         new AccountDeletionEventProducer[IO] with EventsInspector:
           override def produceEvent(event: AccountDeletionEvent.Unscheduled): IO[AccountDeletionEvent.Scheduled] =
             for
-              jobId <- IO.randomUUID.map(JobId(_))
-              job = AccountDeletionEvent.scheduled(jobId, event.userId, event.permanentDeletionAt)
-              _ <- storage.update { _.+++(job) }
-            yield job
+              eventId <- IO.randomUUID.map(EventId(_))
+              scheduled = AccountDeletionEvent.scheduled(eventId, event.userId, event.permanentDeletionAt)
+              _ <- storage.update { _.+++(scheduled) }
+            yield scheduled
 
           override def removeEvent(uuid: UserId): IO[Unit] = storage.update { _.---(uuid) }.void
 
@@ -67,7 +62,7 @@ object ScheduledAccountDeletionEventFlowContext:
     private def makeEventConsumer(event: Option[AccountDeletionEvent.Scheduled]): IO[AccountDeletionEventConsumer[IO]] =
       IO.ref(State(event)).map { state =>
         new AccountDeletionEventConsumer[IO]:
-          override def claimNextJob(): IO[Option[AccountDeletionEvent.Scheduled]] = state.getAndSet(State.empty).map(_.event)
+          override def consumeEvent(): IO[Option[AccountDeletionEvent.Scheduled]] = state.getAndSet(State.empty).map(_.event)
       }
 
   trait EventsInspector:

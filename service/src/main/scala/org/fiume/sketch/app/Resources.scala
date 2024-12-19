@@ -7,7 +7,7 @@ import org.fiume.sketch.app.SketchVersions.VersionFile
 import org.fiume.sketch.auth.Authenticator
 import org.fiume.sketch.auth.accounts.UsersManager
 import org.fiume.sketch.rustic.RusticHealthCheck
-import org.fiume.sketch.shared.auth.accounts.jobs.AccountDeletionEventConsumer
+import org.fiume.sketch.shared.auth.accounts.AccountDeletionEventConsumer
 import org.fiume.sketch.shared.auth.algebras.UsersStore
 import org.fiume.sketch.shared.authorisation.AccessControl
 import org.fiume.sketch.shared.common.ServiceStatus.Dependency.*
