@@ -1,9 +1,10 @@
 package org.fiume.sketch.storage.testkit
 
 import cats.effect.{IO, Resource}
+import cats.~>
 import ciris.Secret
 import com.dimafeng.testcontainers.PostgreSQLContainer
-import doobie.{ConnectionIO, Transactor}
+import doobie.{ConnectionIO, Transactor, WeakAsync}
 import doobie.hikari.HikariTransactor
 import doobie.implicits.*
 import doobie.util.log.{LogEvent, LogHandler}
@@ -17,7 +18,11 @@ import scala.concurrent.ExecutionContext
 
 trait DockerPostgresSuite extends CatsEffectSuite:
 
-  case class DbContainerAndTransactor(container: PostgreSQLContainer, transactor: Transactor[IO])
+  case class DbContainerAndTransactor(
+    container: PostgreSQLContainer,
+    transactor: Transactor[IO],
+    functionK: IO ~> ConnectionIO
+  )
 
   override def munitFixtures = List(dbContainerAndTransactor)
 
@@ -25,6 +30,8 @@ trait DockerPostgresSuite extends CatsEffectSuite:
 
   extension [A](stream: fs2.Stream[ConnectionIO, A])
     def ccommitStream: fs2.Stream[IO, A] = stream.transact(dbContainerAndTransactor().transactor)
+
+  def lift: [A] => IO[A] => ConnectionIO[A] = [A] => (fa: IO[A]) => naturalTransformation()(fa)
 
   /*
    * Mostly used to clean tables after running test.
@@ -35,6 +42,8 @@ trait DockerPostgresSuite extends CatsEffectSuite:
   def container(): PostgreSQLContainer = dbContainerAndTransactor().container
 
   def transactor(): Transactor[IO] = dbContainerAndTransactor().transactor
+
+  private def naturalTransformation() = dbContainerAndTransactor().functionK
 
   private val dbContainerAndTransactor = ResourceSuiteLocalFixture(
     "db-session",
@@ -74,6 +83,7 @@ trait DockerPostgresSuite extends CatsEffectSuite:
         connectionPool,
         Some(printSqlLogHandler)
       )
+      functionK <- WeakAsync.liftK[IO, ConnectionIO]
       _ <- SchemaMigration[IO](dbConfig).toResource
-    yield DbContainerAndTransactor(container, tx)
+    yield DbContainerAndTransactor(container, tx, functionK)
   )

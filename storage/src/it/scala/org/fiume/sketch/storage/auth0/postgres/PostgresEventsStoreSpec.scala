@@ -17,7 +17,7 @@ import org.scalacheck.effect.PropF.forAllF
 
 import java.time.Instant
 
-class PostgresEventConsumerSpec
+class PostgresEventsStoreSpec
     extends ScalaCheckEffectSuite
     with ClockContext
     with PostgresEventStoreSpecContext
@@ -28,10 +28,7 @@ class PostgresEventConsumerSpec
   test("claims next job and return it to the queue if processing fails"):
     forAllF { () =>
       will(cleanStorage) {
-        (
-          PostgresUsersStore.make[IO](transactor()),
-          PostgresEventsStore.make[IO]()
-        ).tupled.use { case (usersStore, eventsStore) =>
+        PostgresEventsStore.make[IO]().use { eventsStore =>
           // given
           val numQueuedJobs = 1000
           val now = Instant.now()
@@ -57,7 +54,7 @@ class PostgresEventConsumerSpec
                   eventsStore
                     .claimNextJob()
                     .flatMap { job =>
-                      if i % 2 == 0 then usersStore.lift { RuntimeException(s"failed: ${job.map(_.uuid)}").raiseError }
+                      if i % 2 == 0 then lift { RuntimeException(s"failed: ${job.map(_.uuid)}").raiseError }
                       else job.pure[ConnectionIO]
                     }
                     .ccommit
@@ -83,10 +80,7 @@ class PostgresEventConsumerSpec
   test("skips job if permanent deletion is not yet due"):
     forAllF { (fstUserId: UserId, sndUserId: UserId, trdUserId: UserId, fthUserId: UserId) =>
       will(cleanStorage) {
-        (
-          PostgresUsersStore.make[IO](transactor()),
-          PostgresEventsStore.make[IO]()
-        ).tupled.use { case (usersStore, eventsStore) =>
+        PostgresEventsStore.make[IO]().use { eventsStore =>
           val now = Instant.now()
           val future = now.plusSeconds(60)
           for
