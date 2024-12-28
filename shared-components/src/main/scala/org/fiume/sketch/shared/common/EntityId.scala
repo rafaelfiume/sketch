@@ -1,6 +1,6 @@
 package org.fiume.sketch.shared.common
 
-import cats.Eq
+import cats.{Eq, Show}
 import cats.implicits.*
 import org.fiume.sketch.shared.common.InvalidUuid.UnparsableUuid
 import org.fiume.sketch.shared.common.troubleshooting.InvariantError
@@ -25,6 +25,7 @@ import scala.util.Try
  */
 abstract case class EntityId[T <: Entity](val value: UUID):
   def entityType: String
+  override def toString(): String = value.toString()
 
 object EntityId:
   inline def apply[T <: Entity](value: UUID): EntityId[T] = ${ Macros.entityIdApplyMacro[T]('value) }
@@ -44,6 +45,8 @@ object EntityId:
   given [T <: Entity]: Eq[EntityId[T]] = Eq.instance { (thiss, other) =>
     (thiss.value === other.value) && (thiss.entityType === other.entityType)
   }
+
+  given Show[EntityId[?]] = Show.fromToString
 
 trait Entity
 

@@ -59,12 +59,12 @@ CREATE TABLE auth.access_control (
 );
 
 -- TODO Create index to improve performance of selectAllAuthorisedEntityIds and measure results
--- CREATE INDEX idx_user_entity_type ON auth.access_control (user_id, entity_type);
+-- CREATE INDEX idx_access_control_user_id_entity_type ON auth.access_control (user_id, entity_type);
 
-CREATE TABLE auth.account_permanent_deletion_queue (
+CREATE TABLE auth.account_permanent_deletion_delayed_messages (
     uuid UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
     user_id UUID NOT NULL UNIQUE,
     permanent_deletion_at TIMESTAMPTZ NOT NULL
 );
 
-CREATE INDEX account_permanent_deletion_queue_user_id ON auth.account_permanent_deletion_queue (user_id);
+CREATE INDEX idx_account_permanent_deletion_delayed_messages_user_id ON auth.account_permanent_deletion_delayed_messages (user_id);

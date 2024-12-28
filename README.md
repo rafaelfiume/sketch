@@ -44,15 +44,15 @@ and a [start-local.sh](/tools/stack/start-local.sh) script to initialise the ser
  - [Applicatives and validation](shared-auth/src/main/scala/org/fiume/sketch/shared/auth/domain/Passwords.scala)
  - [Controlling (Db) transactions in business domain components with Functor Transformation](shared-components/src/main/scala/org/fiume/sketch/shared/common/algebras/Store.scala) (`FunctionK` or `~>`)
  - [fs2.Stream, the basics](shared-components/src/main/scala/org/fiume/sketch/shared/common/jobs/PeriodicJob.scala)
- - [fs2.Stream to test a job queue](storage/src/it/scala/org/fiume/sketch/storage/auth0/postgres/PostgresEventsStoreSpec.scala)
+ - [fs2.Stream to test producing and consuming events](storage/src/it/scala/org/fiume/sketch/storage/auth0/postgres/PostgresEventsStoreSpec.scala)
  - [Mutation is very much a part of pure functional programming](shared-auth/src/test/scala/org/fiume/sketch/shared/auth/testkit/ScheduledAccountDeletionEventFlowContext.scala)
 
 ### A few Scala features in action
 
+ - [Extension methods](shared-account-management/src/main/scala/org/fiume/sketch/shared/account/management/http/model/AccountStateTransitionErrorSyntax.scala)
  - [Intersection types](shared-components/src/test/scala/org/fiume/sketch/shared/common/testkit/JobErrorHandlerContext.scala) (`&`)
  - [Metaprogramming](shared-components/src/main/scala/org/fiume/sketch/shared/common/Macros.scala)
  - [Union types](auth/src/main/scala/org/fiume/sketch/auth/UsersManager.scala) (`\`)
- - [Extension methods](shared-account-management/src/main/scala/org/fiume/sketch/shared/account/management/http/model/AccountStateTransitionErrorSyntax.scala)
 
 
 ## Using Postgres as Lightweight Event Bus

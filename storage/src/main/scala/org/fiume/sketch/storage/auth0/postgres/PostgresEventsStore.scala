@@ -37,10 +37,10 @@ private object EventStatements:
     // provides exactly-once semantics
     // TODO ordering guarantees?
     sql"""
-         |DELETE FROM auth.account_permanent_deletion_queue
+         |DELETE FROM auth.account_permanent_deletion_delayed_messages
          |WHERE uuid = (
          |  SELECT uuid
-         |  FROM auth.account_permanent_deletion_queue
+         |  FROM auth.account_permanent_deletion_delayed_messages
          |  WHERE permanent_deletion_at < now()
          |  FOR UPDATE SKIP LOCKED
          |  LIMIT 1
@@ -50,7 +50,7 @@ private object EventStatements:
 
   def insertPermanentDeletionEvent(event: AccountDeletionEvent.Unscheduled): ConnectionIO[AccountDeletionEvent.Scheduled] =
     sql"""
-         |INSERT INTO auth.account_permanent_deletion_queue (
+         |INSERT INTO auth.account_permanent_deletion_delayed_messages (
          |  user_id,
          |  permanent_deletion_at
          |) VALUES (
@@ -61,4 +61,4 @@ private object EventStatements:
       .withUniqueGeneratedKeys[AccountDeletionEvent.Scheduled]("uuid", "user_id", "permanent_deletion_at")
 
   def deleteEvent(userId: UserId): Update0 =
-    sql"DELETE FROM auth.account_permanent_deletion_queue WHERE user_id = $userId".update
+    sql"DELETE FROM auth.account_permanent_deletion_delayed_messages WHERE user_id = $userId".update
