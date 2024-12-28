@@ -27,7 +27,7 @@ class PostgresEventsStoreSpec
 
   override def scalaCheckTestParameters = super.scalaCheckTestParameters.withMinSuccessfulTests(10)
 
-  test("consumes next event"): // TODO Is queue the correct terminology here?
+  test("consumes next event with exactly-once semantics"):
     forAllF { () =>
       will(cleanStorage) {
         PostgresEventsStore.make[IO]().use { eventsStore =>
@@ -163,10 +163,10 @@ class PostgresEventsStoreSpec
 
 trait PostgresEventStoreSpecContext extends DockerPostgresSuite:
   def cleanStorage: ConnectionIO[Unit] =
-    sql"TRUNCATE TABLE auth.account_permanent_deletion_delayed_messages".update.run.void
+    sql"TRUNCATE TABLE auth.account_deletion_scheduled_events".update.run.void
 
   def fetchPendingEvents(): ConnectionIO[List[AccountDeletionEvent.Scheduled]] =
-    sql"SELECT * FROM auth.account_permanent_deletion_delayed_messages".query[AccountDeletionEvent.Scheduled].to[List]
+    sql"SELECT * FROM auth.account_deletion_scheduled_events".query[AccountDeletionEvent.Scheduled].to[List]
 
   import doobie.{Meta, Read}
   import org.fiume.sketch.storage.auth.postgres.DatabaseCodecs.given

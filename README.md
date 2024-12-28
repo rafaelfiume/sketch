@@ -46,6 +46,7 @@ and a [start-local.sh](/tools/stack/start-local.sh) script to initialise the ser
  - [fs2.Stream, the basics](shared-components/src/main/scala/org/fiume/sketch/shared/common/jobs/PeriodicJob.scala)
  - [fs2.Stream to test producing and consuming events](storage/src/it/scala/org/fiume/sketch/storage/auth0/postgres/PostgresEventsStoreSpec.scala)
  - [Mutation is very much a part of pure functional programming](shared-auth/src/test/scala/org/fiume/sketch/shared/auth/testkit/ScheduledAccountDeletionEventFlowContext.scala)
+ - [Safe concurrent access and modification](https://github.com/rafaelfiume/sketch/blob/02b5e2b7bbeb6f1c0083ee9be8327b3bd61c13ae/storage/src/it/scala/org/fiume/sketch/storage/auth0/postgres/PostgresEventsStoreSpec.scala#L81)
 
 ### A few Scala features in action
 
@@ -59,17 +60,17 @@ and a [start-local.sh](/tools/stack/start-local.sh) script to initialise the ser
 
 We backend developers understand the immense value an event-driven architecture can bring to a business when implemented effectively.
 
-But what if you don't have access to a Kafka broker available of if a simpler Redis Pub/Sub feels overkill?
-In such cases, Postgres' `FOR UPDATE SKIP LOCKED` feature can be an excellent alternative.
+But what if you don't have access to a Kafka broker or if a Redis Pub/Sub feels overkill, for example?
+In such cases, Postgres' `FOR UPDATE SKIP LOCKED` can be an excellent alternative.
 
 Here's how it works, using the example of an event-driven system to delete a user's personal data from multiple datasets after their account is deleted:
 
 #### User Account Deleted Event
 
-Define a specific event table (the equivalent of a Kafka topic), for instance `user_account_deleted`.
+Define a specific event table (the equivalent of a Kafka topic).
 
 ```
-CREATE TABLE user_deleted_events (
+CREATE TABLE account_permanently_deleted_events (
     id SERIAL PRIMARY KEY,
     user_id UUID NOT NULL, -- The ID of the deleted user
     created_at TIMESTAMP DEFAULT NOW(), -- When the event was created
@@ -83,26 +84,19 @@ Including `created_at` to the schema adds minimal complexity while offering sign
 
 #### Microservice Polling
 
-Each service (`sketch`, etc.) runs a polling job that selects and locks the event for processing:
+Each service runs a polling job that selects and locks the event for processing:
 
 ```
-BEGIN;
-
 -- Lock the next available event for this consumer
-DELETE FROM user_deleted_events
+DELETE FROM account_permanently_deleted_events
 WHERE id = (
     SELECT id
-    FROM user_deleted_events
-    WHERE consumer_name = 'sketch'
+    FROM account_permanently_deleted_events
+    WHERE consumer_name = 'service-name'
     FOR UPDATE SKIP LOCKED
     LIMIT 1
 )
 RETURNING *;
-
--- If an event is returned, process it here within the transaction
-
--- Commit the transaction only after successful processing
-COMMIT;
 ```
 
 This solution will give us:
@@ -110,7 +104,6 @@ This solution will give us:
  - *Atomicity:* Consuming, processing and removing the event from the table happens as part of the same transaction
  - *Error Handling*: Atomicity ensures that the event is either fully processed or safely retried
  - *No Double Processing*: `FOR UPDATE SKIP LOCKED` prevents race conditions and duplicate work
- - *Minimum Overhead*: No need of complex retry mechanisms or clean up tasks.
 
 ## Guidelines
 

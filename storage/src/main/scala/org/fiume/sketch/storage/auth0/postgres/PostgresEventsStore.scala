@@ -29,18 +29,16 @@ private class PostgresEventsStore private ()
   override def removeEvent(userId: UserId): ConnectionIO[Unit] = EventStatements.deleteEvent(userId).run.void
 
   override def consumeEvent(): ConnectionIO[Option[AccountDeletionEvent.Scheduled]] =
-    EventStatements.lockAndRemoveNextJob().option
+    EventStatements.claimNextEvent().option
 
 private object EventStatements:
-  def lockAndRemoveNextJob(): Query0[AccountDeletionEvent.Scheduled] =
+  def claimNextEvent(): Query0[AccountDeletionEvent.Scheduled] =
     // Writing the same query with CTE would be equally doable
-    // provides exactly-once semantics
-    // TODO ordering guarantees?
     sql"""
-         |DELETE FROM auth.account_permanent_deletion_delayed_messages
+         |DELETE FROM auth.account_deletion_scheduled_events
          |WHERE uuid = (
          |  SELECT uuid
-         |  FROM auth.account_permanent_deletion_delayed_messages
+         |  FROM auth.account_deletion_scheduled_events
          |  WHERE permanent_deletion_at < now()
          |  FOR UPDATE SKIP LOCKED
          |  LIMIT 1
@@ -50,7 +48,7 @@ private object EventStatements:
 
   def insertPermanentDeletionEvent(event: AccountDeletionEvent.Unscheduled): ConnectionIO[AccountDeletionEvent.Scheduled] =
     sql"""
-         |INSERT INTO auth.account_permanent_deletion_delayed_messages (
+         |INSERT INTO auth.account_deletion_scheduled_events (
          |  user_id,
          |  permanent_deletion_at
          |) VALUES (
@@ -61,4 +59,4 @@ private object EventStatements:
       .withUniqueGeneratedKeys[AccountDeletionEvent.Scheduled]("uuid", "user_id", "permanent_deletion_at")
 
   def deleteEvent(userId: UserId): Update0 =
-    sql"DELETE FROM auth.account_permanent_deletion_delayed_messages WHERE user_id = $userId".update
+    sql"DELETE FROM auth.account_deletion_scheduled_events WHERE user_id = $userId".update

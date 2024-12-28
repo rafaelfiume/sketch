@@ -107,6 +107,6 @@ trait PostgresUsersStoreSpecContext extends DockerPostgresSuite:
       sql"SELECT updated_at FROM auth.users WHERE uuid = ${uuid}".query[Instant].unique
 
     def fetchScheduledAccountDeletion(uuid: UserId): ConnectionIO[Option[AccountDeletionEvent.Scheduled]] =
-      sql"SELECT * FROM auth.account_permanent_deletion_delayed_messages WHERE user_id = ${uuid}"
+      sql"SELECT * FROM auth.account_deletion_scheduled_events WHERE user_id = ${uuid}"
         .query[AccountDeletionEvent.Scheduled]
         .option
