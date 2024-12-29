@@ -35,7 +35,7 @@ object ScheduledAccountDeletionEventFlowContext:
     private def makeEventProducer(state: State): IO[AccountDeletionEventProducer[IO] & EventsInspector] =
       IO.ref(state).map { storage =>
         new AccountDeletionEventProducer[IO] with EventsInspector:
-          override def produceEvent(event: AccountDeletionEvent.Unscheduled): IO[AccountDeletionEvent.Scheduled] =
+          override def produceEvent(event: AccountDeletionEvent.ToSchedule): IO[AccountDeletionEvent.Scheduled] =
             for
               eventId <- IO.randomUUID.map(EventId(_))
               scheduled = AccountDeletionEvent.scheduled(eventId, event.userId, event.permanentDeletionAt)

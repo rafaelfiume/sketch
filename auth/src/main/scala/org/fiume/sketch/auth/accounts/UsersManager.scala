@@ -117,7 +117,7 @@ object UsersManager:
             .flatMap {
               case Right(account) =>
                 store.updateAccount(account).flatMap { _ =>
-                  producer.produceEvent(AccountDeletionEvent.Unscheduled(userId, permanentDeletionAt)).map(_.asRight)
+                  producer.produceEvent(AccountDeletionEvent.ToSchedule(userId, permanentDeletionAt)).map(_.asRight)
                 }
               case Left(error) => error.asLeft[AccountDeletionEvent.Scheduled].pure[Txn]
             }

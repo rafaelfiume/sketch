@@ -70,11 +70,11 @@ Here's how it works, using the example of an event-driven system to delete a use
 Define a specific event table (the equivalent of a Kafka topic).
 
 ```
-CREATE TABLE account_permanently_deleted_events (
-    id SERIAL PRIMARY KEY,
+CREATE TABLE account_deleted_notifications (
+    uuid UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
     user_id UUID NOT NULL, -- The ID of the deleted user
-    created_at TIMESTAMP DEFAULT NOW(), -- When the event was created
-    consumer_name VARCHAR(50) NOT NULL -- The service responsible for processing
+    service_name VARCHAR(50) NOT NULL, -- The service responsible for processing
+    created_at TIMESTAMP DEFAULT NOW() -- When the event was created
 );
 ```
 
@@ -88,11 +88,11 @@ Each service runs a polling job that selects and locks the event for processing:
 
 ```
 -- Lock the next available event for this consumer
-DELETE FROM account_permanently_deleted_events
+DELETE FROM account_deleted_notifications
 WHERE id = (
     SELECT id
-    FROM account_permanently_deleted_events
-    WHERE consumer_name = 'service-name'
+    FROM account_deleted_notifications
+    WHERE service_name = 'consumerGroup'
     FOR UPDATE SKIP LOCKED
     LIMIT 1
 )

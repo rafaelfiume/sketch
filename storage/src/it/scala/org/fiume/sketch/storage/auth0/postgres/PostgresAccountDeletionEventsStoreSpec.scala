@@ -17,20 +17,23 @@ import org.scalacheck.ShrinkLowPriority
 import org.scalacheck.effect.PropF.forAllF
 
 import java.time.Instant
-import java.util.UUID
 
-class PostgresEventsStoreSpec
+class PostgresAccountDeletionEventsStoreSpec
     extends ScalaCheckEffectSuite
     with ClockContext
-    with PostgresEventStoreSpecContext
+    with PostgresAccountDeletionEventsStoreSpecContext
     with ShrinkLowPriority:
 
   override def scalaCheckTestParameters = super.scalaCheckTestParameters.withMinSuccessfulTests(10)
 
+  // Notes
+
+  // No processing order guarantees are provided by the current implementation.
+
   test("consumes next event with exactly-once semantics"):
     forAllF { () =>
       will(cleanStorage) {
-        PostgresEventsStore.make[IO]().use { eventsStore =>
+        PostgresAccountDeletionEventsStore.make[IO]().use { eventStore =>
           // given
           val numEvents = 1000
           val due = Instant.now()
@@ -40,7 +43,7 @@ class PostgresEventsStoreSpec
               .covary[IO]
               .parEvalMapUnbounded { _ =>
                 val userId = UserGens.userIds.sample.someOrFail
-                eventsStore.produceEvent(AccountDeletionEvent.Unscheduled(userId, due)).ccommit
+                eventStore.produceEvent(AccountDeletionEvent.ToSchedule(userId, due)).ccommit
               }
               // .evalTap { eventId => IO.println(s"new event: $eventId") } // uncomment to debug
               .compile
@@ -51,7 +54,7 @@ class PostgresEventsStoreSpec
               fs2.Stream
                 .range(0, numEvents)
                 .covary[IO]
-                .parEvalMapUnorderedUnbounded { _ => eventsStore.consumeEvent().ccommit }
+                .parEvalMapUnorderedUnbounded { _ => eventStore.consumeEvent().ccommit }
                 // .evalTap { eventId => IO.println(s"consumed event: ${eventId}") } // uncomment to debug
                 .unNone
                 .compile
@@ -59,7 +62,7 @@ class PostgresEventsStoreSpec
 
           // then
           yield
-            assert(result.size == numEvents, clue = s"Expected $numEvents events, got ${result.size}")
+            assert(result.size == numEvents, clue = s"expected $numEvents events, got ${result.size}")
             assertEquals(result.toSet, delayedMessages.toSet)
         }
       }
@@ -70,7 +73,7 @@ class PostgresEventsStoreSpec
   test("event becomes available for reprocessing if its processing fails"):
     forAllF { () =>
       will(cleanStorage) {
-        PostgresEventsStore.make[IO]().use { eventsStore =>
+        PostgresAccountDeletionEventsStore.make[IO]().use { eventStore =>
           // given
           val numEvents = 1000
           val due = Instant.now()
@@ -82,12 +85,12 @@ class PostgresEventsStoreSpec
              */
             successfullyProcessedEventIdsRef <- IO.ref(Set.empty[EventId])
             atLeastOnceFailedEventIdsRef <- IO.ref(Set.empty[EventId])
-            queuedEventIds <- fs2.Stream
+            sentEventIds <- fs2.Stream
               .range(0, numEvents)
               .covary[IO]
               .parEvalMapUnbounded { _ =>
                 val userId = UserGens.userIds.sample.someOrFail
-                eventsStore.produceEvent(AccountDeletionEvent.Unscheduled(userId, due)).map(_.uuid).ccommit
+                eventStore.produceEvent(AccountDeletionEvent.ToSchedule(userId, due)).map(_.uuid).ccommit
               }
               .compile
               .toList
@@ -98,7 +101,7 @@ class PostgresEventsStoreSpec
                 .range(0, numEvents)
                 .covary[IO]
                 .parEvalMapUnorderedUnbounded { i =>
-                  eventsStore
+                  eventStore
                     .consumeEvent()
                     .flatMap { event =>
                       if i % errorFrequency == 0 then
@@ -122,7 +125,7 @@ class PostgresEventsStoreSpec
             atLeastOnceFailedEventIds <- atLeastOnceFailedEventIdsRef.get
             successfullyProcessedEventIds <- successfullyProcessedEventIdsRef.get
             pendingEventIds <- fetchPendingEvents().ccommit.map(_.toSet.map(_.uuid))
-            expectedPendingEventIds = queuedEventIds.toSet -- successfullyProcessedEventIds
+            expectedPendingEventIds = sentEventIds.toSet -- successfullyProcessedEventIds
           yield
             assert(
               atLeastOnceFailedEventIds.find(successfullyProcessedEventIds.contains).isDefined,
@@ -136,18 +139,18 @@ class PostgresEventsStoreSpec
   test("skips event if permanent deletion is not yet due"):
     forAllF { (fstUserId: UserId, sndUserId: UserId, trdUserId: UserId, fthUserId: UserId) =>
       will(cleanStorage) {
-        PostgresEventsStore.make[IO]().use { eventsStore =>
+        PostgresAccountDeletionEventsStore.make[IO]().use { eventStore =>
           val due = Instant.now()
           val notYetDue = due.plusSeconds(60)
           for
-            _ <- eventsStore.produceEvent(AccountDeletionEvent.Unscheduled(fstUserId, notYetDue)).ccommit
-            _ <- eventsStore.produceEvent(AccountDeletionEvent.Unscheduled(sndUserId, notYetDue)).ccommit
-            _ <- eventsStore.produceEvent(AccountDeletionEvent.Unscheduled(trdUserId, due)).ccommit
-            _ <- eventsStore.produceEvent(AccountDeletionEvent.Unscheduled(fthUserId, notYetDue)).ccommit
+            _ <- eventStore.produceEvent(AccountDeletionEvent.ToSchedule(fstUserId, notYetDue)).ccommit
+            _ <- eventStore.produceEvent(AccountDeletionEvent.ToSchedule(sndUserId, notYetDue)).ccommit
+            _ <- eventStore.produceEvent(AccountDeletionEvent.ToSchedule(trdUserId, due)).ccommit
+            _ <- eventStore.produceEvent(AccountDeletionEvent.ToSchedule(fthUserId, notYetDue)).ccommit
 
             result <- fs2.Stream
               .repeatEval {
-                eventsStore.consumeEvent().ccommit
+                eventStore.consumeEvent().ccommit
               }
               .unNone
               .take(1)
@@ -159,20 +162,16 @@ class PostgresEventsStoreSpec
       }
     }
 
-// Note: no processing order guarantees are provided by the current implementation
-
-trait PostgresEventStoreSpecContext extends DockerPostgresSuite:
+trait PostgresAccountDeletionEventsStoreSpecContext extends DockerPostgresSuite:
   def cleanStorage: ConnectionIO[Unit] =
     sql"TRUNCATE TABLE auth.account_deletion_scheduled_events".update.run.void
 
   def fetchPendingEvents(): ConnectionIO[List[AccountDeletionEvent.Scheduled]] =
     sql"SELECT * FROM auth.account_deletion_scheduled_events".query[AccountDeletionEvent.Scheduled].to[List]
 
-  import doobie.{Meta, Read}
+  import doobie.Read
   import org.fiume.sketch.storage.auth.postgres.DatabaseCodecs.given
   import doobie.postgres.implicits.*
-  import org.fiume.sketch.shared.common.events.EventId
-  given Meta[UserId] = Meta[UUID].timap(UserId(_))(_.value)
   given Read[AccountDeletionEvent.Scheduled] = Read[(EventId, UserId, Instant)].map {
     case (eventId, userId, permanentDeletionAt) =>
       AccountDeletionEvent.Scheduled(eventId, userId, permanentDeletionAt)

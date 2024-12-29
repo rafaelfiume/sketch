@@ -6,7 +6,7 @@ import doobie.util.Write
 import org.fiume.sketch.shared.auth.Passwords.{HashedPassword, Salt}
 import org.fiume.sketch.shared.auth.User.*
 import org.fiume.sketch.shared.auth.UserId
-import org.fiume.sketch.shared.auth.accounts.{Account, AccountState}
+import org.fiume.sketch.shared.auth.accounts.{Account, AccountState, Service}
 import org.fiume.sketch.shared.common.events.EventId
 
 import java.time.Instant
@@ -44,3 +44,5 @@ private[storage] object DatabaseCodecs:
   }
 
   given Meta[EventId] = Meta[UUID].timap(EventId(_))(_.value)
+
+  given Meta[Service] = Meta[String].timap(Service(_))(_.name)

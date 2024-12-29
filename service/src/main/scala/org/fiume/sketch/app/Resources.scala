@@ -14,7 +14,7 @@ import org.fiume.sketch.shared.common.ServiceStatus.Dependency.*
 import org.fiume.sketch.shared.common.algebras.{HealthChecker, Versions}
 import org.fiume.sketch.shared.common.algebras.HealthChecker.*
 import org.fiume.sketch.shared.domain.documents.algebras.DocumentsStore
-import org.fiume.sketch.storage.auth.postgres.{PostgresEventsStore, PostgresUsersStore}
+import org.fiume.sketch.storage.auth.postgres.{PostgresAccountDeletionEventsStore, PostgresUsersStore}
 import org.fiume.sketch.storage.authorisation.postgres.PostgresAccessControl
 import org.fiume.sketch.storage.documents.postgres.PostgresDocumentsStore
 import org.fiume.sketch.storage.postgres.{DbTransactor, PostgresHealthCheck}
@@ -34,7 +34,7 @@ trait Resources[F[_]]:
   val versions: Versions[F]
   val authenticator: Authenticator[F]
   val accessControl: AccessControl[F, ConnectionIO]
-  val accountDeletionConsumer: AccountDeletionEventConsumer[ConnectionIO]
+  val accountDeletionEventConsumer: AccountDeletionEventConsumer[ConnectionIO]
   val usersStore: UsersStore[F, ConnectionIO]
   val documentsStore: DocumentsStore[F, ConnectionIO]
   val userManager: UsersManager[F]
@@ -50,7 +50,7 @@ object Resources:
       httpClient <- EmberClientBuilder.default[F].build
       rusticHealthCheck0 = RusticHealthCheck.make[F](config.rusticClient, httpClient)
       versions0 <- SketchVersions.make[F](config.env, VersionFile("sketch.version"))
-      accountDeletionEventsStore0 <- PostgresEventsStore.make[F]()
+      accountDeletionEventStore0 <- PostgresAccountDeletionEventsStore.make[F]()
       usersStore0 <- PostgresUsersStore.make[F](transactor)
       authenticator0 <- Resource.liftK {
         Authenticator.make[F, ConnectionIO](
@@ -70,13 +70,13 @@ object Resources:
       override val versions: Versions[F] = versions0
       override val authenticator: Authenticator[F] = authenticator0
       override val accessControl: AccessControl[F, ConnectionIO] = accessControl0
-      override val accountDeletionConsumer: AccountDeletionEventConsumer[ConnectionIO] =
-        accountDeletionEventsStore0
+      override val accountDeletionEventConsumer: AccountDeletionEventConsumer[ConnectionIO] =
+        accountDeletionEventStore0
       override val usersStore: UsersStore[F, ConnectionIO] = usersStore0
       override val documentsStore: DocumentsStore[F, ConnectionIO] = documentsStore0
       override val userManager: UsersManager[F] =
         UsersManager.make[F, ConnectionIO](usersStore0,
-                                           accountDeletionEventsStore0,
+                                           accountDeletionEventStore0,
                                            accessControl0,
                                            Clock[F],
                                            config.account.delayUntilPermanentDeletion

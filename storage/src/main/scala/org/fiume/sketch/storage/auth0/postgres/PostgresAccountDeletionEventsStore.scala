@@ -8,23 +8,23 @@ import doobie.implicits.*
 import doobie.postgres.implicits.*
 import org.fiume.sketch.shared.auth.UserId
 import org.fiume.sketch.shared.auth.accounts.{AccountDeletionEvent, AccountDeletionEventConsumer, AccountDeletionEventProducer}
-import org.fiume.sketch.shared.auth.accounts.AccountDeletionEvent.{Scheduled, Unscheduled}
+import org.fiume.sketch.shared.auth.accounts.AccountDeletionEvent.{Scheduled, ToSchedule}
 import org.fiume.sketch.shared.common.events.EventId
 import org.fiume.sketch.storage.auth.postgres.DatabaseCodecs.given
 import org.fiume.sketch.storage.auth.postgres.Statements.*
 
 import java.time.Instant
 
-object PostgresEventsStore:
-  def make[F[_]: Async](): Resource[F, PostgresEventsStore] =
-    Resource.pure[F, PostgresEventsStore](new PostgresEventsStore())
+object PostgresAccountDeletionEventsStore:
+  def make[F[_]: Async](): Resource[F, PostgresAccountDeletionEventsStore] =
+    Resource.pure[F, PostgresAccountDeletionEventsStore](new PostgresAccountDeletionEventsStore())
 
-private class PostgresEventsStore private ()
+private class PostgresAccountDeletionEventsStore private ()
     extends AccountDeletionEventProducer[ConnectionIO]
     with AccountDeletionEventConsumer[ConnectionIO]:
 
-  override def produceEvent(accountDeletionEvent: Unscheduled): ConnectionIO[Scheduled] =
-    EventStatements.insertPermanentDeletionEvent(accountDeletionEvent)
+  override def produceEvent(accountDeletion: ToSchedule): ConnectionIO[Scheduled] =
+    EventStatements.insertPermanentDeletionEvent(accountDeletion)
 
   override def removeEvent(userId: UserId): ConnectionIO[Unit] = EventStatements.deleteEvent(userId).run.void
 
@@ -46,7 +46,7 @@ private object EventStatements:
          |RETURNING *
     """.stripMargin.query[AccountDeletionEvent.Scheduled]
 
-  def insertPermanentDeletionEvent(event: AccountDeletionEvent.Unscheduled): ConnectionIO[AccountDeletionEvent.Scheduled] =
+  def insertPermanentDeletionEvent(event: ToSchedule): ConnectionIO[Scheduled] =
     sql"""
          |INSERT INTO auth.account_deletion_scheduled_events (
          |  user_id,
@@ -55,8 +55,11 @@ private object EventStatements:
          |  ${event.userId},
          |  ${event.permanentDeletionAt}
          |)
-    """.stripMargin.update
-      .withUniqueGeneratedKeys[AccountDeletionEvent.Scheduled]("uuid", "user_id", "permanent_deletion_at")
+       """.stripMargin.update
+      .withUniqueGeneratedKeys[Scheduled]("uuid", "user_id", "permanent_deletion_at")
 
   def deleteEvent(userId: UserId): Update0 =
-    sql"DELETE FROM auth.account_deletion_scheduled_events WHERE user_id = $userId".update
+    sql"""
+         |DELETE FROM auth.account_deletion_scheduled_events
+         |WHERE user_id = $userId
+       """.stripMargin.update

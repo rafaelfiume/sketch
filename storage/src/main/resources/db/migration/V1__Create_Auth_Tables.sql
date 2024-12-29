@@ -45,6 +45,13 @@ CREATE TABLE auth.account_deletion_scheduled_events (
 );
 CREATE INDEX idx_account_deletion_scheduled_events_user_id ON auth.account_deletion_scheduled_events (user_id);
 
+CREATE TABLE auth.account_deleted_notifications (
+    uuid UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
+    user_id UUID NOT NULL, -- The ID of the deleted user
+    service_name VARCHAR(50) NOT NULL, -- The service responsible for processing
+    created_at TIMESTAMP DEFAULT NOW() -- When the event was created
+);
+
 -- Stores global roles
 CREATE TABLE auth.global_access_control (
     user_id UUID NOT NULL,
