@@ -17,7 +17,7 @@ import org.fiume.sketch.shared.common.troubleshooting.ErrorInfo.ErrorDetails
 import org.fiume.sketch.shared.common.troubleshooting.syntax.ErrorInfoSyntax.*
 import org.fiume.sketch.shared.common.troubleshooting.syntax.InvariantErrorSyntax.asDetails
 import org.fiume.sketch.shared.common.typeclasses.AsString
-import org.fiume.sketch.storage.auth.postgres.{PostgresEventsStore, PostgresUsersStore}
+import org.fiume.sketch.storage.auth.postgres.{PostgresAccountDeletionEventsStore, PostgresUsersStore}
 import org.fiume.sketch.storage.authorisation.postgres.PostgresAccessControl
 import org.fiume.sketch.storage.postgres.{DatabaseConfig, DbTransactor}
 
@@ -114,11 +114,11 @@ class UsersScript private (dbConfig: DatabaseConfig, accountConfig: AccountConfi
         (
           PostgresUsersStore.make[IO](transactor),
           PostgresAccessControl.make[IO](transactor),
-          PostgresEventsStore.make[IO]()
+          PostgresAccountDeletionEventsStore.make[IO]()
         ).tupled
       }
-      .use { case (usersStore, accessControl, eventsStore) =>
+      .use { case (usersStore, accessControl, eventStore) =>
         UsersManager
-          .make[IO, ConnectionIO](usersStore, eventsStore, accessControl, clock, accountConfig.delayUntilPermanentDeletion)
+          .make[IO, ConnectionIO](usersStore, eventStore, accessControl, clock, accountConfig.delayUntilPermanentDeletion)
           .createAccount(args.username, args.password, args.globalRole)
       }

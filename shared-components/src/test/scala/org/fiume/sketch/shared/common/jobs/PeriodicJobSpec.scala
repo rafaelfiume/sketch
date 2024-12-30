@@ -72,4 +72,4 @@ class PeriodicJobSpec extends CatsEffectSuite with JobErrorHandlerContext:
       numberOfJobsRun <- jobCounter.get
 
 //
-    yield assert(numberOfJobsRun == 2, clue = s"Expected 2 jobs to run, but $numberOfJobsRun ran")
+    yield assert(numberOfJobsRun == 2, clue = s"expected 2 jobs to run, but $numberOfJobsRun ran")

@@ -28,9 +28,9 @@ private class ScheduledAccountDeletionJob[F[_]: Sync, Txn[_]: Monad] private (
   override def run(): F[Option[(EventId, UserId)]] =
     store.commit {
       eventConsumer.consumeEvent().flatMap {
-        case Some(event) =>
-          store.deleteAccount(event.userId).map(_ => Some((event.uuid, event.userId))) <*
-            store.lift { info"Job ${event.uuid} deleted account with id: ${event.userId}" }
+        case Some(scheduled) =>
+          store.deleteAccount(scheduled.userId).map(_ => Some((scheduled.uuid, scheduled.userId))) <*
+            store.lift { info"Job ${scheduled.uuid} deleted account with id: ${scheduled.userId}" }
         case None => none.pure[Txn]
       }
     }

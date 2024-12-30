@@ -55,6 +55,3 @@ A service and the whole stack should be runnable anywhere, including:
  - local workstation.
 
 This will allow for improved developer ergonomics, fast feedback - by e.g. running load tests before commiting changes -, prototyping and more.
-
-
-Feito com ❤️ por Artigiani.

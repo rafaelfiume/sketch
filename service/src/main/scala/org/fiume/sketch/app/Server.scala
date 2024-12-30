@@ -39,7 +39,7 @@ object Server:
 
       accountPermanentDeletionStream = PeriodicJob.makeWithDefaultJobErrorHandler(
         interval = config.account.permanentDeletionJobInterval,
-        job = ScheduledAccountDeletionJob.make[F, ConnectionIO](resources.accountDeletionConsumer, resources.usersStore)
+        job = ScheduledAccountDeletionJob.make[F, ConnectionIO](resources.accountDeletionEventConsumer, resources.usersStore)
       )
 
       stream = httpServiceStream

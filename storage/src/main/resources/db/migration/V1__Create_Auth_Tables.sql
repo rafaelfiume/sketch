@@ -25,11 +25,11 @@ CREATE TABLE auth.users (
   -- UNIQUE salts helps to prevent precomputed hash attacks
   salt VARCHAR(50) NOT NULL UNIQUE,
   state VARCHAR(20) NOT NULL CHECK (state IN ('Active', 'PendingDeletion')) DEFAULT 'Active',
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   activated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-  deleted_at TIMESTAMPTZ
+  soft_deleted_at TIMESTAMPTZ
 );
-
 CREATE INDEX idx_users_username ON auth.users (username);
 
 -- Trigger to update `updated_at` timestamp on row update
@@ -37,6 +37,20 @@ CREATE TRIGGER set_users_updated_at
   BEFORE UPDATE ON auth.users
   FOR EACH ROW
   EXECUTE FUNCTION update_updated_at();
+
+CREATE TABLE auth.account_deletion_scheduled_events (
+    uuid UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
+    user_id UUID NOT NULL UNIQUE,
+    permanent_deletion_at TIMESTAMPTZ NOT NULL
+);
+CREATE INDEX idx_account_deletion_scheduled_events_user_id ON auth.account_deletion_scheduled_events (user_id);
+
+CREATE TABLE auth.account_deleted_notifications (
+    uuid UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
+    user_id UUID NOT NULL, -- The ID of the deleted user
+    service_name VARCHAR(50) NOT NULL, -- The service responsible for processing
+    created_at TIMESTAMP DEFAULT NOW() -- When the event was created
+);
 
 -- Stores global roles
 CREATE TABLE auth.global_access_control (
@@ -60,11 +74,3 @@ CREATE TABLE auth.access_control (
 
 -- TODO Create index to improve performance of selectAllAuthorisedEntityIds and measure results
 -- CREATE INDEX idx_access_control_user_id_entity_type ON auth.access_control (user_id, entity_type);
-
-CREATE TABLE auth.account_permanent_deletion_delayed_messages (
-    uuid UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
-    user_id UUID NOT NULL UNIQUE,
-    permanent_deletion_at TIMESTAMPTZ NOT NULL
-);
-
-CREATE INDEX idx_account_permanent_deletion_delayed_messages_user_id ON auth.account_permanent_deletion_delayed_messages (user_id);
