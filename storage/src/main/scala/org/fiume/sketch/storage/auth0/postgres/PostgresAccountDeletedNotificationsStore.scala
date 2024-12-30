@@ -1,11 +1,9 @@
 package org.fiume.sketch.storage.auth.postgres
 
 import cats.effect.{Async, Resource}
-import cats.implicits.*
 import doobie.*
 import doobie.free.connection.ConnectionIO
 import doobie.implicits.*
-import org.fiume.sketch.shared.auth.UserId
 import org.fiume.sketch.shared.auth.accounts.{
   AccountDeletedNotification,
   AccountDeletedNotificationConsumer,
@@ -27,8 +25,6 @@ private class PostgresAccountDeletedNotificationsStore private (consumerGroup: S
 
   override def produceEvent(notification: AccountDeletedNotification.ToNotify): ConnectionIO[Notified] =
     NotificationStatements.insertNotification(notification)
-
-  override def removeEvent(userId: UserId): ConnectionIO[Unit] = NotificationStatements.deleteNotification(userId).run.void
 
   override def consumeEvent(): ConnectionIO[Option[AccountDeletedNotification.Notified]] =
     NotificationStatements.claimNextEvent(consumerGroup).option
@@ -58,9 +54,3 @@ private object NotificationStatements:
          |)
        """.stripMargin.update
       .withUniqueGeneratedKeys[Notified]("uuid", "user_id", "service_name")
-
-  def deleteNotification(userId: UserId): Update0 =
-    sql"""
-         |DELETE FROM auth.account_deleted_notifications
-         |WHERE user_id = $userId
-       """.stripMargin.update

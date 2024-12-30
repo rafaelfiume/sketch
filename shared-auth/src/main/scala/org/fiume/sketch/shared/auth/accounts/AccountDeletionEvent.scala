@@ -2,12 +2,13 @@ package org.fiume.sketch.shared.auth.accounts
 
 import org.fiume.sketch.shared.auth.UserId
 import org.fiume.sketch.shared.common.WithUuid
-import org.fiume.sketch.shared.common.events.{EventConsumer, EventId, EventProducer}
+import org.fiume.sketch.shared.common.events.{CancellableEvent, EventConsumer, EventId, EventProducer}
 
 import java.time.Instant
 
-type AccountDeletionEventProducer[F[_]] =
-  EventProducer[F, AccountDeletionEvent.ToSchedule, UserId]
+trait CancellableAccountDeletionEventProducer[F[_]]
+    extends EventProducer[F, AccountDeletionEvent.ToSchedule]
+    with CancellableEvent[F, UserId]
 
 type AccountDeletionEventConsumer[F[_]] = EventConsumer[F, AccountDeletionEvent.Scheduled]
 

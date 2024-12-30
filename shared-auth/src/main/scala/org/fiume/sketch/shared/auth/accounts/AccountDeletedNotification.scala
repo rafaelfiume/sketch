@@ -5,7 +5,7 @@ import org.fiume.sketch.shared.common.WithUuid
 import org.fiume.sketch.shared.common.events.{EventConsumer, EventId, EventProducer}
 
 type AccountDeletedNotificationProducer[F[_]] =
-  EventProducer[F, AccountDeletedNotification.ToNotify, UserId]
+  EventProducer[F, AccountDeletedNotification.ToNotify]
 
 type AccountDeletedNotificationConsumer[F[_]] = EventConsumer[F, AccountDeletedNotification.Notified]
 

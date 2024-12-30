@@ -7,7 +7,11 @@ import doobie.free.connection.ConnectionIO
 import doobie.implicits.*
 import doobie.postgres.implicits.*
 import org.fiume.sketch.shared.auth.UserId
-import org.fiume.sketch.shared.auth.accounts.{AccountDeletionEvent, AccountDeletionEventConsumer, AccountDeletionEventProducer}
+import org.fiume.sketch.shared.auth.accounts.{
+  AccountDeletionEvent,
+  AccountDeletionEventConsumer,
+  CancellableAccountDeletionEventProducer
+}
 import org.fiume.sketch.shared.auth.accounts.AccountDeletionEvent.{Scheduled, ToSchedule}
 import org.fiume.sketch.storage.auth.postgres.DatabaseCodecs.given
 
@@ -16,13 +20,13 @@ object PostgresAccountDeletionEventsStore:
     Resource.pure[F, PostgresAccountDeletionEventsStore](new PostgresAccountDeletionEventsStore())
 
 private class PostgresAccountDeletionEventsStore private ()
-    extends AccountDeletionEventProducer[ConnectionIO]
+    extends CancellableAccountDeletionEventProducer[ConnectionIO]
     with AccountDeletionEventConsumer[ConnectionIO]:
 
   override def produceEvent(accountDeletion: ToSchedule): ConnectionIO[Scheduled] =
     EventStatements.insertPermanentDeletionEvent(accountDeletion)
 
-  override def removeEvent(userId: UserId): ConnectionIO[Unit] = EventStatements.deleteEvent(userId).run.void
+  override def cancelEventById(userId: UserId): ConnectionIO[Unit] = EventStatements.deleteEvent(userId).run.void
 
   override def consumeEvent(): ConnectionIO[Option[AccountDeletionEvent.Scheduled]] =
     EventStatements.claimNextEvent().option

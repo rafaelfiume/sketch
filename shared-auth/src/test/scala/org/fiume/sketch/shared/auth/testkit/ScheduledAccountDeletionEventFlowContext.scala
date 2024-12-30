@@ -3,7 +3,11 @@ package org.fiume.sketch.shared.auth.testkit
 import cats.effect.IO
 import cats.implicits.*
 import org.fiume.sketch.shared.auth.UserId
-import org.fiume.sketch.shared.auth.accounts.{AccountDeletionEvent, AccountDeletionEventConsumer, AccountDeletionEventProducer}
+import org.fiume.sketch.shared.auth.accounts.{
+  AccountDeletionEvent,
+  AccountDeletionEventConsumer,
+  CancellableAccountDeletionEventProducer
+}
 import org.fiume.sketch.shared.auth.accounts.AccountDeletionEvent.*
 import org.fiume.sketch.shared.common.events.EventId
 object ScheduledAccountDeletionEventFlowContext:
@@ -28,13 +32,13 @@ object ScheduledAccountDeletionEventFlowContext:
     private object State:
       val empty = State(Map.empty)
 
-    def makeEventProducer(): IO[AccountDeletionEventProducer[IO] & EventsInspector] = makeEventProducer(
+    def makeEventProducer(): IO[CancellableAccountDeletionEventProducer[IO] & EventsInspector] = makeEventProducer(
       State.empty
     )
 
-    private def makeEventProducer(state: State): IO[AccountDeletionEventProducer[IO] & EventsInspector] =
+    private def makeEventProducer(state: State): IO[CancellableAccountDeletionEventProducer[IO] & EventsInspector] =
       IO.ref(state).map { storage =>
-        new AccountDeletionEventProducer[IO] with EventsInspector:
+        new CancellableAccountDeletionEventProducer[IO] with EventsInspector:
           override def produceEvent(event: AccountDeletionEvent.ToSchedule): IO[AccountDeletionEvent.Scheduled] =
             for
               eventId <- IO.randomUUID.map(EventId(_))
@@ -42,7 +46,7 @@ object ScheduledAccountDeletionEventFlowContext:
               _ <- storage.update { _.+++(scheduled) }
             yield scheduled
 
-          override def removeEvent(uuid: UserId): IO[Unit] = storage.update { _.---(uuid) }.void
+          override def cancelEventById(uuid: UserId): IO[Unit] = storage.update { _.---(uuid) }.void
 
           override def inspectProducedEvent(userId: UserId): IO[Option[AccountDeletionEvent.Scheduled]] =
             storage.get.map(_.getEvent(userId))
