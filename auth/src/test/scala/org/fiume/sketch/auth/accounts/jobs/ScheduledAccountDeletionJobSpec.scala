@@ -27,7 +27,7 @@ class ScheduledAccountDeletionJobSpec
     forAllF { (account: Account, eventId: EventId, permanentDeletionAt: Instant) =>
       for
         store <- makeUsersStoreForAccount(account.copy(state = AccountState.SoftDeleted(Instant.now())))
-        eventConsumer <- makeEventConsumer(nextEvent = AccountDeletionEvent.Scheduled(eventId, account.uuid, permanentDeletionAt))
+        eventConsumer <- makeEventConsumer(nextEvent = AccountDeletionEvent.scheduled(eventId, account.uuid, permanentDeletionAt))
         job = ScheduledAccountDeletionJob.make(eventConsumer, store)
 
         result <- job.run()

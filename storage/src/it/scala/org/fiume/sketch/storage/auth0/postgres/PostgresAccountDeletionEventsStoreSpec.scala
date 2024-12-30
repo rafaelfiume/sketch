@@ -12,6 +12,7 @@ import org.fiume.sketch.shared.auth.testkit.UserGens.given
 import org.fiume.sketch.shared.common.events.EventId
 import org.fiume.sketch.shared.testkit.ClockContext
 import org.fiume.sketch.shared.testkit.syntax.OptionSyntax.*
+import org.fiume.sketch.storage.auth.postgres.DatabaseCodecs.given
 import org.fiume.sketch.storage.testkit.DockerPostgresSuite
 import org.scalacheck.ShrinkLowPriority
 import org.scalacheck.effect.PropF.forAllF
@@ -168,11 +169,3 @@ trait PostgresAccountDeletionEventsStoreSpecContext extends DockerPostgresSuite:
 
   def fetchPendingEvents(): ConnectionIO[List[AccountDeletionEvent.Scheduled]] =
     sql"SELECT * FROM auth.account_deletion_scheduled_events".query[AccountDeletionEvent.Scheduled].to[List]
-
-  import doobie.Read
-  import org.fiume.sketch.storage.auth.postgres.DatabaseCodecs.given
-  import doobie.postgres.implicits.*
-  given Read[AccountDeletionEvent.Scheduled] = Read[(EventId, UserId, Instant)].map {
-    case (eventId, userId, permanentDeletionAt) =>
-      AccountDeletionEvent.Scheduled(eventId, userId, permanentDeletionAt)
-  }

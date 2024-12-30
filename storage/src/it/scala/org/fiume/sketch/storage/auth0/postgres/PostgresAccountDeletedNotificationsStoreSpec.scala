@@ -173,5 +173,5 @@ trait PostgresAccountDeletedNotificationStoreSpecContext extends DockerPostgresS
   import doobie.Read
   import org.fiume.sketch.storage.auth.postgres.DatabaseCodecs.given
   given Read[AccountDeletedNotification.Notified] = Read[(EventId, UserId, Service)].map { case (eventId, userId, target) =>
-    AccountDeletedNotification.Notified(eventId, userId, target)
+    AccountDeletedNotification.notified(eventId, userId, target)
   }

@@ -4,7 +4,7 @@ import cats.Monad
 import cats.effect.Sync
 import cats.implicits.*
 import org.fiume.sketch.shared.auth.UserId
-import org.fiume.sketch.shared.auth.accounts.{AccountDeletionEvent, AccountDeletionEventConsumer}
+import org.fiume.sketch.shared.auth.accounts.AccountDeletionEventConsumer
 import org.fiume.sketch.shared.auth.algebras.UsersStore
 import org.fiume.sketch.shared.common.events.EventId
 import org.fiume.sketch.shared.common.jobs.Job

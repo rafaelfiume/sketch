@@ -102,7 +102,7 @@ class UsersManagerSpec
         assert(grantRemoved)
         assertEquals(
           result,
-          AccountDeletionEvent.Scheduled(
+          AccountDeletionEvent.scheduled(
             eventId,
             ownerId,
             markedForDeletionAt.plusSeconds(delayUntilPermanentDeletion.toSeconds).truncatedTo(MILLIS)
