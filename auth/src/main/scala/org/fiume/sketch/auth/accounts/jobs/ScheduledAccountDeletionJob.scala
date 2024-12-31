@@ -4,7 +4,8 @@ import cats.Monad
 import cats.effect.Sync
 import cats.implicits.*
 import org.fiume.sketch.shared.auth.UserId
-import org.fiume.sketch.shared.auth.accounts.AccountDeletionEventConsumer
+import org.fiume.sketch.shared.auth.accounts.{AccountDeletedNotificationProducer, AccountDeletionEventConsumer, Service}
+import org.fiume.sketch.shared.auth.accounts.AccountDeletedNotification.ToNotify
 import org.fiume.sketch.shared.auth.algebras.UsersStore
 import org.fiume.sketch.shared.common.events.EventId
 import org.fiume.sketch.shared.common.jobs.Job
@@ -13,11 +14,16 @@ import org.typelevel.log4cats.slf4j.Slf4jLogger
 import org.typelevel.log4cats.syntax.LoggerInterpolator
 
 object ScheduledAccountDeletionJob:
-  def make[F[_]: Sync, Txn[_]: Monad](eventConsumer: AccountDeletionEventConsumer[Txn], store: UsersStore[F, Txn]) =
-    new ScheduledAccountDeletionJob(eventConsumer, store)
+  def make[F[_]: Sync, Txn[_]: Monad](
+    accountDeletionEventConsumer: AccountDeletionEventConsumer[Txn],
+    notificationProducer: AccountDeletedNotificationProducer[Txn],
+    store: UsersStore[F, Txn]
+  ) =
+    new ScheduledAccountDeletionJob(accountDeletionEventConsumer, notificationProducer, store)
 
 private class ScheduledAccountDeletionJob[F[_]: Sync, Txn[_]: Monad] private (
-  eventConsumer: AccountDeletionEventConsumer[Txn],
+  accountDeletionEventConsumer: AccountDeletionEventConsumer[Txn],
+  notificationProducer: AccountDeletedNotificationProducer[Txn],
   store: UsersStore[F, Txn]
 ) extends Job[F, Option[(EventId, UserId)]]:
 
@@ -27,10 +33,15 @@ private class ScheduledAccountDeletionJob[F[_]: Sync, Txn[_]: Monad] private (
 
   override def run(): F[Option[(EventId, UserId)]] =
     store.commit {
-      eventConsumer.consumeEvent().flatMap {
+      accountDeletionEventConsumer.consumeEvent().flatMap {
         case Some(scheduled) =>
-          store.deleteAccount(scheduled.userId).map(_ => Some((scheduled.uuid, scheduled.userId))) <*
-            store.lift { info"Job ${scheduled.uuid} deleted account with id: ${scheduled.userId}" }
+          for
+            _ <- store.deleteAccount(scheduled.userId)
+            // TODO Service/ConsumerGroup hardcoded for now
+            _ <- notificationProducer
+              .produceEvent(ToNotify(scheduled.userId, Service("sketch"))) // TODO What about the return type?
+            _ <- store.lift { info"Job ${scheduled.uuid} deleted account with id: ${scheduled.userId}" }
+          yield (scheduled.uuid, scheduled.userId).some
         case None => none.pure[Txn]
       }
     }

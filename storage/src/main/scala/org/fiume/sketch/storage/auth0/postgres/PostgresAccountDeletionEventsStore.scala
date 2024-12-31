@@ -16,8 +16,9 @@ import org.fiume.sketch.shared.auth.accounts.AccountDeletionEvent.{Scheduled, To
 import org.fiume.sketch.storage.auth.postgres.DatabaseCodecs.given
 
 object PostgresAccountDeletionEventsStore:
-  def make[F[_]: Async](): Resource[F, PostgresAccountDeletionEventsStore] =
-    Resource.pure[F, PostgresAccountDeletionEventsStore](new PostgresAccountDeletionEventsStore())
+  def make[F[_]: Async]()
+    : Resource[F, CancellableAccountDeletionEventProducer[ConnectionIO] & AccountDeletionEventConsumer[ConnectionIO]] =
+    Resource.pure(new PostgresAccountDeletionEventsStore())
 
 private class PostgresAccountDeletionEventsStore private ()
     extends CancellableAccountDeletionEventProducer[ConnectionIO]
@@ -26,7 +27,7 @@ private class PostgresAccountDeletionEventsStore private ()
   override def produceEvent(accountDeletion: ToSchedule): ConnectionIO[Scheduled] =
     EventStatements.insertPermanentDeletionEvent(accountDeletion)
 
-  override def cancelEventById(userId: UserId): ConnectionIO[Unit] = EventStatements.deleteEvent(userId).run.void
+  override def cancelEvent(userId: UserId): ConnectionIO[Unit] = EventStatements.deleteEvent(userId).run.void
 
   override def consumeEvent(): ConnectionIO[Option[AccountDeletionEvent.Scheduled]] =
     EventStatements.claimNextEvent().option

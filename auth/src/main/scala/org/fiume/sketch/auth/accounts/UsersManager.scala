@@ -137,7 +137,7 @@ object UsersManager:
               case Right(account) =>
                 store
                   .updateAccount(account)
-                  .flatTap { _ => producer.cancelEventById(account.uuid) }
+                  .flatTap { _ => producer.cancelEvent(account.uuid) }
                   .as(account.asRight)
               case error => error.pure[Txn]
             }

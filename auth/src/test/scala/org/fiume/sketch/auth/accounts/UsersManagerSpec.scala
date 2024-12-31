@@ -239,7 +239,7 @@ class UsersManagerSpec
 trait UsersManagerSpecContext extends CancellableEventProducerContext[AccountDeletionEvent.ToSchedule, UserId]:
   val delayUntilPermanentDeletion = 30.days
 
-  def makeCancellableAccountDeletionEventProducer() = makeEventProducer(
+  def makeCancellableAccountDeletionEventProducer() = makeCancellableEventProducer(
     enrich = (event, eventId) => AccountDeletionEvent.scheduled(eventId, event.userId, event.permanentDeletionAt),
     extractId = _.userId
   )

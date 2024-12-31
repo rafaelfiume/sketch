@@ -7,6 +7,7 @@ import doobie.implicits.*
 import doobie.postgres.implicits.*
 import munit.ScalaCheckEffectSuite
 import org.fiume.sketch.shared.domain.documents.{Document, DocumentId, DocumentWithIdAndStream, DocumentWithStream}
+import org.fiume.sketch.shared.domain.documents.algebras.DocumentsStore
 import org.fiume.sketch.shared.domain.testkit.DocumentsGens.*
 import org.fiume.sketch.shared.domain.testkit.DocumentsGens.given
 import org.fiume.sketch.shared.domain.testkit.syntax.DocumentSyntax.*
@@ -129,7 +130,7 @@ class PostgresDocumentsStoreSpec
 trait PostgresStoreSpecContext:
   def cleanStorage: ConnectionIO[Unit] = sql"TRUNCATE TABLE domain.documents".update.run.void
 
-  extension (store: PostgresDocumentsStore[IO])
+  extension (store: DocumentsStore[IO, ConnectionIO])
     def fetchCreatedAt(uuid: DocumentId): ConnectionIO[Instant] =
       sql"SELECT created_at FROM domain.documents WHERE uuid = ${uuid}".query[Instant].unique
     def fetchUpdatedAt(uuid: DocumentId): ConnectionIO[Instant] =

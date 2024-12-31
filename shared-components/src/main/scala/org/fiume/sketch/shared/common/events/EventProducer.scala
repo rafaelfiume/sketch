@@ -26,10 +26,10 @@ trait GenericEventProducer[F[_], Event, ProducedEvent]:
  * without requiring an `Id`, while `cancelEvent` introduces an `Id` type.
  *
  * If such an asymmetry becomes a problem, perhaps a solution could be to provide both:
- * - `cancelEventById(uuid: Id)`: for convenience when a contextual `Id` is available
- * - `cancelByEventId(uuid: EventId)`: for direct cancellation using the event's unique identifier.
+ * - `cancelEvent(contextualId: Id)`: for convenience when a contextual `Id` is available
+ * - `cancelEvent(uuid: EventId)`: for direct cancellation using the event's unique identifier.
  */
 trait CancellableEvent[F[_], Id]:
-  def cancelEventById(uuid: Id): F[Unit]
+  def cancelEvent(contextualId: Id): F[Unit]
 
 type CancellableEventProducer[F[_], Event, Id] = EventProducer[F, Event] & CancellableEvent[F, Id]

@@ -14,18 +14,18 @@ import org.fiume.sketch.shared.auth.accounts.AccountDeletedNotification.{Notifie
 import org.fiume.sketch.storage.auth.postgres.DatabaseCodecs.given
 
 object PostgresAccountDeletedNotificationsStore:
-  def make[F[_]: Async](consumerGroup: Service): Resource[F, PostgresAccountDeletedNotificationsStore] =
-    Resource.pure[F, PostgresAccountDeletedNotificationsStore](
-      new PostgresAccountDeletedNotificationsStore(consumerGroup)
-    )
+  def makeProducer[F[_]: Async](): Resource[F, AccountDeletedNotificationProducer[ConnectionIO]] =
+    Resource.pure(new PostgresAccountDeletedNotificationProducerStore())
 
-private class PostgresAccountDeletedNotificationsStore private (consumerGroup: Service)
-    extends AccountDeletedNotificationProducer[ConnectionIO]
-    with AccountDeletedNotificationConsumer[ConnectionIO]:
+  def makeConsumer[F[_]: Async](consumerGroup: Service): Resource[F, AccountDeletedNotificationConsumer[ConnectionIO]] =
+    Resource.pure(new PostgresAccountDeletedNotificationConsumerStore(consumerGroup))
 
+private class PostgresAccountDeletedNotificationProducerStore() extends AccountDeletedNotificationProducer[ConnectionIO]:
   override def produceEvent(notification: AccountDeletedNotification.ToNotify): ConnectionIO[Notified] =
     NotificationStatements.insertNotification(notification)
 
+private class PostgresAccountDeletedNotificationConsumerStore(consumerGroup: Service)
+    extends AccountDeletedNotificationConsumer[ConnectionIO]:
   override def consumeEvent(): ConnectionIO[Option[AccountDeletedNotification.Notified]] =
     NotificationStatements.claimNextEvent(consumerGroup).option
 

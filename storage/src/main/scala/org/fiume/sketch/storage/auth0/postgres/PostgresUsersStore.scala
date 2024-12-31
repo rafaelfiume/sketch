@@ -17,7 +17,7 @@ import org.fiume.sketch.storage.auth.postgres.Statements.*
 import org.fiume.sketch.storage.postgres.AbstractPostgresStore
 
 object PostgresUsersStore:
-  def make[F[_]: Async](tx: Transactor[F]): Resource[F, PostgresUsersStore[F]] =
+  def make[F[_]: Async](tx: Transactor[F]): Resource[F, UsersStore[F, ConnectionIO]] =
     WeakAsync.liftK[F, ConnectionIO].map(lift => new PostgresUsersStore[F](lift, tx))
 
 private class PostgresUsersStore[F[_]: Async] private (lift: F ~> ConnectionIO, tx: Transactor[F])

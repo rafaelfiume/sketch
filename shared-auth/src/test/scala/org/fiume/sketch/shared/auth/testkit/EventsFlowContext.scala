@@ -1,73 +1,101 @@
 package org.fiume.sketch.shared.auth.testkit
 
 import cats.effect.IO
+import cats.effect.kernel.Ref
 import cats.implicits.*
 import org.fiume.sketch.shared.auth.accounts.AccountDeletionEvent.*
 import org.fiume.sketch.shared.common.WithUuid
 import org.fiume.sketch.shared.common.events.{CancellableEvent, CancellableEventProducer, EventConsumer, EventId, EventProducer}
 
-type Enriched[Event] = Event & WithUuid[EventId]
-type Enrich[Event] = (Event, EventId) => Enriched[Event]
-type ExtractContextualId[Event, Id] = Event => Id
-
 object EventsFlowContext:
+  type EnrichedEvent[E] = E & WithUuid[EventId]
+  type Enricher[E] = (E, EventId) => EnrichedEvent[E]
+  type EventContextualIdExtractor[E, Id] = E => Id
 
-  trait CancellableEventProducerContext[Event, Id]:
-    private case class State(events: Map[EventId, Enriched[Event]], extractId: ExtractContextualId[Event, Id]):
-      def +++(event: Enriched[Event]): State =
-        copy(events = events + (event.uuid -> event))
+  trait EventProducerContext[E]:
+    def makeEventProducer(enrich: Enricher[E]): IO[EventProducer[IO, E]] =
+      val state = EventProducerState[E](Map.empty)
+      IO.ref(state).map { new FakeEventProducer(_, enrich) }
 
-      def ---(id: Id): State =
-        events
-          .collectFirst {
-            case (eventId, event) if extractId(event) == id => eventId
-          }
-          .fold(this)(eventId => copy(events = events - eventId))
+  trait CancellableEventProducerContext[E, Id]:
+    def makeCancellableEventProducer(
+      enrich: Enricher[E],
+      extractId: EventContextualIdExtractor[E, Id]
+    ): IO[CancellableEventProducer[IO, E, Id] & EventsInspector[E, Id]] =
+      val state = CancellableEventProducerState(Map.empty, extractId)
+      IO.ref(state).map { new FakeCancellableEventProducer(_, enrich) }
 
-      def getEvent(id: Id): Option[Enriched[Event]] =
-        events.collectFirst {
-          case (_, event) if extractId(event) == id => event
-        }
+  trait EventConsumerContext[E]:
+    def makeEmptyEventConsumer(): IO[EventConsumer[IO, EnrichedEvent[E]]] = makeEventConsumer(event = none)
 
-    def makeEventProducer(
-      enrich: Enrich[Event],
-      extractId: ExtractContextualId[Event, Id]
-    ): IO[CancellableEventProducer[IO, Event, Id] & EventsInspector[Event, Id]] =
-      makeEventProducer(State(Map.empty, extractId), enrich)
-
-    private def makeEventProducer(
-      state: State,
-      enrich: Enrich[Event]
-    ): IO[CancellableEventProducer[IO, Event, Id] & EventsInspector[Event, Id]] =
-      IO.ref(state).map { storage =>
-        new EventProducer[IO, Event] with CancellableEvent[IO, Id] with EventsInspector[Event, Id]:
-          override def produceEvent(event: Event): IO[Enriched[Event]] =
-            for
-              eventId <- IO.randomUUID.map(EventId(_))
-              enriched = enrich(event, eventId)
-              _ <- storage.update { _.+++(enriched) }
-            yield enriched
-
-          override def cancelEventById(id: Id): IO[Unit] =
-            storage.update { _.---(id) }.void
-
-          override def inspectProducedEvent(id: Id): IO[Option[Enriched[Event]]] =
-            storage.get.map(_.getEvent(id))
-      }
-
-  trait EventConsumerContext[Event]:
-    private case class State(event: Option[Enriched[Event]])
-
-    def makeEmptyEventConsumer(): IO[EventConsumer[IO, Enriched[Event]]] = makeEventConsumer(none)
-
-    def makeEventConsumer(nextEvent: Enriched[Event]): IO[EventConsumer[IO, Enriched[Event]]] =
+    def makeEventConsumer(nextEvent: EnrichedEvent[E]): IO[EventConsumer[IO, EnrichedEvent[E]]] =
       makeEventConsumer(nextEvent.some)
 
-    private def makeEventConsumer(event: Option[Enriched[Event]]): IO[EventConsumer[IO, Enriched[Event]]] =
+    private def makeEventConsumer(event: Option[EnrichedEvent[E]]): IO[EventConsumer[IO, EnrichedEvent[E]]] =
       IO.ref(State(event)).map { state =>
-        new EventConsumer[IO, Enriched[Event]]:
-          override def consumeEvent(): IO[Option[Enriched[Event]]] = state.getAndSet(State(none)).map(_.event)
+        new EventConsumer[IO, EnrichedEvent[E]]:
+          override def consumeEvent(): IO[Option[EnrichedEvent[E]]] = state.getAndSet(State(none)).map(_.event)
       }
 
-  trait EventsInspector[Event, Id]:
-    def inspectProducedEvent(id: Id): IO[Option[Enriched[Event]]]
+    private case class State(event: Option[EnrichedEvent[E]])
+
+  trait EventsInspector[E, Id]:
+    def inspectProducedEvent(id: Id): IO[Option[EnrichedEvent[E]]]
+
+  sealed trait BaseFakeEventProducer[E, S <: BaseEventProducerState[E, S]](storage: Ref[IO, S], enrich: Enricher[E])
+      extends EventProducer[IO, E]:
+    def produceEvent(event: E): IO[EnrichedEvent[E]] =
+      for
+        eventId <- IO.randomUUID.map(EventId(_))
+        enriched = enrich(event, eventId)
+        _ <- storage.update { _.+++(enriched) }
+      yield enriched
+
+  private class FakeEventProducer[E](
+    storage: Ref[IO, EventProducerState[E]],
+    enrich: Enricher[E]
+  ) extends BaseFakeEventProducer[E, EventProducerState[E]](storage, enrich)
+
+  private class FakeCancellableEventProducer[E, Id](
+    storage: Ref[IO, CancellableEventProducerState[E, Id]],
+    enrich: Enricher[E]
+  ) extends BaseFakeEventProducer[E, CancellableEventProducerState[E, Id]](storage, enrich)
+      with CancellableEvent[IO, Id]
+      with EventsInspector[E, Id]:
+
+    override def cancelEvent(contextualId: Id): IO[Unit] = storage.update { _.---(contextualId) }.void
+
+    override def inspectProducedEvent(contextualId: Id): IO[Option[EnrichedEvent[E]]] =
+      storage.get.map(_.getEventByContextualId(contextualId))
+
+  // Why `Fake`? For example, `FakeEventProducer` is a fully working implementation
+  // that mimicks the behaviour of a real component and is intended exclusively for testing purposes.
+  // It allows for state manipulation and inspection to test the behaviour of components
+  // that depend on an `EventProducer` without relying on production machinery.
+
+  sealed trait BaseEventProducerState[E, Self <: BaseEventProducerState[E, Self]]:
+    def +++(event: EnrichedEvent[E]): Self = modifyEvents(events = events + (event.uuid -> event))
+    protected val events: Map[EventId, EnrichedEvent[E]]
+    protected def modifyEvents(events: Map[EventId, EnrichedEvent[E]]): Self
+
+  private case class EventProducerState[E](events: Map[EventId, EnrichedEvent[E]])
+      extends BaseEventProducerState[E, EventProducerState[E]]:
+    override protected def modifyEvents(events: Map[EventId, EnrichedEvent[E]]) = copy(events = events)
+
+  private case class CancellableEventProducerState[E, Id](
+    events: Map[EventId, EnrichedEvent[E]],
+    extractId: EventContextualIdExtractor[E, Id]
+  ) extends BaseEventProducerState[E, CancellableEventProducerState[E, Id]]:
+    def ---(id: Id): CancellableEventProducerState[E, Id] =
+      events
+        .collectFirst {
+          case (eventId, event) if extractId(event) == id => eventId
+        }
+        .fold(this)(eventId => copy(events = events - eventId))
+
+    def getEventByContextualId(id: Id): Option[EnrichedEvent[E]] =
+      events.collectFirst {
+        case (_, event) if extractId(event) == id => event
+      }
+
+    override protected def modifyEvents(events: Map[EventId, EnrichedEvent[E]]) = copy(events = events)
