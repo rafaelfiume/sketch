@@ -4,8 +4,9 @@ import cats.effect.IO
 import cats.implicits.*
 import munit.{CatsEffectSuite, ScalaCheckEffectSuite}
 import org.fiume.sketch.shared.auth.accounts.{Account, AccountDeletionEvent, AccountState}
+import org.fiume.sketch.shared.auth.accounts.AccountDeletionEvent.ToSchedule
 import org.fiume.sketch.shared.auth.testkit.AccountGens.given
-import org.fiume.sketch.shared.auth.testkit.ScheduledAccountDeletionEventFlowContext.EventConsumerContext
+import org.fiume.sketch.shared.auth.testkit.EventsFlowContext.EventConsumerContext
 import org.fiume.sketch.shared.auth.testkit.UsersStoreContext
 import org.fiume.sketch.shared.common.events.EventId
 import org.fiume.sketch.shared.common.testkit.EventGens.given
@@ -17,7 +18,7 @@ import java.time.Instant
 class ScheduledAccountDeletionJobSpec
     extends CatsEffectSuite
     with ScalaCheckEffectSuite
-    with EventConsumerContext
+    with EventConsumerContext[ToSchedule]
     with UsersStoreContext
     with ShrinkLowPriority:
 

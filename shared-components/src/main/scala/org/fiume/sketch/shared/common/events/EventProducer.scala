@@ -31,3 +31,5 @@ trait GenericEventProducer[F[_], Event, ProducedEvent]:
  */
 trait CancellableEvent[F[_], Id]:
   def cancelEventById(uuid: Id): F[Unit]
+
+type CancellableEventProducer[F[_], Event, Id] = EventProducer[F, Event] & CancellableEvent[F, Id]

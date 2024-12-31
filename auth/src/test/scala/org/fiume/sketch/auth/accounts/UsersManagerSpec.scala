@@ -17,8 +17,8 @@ import org.fiume.sketch.shared.auth.accounts.{
 import org.fiume.sketch.shared.auth.accounts.AccountDeletionEvent.*
 import org.fiume.sketch.shared.auth.testkit.{UserGens, UsersStoreContext}
 import org.fiume.sketch.shared.auth.testkit.AccountGens.given
+import org.fiume.sketch.shared.auth.testkit.EventsFlowContext.CancellableEventProducerContext
 import org.fiume.sketch.shared.auth.testkit.PasswordsGens.given
-import org.fiume.sketch.shared.auth.testkit.ScheduledAccountDeletionEventFlowContext.EventProducerContext
 import org.fiume.sketch.shared.auth.testkit.UserGens.given
 import org.fiume.sketch.shared.authorisation.{AccessDenied, ContextualRole, GlobalRole}
 import org.fiume.sketch.shared.authorisation.testkit.AccessControlContext
@@ -38,7 +38,6 @@ class UsersManagerSpec
     extends CatsEffectSuite
     with ScalaCheckEffectSuite
     with UsersStoreContext
-    with EventProducerContext
     with AccessControlContext
     with ClockContext
     with UsersManagerSpecContext
@@ -50,7 +49,7 @@ class UsersManagerSpec
     forAllF { (username: Username, password: PlainPassword, globalRole: Option[GlobalRole]) =>
       for
         usersStore <- makeEmptyUsersStore()
-        eventProducer <- makeEventProducer()
+        eventProducer <- makeCancellableAccountDeletionEventProducer()
         accessControl <- makeAccessControl()
         usersManager = UsersManager.make[IO, IO](
           usersStore,
@@ -78,7 +77,7 @@ class UsersManagerSpec
       val clock = makeFrozenClock(markedForDeletionAt)
       for
         store <- makeEmptyUsersStore()
-        eventProducer <- makeEventProducer()
+        eventProducer <- makeCancellableAccountDeletionEventProducer()
         accessControl <- makeAccessControl()
         ownerId <- store.createAccount(owner).flatTap { id => accessControl.grantAccess(id, id, ContextualRole.Owner) }
         adminId <- store.createAccount(admin).flatTap { id => accessControl.grantGlobalAccess(id, GlobalRole.Admin) }
@@ -114,7 +113,7 @@ class UsersManagerSpec
     forAllF { (owner: UserCredentials, authed: UserCredentials, isSuperuser: Boolean) =>
       for
         store <- makeEmptyUsersStore()
-        eventProducer <- makeEventProducer()
+        eventProducer <- makeCancellableAccountDeletionEventProducer()
         accessControl <- makeAccessControl()
         authedId <- store.createAccount(authed).flatTap { id => accessControl.grantAccess(id, id, ContextualRole.Owner) }
         _ <- accessControl.grantGlobalAccess(authedId, GlobalRole.Superuser).whenA(isSuperuser)
@@ -136,7 +135,7 @@ class UsersManagerSpec
     forAllF { (ownerId: UserId, authed: UserCredentials, maybeGlobalRole: Option[GlobalRole]) =>
       for
         store <- makeEmptyUsersStore()
-        eventProducer <- makeEventProducer()
+        eventProducer <- makeCancellableAccountDeletionEventProducer()
         accessControl <- makeAccessControl()
         authedId <- store.createAccount(authed).flatTap { id => accessControl.grantAccess(id, id, ContextualRole.Owner) }
         _ <- accessControl.grantGlobalAccess(authedId, maybeGlobalRole.someOrFail).whenA(maybeGlobalRole.isDefined)
@@ -162,7 +161,7 @@ class UsersManagerSpec
       val clock = makeFrozenClock(accountReactivationDate)
       for
         store <- makeEmptyUsersStore()
-        eventProducer <- makeEventProducer()
+        eventProducer <- makeCancellableAccountDeletionEventProducer()
         accessControl <- makeAccessControl()
         ownerId <- store.createAccount(owner)
         adminId <- store.createAccount(authed).flatTap { accessControl.grantGlobalAccess(_, GlobalRole.Admin) }
@@ -191,7 +190,7 @@ class UsersManagerSpec
     forAllF { (owner: Account, authed: UserCredentials, isSuperuser: Boolean) =>
       for
         store <- makeUsersStoreForAccount(owner.copy(state = AccountState.SoftDeleted(Instant.now())))
-        eventProducer <- makeEventProducer()
+        eventProducer <- makeCancellableAccountDeletionEventProducer()
         accessControl <- makeAccessControl()
         nonAdminUserId <- store.createAccount(authed).flatTap {
           accessControl.grantGlobalAccess(_, GlobalRole.Superuser).whenA(isSuperuser)
@@ -216,7 +215,7 @@ class UsersManagerSpec
     forAllF { (ownerId: UserId, authed: UserCredentials, maybeGlobalRole: Option[GlobalRole]) =>
       for
         store <- makeEmptyUsersStore()
-        eventProducer <- makeEventProducer()
+        eventProducer <- makeCancellableAccountDeletionEventProducer()
         accessControl <- makeAccessControl()
         authedId <- store.createAccount(authed).flatTap {
           accessControl.grantGlobalAccess(_, maybeGlobalRole.someOrFail).whenA(maybeGlobalRole.isDefined)
@@ -237,5 +236,10 @@ class UsersManagerSpec
         else assertEquals(result, AccessDenied)
     }
 
-trait UsersManagerSpecContext:
+trait UsersManagerSpecContext extends CancellableEventProducerContext[AccountDeletionEvent.ToSchedule, UserId]:
   val delayUntilPermanentDeletion = 30.days
+
+  def makeCancellableAccountDeletionEventProducer() = makeEventProducer(
+    enrich = (event, eventId) => AccountDeletionEvent.scheduled(eventId, event.userId, event.permanentDeletionAt),
+    extractId = _.userId
+  )
