@@ -42,10 +42,10 @@ and a [start-local.sh](/tools/stack/start-local.sh) script to initialise the ser
 ### Techniques with pure functional programming
 
  - [Applicatives and validation](shared-auth/src/main/scala/org/fiume/sketch/shared/auth/domain/Passwords.scala)
- - [Controlling (Db) transactions in business domain components with Functor Transformation](shared-components/src/main/scala/org/fiume/sketch/shared/common/algebras/Store.scala) (`FunctionK` or `~>`)
+ - [Controlling (Db) transactions in business domain components with Functor Transformation](shared-components/src/main/scala/org/fiume/sketch/shared/common/algebras/Store.scala) (Via `FunctionK` or `~>`)
  - [fs2.Stream, the basics](shared-components/src/main/scala/org/fiume/sketch/shared/common/jobs/PeriodicJob.scala)
- - [fs2.Stream to test producing and consuming events](storage/src/it/scala/org/fiume/sketch/storage/auth0/postgres/PostgresEventsStoreSpec.scala)
- - [Mutation is very much a part of pure functional programming](shared-auth/src/test/scala/org/fiume/sketch/shared/auth/testkit/ScheduledAccountDeletionEventFlowContext.scala)
+ - [fs2.Stream to test producing and consuming events](storage/src/it/scala/org/fiume/sketch/storage/auth0/postgres/PostgresAccountDeletedNotificationsStoreSpec.scala)
+ - [Mutation is very much a part of pure functional programming](shared-auth/src/test/scala/org/fiume/sketch/shared/auth/testkit/UsersStoreContext.scala)
  - [Safe concurrent access and modification](https://github.com/rafaelfiume/sketch/blob/02b5e2b7bbeb6f1c0083ee9be8327b3bd61c13ae/storage/src/it/scala/org/fiume/sketch/storage/auth0/postgres/PostgresEventsStoreSpec.scala#L81)
 
 ### A few Scala features in action
@@ -53,7 +53,8 @@ and a [start-local.sh](/tools/stack/start-local.sh) script to initialise the ser
  - [Extension methods](shared-account-management/src/main/scala/org/fiume/sketch/shared/account/management/http/model/AccountStateTransitionErrorSyntax.scala)
  - [Intersection types](shared-components/src/test/scala/org/fiume/sketch/shared/common/testkit/JobErrorHandlerContext.scala) (`&`)
  - [Metaprogramming](shared-components/src/main/scala/org/fiume/sketch/shared/common/Macros.scala)
- - [Union types](auth/src/main/scala/org/fiume/sketch/auth/UsersManager.scala) (`\`)
+ - [Trait constructors]() << comming soon
+ - [Union types](https://github.com/rafaelfiume/sketch/blob/e7371cb27144e1ab20790e5a80648d7b504e2904/auth/src/main/scala/org/fiume/sketch/auth/JwtIssuer.scala#L43)
 
 
 ## Using Postgres as Lightweight Event Bus

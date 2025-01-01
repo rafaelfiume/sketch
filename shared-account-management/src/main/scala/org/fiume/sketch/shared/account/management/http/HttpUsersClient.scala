@@ -41,7 +41,7 @@ class HttpUsersClient[F[_]: Async] private (baseUri: Uri, client: Client[F]):
         case Ok(resp) =>
           resp
             .as[ScheduledForPermanentDeletionResponse]
-            .map(p => AccountDeletionEvent.Scheduled(p.eventId, p.userId, p.permanentDeletionAt).asRight)
+            .map(p => AccountDeletionEvent.scheduled(p.eventId, p.userId, p.permanentDeletionAt).asRight)
         case Conflict(_)        => AccountAlreadyPendingDeletion.asLeft[AccountDeletionEvent.Scheduled].pure[F]
         case NotFound(_)        => SoftDeleteAccountError.AccountNotFound.asLeft.pure[F]
         case Unauthorized(resp) =>

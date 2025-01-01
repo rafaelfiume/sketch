@@ -7,14 +7,18 @@ import org.fiume.sketch.app.SketchVersions.VersionFile
 import org.fiume.sketch.auth.Authenticator
 import org.fiume.sketch.auth.accounts.UsersManager
 import org.fiume.sketch.rustic.RusticHealthCheck
-import org.fiume.sketch.shared.auth.accounts.AccountDeletionEventConsumer
+import org.fiume.sketch.shared.auth.accounts.{AccountDeletedNotificationProducer, AccountDeletionEventConsumer}
 import org.fiume.sketch.shared.auth.algebras.UsersStore
 import org.fiume.sketch.shared.authorisation.AccessControl
 import org.fiume.sketch.shared.common.ServiceStatus.Dependency.*
 import org.fiume.sketch.shared.common.algebras.{HealthChecker, Versions}
 import org.fiume.sketch.shared.common.algebras.HealthChecker.*
 import org.fiume.sketch.shared.domain.documents.algebras.DocumentsStore
-import org.fiume.sketch.storage.auth.postgres.{PostgresAccountDeletionEventsStore, PostgresUsersStore}
+import org.fiume.sketch.storage.auth.postgres.{
+  PostgresAccountDeletedNotificationsStore,
+  PostgresAccountDeletionEventsStore,
+  PostgresUsersStore
+}
 import org.fiume.sketch.storage.authorisation.postgres.PostgresAccessControl
 import org.fiume.sketch.storage.documents.postgres.PostgresDocumentsStore
 import org.fiume.sketch.storage.postgres.{DbTransactor, PostgresHealthCheck}
@@ -35,6 +39,7 @@ trait Resources[F[_]]:
   val authenticator: Authenticator[F]
   val accessControl: AccessControl[F, ConnectionIO]
   val accountDeletionEventConsumer: AccountDeletionEventConsumer[ConnectionIO]
+  val accountDeletedNotificationProducer: AccountDeletedNotificationProducer[ConnectionIO]
   val usersStore: UsersStore[F, ConnectionIO]
   val documentsStore: DocumentsStore[F, ConnectionIO]
   val userManager: UsersManager[F]
@@ -51,6 +56,7 @@ object Resources:
       rusticHealthCheck0 = RusticHealthCheck.make[F](config.rusticClient, httpClient)
       versions0 <- SketchVersions.make[F](config.env, VersionFile("sketch.version"))
       accountDeletionEventStore0 <- PostgresAccountDeletionEventsStore.make[F]()
+      accountDeletedNotificationProducer0 <- PostgresAccountDeletedNotificationsStore.makeProducer[F]()
       usersStore0 <- PostgresUsersStore.make[F](transactor)
       authenticator0 <- Resource.liftK {
         Authenticator.make[F, ConnectionIO](
@@ -72,6 +78,8 @@ object Resources:
       override val accessControl: AccessControl[F, ConnectionIO] = accessControl0
       override val accountDeletionEventConsumer: AccountDeletionEventConsumer[ConnectionIO] =
         accountDeletionEventStore0
+      override val accountDeletedNotificationProducer: AccountDeletedNotificationProducer[ConnectionIO] =
+        accountDeletedNotificationProducer0
       override val usersStore: UsersStore[F, ConnectionIO] = usersStore0
       override val documentsStore: DocumentsStore[F, ConnectionIO] = documentsStore0
       override val userManager: UsersManager[F] =

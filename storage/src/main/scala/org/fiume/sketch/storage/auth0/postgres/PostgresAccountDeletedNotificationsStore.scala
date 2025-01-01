@@ -1,11 +1,9 @@
 package org.fiume.sketch.storage.auth.postgres
 
 import cats.effect.{Async, Resource}
-import cats.implicits.*
 import doobie.*
 import doobie.free.connection.ConnectionIO
 import doobie.implicits.*
-import org.fiume.sketch.shared.auth.UserId
 import org.fiume.sketch.shared.auth.accounts.{
   AccountDeletedNotification,
   AccountDeletedNotificationConsumer,
@@ -16,20 +14,18 @@ import org.fiume.sketch.shared.auth.accounts.AccountDeletedNotification.{Notifie
 import org.fiume.sketch.storage.auth.postgres.DatabaseCodecs.given
 
 object PostgresAccountDeletedNotificationsStore:
-  def make[F[_]: Async](consumerGroup: Service): Resource[F, PostgresAccountDeletedNotificationsStore] =
-    Resource.pure[F, PostgresAccountDeletedNotificationsStore](
-      new PostgresAccountDeletedNotificationsStore(consumerGroup)
-    )
+  def makeProducer[F[_]: Async](): Resource[F, AccountDeletedNotificationProducer[ConnectionIO]] =
+    Resource.pure(new PostgresAccountDeletedNotificationProducerStore())
 
-private class PostgresAccountDeletedNotificationsStore private (consumerGroup: Service)
-    extends AccountDeletedNotificationProducer[ConnectionIO]
-    with AccountDeletedNotificationConsumer[ConnectionIO]:
+  def makeConsumer[F[_]: Async](consumerGroup: Service): Resource[F, AccountDeletedNotificationConsumer[ConnectionIO]] =
+    Resource.pure(new PostgresAccountDeletedNotificationConsumerStore(consumerGroup))
 
+private class PostgresAccountDeletedNotificationProducerStore() extends AccountDeletedNotificationProducer[ConnectionIO]:
   override def produceEvent(notification: AccountDeletedNotification.ToNotify): ConnectionIO[Notified] =
     NotificationStatements.insertNotification(notification)
 
-  override def removeEvent(userId: UserId): ConnectionIO[Unit] = NotificationStatements.deleteNotification(userId).run.void
-
+private class PostgresAccountDeletedNotificationConsumerStore(consumerGroup: Service)
+    extends AccountDeletedNotificationConsumer[ConnectionIO]:
   override def consumeEvent(): ConnectionIO[Option[AccountDeletedNotification.Notified]] =
     NotificationStatements.claimNextEvent(consumerGroup).option
 
@@ -58,9 +54,3 @@ private object NotificationStatements:
          |)
        """.stripMargin.update
       .withUniqueGeneratedKeys[Notified]("uuid", "user_id", "service_name")
-
-  def deleteNotification(userId: UserId): Update0 =
-    sql"""
-         |DELETE FROM auth.account_deleted_notifications
-         |WHERE user_id = $userId
-       """.stripMargin.update

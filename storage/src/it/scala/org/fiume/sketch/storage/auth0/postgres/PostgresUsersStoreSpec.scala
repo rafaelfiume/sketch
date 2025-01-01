@@ -10,11 +10,11 @@ import org.fiume.sketch.shared.auth.{Passwords, UserId}
 import org.fiume.sketch.shared.auth.Passwords.HashedPassword
 import org.fiume.sketch.shared.auth.User.*
 import org.fiume.sketch.shared.auth.accounts.{Account, AccountDeletionEvent, AccountState}
+import org.fiume.sketch.shared.auth.algebras.UsersStore
 import org.fiume.sketch.shared.auth.testkit.AccountGens.given
 import org.fiume.sketch.shared.auth.testkit.PasswordsGens.given
 import org.fiume.sketch.shared.auth.testkit.UserGens
 import org.fiume.sketch.shared.auth.testkit.UserGens.given
-import org.fiume.sketch.shared.common.events.EventId
 import org.fiume.sketch.shared.testkit.syntax.OptionSyntax.*
 import org.fiume.sketch.storage.auth.postgres.DatabaseCodecs.given
 import org.fiume.sketch.storage.testkit.DockerPostgresSuite
@@ -96,7 +96,7 @@ trait PostgresUsersStoreSpecContext extends DockerPostgresSuite:
   def cleanStorage: ConnectionIO[Unit] =
     sql"TRUNCATE TABLE auth.users".update.run.void
 
-  extension (store: PostgresUsersStore[IO])
+  extension (store: UsersStore[IO, ConnectionIO])
     def fetchPassword(uuid: UserId): ConnectionIO[HashedPassword] =
       sql"SELECT password_hash FROM auth.users WHERE uuid = ${uuid}".query[HashedPassword].unique
 

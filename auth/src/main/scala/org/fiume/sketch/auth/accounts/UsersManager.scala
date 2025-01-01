@@ -10,7 +10,6 @@ import org.fiume.sketch.shared.auth.UserId
 import org.fiume.sketch.shared.auth.accounts.{
   Account,
   AccountDeletionEvent,
-  AccountDeletionEventProducer,
   AccountState,
   ActivateAccountError,
   SoftDeleteAccountError
@@ -20,6 +19,7 @@ import org.fiume.sketch.shared.authorisation.{AccessControl, AccessDenied, Conte
 import org.fiume.sketch.shared.authorisation.ContextualRole.Owner
 import org.fiume.sketch.shared.authorisation.syntax.AccessDeniedSyntax.*
 import org.fiume.sketch.shared.common.algebras.syntax.StoreSyntax.*
+import org.fiume.sketch.shared.common.events.CancellableEventProducer
 
 import scala.concurrent.duration.Duration
 
@@ -46,7 +46,7 @@ trait UsersManager[F[_]]:
 object UsersManager:
   def make[F[_]: Sync, Txn[_]: Monad](
     store: UsersStore[F, Txn],
-    producer: AccountDeletionEventProducer[Txn],
+    producer: CancellableEventProducer[Txn, AccountDeletionEvent.ToSchedule, UserId],
     accessControl: AccessControl[F, Txn],
     clock: Clock[F],
     delayUntilPermanentDeletion: Duration
@@ -137,7 +137,7 @@ object UsersManager:
               case Right(account) =>
                 store
                   .updateAccount(account)
-                  .flatTap { _ => producer.removeEvent(account.uuid) }
+                  .flatTap { _ => producer.cancelEvent(account.uuid) }
                   .as(account.asRight)
               case error => error.pure[Txn]
             }

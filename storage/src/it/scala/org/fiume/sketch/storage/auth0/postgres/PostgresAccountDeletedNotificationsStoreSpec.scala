@@ -46,7 +46,9 @@ class PostgresAccountDeletedNotificationsStoreSpec
         val targetedServiceIdx = Gen.oneOf(0, 1).sample.someOrFail
         val consumerGroup = services(targetedServiceIdx)
         val numNotifications = numUsers * services.size
-        PostgresAccountDeletedNotificationsStore.make[IO](consumerGroup).use { notificationStore =>
+        (PostgresAccountDeletedNotificationsStore.makeProducer[IO](),
+         PostgresAccountDeletedNotificationsStore.makeConsumer[IO](consumerGroup)
+        ).tupled.use { case (producer, consumer) =>
           for
             // start <- Clock[IO].realTime.map(_.toMillis)
             notifications <- fs2.Stream
@@ -55,7 +57,7 @@ class PostgresAccountDeletedNotificationsStoreSpec
               .parEvalMapUnbounded { _ =>
                 val userId = UserGens.userIds.sample.someOrFail
                 services.traverse { service =>
-                  notificationStore.produceEvent(AccountDeletedNotification.ToNotify(userId, service)).ccommit
+                  producer.produceEvent(AccountDeletedNotification.ToNotify(userId, service)).ccommit
                 }
               }
               // .evalTap { eventId => IO.println(s"new event: $eventId") } // uncomment to debug
@@ -68,7 +70,7 @@ class PostgresAccountDeletedNotificationsStoreSpec
               fs2.Stream
                 .range(0, numNotifications)
                 .covary[IO]
-                .parEvalMapUnorderedUnbounded { _ => notificationStore.consumeEvent().ccommit }
+                .parEvalMapUnorderedUnbounded { _ => consumer.consumeEvent().ccommit }
                 // .evalTap { eventId => IO.println(s"consumed event: ${eventId}") } // uncomment to debug
                 .unNone
                 .compile
@@ -101,7 +103,9 @@ class PostgresAccountDeletedNotificationsStoreSpec
         val consumerGroup = services(targetedServiceIdx)
         val numNotifications = numUsers * services.size
         val errorFrequency = 2
-        PostgresAccountDeletedNotificationsStore.make[IO](consumerGroup).use { notificationStore =>
+        (PostgresAccountDeletedNotificationsStore.makeProducer[IO](),
+         PostgresAccountDeletedNotificationsStore.makeConsumer[IO](consumerGroup)
+        ).tupled.use { case (producer, consumer) =>
           for
             /*
              * If `Ref` seems overkill and that a simple `mutable.Set.empty[EventId]` would be sufficient,
@@ -115,7 +119,7 @@ class PostgresAccountDeletedNotificationsStoreSpec
               .parEvalMapUnbounded { _ =>
                 val userId = UserGens.userIds.sample.someOrFail
                 services.traverse { service =>
-                  notificationStore.produceEvent(AccountDeletedNotification.ToNotify(userId, service)).map(_.uuid).ccommit
+                  producer.produceEvent(AccountDeletedNotification.ToNotify(userId, service)).map(_.uuid).ccommit
                 }
               }
               .compile
@@ -128,7 +132,7 @@ class PostgresAccountDeletedNotificationsStoreSpec
                 .range(0, numNotifications)
                 .covary[IO]
                 .parEvalMapUnorderedUnbounded { i =>
-                  notificationStore
+                  consumer
                     .consumeEvent()
                     .flatMap { notification =>
                       if i % errorFrequency == 0 then
@@ -173,5 +177,5 @@ trait PostgresAccountDeletedNotificationStoreSpecContext extends DockerPostgresS
   import doobie.Read
   import org.fiume.sketch.storage.auth.postgres.DatabaseCodecs.given
   given Read[AccountDeletedNotification.Notified] = Read[(EventId, UserId, Service)].map { case (eventId, userId, target) =>
-    AccountDeletedNotification.Notified(eventId, userId, target)
+    AccountDeletedNotification.notified(eventId, userId, target)
   }

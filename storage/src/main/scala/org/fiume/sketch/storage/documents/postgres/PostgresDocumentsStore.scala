@@ -14,7 +14,7 @@ import org.fiume.sketch.storage.documents.postgres.DatabaseCodecs.given
 import org.fiume.sketch.storage.postgres.AbstractPostgresStore
 
 object PostgresDocumentsStore:
-  def make[F[_]: Async](tx: Transactor[F]): Resource[F, PostgresDocumentsStore[F]] =
+  def make[F[_]: Async](tx: Transactor[F]): Resource[F, DocumentsStore[F, ConnectionIO]] =
     WeakAsync.liftK[F, ConnectionIO].map(lift => new PostgresDocumentsStore[F](lift, tx))
 
 private class PostgresDocumentsStore[F[_]: Async] private (lift: F ~> ConnectionIO, tx: Transactor[F])
