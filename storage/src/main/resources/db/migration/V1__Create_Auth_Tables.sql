@@ -47,8 +47,8 @@ CREATE INDEX idx_account_deletion_scheduled_events_user_id ON auth.account_delet
 
 CREATE TABLE auth.account_deleted_notifications (
     uuid UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
-    user_id UUID NOT NULL, -- The ID of the deleted user
-    service_name VARCHAR(50) NOT NULL, -- The service responsible for processing
+    user_id UUID NOT NULL, -- The ID of the deleted account
+    recipient VARCHAR(50) NOT NULL, -- The consumer or group of consumers responsible for processing the event
     created_at TIMESTAMP DEFAULT NOW() -- When the event was created
 );
 

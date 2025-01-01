@@ -6,7 +6,7 @@ import doobie.util.Write
 import org.fiume.sketch.shared.auth.Passwords.{HashedPassword, Salt}
 import org.fiume.sketch.shared.auth.User.*
 import org.fiume.sketch.shared.auth.UserId
-import org.fiume.sketch.shared.auth.accounts.{Account, AccountDeletedNotification, AccountDeletionEvent, AccountState, Service}
+import org.fiume.sketch.shared.auth.accounts.{Account, AccountDeletedNotification, AccountDeletionEvent, AccountState, Recipient}
 import org.fiume.sketch.shared.auth.accounts.AccountDeletedNotification.Notified
 import org.fiume.sketch.shared.common.events.EventId
 
@@ -51,8 +51,8 @@ private[storage] object DatabaseCodecs:
       AccountDeletionEvent.scheduled(uuid, userId, permanentDeletionAt)
     }
 
-  given Meta[Service] = Meta[String].timap(Service(_))(_.name)
+  given Meta[Recipient] = Meta[String].timap(Recipient(_))(_.name)
 
-  given Read[Notified] = Read[(EventId, UserId, Service)].map { case (uuid, userId, target) =>
-    AccountDeletedNotification.notified(uuid, userId, target)
+  given Read[Notified] = Read[(EventId, UserId, Recipient)].map { case (uuid, userId, recipient) =>
+    AccountDeletedNotification.notified(uuid, userId, recipient)
   }

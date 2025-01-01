@@ -74,7 +74,7 @@ Define a specific event table (the equivalent of a Kafka topic).
 CREATE TABLE account_deleted_notifications (
     uuid UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
     user_id UUID NOT NULL, -- The ID of the deleted user
-    service_name VARCHAR(50) NOT NULL, -- The service responsible for processing
+    recipient VARCHAR(50) NOT NULL, -- The service responsible for processing
     created_at TIMESTAMP DEFAULT NOW() -- When the event was created
 );
 ```
@@ -93,7 +93,7 @@ DELETE FROM account_deleted_notifications
 WHERE id = (
     SELECT id
     FROM account_deleted_notifications
-    WHERE service_name = 'consumerGroup'
+    WHERE recipient = 'recipient'
     FOR UPDATE SKIP LOCKED
     LIMIT 1
 )

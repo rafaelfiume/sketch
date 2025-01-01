@@ -5,7 +5,7 @@ import cats.effect.Sync
 import cats.implicits.*
 import org.fiume.sketch.auth.accounts.jobs.ScheduledAccountDeletionJob.JobReport
 import org.fiume.sketch.shared.auth.UserId
-import org.fiume.sketch.shared.auth.accounts.{AccountDeletedNotificationProducer, AccountDeletionEventConsumer, Service}
+import org.fiume.sketch.shared.auth.accounts.{AccountDeletedNotificationProducer, AccountDeletionEventConsumer, Recipient}
 import org.fiume.sketch.shared.auth.accounts.AccountDeletedNotification.{Notified, ToNotify}
 import org.fiume.sketch.shared.auth.algebras.UsersStore
 import org.fiume.sketch.shared.common.events.EventId
@@ -43,8 +43,8 @@ private class ScheduledAccountDeletionJob[F[_]: Sync, Txn[_]: Monad] private (
       case Some(scheduled) =>
         for
           _ <- store.deleteAccount(scheduled.userId)
-          notifs <- List(Service("sketch")).traverse { target => // TODO Service/ConsumerGroup hardcoded for now
-            notificationProducer.produceEvent(ToNotify(scheduled.userId, target))
+          notifs <- List(Recipient("sketch")).traverse { recipient => // TODO Recipient hardcoded for now
+            notificationProducer.produceEvent(ToNotify(scheduled.userId, recipient))
           }
           _ <- info(scheduled.uuid, scheduled.userId, notifs)
         yield JobReport(scheduled.uuid, scheduled.userId, notifs).some
@@ -56,5 +56,5 @@ private class ScheduledAccountDeletionJob[F[_]: Sync, Txn[_]: Monad] private (
     // I should probably think seriously about structure logging...
     val l = s"Job completed successfully: triggeringEventId=${eventId}, " +
       s"deletedUserId=${userId}, " +
-      s"notificationsSent=${notifs.map(n => s"[ID: ${n.uuid}, Target: ${n.target}]").mkString(", ")}}"
+      s"notificationsSent=${notifs.map(n => s"[ID: ${n.uuid}, Recipient: ${n.recipient}]").mkString(", ")}}"
     store.lift { info"$l" }
