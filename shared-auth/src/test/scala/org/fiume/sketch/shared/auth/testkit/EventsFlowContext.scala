@@ -13,7 +13,7 @@ object EventsFlowContext:
   type EventContextualIdExtractor[E, Id] = E => Id
 
   trait EventProducerContext[E]:
-    def makeEventProducer(enrich: Enricher[E]): IO[EventProducer[IO, E]] =
+    def makeEventProducer(enrich: Enricher[E]): IO[EventProducer[IO, E] & EventInspector] =
       val state = EventProducerState[E](Map.empty)
       IO.ref(state).map { new FakeEventProducer(_, enrich) }
 
@@ -21,7 +21,7 @@ object EventsFlowContext:
     def makeCancellableEventProducer(
       enrich: Enricher[E],
       extractId: EventContextualIdExtractor[E, Id]
-    ): IO[CancellableEventProducer[IO, E, Id] & EventsInspector[E, Id]] =
+    ): IO[CancellableEventProducer[IO, E, Id] & CancellableEventInspector[E, Id]] =
       val state = CancellableEventProducerState(Map.empty, extractId)
       IO.ref(state).map { new FakeCancellableEventProducer(_, enrich) }
 
@@ -39,8 +39,11 @@ object EventsFlowContext:
 
     private case class State(event: Option[EnrichedEvent[E]])
 
-  trait EventsInspector[E, Id]:
-    def inspectProducedEvent(id: Id): IO[Option[EnrichedEvent[E]]]
+  trait EventInspector:
+    def totalSent(): IO[Int]
+
+  trait CancellableEventInspector[E, Id]:
+    def inspectProducedEvent(contextualId: Id): IO[Option[EnrichedEvent[E]]]
 
   sealed trait BaseFakeEventProducer[E, S <: BaseEventProducerState[E, S]](storage: Ref[IO, S], enrich: Enricher[E])
       extends EventProducer[IO, E]:
@@ -55,13 +58,15 @@ object EventsFlowContext:
     storage: Ref[IO, EventProducerState[E]],
     enrich: Enricher[E]
   ) extends BaseFakeEventProducer[E, EventProducerState[E]](storage, enrich)
+      with EventInspector:
+    override def totalSent(): IO[Int] = storage.get.map(_.events.size)
 
   private class FakeCancellableEventProducer[E, Id](
     storage: Ref[IO, CancellableEventProducerState[E, Id]],
     enrich: Enricher[E]
   ) extends BaseFakeEventProducer[E, CancellableEventProducerState[E, Id]](storage, enrich)
       with CancellableEvent[IO, Id]
-      with EventsInspector[E, Id]:
+      with CancellableEventInspector[E, Id]:
 
     override def cancelEvent(contextualId: Id): IO[Unit] = storage.update { _.---(contextualId) }.void
 
