@@ -13,6 +13,10 @@ type EventProducer[F[_], Event] =
  *
  * Favour the simpler `EventProducer`, since
  * in most cases, the `ProducedEvent` is simply the `Event` enriched with `EventId`.
+ *
+ * This reminds me of the
+ * [Monads are Monoids in the Category of Endofunctors](https://www.youtube.com/watch?v=CMm98RkCgPg)
+ * talk by Rock The JVM, which is definitely worth a watch (or two).
  */
 trait GenericEventProducer[F[_], Event, ProducedEvent]:
   def produceEvent(event: Event): F[ProducedEvent]
