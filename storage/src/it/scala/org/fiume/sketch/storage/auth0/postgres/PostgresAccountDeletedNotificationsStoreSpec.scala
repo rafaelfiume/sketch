@@ -6,7 +6,7 @@ import doobie.ConnectionIO
 import doobie.implicits.*
 import munit.ScalaCheckEffectSuite
 import org.fiume.sketch.shared.auth.UserId
-import org.fiume.sketch.shared.auth.accounts.{AccountDeletedNotification, Service}
+import org.fiume.sketch.shared.auth.accounts.{AccountDeletedNotification, Recipient}
 import org.fiume.sketch.shared.auth.testkit.UserGens
 import org.fiume.sketch.shared.common.events.EventId
 import org.fiume.sketch.shared.testkit.ClockContext
@@ -25,29 +25,28 @@ class PostgresAccountDeletedNotificationsStoreSpec
 
   // Notes
 
-  // No processing order guarantees are provided by the current implementation.
+  // Properties: No processing order guarantees are provided by the current implementation.
 
-  // A extremelly simple benchmark assuming that the number of writes is roughly the same as the number of reads:
+  // Performance: A extremelly simple benchmark assuming that the number of writes is roughly the same as the number of reads:
   // - consumed 50000 notifications in 127485 ms with _no_ indexing
-  // - consumed 50000 notifications in 147354 ms with indexing on `targeted` consumer group.
+  // - consumed 50000 notifications in 147354 ms with indexing on `recipient` column.
   // The reason for the indexing not improving performace could be that
-  // there is only a handful possible values for a consumer group, so the index is not selective enough.
+  // there is only a handful possible values for a recipient, so the index is not selective enough.
   // "An index must be selective enough to reduce the number of disk lookups for it to be worth it." Source:
   // https://devcenter.heroku.com/articles/postgresql-indexes
 
   // override def munitIOTimeout = Duration(10, "m")
 
-  test("consumes next event with exactly-once semantics"):
+  test("consumes next event with exactly-once semantics and insures it is routed to the correct recipient"):
     forAllF { () =>
       will(cleanStorage) {
         // given
         val numUsers = 1000
-        val services = List(Service("documents"), Service("projects"))
-        val targetedServiceIdx = Gen.oneOf(0, 1).sample.someOrFail
-        val consumerGroup = services(targetedServiceIdx)
-        val numNotifications = numUsers * services.size
+        val recipients = List(Recipient("documents"), Recipient("projects"))
+        val recipient = Gen.oneOf(recipients).sample.someOrFail
+        val numNotifications = numUsers * recipients.size
         (PostgresAccountDeletedNotificationsStore.makeProducer[IO](),
-         PostgresAccountDeletedNotificationsStore.makeConsumer[IO](consumerGroup)
+         PostgresAccountDeletedNotificationsStore.makeConsumer[IO](recipient)
         ).tupled.use { case (producer, consumer) =>
           for
             // start <- Clock[IO].realTime.map(_.toMillis)
@@ -56,8 +55,8 @@ class PostgresAccountDeletedNotificationsStoreSpec
               .covary[IO]
               .parEvalMapUnbounded { _ =>
                 val userId = UserGens.userIds.sample.someOrFail
-                services.traverse { service =>
-                  producer.produceEvent(AccountDeletedNotification.ToNotify(userId, service)).ccommit
+                recipients.traverse { recipient =>
+                  producer.produceEvent(AccountDeletedNotification.ToNotify(userId, recipient)).ccommit
                 }
               }
               // .evalTap { eventId => IO.println(s"new event: $eventId") } // uncomment to debug
@@ -78,10 +77,10 @@ class PostgresAccountDeletedNotificationsStoreSpec
             // end <- Clock[IO].realTime.map(_.toMillis)
 
             // then
-            expectedResultSize = numNotifications / services.size // only one consumer group
-            expectedNotifications = notifications.filter(_.target == consumerGroup)
+            expectedResultSize = numNotifications / recipients.size
+            expectedNotifications = notifications.filter(_.recipient == recipient)
             pendingNotifications <- fetchPendingEvents().ccommit
-            expectedPendingNotifications = notifications.filterNot(_.target == consumerGroup)
+            expectedPendingNotifications = notifications.filterNot(_.recipient == recipient)
           // _ <- IO.println(s"consumed ${result.size} notifications in ${end - start} ms")
           yield
             assert(result.size == expectedResultSize, clue = s"expected $expectedResultSize notifications, got ${result.size}")
@@ -98,13 +97,12 @@ class PostgresAccountDeletedNotificationsStoreSpec
       will(cleanStorage) {
         // given
         val numUsers = 1000
-        val services = List(Service("documents"), Service("projects"))
-        val targetedServiceIdx = Gen.oneOf(0, 1).sample.someOrFail
-        val consumerGroup = services(targetedServiceIdx)
-        val numNotifications = numUsers * services.size
+        val recipients = List(Recipient("documents"), Recipient("projects"))
+        val recipient = Gen.oneOf(recipients).sample.someOrFail
+        val numNotifications = numUsers * recipients.size
         val errorFrequency = 2
         (PostgresAccountDeletedNotificationsStore.makeProducer[IO](),
-         PostgresAccountDeletedNotificationsStore.makeConsumer[IO](consumerGroup)
+         PostgresAccountDeletedNotificationsStore.makeConsumer[IO](recipient)
         ).tupled.use { case (producer, consumer) =>
           for
             /*
@@ -118,8 +116,8 @@ class PostgresAccountDeletedNotificationsStoreSpec
               .covary[IO]
               .parEvalMapUnbounded { _ =>
                 val userId = UserGens.userIds.sample.someOrFail
-                services.traverse { service =>
-                  producer.produceEvent(AccountDeletedNotification.ToNotify(userId, service)).map(_.uuid).ccommit
+                recipients.traverse { recipient =>
+                  producer.produceEvent(AccountDeletedNotification.ToNotify(userId, recipient)).map(_.uuid).ccommit
                 }
               }
               .compile
@@ -176,6 +174,6 @@ trait PostgresAccountDeletedNotificationStoreSpecContext extends DockerPostgresS
 
   import doobie.Read
   import org.fiume.sketch.storage.auth.postgres.DatabaseCodecs.given
-  given Read[AccountDeletedNotification.Notified] = Read[(EventId, UserId, Service)].map { case (eventId, userId, target) =>
-    AccountDeletedNotification.notified(eventId, userId, target)
+  given Read[AccountDeletedNotification.Notified] = Read[(EventId, UserId, Recipient)].map { case (eventId, userId, recipient) =>
+    AccountDeletedNotification.notified(eventId, userId, recipient)
   }

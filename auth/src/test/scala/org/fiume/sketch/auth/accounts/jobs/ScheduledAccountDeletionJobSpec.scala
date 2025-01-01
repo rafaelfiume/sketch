@@ -4,7 +4,7 @@ import cats.effect.IO
 import cats.implicits.*
 import munit.{CatsEffectSuite, ScalaCheckEffectSuite}
 import org.fiume.sketch.shared.auth.UserId
-import org.fiume.sketch.shared.auth.accounts.{Account, AccountDeletedNotification, AccountDeletionEvent, AccountState, Service}
+import org.fiume.sketch.shared.auth.accounts.{Account, AccountDeletedNotification, AccountDeletionEvent, AccountState, Recipient}
 import org.fiume.sketch.shared.auth.accounts.AccountDeletedNotification.ToNotify
 import org.fiume.sketch.shared.auth.accounts.AccountDeletionEvent.ToSchedule
 import org.fiume.sketch.shared.auth.testkit.AccountGens.given
@@ -45,7 +45,7 @@ class ScheduledAccountDeletionJobSpec
       yield
         assertEquals(result.triggeringEventId, triggeringEventId)
         assertEquals(result.deletedUserId, account.uuid)
-        assertEquals(result.notificationsSent.map(_.target), List(Service("sketch"))) // TODO to be improved
+        assertEquals(result.notificationsSent.map(_.recipient), List(Recipient("sketch"))) // TODO to be improved
         assert(totalSentNotifications == 1, clue = "number of fired fired notifications should equal targeted services")
     }
 
@@ -65,5 +65,5 @@ class ScheduledAccountDeletionJobSpec
 
 trait ScheduledAccountDeletionJobSpecContext extends EventProducerContext[ToNotify]:
   def makeAccountDeletedNotificationProducer() = makeEventProducer(
-    enrich = (event, eventId) => AccountDeletedNotification.notified(eventId, event.userId, event.target)
+    enrich = (event, eventId) => AccountDeletedNotification.notified(eventId, event.userId, event.recipient)
   )
