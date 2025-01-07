@@ -7,36 +7,36 @@ import doobie.implicits.*
 import org.fiume.sketch.shared.auth.accounts.{
   AccountDeletedNotification,
   AccountDeletedNotificationConsumer,
-  AccountDeletedNotificationProducer,
-  Service
+  AccountDeletedNotificationProducer
 }
 import org.fiume.sketch.shared.auth.accounts.AccountDeletedNotification.{Notified, ToNotify}
+import org.fiume.sketch.shared.common.events.Recipient
 import org.fiume.sketch.storage.auth.postgres.DatabaseCodecs.given
 
 object PostgresAccountDeletedNotificationsStore:
   def makeProducer[F[_]: Async](): Resource[F, AccountDeletedNotificationProducer[ConnectionIO]] =
     Resource.pure(new PostgresAccountDeletedNotificationProducerStore())
 
-  def makeConsumer[F[_]: Async](consumerGroup: Service): Resource[F, AccountDeletedNotificationConsumer[ConnectionIO]] =
-    Resource.pure(new PostgresAccountDeletedNotificationConsumerStore(consumerGroup))
+  def makeConsumer[F[_]: Async](recipient: Recipient): Resource[F, AccountDeletedNotificationConsumer[ConnectionIO]] =
+    Resource.pure(new PostgresAccountDeletedNotificationConsumerStore(recipient))
 
 private class PostgresAccountDeletedNotificationProducerStore() extends AccountDeletedNotificationProducer[ConnectionIO]:
   override def produceEvent(notification: AccountDeletedNotification.ToNotify): ConnectionIO[Notified] =
     NotificationStatements.insertNotification(notification)
 
-private class PostgresAccountDeletedNotificationConsumerStore(consumerGroup: Service)
+private class PostgresAccountDeletedNotificationConsumerStore(recipient: Recipient)
     extends AccountDeletedNotificationConsumer[ConnectionIO]:
   override def consumeEvent(): ConnectionIO[Option[AccountDeletedNotification.Notified]] =
-    NotificationStatements.claimNextEvent(consumerGroup).option
+    NotificationStatements.claimNextEvent(recipient).option
 
 private object NotificationStatements:
-  def claimNextEvent(consumerGroup: Service): Query0[Notified] =
+  def claimNextEvent(recipient: Recipient): Query0[Notified] =
     sql"""
          |DELETE FROM auth.account_deleted_notifications
          |WHERE uuid = (
          |  SELECT uuid
          |  FROM auth.account_deleted_notifications
-         |  WHERE service_name = $consumerGroup
+         |  WHERE recipient = $recipient
          |  FOR UPDATE SKIP LOCKED
          |  LIMIT 1
          |)
@@ -47,10 +47,10 @@ private object NotificationStatements:
     sql"""
          |INSERT INTO auth.account_deleted_notifications (
          |  user_id,
-         |  service_name
+         |  recipient
          |) VALUES (
          |  ${event.userId},
-         |  ${event.target}
+         |  ${event.recipient}
          |)
        """.stripMargin.update
-      .withUniqueGeneratedKeys[Notified]("uuid", "user_id", "service_name")
+      .withUniqueGeneratedKeys[Notified]("uuid", "user_id", "recipient")

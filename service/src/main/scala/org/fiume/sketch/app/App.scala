@@ -20,17 +20,18 @@ import org.http4s.server.middleware.*
 import org.typelevel.log4cats.LoggerFactory
 import org.typelevel.log4cats.slf4j.{Slf4jFactory, Slf4jLogger}
 
-object Server:
+object App:
 
   def run[F[_]: Async: Network](): F[Unit] =
     given LoggerFactory[F] = Slf4jFactory.create[F]
     val logger = Slf4jLogger.getLogger[F]
 
     val serviceStream = for
-      config <- ServiceConfig.load[F].toResource
-      resources <- Resources.make(config)
+      staticConfig <- AppConfig.makeFromEnvs[F]().toResource
+      dynamicConfig <- AppConfig.makeDynamicConfig[F, ConnectionIO]().toResource
+      comps <- AppComponents.make(staticConfig)
       httpServiceStream = {
-        val server = httpServer[F](config, resources)
+        val server = httpServer[F](staticConfig, comps)
         fs2.Stream
           .resource(server)
           .flatTap { server => fs2.Stream.eval(logger.info(s"Server has started at ${server.address}")) } >>
@@ -38,11 +39,12 @@ object Server:
       }.drain
 
       accountPermanentDeletionStream = PeriodicJob.makeWithDefaultJobErrorHandler(
-        interval = config.account.permanentDeletionJobInterval,
+        interval = staticConfig.account.permanentDeletionJobInterval,
         job = ScheduledAccountDeletionJob.make[F, ConnectionIO](
-          resources.accountDeletionEventConsumer,
-          resources.accountDeletedNotificationProducer,
-          resources.usersStore
+          comps.accountDeletionEventConsumer,
+          comps.accountDeletedNotificationProducer,
+          comps.usersStore,
+          dynamicConfig
         )
       )
 
@@ -55,11 +57,11 @@ object Server:
       .onError { case ex => logger.error(s"The service has failed with $ex") }
 
   private def httpServer[F[_]: Async: Network: LoggerFactory](
-    config: ServiceConfig,
-    resources: Resources[F]
+    config: AppConfig.Static,
+    comps: AppComponents[F]
   ): Resource[F, Server] =
     val server =
-      HttpApi.httpApp[F](config, resources).map { httpApp =>
+      HttpApi.httpApp[F](config, comps).map { httpApp =>
         EmberServerBuilder
           .default[F]
           .withHost(host"0.0.0.0")
@@ -69,23 +71,23 @@ object Server:
     Resource.suspend(server.map(_.build))
 
 object HttpApi:
-  def httpApp[F[_]: Async: LoggerFactory](config: ServiceConfig, res: Resources[F]): F[HttpApp[F]] =
-    val authMiddleware = Auth0Middleware(res.authenticator)
+  def httpApp[F[_]: Async: LoggerFactory](config: AppConfig.Static, comps: AppComponents[F]): F[HttpApp[F]] =
+    val authMiddleware = Auth0Middleware(comps.authenticator)
 
-    val authRoutes: HttpRoutes[F] = new AuthRoutes[F](res.authenticator).router()
-    val usersRoutes: HttpRoutes[F] = new UsersRoutes[F, ConnectionIO](authMiddleware, res.userManager).router()
+    val authRoutes: HttpRoutes[F] = new AuthRoutes[F](comps.authenticator).router()
+    val usersRoutes: HttpRoutes[F] = new UsersRoutes[F, ConnectionIO](authMiddleware, comps.userManager).router()
     val documentsRoutes: HttpRoutes[F] =
       new DocumentsRoutes[F, ConnectionIO](
         authMiddleware,
         config.documents.documentBytesSizeLimit,
-        res.accessControl,
-        res.documentsStore
+        comps.accessControl,
+        comps.documentsStore
       ).router()
     val healthStatusRoutes: HttpRoutes[F] =
-      new HealthStatusRoutes[F](res.versions, res.dbHealthCheck, res.rusticHealthCheck).router()
+      new HealthStatusRoutes[F](comps.versions, comps.dbHealthCheck, comps.rusticHealthCheck).router()
 
     val corsMiddleware: CORSPolicy = CORS.policy.withAllowOriginHeader(config.endpoints.cors.allowedOrigins)
-    val middlewares = WorkerMiddleware[F](res.customWorkerThreadPool)
+    val middlewares = WorkerMiddleware[F](comps.customWorkerThreadPool)
       .andThen(SemanticValidationMiddleware.apply)
       .andThen(TraceAuditLogMiddleware[F](config.endpoints.requestResponseLoggingEnabled))
     for

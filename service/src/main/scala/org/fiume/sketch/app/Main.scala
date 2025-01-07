@@ -22,4 +22,4 @@ object Main extends IOApp.Simple:
 
   override def run: IO[Unit] =
     IO.delay { Security.addProvider(new BouncyCastleProvider()) } *>
-      Server.run[IO]()
+      App.run[IO]()
