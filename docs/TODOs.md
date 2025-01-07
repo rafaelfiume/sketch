@@ -5,12 +5,21 @@
 
 1) Clean up all entities upon permanent deletion
 
- . . . steps coming soon
+- Config recipients of deletion notifications dynamically
+  - Define algebra and simple in-memory implementation of getRecipients config
+  - Update the deletion job and test
+  - Refactor config Api and impl to clearly distinguish between dynamic and env vars configs
+  - Implement an implementation for dynamic config based on Postgres
 
+- Services (e.g. sketch) deletes user data upon accound deletion
 
- - Create the events table
- - Query to select and lock an event for processing:
+For the table....
 
+```
+Indexing: Add a GIN index on the config_value column for faster querying within JSONB structures:
+
+CREATE INDEX idx_configs_value ON configs USING gin (config_value);
+```
 
 
 
