@@ -1,8 +1,8 @@
 package org.fiume.sketch.shared.common.testkit
 
-import org.fiume.sketch.shared.common.ServiceStatus
-import org.fiume.sketch.shared.common.ServiceStatus.{Dependency, DependencyStatus, Status}
-import org.fiume.sketch.shared.common.ServiceStatus.Dependency.*
+import org.fiume.sketch.shared.common.app.ServiceStatus
+import org.fiume.sketch.shared.common.app.ServiceStatus.{Dependency, DependencyStatus, Status}
+import org.fiume.sketch.shared.common.app.ServiceStatus.Dependency.*
 import org.scalacheck.Gen
 
 import scala.util.Random

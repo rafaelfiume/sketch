@@ -52,7 +52,7 @@ and a [start-local.sh](/tools/stack/start-local.sh) script to initialise the ser
 
  - [Extension methods](shared-account-management/src/main/scala/org/fiume/sketch/shared/account/management/http/model/AccountStateTransitionErrorSyntax.scala)
  - [Intersection types](shared-components/src/test/scala/org/fiume/sketch/shared/common/testkit/JobErrorHandlerContext.scala) (`&`)
- - [Metaprogramming](shared-components/src/main/scala/org/fiume/sketch/shared/common/Macros.scala)
+ - [Metaprogramming](shared-components/src/main/scala/org/fiume/sketch/shared/common/EntityId.scala)
  - [Trait constructors]() << comming soon
  - [Union types](https://github.com/rafaelfiume/sketch/blob/e7371cb27144e1ab20790e5a80648d7b504e2904/auth/src/main/scala/org/fiume/sketch/auth/JwtIssuer.scala#L43)
 

@@ -1,7 +1,6 @@
-package org.fiume.sketch.shared.common.algebras
+package org.fiume.sketch.shared.common.app
 
-import org.fiume.sketch.shared.common.ServiceStatus
-import org.fiume.sketch.shared.common.ServiceStatus.{Dependency, DependencyStatus}
+import ServiceStatus.{Dependency, DependencyStatus}
 
 object HealthChecker:
 

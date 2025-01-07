@@ -1,8 +1,8 @@
-package org.fiume.sketch.shared.common
+package org.fiume.sketch.shared.common.app
 
 import cats.Eq
 import cats.implicits.*
-import org.fiume.sketch.shared.common.ServiceStatus.{DependencyStatus, Status}
+import org.fiume.sketch.shared.common.app.ServiceStatus.{DependencyStatus, Status}
 import org.fiume.sketch.shared.common.typeclasses.{AsString, FromString}
 
 sealed abstract case class ServiceStatus(version: Version, status: Status, dependencies: List[DependencyStatus[?]])
@@ -56,11 +56,11 @@ object ServiceStatus:
     import io.circe.{Decoder, DecodingFailure, Encoder, HCursor, Json}
     import io.circe.Decoder.Result
     import io.circe.syntax.*
-    import org.fiume.sketch.shared.common.Version.json.given
-    import org.fiume.sketch.shared.common.Version.Environment
-    import org.fiume.sketch.shared.common.Version.Commit
-    import org.fiume.sketch.shared.common.Version.Build
-    import org.fiume.sketch.shared.common.ServiceStatus.Dependency.given
+    import org.fiume.sketch.shared.common.app.Version.json.given
+    import org.fiume.sketch.shared.common.app.Version.Environment
+    import org.fiume.sketch.shared.common.app.Version.Commit
+    import org.fiume.sketch.shared.common.app.Version.Build
+    import org.fiume.sketch.shared.common.app.ServiceStatus.Dependency.given
 
     given Encoder[Status] = Encoder.encodeString.contramap(_.asString())
     given Decoder[Status] = Decoder.decodeString.map(Status.valueOf(_))

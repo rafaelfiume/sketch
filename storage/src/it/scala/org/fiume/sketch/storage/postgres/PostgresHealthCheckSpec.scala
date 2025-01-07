@@ -2,8 +2,8 @@ package org.fiume.sketch.storage.postgres
 
 import cats.effect.IO
 import munit.CatsEffectSuite
-import org.fiume.sketch.shared.common.ServiceStatus.{DependencyStatus, Status}
-import org.fiume.sketch.shared.common.ServiceStatus.Dependency.*
+import org.fiume.sketch.shared.common.app.ServiceStatus.{DependencyStatus, Status}
+import org.fiume.sketch.shared.common.app.ServiceStatus.Dependency.*
 import org.fiume.sketch.storage.testkit.DockerPostgresSuite
 import org.scalacheck.ShrinkLowPriority
 

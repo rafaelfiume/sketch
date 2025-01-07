@@ -4,8 +4,8 @@ import cats.effect.{IO, Resource}
 import cats.implicits.*
 import com.comcast.ip4s.*
 import munit.CatsEffectSuite
-import org.fiume.sketch.shared.common.ServiceStatus.{DependencyStatus, Status}
-import org.fiume.sketch.shared.common.ServiceStatus.Dependency.*
+import org.fiume.sketch.shared.common.app.ServiceStatus.{DependencyStatus, Status}
+import org.fiume.sketch.shared.common.app.ServiceStatus.Dependency.*
 import org.fiume.sketch.shared.testkit.{FileContentContext, HttpServiceContext}
 import org.fiume.sketch.shared.testkit.syntax.OptionSyntax.*
 import org.http4s.*

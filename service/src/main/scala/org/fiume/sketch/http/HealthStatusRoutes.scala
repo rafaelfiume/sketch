@@ -2,11 +2,10 @@ package org.fiume.sketch.http
 
 import cats.effect.Async
 import cats.implicits.*
-import org.fiume.sketch.shared.common.ServiceStatus
-import org.fiume.sketch.shared.common.ServiceStatus.Dependency.*
-import org.fiume.sketch.shared.common.ServiceStatus.json.given
-import org.fiume.sketch.shared.common.algebras.{HealthChecker, Versions}
-import org.fiume.sketch.shared.common.algebras.HealthChecker.*
+import org.fiume.sketch.shared.common.app.{HealthChecker, ServiceStatus, Versions}
+import org.fiume.sketch.shared.common.app.HealthChecker.*
+import org.fiume.sketch.shared.common.app.ServiceStatus.Dependency.*
+import org.fiume.sketch.shared.common.app.ServiceStatus.json.given
 import org.http4s.HttpRoutes
 import org.http4s.circe.CirceEntityEncoder.*
 import org.http4s.dsl.Http4sDsl

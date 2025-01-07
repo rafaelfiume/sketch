@@ -1,7 +1,7 @@
 package org.fiume.sketch.shared.common.testkit
 
-import org.fiume.sketch.shared.common.Version
-import org.fiume.sketch.shared.common.Version.{Build, Commit, Environment}
+import org.fiume.sketch.shared.common.app.Version
+import org.fiume.sketch.shared.common.app.Version.{Build, Commit, Environment}
 import org.scalacheck.{Arbitrary, Gen}
 
 object VersionGens:

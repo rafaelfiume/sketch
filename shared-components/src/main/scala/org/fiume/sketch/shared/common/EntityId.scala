@@ -55,3 +55,24 @@ enum InvalidUuid(val key: String, val detail: String) extends InvariantError:
 
 trait WithUuid[T <: EntityId[?]]:
   val uuid: T
+
+// Source: https://github.com/lampepfl/dotty-macro-examples/blob/main/fullClassName/src/macros.scala
+import scala.quoted.*
+
+private object Macros:
+  private def typeNameMacro[T: Type](using Quotes) =
+    import quotes.reflect.*
+
+    Expr(TypeTree.of[T].symbol.name)
+
+  inline def typeName[A] = ${ typeNameMacro[A] }
+
+  def entityIdApplyMacro[T <: Entity: Type](value: Expr[UUID])(using Quotes): Expr[EntityId[T]] =
+    '{
+      new EntityId[T]($value):
+        val entityType: String =
+          val name = Macros.typeName[T]
+          if name == "T"
+          then throw new IllegalStateException("compiler was unable to determine `entityType` of `EntityId`")
+          else name
+    }

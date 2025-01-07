@@ -1,6 +1,6 @@
-package org.fiume.sketch.shared.common
+package org.fiume.sketch.shared.common.app
 
-import org.fiume.sketch.shared.common.Version.{Build, Commit, Environment}
+import org.fiume.sketch.shared.common.app.Version.{Build, Commit, Environment}
 
 case class Version(env: Environment, build: Build, commit: Commit)
 

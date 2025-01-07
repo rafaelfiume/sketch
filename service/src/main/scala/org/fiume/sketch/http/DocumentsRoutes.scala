@@ -12,7 +12,7 @@ import org.fiume.sketch.http.DocumentsRoutes.Model.json.given
 import org.fiume.sketch.shared.auth.User
 import org.fiume.sketch.shared.authorisation.{AccessControl, ContextualRole}
 import org.fiume.sketch.shared.common.EntityId.given
-import org.fiume.sketch.shared.common.algebras.syntax.StoreSyntax.*
+import org.fiume.sketch.shared.common.app.syntax.StoreSyntax.*
 import org.fiume.sketch.shared.common.http.json.{NewlineDelimitedJson, NewlineDelimitedJsonEncoder}
 import org.fiume.sketch.shared.common.http.json.JsonCodecs.given
 import org.fiume.sketch.shared.common.http.json.NewlineDelimitedJson.{Line, Linebreak}

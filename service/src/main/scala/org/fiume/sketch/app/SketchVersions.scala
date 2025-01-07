@@ -2,9 +2,8 @@ package org.fiume.sketch.app
 
 import cats.effect.{Resource, Sync}
 import cats.implicits.*
-import org.fiume.sketch.shared.common.Version
-import org.fiume.sketch.shared.common.Version.{Build, Commit, Environment}
-import org.fiume.sketch.shared.common.algebras.Versions
+import org.fiume.sketch.shared.common.app.{Version, Versions}
+import org.fiume.sketch.shared.common.app.Version.{Build, Commit, Environment}
 
 import scala.io.Source
 

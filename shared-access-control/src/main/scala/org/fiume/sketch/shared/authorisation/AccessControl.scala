@@ -7,7 +7,7 @@ import org.fiume.sketch.shared.authorisation.ContextualRole.*
 import org.fiume.sketch.shared.authorisation.GlobalRole.*
 import org.fiume.sketch.shared.authorisation.Role.{Contextual, Global}
 import org.fiume.sketch.shared.common.{Entity, EntityId, WithUuid}
-import org.fiume.sketch.shared.common.algebras.Store
+import org.fiume.sketch.shared.common.app.Store
 
 trait AccessControl[F[_], Txn[_]: Monad] extends Store[F, Txn]:
 

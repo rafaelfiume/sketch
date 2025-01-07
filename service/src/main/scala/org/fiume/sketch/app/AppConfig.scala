@@ -8,7 +8,7 @@ import org.fiume.sketch.auth.KeyStringifier
 import org.fiume.sketch.auth.config.Dynamic.RecipientsKey
 import org.fiume.sketch.rustic.RusticClientConfig
 import org.fiume.sketch.shared.auth.accounts.AccountConfig
-import org.fiume.sketch.shared.common.Version.Environment
+import org.fiume.sketch.shared.common.app.Version.Environment
 import org.fiume.sketch.shared.common.config.{DynamicConfig, InMemoryDynamicConfig}
 import org.fiume.sketch.shared.common.events.Recipient
 import org.fiume.sketch.storage.postgres.DatabaseConfig

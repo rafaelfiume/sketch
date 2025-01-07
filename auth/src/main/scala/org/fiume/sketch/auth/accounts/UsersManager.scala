@@ -18,7 +18,7 @@ import org.fiume.sketch.shared.auth.algebras.UsersStore
 import org.fiume.sketch.shared.authorisation.{AccessControl, AccessDenied, ContextualRole, GlobalRole}
 import org.fiume.sketch.shared.authorisation.ContextualRole.Owner
 import org.fiume.sketch.shared.authorisation.syntax.AccessDeniedSyntax.*
-import org.fiume.sketch.shared.common.algebras.syntax.StoreSyntax.*
+import org.fiume.sketch.shared.common.app.syntax.StoreSyntax.*
 import org.fiume.sketch.shared.common.events.CancellableEventProducer
 
 import scala.concurrent.duration.Duration

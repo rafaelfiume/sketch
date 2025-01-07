@@ -1,4 +1,4 @@
-package org.fiume.sketch.shared.common.algebras
+package org.fiume.sketch.shared.common.app
 
 trait Store[F[_], Txn[_]]:
   val lift: [A] => F[A] => Txn[A]

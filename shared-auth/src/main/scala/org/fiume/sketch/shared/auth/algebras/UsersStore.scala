@@ -6,7 +6,7 @@ import org.fiume.sketch.shared.auth.{User, UserId}
 import org.fiume.sketch.shared.auth.Passwords.HashedPassword
 import org.fiume.sketch.shared.auth.User.*
 import org.fiume.sketch.shared.auth.accounts.Account
-import org.fiume.sketch.shared.common.algebras.Store
+import org.fiume.sketch.shared.common.app.Store
 
 trait UsersStore[F[_], Txn[_]: Monad] extends Store[F, Txn]:
 

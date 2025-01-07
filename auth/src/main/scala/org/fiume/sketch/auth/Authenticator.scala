@@ -7,7 +7,7 @@ import org.fiume.sketch.shared.auth.AuthenticationError.*
 import org.fiume.sketch.shared.auth.Passwords.{HashedPassword, PlainPassword}
 import org.fiume.sketch.shared.auth.User.Username
 import org.fiume.sketch.shared.auth.algebras.UsersStore
-import org.fiume.sketch.shared.common.algebras.syntax.StoreSyntax.commit
+import org.fiume.sketch.shared.common.app.syntax.StoreSyntax.commit
 
 import java.security.{PrivateKey, PublicKey}
 import scala.concurrent.duration.Duration

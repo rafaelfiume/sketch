@@ -4,11 +4,10 @@ import cats.Applicative
 import cats.effect.IO
 import cats.implicits.*
 import munit.CatsEffectSuite
-import org.fiume.sketch.shared.common.{ServiceStatus, Version}
-import org.fiume.sketch.shared.common.ServiceStatus.{Dependency, DependencyStatus, *}
-import org.fiume.sketch.shared.common.ServiceStatus.Dependency.*
-import org.fiume.sketch.shared.common.ServiceStatus.json.given
-import org.fiume.sketch.shared.common.algebras.{HealthChecker, Versions}
+import org.fiume.sketch.shared.common.app.{HealthChecker, ServiceStatus, Version, Versions}
+import org.fiume.sketch.shared.common.app.ServiceStatus.{Dependency, DependencyStatus, *}
+import org.fiume.sketch.shared.common.app.ServiceStatus.Dependency.*
+import org.fiume.sketch.shared.common.app.ServiceStatus.json.given
 import org.fiume.sketch.shared.common.testkit.VersionGens.versions
 import org.fiume.sketch.shared.testkit.Http4sRoutesContext
 import org.fiume.sketch.shared.testkit.syntax.OptionSyntax.*
