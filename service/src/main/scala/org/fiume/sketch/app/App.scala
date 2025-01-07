@@ -27,7 +27,7 @@ object App:
     val logger = Slf4jLogger.getLogger[F]
 
     val serviceStream = for
-      staticConfig <- AppConfig.fromEnvs[F].toResource
+      staticConfig <- AppConfig.makeFromEnvs[F]().toResource
       dynamicConfig <- AppConfig.makeDynamicConfig[F, ConnectionIO]().toResource
       comps <- AppComponents.make(staticConfig)
       httpServiceStream = {

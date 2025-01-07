@@ -4,9 +4,6 @@ import cats.effect.{Ref, Sync}
 import cats.implicits.*
 import org.fiume.sketch.shared.common.config.DynamicConfig.Key
 
-// TODO Renama package to app? There are other agebras in other packages
-// Do I need a package explicitly stating algebra?
-
 object DynamicConfig:
   trait Key[V]
 

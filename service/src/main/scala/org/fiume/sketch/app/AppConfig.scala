@@ -42,7 +42,7 @@ object AppConfig:
 
   case class EcKeyPairConfig(privateKey: ECPrivateKey, publicKey: ECPublicKey)
 
-  def fromEnvs[F[_]: Async]: F[Static] =
+  def makeFromEnvs[F[_]: Async](): F[Static] =
     (for
       environment <- env("ENV").as[Environment]
       port <- env("HTTP_SERVER_PORT").as[Port]
