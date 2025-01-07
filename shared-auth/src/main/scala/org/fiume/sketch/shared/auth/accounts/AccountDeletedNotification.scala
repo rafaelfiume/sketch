@@ -2,7 +2,7 @@ package org.fiume.sketch.shared.auth.accounts
 
 import org.fiume.sketch.shared.auth.UserId
 import org.fiume.sketch.shared.common.WithUuid
-import org.fiume.sketch.shared.common.events.{EventConsumer, EventId, EventProducer}
+import org.fiume.sketch.shared.common.events.{EventConsumer, EventId, EventProducer, Recipient}
 
 type AccountDeletedNotificationProducer[F[_]] =
   EventProducer[F, AccountDeletedNotification.ToNotify]
@@ -22,5 +22,3 @@ object AccountDeletedNotification:
   def notified(eventId: EventId, userId: UserId, recipient: Recipient): Notified =
     new ToNotify(userId, recipient) with WithUuid[EventId]:
       val uuid: EventId = eventId
-
-case class Recipient(name: String) extends AnyVal

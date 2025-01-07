@@ -6,9 +6,9 @@ import doobie.util.Write
 import org.fiume.sketch.shared.auth.Passwords.{HashedPassword, Salt}
 import org.fiume.sketch.shared.auth.User.*
 import org.fiume.sketch.shared.auth.UserId
-import org.fiume.sketch.shared.auth.accounts.{Account, AccountDeletedNotification, AccountDeletionEvent, AccountState, Recipient}
+import org.fiume.sketch.shared.auth.accounts.{Account, AccountDeletedNotification, AccountDeletionEvent, AccountState}
 import org.fiume.sketch.shared.auth.accounts.AccountDeletedNotification.Notified
-import org.fiume.sketch.shared.common.events.EventId
+import org.fiume.sketch.shared.common.events.{EventId, Recipient}
 
 import java.time.Instant
 import java.util.UUID

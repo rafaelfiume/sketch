@@ -6,9 +6,9 @@ import doobie.ConnectionIO
 import doobie.implicits.*
 import munit.ScalaCheckEffectSuite
 import org.fiume.sketch.shared.auth.UserId
-import org.fiume.sketch.shared.auth.accounts.{AccountDeletedNotification, Recipient}
+import org.fiume.sketch.shared.auth.accounts.AccountDeletedNotification
 import org.fiume.sketch.shared.auth.testkit.UserGens
-import org.fiume.sketch.shared.common.events.EventId
+import org.fiume.sketch.shared.common.events.{EventId, Recipient}
 import org.fiume.sketch.shared.testkit.ClockContext
 import org.fiume.sketch.shared.testkit.syntax.OptionSyntax.*
 import org.fiume.sketch.storage.testkit.DockerPostgresSuite

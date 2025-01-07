@@ -42,7 +42,8 @@ object Server:
         job = ScheduledAccountDeletionJob.make[F, ConnectionIO](
           resources.accountDeletionEventConsumer,
           resources.accountDeletedNotificationProducer,
-          resources.usersStore
+          resources.usersStore,
+          resources.dynamicConfig
         )
       )
 

@@ -1,18 +1,21 @@
 package org.fiume.sketch.app
 
 import cats.effect.{Async, Clock, Resource, Sync}
+import cats.effect.syntax.resource.*
 import doobie.ConnectionIO
 import fs2.io.net.Network
 import org.fiume.sketch.app.SketchVersions.VersionFile
 import org.fiume.sketch.auth.Authenticator
 import org.fiume.sketch.auth.accounts.UsersManager
+import org.fiume.sketch.auth.config.Dynamic.RecipientsKey
 import org.fiume.sketch.rustic.RusticHealthCheck
 import org.fiume.sketch.shared.auth.accounts.{AccountDeletedNotificationProducer, AccountDeletionEventConsumer}
 import org.fiume.sketch.shared.auth.algebras.UsersStore
 import org.fiume.sketch.shared.authorisation.AccessControl
 import org.fiume.sketch.shared.common.ServiceStatus.Dependency.*
 import org.fiume.sketch.shared.common.algebras.{HealthChecker, Versions}
-import org.fiume.sketch.shared.common.algebras.HealthChecker.*
+import org.fiume.sketch.shared.common.config.{DynamicConfig, InMemoryDynamicConfig}
+import org.fiume.sketch.shared.common.events.Recipient
 import org.fiume.sketch.shared.domain.documents.algebras.DocumentsStore
 import org.fiume.sketch.storage.auth.postgres.{
   PostgresAccountDeletedNotificationsStore,
@@ -36,6 +39,7 @@ trait Resources[F[_]]:
   val dbHealthCheck: HealthChecker.DependencyHealthChecker[F, Database]
   val rusticHealthCheck: HealthChecker.DependencyHealthChecker[F, Rustic]
   val versions: Versions[F]
+  val dynamicConfig: DynamicConfig[ConnectionIO]
   val authenticator: Authenticator[F]
   val accessControl: AccessControl[F, ConnectionIO]
   val accountDeletionEventConsumer: AccountDeletionEventConsumer[ConnectionIO]
@@ -55,6 +59,11 @@ object Resources:
       httpClient <- EmberClientBuilder.default[F].build
       rusticHealthCheck0 = RusticHealthCheck.make[F](config.rusticClient, httpClient)
       versions0 <- SketchVersions.make[F](config.env, VersionFile("sketch.version"))
+      dynamicConfig0 <- InMemoryDynamicConfig
+        .make[F, ConnectionIO](
+          state = Map(RecipientsKey -> Set(Recipient("sketch"))) // TODO Extract config K/V to a suitable place
+        )
+        .toResource
       accountDeletionEventStore0 <- PostgresAccountDeletionEventsStore.make[F]()
       accountDeletedNotificationProducer0 <- PostgresAccountDeletedNotificationsStore.makeProducer[F]()
       usersStore0 <- PostgresUsersStore.make[F](transactor)
@@ -74,6 +83,7 @@ object Resources:
       override val dbHealthCheck: HealthChecker.DependencyHealthChecker[F, Database] = dbHealthCheck0
       override val rusticHealthCheck: HealthChecker.DependencyHealthChecker[F, Rustic] = rusticHealthCheck0
       override val versions: Versions[F] = versions0
+      override val dynamicConfig: DynamicConfig[ConnectionIO] = dynamicConfig0
       override val authenticator: Authenticator[F] = authenticator0
       override val accessControl: AccessControl[F, ConnectionIO] = accessControl0
       override val accountDeletionEventConsumer: AccountDeletionEventConsumer[ConnectionIO] =

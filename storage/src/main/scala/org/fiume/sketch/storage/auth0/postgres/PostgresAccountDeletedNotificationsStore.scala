@@ -7,10 +7,10 @@ import doobie.implicits.*
 import org.fiume.sketch.shared.auth.accounts.{
   AccountDeletedNotification,
   AccountDeletedNotificationConsumer,
-  AccountDeletedNotificationProducer,
-  Recipient
+  AccountDeletedNotificationProducer
 }
 import org.fiume.sketch.shared.auth.accounts.AccountDeletedNotification.{Notified, ToNotify}
+import org.fiume.sketch.shared.common.events.Recipient
 import org.fiume.sketch.storage.auth.postgres.DatabaseCodecs.given
 
 object PostgresAccountDeletedNotificationsStore:
