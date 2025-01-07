@@ -30,7 +30,7 @@ import java.util.concurrent.atomic.AtomicLong
 import scala.concurrent.ExecutionContext
 import scala.concurrent.duration.*
 
-trait Resources[F[_]]:
+trait AppComponents[F[_]]:
   val customWorkerThreadPool: ExecutionContext
   val dbHealthCheck: HealthChecker.DependencyHealthChecker[F, Database]
   val rusticHealthCheck: HealthChecker.DependencyHealthChecker[F, Rustic]
@@ -43,10 +43,10 @@ trait Resources[F[_]]:
   val documentsStore: DocumentsStore[F, ConnectionIO]
   val userManager: UsersManager[F]
 
-object Resources:
+object AppComponents:
   given [F[_]: Sync]: LoggerFactory[F] = Slf4jFactory.create[F]
 
-  def make[F[_]: Async: Network](config: AppConfig.Static): Resource[F, Resources[F]] =
+  def make[F[_]: Async: Network](config: AppConfig.Static): Resource[F, AppComponents[F]] =
     for
       customWorkerThreadPool0 <- newCustomWorkerThreadPool()
       transactor <- DbTransactor.make(config.db)
@@ -68,7 +68,7 @@ object Resources:
       }
       accessControl0 <- PostgresAccessControl.make[F](transactor)
       documentsStore0 <- PostgresDocumentsStore.make[F](transactor)
-    yield new Resources[F]:
+    yield new AppComponents[F]:
       override val customWorkerThreadPool: ExecutionContext = customWorkerThreadPool0
       override val dbHealthCheck: HealthChecker.DependencyHealthChecker[F, Database] = dbHealthCheck0
       override val rusticHealthCheck: HealthChecker.DependencyHealthChecker[F, Rustic] = rusticHealthCheck0
