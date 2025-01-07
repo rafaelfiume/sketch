@@ -27,10 +27,11 @@ object Server:
     val logger = Slf4jLogger.getLogger[F]
 
     val serviceStream = for
-      config <- ServiceConfig.load[F].toResource
-      resources <- Resources.make(config)
+      staticConfig <- AppConfig.fromEnvs[F].toResource
+      dynamicConfig <- AppConfig.makeDynamicConfig[F, ConnectionIO]().toResource
+      resources <- Resources.make(staticConfig)
       httpServiceStream = {
-        val server = httpServer[F](config, resources)
+        val server = httpServer[F](staticConfig, resources)
         fs2.Stream
           .resource(server)
           .flatTap { server => fs2.Stream.eval(logger.info(s"Server has started at ${server.address}")) } >>
@@ -38,12 +39,12 @@ object Server:
       }.drain
 
       accountPermanentDeletionStream = PeriodicJob.makeWithDefaultJobErrorHandler(
-        interval = config.account.permanentDeletionJobInterval,
+        interval = staticConfig.account.permanentDeletionJobInterval,
         job = ScheduledAccountDeletionJob.make[F, ConnectionIO](
           resources.accountDeletionEventConsumer,
           resources.accountDeletedNotificationProducer,
           resources.usersStore,
-          resources.dynamicConfig
+          dynamicConfig
         )
       )
 
@@ -56,7 +57,7 @@ object Server:
       .onError { case ex => logger.error(s"The service has failed with $ex") }
 
   private def httpServer[F[_]: Async: Network: LoggerFactory](
-    config: ServiceConfig,
+    config: AppConfig.Static,
     resources: Resources[F]
   ): Resource[F, Server] =
     val server =
@@ -70,7 +71,7 @@ object Server:
     Resource.suspend(server.map(_.build))
 
 object HttpApi:
-  def httpApp[F[_]: Async: LoggerFactory](config: ServiceConfig, res: Resources[F]): F[HttpApp[F]] =
+  def httpApp[F[_]: Async: LoggerFactory](config: AppConfig.Static, res: Resources[F]): F[HttpApp[F]] =
     val authMiddleware = Auth0Middleware(res.authenticator)
 
     val authRoutes: HttpRoutes[F] = new AuthRoutes[F](res.authenticator).router()
