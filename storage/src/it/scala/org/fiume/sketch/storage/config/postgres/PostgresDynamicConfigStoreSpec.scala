@@ -32,6 +32,8 @@ class PostgresDynamicConfigStoreSpec extends CatsEffectSuite with PostgresDynami
       }
     }
 
+  // TODO Check constraints?
+
 object PostgresDynamicConfigStoreSpecContext:
   case object SampleKey extends DynamicConfig.Key[Set[SampleValue]]
   case class SampleValue(value: String) extends AnyVal

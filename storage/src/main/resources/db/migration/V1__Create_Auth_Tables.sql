@@ -13,9 +13,9 @@ $$ LANGUAGE plpgsql;
 CREATE SCHEMA system; -- an alternative name could be 'core'
 
 CREATE TABLE system.dynamic_configs (
-  namespace TEXT NOT NULL,                                                  -- logically groups configs for different services or modules
-  key TEXT NOT NULL CHECk (length(key) <= 255 AND key ~ '^[a-zA-Z0-9_]+$'),
-  value JSONB NOT NULL,                                                     -- Stores scalar (e.g. strings, booleans) or structured data (e.g. arrays), offering flexibility for diverse config values
+  namespace TEXT NOT NULL,                                                      -- logically groups configs for different services or modules
+  key TEXT NOT NULL CHECk (length(key) <= 255 AND key ~ '^[a-zA-Z0-9_.]+$'),
+  value JSONB NOT NULL,                                                         -- Stores scalar (e.g. strings, booleans) or structured data (e.g. arrays), offering flexibility for diverse config values
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   PRIMARY KEY (namespace, key)
