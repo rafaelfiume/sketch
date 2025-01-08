@@ -50,14 +50,14 @@ private[auth] object JwtIssuer:
       case e: Throwable                  => JwtUnknownError(e.getMessage)
 
   // see https://www.iana.org/assignments/jwt/jwt.xhtml
-  private case class Content(preferredUsername: Username)
+  private case class Content(preferredUsername: Username) extends AnyVal
 
   private object Content:
     given Encoder[Content] with
-      final def apply(a: Content): Json = Json.obj(
+      override def apply(a: Content): Json = Json.obj(
         "preferred_username" -> a.preferredUsername.value.asJson
       )
 
     given Decoder[Content] with
-      final def apply(c: HCursor): Decoder.Result[Content] =
+      override def apply(c: HCursor): Decoder.Result[Content] =
         c.downField("preferred_username").as[String].map(value => Content(Username.makeUnsafeFromString(value)))
