@@ -26,7 +26,7 @@ class PostgresDynamicConfigStoreSpec extends CatsEffectSuite with PostgresDynami
         for
           _ <- givenConfig(namespace, SampleKey, value).ccommit
 
-          result <- provider.getConfig2(SampleKey).map(_.someOrFail).ccommit
+          result <- provider.getConfig(SampleKey).map(_.someOrFail).ccommit
 //
         yield assertEquals(result, value)
       }
@@ -40,11 +40,11 @@ object PostgresDynamicConfigStoreSpecContext:
   given Decoder[SampleValue] = Decoder.decodeString.map(SampleValue(_))
 
   given AsString[SampleKey.type] with
-    extension (key: SampleKey.type) override def asString() = "SampleKey"
+    extension (key: SampleKey.type) override def asString() = "sample.key"
 
   type Error = String
   given FromString[Error, SampleKey.type] with
-    extension (key: String) override def parsed() = Either.cond(key == "SampleKey", SampleKey, "unknown key")
+    extension (key: String) override def parsed() = Either.cond(key == "sample.key", SampleKey, "unknown key")
 
 trait PostgresDynamicConfigStoreSpecContext extends DockerPostgresSuite:
   def cleanStorage: ConnectionIO[Unit] = sql"TRUNCATE TABLE system.dynamic_configs".update.run.void

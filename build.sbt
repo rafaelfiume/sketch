@@ -184,6 +184,7 @@ lazy val sharedComponents =
         Dependency.cats,
         Dependency.circeCore,
         Dependency.circeGeneric,
+        Dependency.circeParser,
         Dependency.http4sCirce,
         Dependency.http4sDsl,
         Dependency.log4catsSlf4j,

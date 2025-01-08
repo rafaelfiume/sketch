@@ -12,16 +12,12 @@ import org.fiume.sketch.shared.common.typeclasses.AsString
 import org.fiume.sketch.storage.config.postgres.DatabaseCodecs.given
 
 object PostgresDynamicConfigStore:
-  def makeForNamespace[F[_]: Async](
-    namespace: Namespace
-  ): Resource[F, PostgresDynamicConfigStore] = // TODO Change it to return DynamicConfig[ConnectionIO]
+  def makeForNamespace[F[_]: Async](namespace: Namespace): Resource[F, PostgresDynamicConfigStore] =
     Resource.pure(new PostgresDynamicConfigStore(namespace))
 
 private class PostgresDynamicConfigStore private (namespace: Namespace) extends DynamicConfig[ConnectionIO]:
 
-  override def getConfig[V](key: Key[V]): ConnectionIO[Option[V]] = ???
-
-  def getConfig2[K <: Key[V], V](key: K)(using fs: AsString[K], d: Decoder[V]): ConnectionIO[Option[V]] =
+  override def getConfig[K <: Key[V], V](key: K)(using AsString[K], Decoder[V]): ConnectionIO[Option[V]] =
     Statements.selectConfig(namespace, key).option
 
 private object Statements:

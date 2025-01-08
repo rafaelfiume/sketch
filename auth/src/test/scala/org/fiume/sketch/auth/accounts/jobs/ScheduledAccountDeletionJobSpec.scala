@@ -4,6 +4,7 @@ import cats.effect.IO
 import cats.implicits.*
 import munit.{CatsEffectSuite, ScalaCheckEffectSuite}
 import org.fiume.sketch.auth.config.Dynamic.RecipientsKey
+import org.fiume.sketch.auth.config.Dynamic.given
 import org.fiume.sketch.shared.auth.UserId
 import org.fiume.sketch.shared.auth.accounts.{Account, AccountDeletedNotification, AccountDeletionEvent, AccountState}
 import org.fiume.sketch.shared.auth.accounts.AccountDeletedNotification.ToNotify
@@ -33,7 +34,10 @@ class ScheduledAccountDeletionJobSpec
   test("deletes the account when a permanent deletion is scheduled and recipients are defined"):
     forAllF { (account: Account, triggeringEventId: EventId, permanentDeletionAt: Instant, recipients: Set[Recipient]) =>
       for
-        dynamicConfig <- InMemoryDynamicConfig.make[IO, IO](state = Map(RecipientsKey -> recipients))
+        dynamicConfig <- InMemoryDynamicConfig.makeWithKvPair[IO, IO, RecipientsKey.type, Set[Recipient]](
+          key = RecipientsKey,
+          value = recipients
+        )
         store <- makeUsersStoreForAccount(account.copy(state = AccountState.SoftDeleted(Instant.now())))
         eventConsumer <- makeEventConsumer(nextEvent =
           AccountDeletionEvent.scheduled(triggeringEventId, account.uuid, permanentDeletionAt)
@@ -60,7 +64,10 @@ class ScheduledAccountDeletionJobSpec
         store <- makeEmptyUsersStore()
         eventConsumer <- makeEmptyEventConsumer()
         notificationProducer <- makeAccountDeletedNotificationProducer()
-        dynamicConfig <- InMemoryDynamicConfig.make[IO, IO](state = Map(RecipientsKey -> recipients))
+        dynamicConfig <- InMemoryDynamicConfig.makeWithKvPair[IO, IO, RecipientsKey.type, Set[Recipient]](
+          key = RecipientsKey,
+          value = recipients
+        )
         job = ScheduledAccountDeletionJob.make(eventConsumer, notificationProducer, store, dynamicConfig)
 
         result <- job.run()

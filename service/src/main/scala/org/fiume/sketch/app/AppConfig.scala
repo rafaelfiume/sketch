@@ -6,6 +6,7 @@ import ciris.*
 import com.comcast.ip4s.*
 import org.fiume.sketch.auth.KeyStringifier
 import org.fiume.sketch.auth.config.Dynamic.RecipientsKey
+import org.fiume.sketch.auth.config.Dynamic.given
 import org.fiume.sketch.rustic.RusticClientConfig
 import org.fiume.sketch.shared.auth.accounts.AccountConfig
 import org.fiume.sketch.shared.common.app.Version.Environment
@@ -73,8 +74,9 @@ object AppConfig:
     )).load[F]
 
   def makeDynamicConfig[F[_]: Sync, Txn[_]: Sync](): F[DynamicConfig[Txn]] =
-    InMemoryDynamicConfig.make[F, Txn](
-      state = Map(RecipientsKey -> Set(Recipient("sketch")))
+    InMemoryDynamicConfig.makeWithKvPair[F, Txn, RecipientsKey.type, Set[Recipient]](
+      key = RecipientsKey,
+      value = Set(Recipient("sketch"))
     )
 
   given ConfigDecoder[String, Environment] = ConfigDecoder[String].map(Environment.apply)
