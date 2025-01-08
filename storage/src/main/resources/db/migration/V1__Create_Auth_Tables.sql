@@ -10,6 +10,17 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
+CREATE SCHEMA system; -- an alternative name could be 'core'
+
+CREATE TABLE system.dynamic_configs (
+  namespace TEXT NOT NULL,                                                  -- logically groups configs for different services or modules
+  key TEXT NOT NULL CHECk (length(key) <= 255 AND key ~ '^[a-zA-Z0-9_]+$'),
+  value JSONB NOT NULL,                                                     -- Stores scalar (e.g. strings, booleans) or structured data (e.g. arrays), offering flexibility for diverse config values
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  PRIMARY KEY (namespace, key)
+);
+
 CREATE SCHEMA auth;
 
 CREATE TABLE auth.users (
@@ -47,9 +58,9 @@ CREATE INDEX idx_account_deletion_scheduled_events_user_id ON auth.account_delet
 
 CREATE TABLE auth.account_deleted_notifications (
     uuid UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
-    user_id UUID NOT NULL, -- The ID of the deleted account
-    recipient VARCHAR(50) NOT NULL, -- The consumer or group of consumers responsible for processing the event
-    created_at TIMESTAMP DEFAULT NOW() -- When the event was created
+    user_id UUID NOT NULL,                            -- The ID of the deleted account
+    recipient VARCHAR(50) NOT NULL,                   -- The consumer or group of consumers responsible for processing the event
+    created_at TIMESTAMP DEFAULT NOW()                -- When the event was created
 );
 
 -- Stores global roles
@@ -57,7 +68,7 @@ CREATE TABLE auth.global_access_control (
     user_id UUID NOT NULL,
     role VARCHAR(20) NOT NULL CHECK (role IN ('Admin', 'Superuser')),
     PRIMARY KEY (user_id)
-    --FOREIGN KEY (user_id) REFERENCES users(user_id)
+    --FOREIGN KEY (user_id) REFERENCES users(user_id) ?
 );
 
 -- Stores contextual roles
@@ -69,7 +80,7 @@ CREATE TABLE auth.access_control (
     )),
     role VARCHAR(20) NOT NULL CHECK (role IN ('Owner')),
     PRIMARY KEY (user_id, entity_id)
-    --FOREIGN KEY (user_id) REFERENCES users(user_id)
+    --FOREIGN KEY (user_id) REFERENCES users(user_id) ?
 );
 
 -- TODO Create index to improve performance of selectAllAuthorisedEntityIds and measure results
