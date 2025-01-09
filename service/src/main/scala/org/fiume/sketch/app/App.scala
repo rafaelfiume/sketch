@@ -28,7 +28,7 @@ object App:
 
     val serviceStream = for
       staticConfig <- AppConfig.makeFromEnvs[F]().toResource
-      dynamicConfig <- AppConfig.makeDynamicConfig[F, ConnectionIO]().toResource
+      dynamicConfig <- AppConfig.makeDynamicConfig[F]()
       comps <- AppComponents.make(staticConfig)
       httpServiceStream = {
         val server = httpServer[F](staticConfig, comps)

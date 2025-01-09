@@ -21,6 +21,11 @@ CREATE TABLE system.dynamic_configs (
   PRIMARY KEY (namespace, key)
 );
 
+INSERT INTO system.dynamic_configs (namespace, key, value)
+VALUES(
+  'sketch', 'account.deletion.notification.recipients', '["sketch-projects"]'::jsonb
+);
+
 CREATE SCHEMA auth;
 
 CREATE TABLE auth.users (

@@ -1,17 +1,16 @@
 package org.fiume.sketch.app
 
-import cats.effect.{Async, Sync}
+import cats.effect.{Async, Resource, Sync}
 import cats.implicits.*
 import ciris.*
 import com.comcast.ip4s.*
+import doobie.ConnectionIO
 import org.fiume.sketch.auth.KeyStringifier
-import org.fiume.sketch.auth.config.Dynamic.RecipientsKey
-import org.fiume.sketch.auth.config.Dynamic.given
 import org.fiume.sketch.rustic.RusticClientConfig
 import org.fiume.sketch.shared.auth.accounts.AccountConfig
 import org.fiume.sketch.shared.common.app.Version.Environment
-import org.fiume.sketch.shared.common.config.{DynamicConfig, InMemoryDynamicConfig}
-import org.fiume.sketch.shared.common.events.Recipient
+import org.fiume.sketch.shared.common.config.{DynamicConfig, Namespace}
+import org.fiume.sketch.storage.config.postgres.PostgresDynamicConfigStore
 import org.fiume.sketch.storage.postgres.DatabaseConfig
 import org.http4s.headers.Origin
 
@@ -73,11 +72,8 @@ object AppConfig:
       documents = DocumentsConfig(documentMbSizeLimit)
     )).load[F]
 
-  def makeDynamicConfig[F[_]: Sync, Txn[_]: Sync](): F[DynamicConfig[Txn]] =
-    InMemoryDynamicConfig.makeWithKvPair[F, Txn, RecipientsKey.type, Set[Recipient]](
-      key = RecipientsKey,
-      value = Set(Recipient("sketch"))
-    )
+  def makeDynamicConfig[F[_]: Sync](): Resource[F, DynamicConfig[ConnectionIO]] =
+    PostgresDynamicConfigStore.makeForNamespace[F](Namespace("sketch"))
 
   given ConfigDecoder[String, Environment] = ConfigDecoder[String].map(Environment.apply)
 
