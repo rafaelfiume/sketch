@@ -9,7 +9,7 @@ import io.circe.{Decoder, Encoder}
 import io.circe.syntax.*
 import munit.CatsEffectSuite
 import org.fiume.sketch.shared.common.config.{DynamicConfig, Namespace}
-import org.fiume.sketch.shared.common.typeclasses.{AsString, FromString}
+import org.fiume.sketch.shared.common.typeclasses.AsString
 import org.fiume.sketch.shared.testkit.syntax.OptionSyntax.*
 import org.fiume.sketch.storage.config.postgres.DatabaseCodecs.given
 import org.fiume.sketch.storage.config.postgres.PostgresDynamicConfigStoreSpecContext.*
@@ -43,10 +43,6 @@ object PostgresDynamicConfigStoreSpecContext:
 
   given AsString[SampleKey.type] with
     extension (key: SampleKey.type) override def asString() = "sample.key"
-
-  type Error = String
-  given FromString[Error, SampleKey.type] with
-    extension (key: String) override def parsed() = Either.cond(key == "sample.key", SampleKey, "unknown key")
 
 trait PostgresDynamicConfigStoreSpecContext extends DockerPostgresSuite:
   def cleanStorage: ConnectionIO[Unit] = sql"TRUNCATE TABLE system.dynamic_configs".update.run.void

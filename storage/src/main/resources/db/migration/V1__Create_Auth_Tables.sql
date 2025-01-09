@@ -10,7 +10,7 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
-CREATE SCHEMA system; -- an alternative name could be 'core'
+CREATE SCHEMA system;
 
 CREATE TABLE system.dynamic_configs (
   namespace TEXT NOT NULL,                                                      -- logically groups configs for different services or modules
