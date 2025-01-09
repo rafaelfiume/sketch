@@ -30,5 +30,9 @@ private object Statements:
     """.stripMargin
       .query[Json]
       .map { json =>
-        decode[V](json.noSpaces).toOption.getOrElse(throw new IllegalStateException(s"unparsable json: $json"))
+        decode[V](json.noSpaces).toOption.getOrElse(throw new IllegalStateException(s"failed to parse input as JSON: $json"))
       }
+
+  // Note: Why throw an exception instead of returning `Either` instead of `Option`, for example?
+  // A failure to parse 'value' as JSON is an irrecoverable error caused by an illegal state.
+  // This is considered a bug, and to simplify various algebras, bugs in this project are handled via exceptions.

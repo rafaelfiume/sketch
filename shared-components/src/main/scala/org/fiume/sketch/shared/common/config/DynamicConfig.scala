@@ -29,8 +29,11 @@ object InMemoryDynamicConfig:
       new DynamicConfig[Txn]():
         override def getConfig[K <: Key[V], V](key: K)(using AsString[K], Decoder[V]): Txn[Option[V]] =
           storage.get.map {
-            // TODO Refine error handling
-            // Add note on why sticking with `Option` and not returning `Either`
-            _.get(key.asString()).map(_.noSpaces).map(decode[V](_).toOption.get)
+            _.get(key.asString()).map(_.noSpaces).map { json =>
+              decode[V](json).toOption.getOrElse(throw new IllegalStateException(s"failed to parse input as JSON: $json"))
+            }
           }
+
+        // Note: see `PostgresDynamicConfigStore` for the rationale behind throwing an exception
+        // when the expected JSON is unparsable.
     }
