@@ -4,7 +4,7 @@ import cats.effect.IO
 import cats.implicits.*
 import doobie.ConnectionIO
 import doobie.implicits.*
-import munit.ScalaCheckEffectSuite
+import munit.CatsEffectSuite
 import org.fiume.sketch.shared.auth.UserId
 import org.fiume.sketch.shared.auth.accounts.AccountDeletionEvent
 import org.fiume.sketch.shared.auth.testkit.UserGens
@@ -14,126 +14,118 @@ import org.fiume.sketch.shared.testkit.ClockContext
 import org.fiume.sketch.shared.testkit.syntax.OptionSyntax.*
 import org.fiume.sketch.storage.auth.postgres.DatabaseCodecs.given
 import org.fiume.sketch.storage.testkit.DockerPostgresSuite
-import org.scalacheck.ShrinkLowPriority
 import org.scalacheck.effect.PropF.forAllF
 
 import java.time.Instant
 
 class PostgresAccountDeletionEventsStoreSpec
-    extends ScalaCheckEffectSuite
+    extends CatsEffectSuite
     with ClockContext
-    with PostgresAccountDeletionEventsStoreSpecContext
-    with ShrinkLowPriority:
-
-  override def scalaCheckTestParameters = super.scalaCheckTestParameters.withMinSuccessfulTests(10)
+    with PostgresAccountDeletionEventsStoreSpecContext:
 
   // Notes
 
   // No processing order guarantees are provided by the current implementation.
 
   test("consumes next event with exactly-once semantics"):
-    forAllF { () =>
-      will(cleanStorage) {
-        PostgresAccountDeletionEventsStore.make[IO]().use { eventStore =>
-          // given
-          val numEvents = 1000
-          val due = Instant.now()
-          for
-            delayedMessages <- fs2.Stream
+    will(cleanStorage) {
+      PostgresAccountDeletionEventsStore.make[IO]().use { eventStore =>
+        // given
+        val numEvents = 1000
+        val due = Instant.now()
+        for
+          delayedMessages <- fs2.Stream
+            .range(0, numEvents)
+            .covary[IO]
+            .parEvalMapUnbounded { _ =>
+              val userId = UserGens.userIds.sample.someOrFail
+              eventStore.produceEvent(AccountDeletionEvent.ToSchedule(userId, due)).ccommit
+            }
+            // .evalTap { eventId => IO.println(s"new event: $eventId") } // uncomment to debug
+            .compile
+            .toList
+
+          // when
+          result <-
+            fs2.Stream
               .range(0, numEvents)
               .covary[IO]
-              .parEvalMapUnbounded { _ =>
-                val userId = UserGens.userIds.sample.someOrFail
-                eventStore.produceEvent(AccountDeletionEvent.ToSchedule(userId, due)).ccommit
-              }
-              // .evalTap { eventId => IO.println(s"new event: $eventId") } // uncomment to debug
+              .parEvalMapUnorderedUnbounded { _ => eventStore.consumeEvent().ccommit }
+              // .evalTap { eventId => IO.println(s"consumed event: ${eventId}") } // uncomment to debug
+              .unNone
               .compile
               .toList
 
-            // when
-            result <-
-              fs2.Stream
-                .range(0, numEvents)
-                .covary[IO]
-                .parEvalMapUnorderedUnbounded { _ => eventStore.consumeEvent().ccommit }
-                // .evalTap { eventId => IO.println(s"consumed event: ${eventId}") } // uncomment to debug
-                .unNone
-                .compile
-                .toList
-
-          // then
-          yield
-            assert(result.size == numEvents, clue = s"expected $numEvents events, got ${result.size}")
-            assertEquals(result.toSet, delayedMessages.toSet)
-        }
+        // then
+        yield
+          assert(result.size == numEvents, clue = s"expected $numEvents events, got ${result.size}")
+          assertEquals(result.toSet, delayedMessages.toSet)
       }
     }
 
   // The larger the number of events sent back for processing, the greater the chances of delaying or blocking other events.
   // Ideally, failed events should be retried using exponential backoff with a maximum number of retries.
   test("event becomes available for reprocessing if its processing fails"):
-    forAllF { () =>
-      will(cleanStorage) {
-        PostgresAccountDeletionEventsStore.make[IO]().use { eventStore =>
-          // given
-          val numEvents = 1000
-          val due = Instant.now()
-          val errorFrequency = 2
-          for
-            /*
-             * If `Ref` seems overkill and that a simple `mutable.Set.empty[EventId]` would be sufficient,
-             * consider that the latter is not concurrent-safe and makes the test flaky.
-             */
-            successfullyProcessedEventIdsRef <- IO.ref(Set.empty[EventId])
-            atLeastOnceFailedEventIdsRef <- IO.ref(Set.empty[EventId])
-            sentEventIds <- fs2.Stream
+    will(cleanStorage) {
+      PostgresAccountDeletionEventsStore.make[IO]().use { eventStore =>
+        // given
+        val numEvents = 1000
+        val due = Instant.now()
+        val errorFrequency = 2
+        for
+          /*
+           * If `Ref` seems overkill and that a simple `mutable.Set.empty[EventId]` would be sufficient,
+           * consider that the latter is not concurrent-safe and makes the test flaky.
+           */
+          successfullyProcessedEventIdsRef <- IO.ref(Set.empty[EventId])
+          atLeastOnceFailedEventIdsRef <- IO.ref(Set.empty[EventId])
+          sentEventIds <- fs2.Stream
+            .range(0, numEvents)
+            .covary[IO]
+            .parEvalMapUnbounded { _ =>
+              val userId = UserGens.userIds.sample.someOrFail
+              eventStore.produceEvent(AccountDeletionEvent.ToSchedule(userId, due)).map(_.uuid).ccommit
+            }
+            .compile
+            .toList
+
+          // when
+          result <-
+            fs2.Stream
               .range(0, numEvents)
               .covary[IO]
-              .parEvalMapUnbounded { _ =>
-                val userId = UserGens.userIds.sample.someOrFail
-                eventStore.produceEvent(AccountDeletionEvent.ToSchedule(userId, due)).map(_.uuid).ccommit
+              .parEvalMapUnorderedUnbounded { i =>
+                eventStore
+                  .consumeEvent()
+                  .flatMap { event =>
+                    if i % errorFrequency == 0 then
+                      lift {
+                        atLeastOnceFailedEventIdsRef.update(s => event.fold(s)(s + _.uuid)) *>
+                          RuntimeException(s"failed: ${event.map(_.uuid)}").raiseError
+                      }
+                    else
+                      lift { successfullyProcessedEventIdsRef.update(s => event.fold(s)(s + _.uuid)) } *>
+                        event.pure[ConnectionIO]
+                  }
+                  .ccommit
+                  .handleErrorWith { _ => none.pure[IO] }
               }
+              .map(_.map(_.uuid))
+              .unNone
               .compile
               .toList
 
-            // when
-            result <-
-              fs2.Stream
-                .range(0, numEvents)
-                .covary[IO]
-                .parEvalMapUnorderedUnbounded { i =>
-                  eventStore
-                    .consumeEvent()
-                    .flatMap { event =>
-                      if i % errorFrequency == 0 then
-                        lift {
-                          atLeastOnceFailedEventIdsRef.update(s => event.fold(s)(s + _.uuid)) *>
-                            RuntimeException(s"failed: ${event.map(_.uuid)}").raiseError
-                        }
-                      else
-                        lift { successfullyProcessedEventIdsRef.update(s => event.fold(s)(s + _.uuid)) } *>
-                          event.pure[ConnectionIO]
-                    }
-                    .ccommit
-                    .handleErrorWith { _ => none.pure[IO] }
-                }
-                .map(_.map(_.uuid))
-                .unNone
-                .compile
-                .toList
-
-            // then
-            atLeastOnceFailedEventIds <- atLeastOnceFailedEventIdsRef.get
-            successfullyProcessedEventIds <- successfullyProcessedEventIdsRef.get
-            pendingEventIds <- fetchPendingEvents().ccommit.map(_.toSet.map(_.uuid))
-            expectedPendingEventIds = sentEventIds.toSet -- successfullyProcessedEventIds
-          yield
-            assert(
-              atLeastOnceFailedEventIds.find(successfullyProcessedEventIds.contains).isDefined,
-              clue = "retries processing of failed events"
-            )
-            assertEquals(pendingEventIds, expectedPendingEventIds)
-        }
+          // then
+          atLeastOnceFailedEventIds <- atLeastOnceFailedEventIdsRef.get
+          successfullyProcessedEventIds <- successfullyProcessedEventIdsRef.get
+          pendingEventIds <- fetchPendingEvents().ccommit.map(_.toSet.map(_.uuid))
+          expectedPendingEventIds = sentEventIds.toSet -- successfullyProcessedEventIds
+        yield
+          assert(
+            atLeastOnceFailedEventIds.find(successfullyProcessedEventIds.contains).isDefined,
+            clue = "retries processing of failed events"
+          )
+          assertEquals(pendingEventIds, expectedPendingEventIds)
       }
     }
 

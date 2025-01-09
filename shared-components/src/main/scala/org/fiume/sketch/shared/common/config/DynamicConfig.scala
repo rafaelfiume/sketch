@@ -2,7 +2,11 @@ package org.fiume.sketch.shared.common.config
 
 import cats.effect.{Ref, Sync}
 import cats.implicits.*
+import io.circe.{Decoder, Encoder, Json}
+import io.circe.parser.decode
+import io.circe.syntax.*
 import org.fiume.sketch.shared.common.config.DynamicConfig.Key
+import org.fiume.sketch.shared.common.typeclasses.AsString
 
 object DynamicConfig:
   trait Key[V]
@@ -11,17 +15,25 @@ object DynamicConfig:
  * An experiemental highly general algebra for fetching dynamic configurations.
  */
 trait DynamicConfig[F[_]]:
-  def getConfig[V](key: Key[V]): F[Option[V]]
+  def getConfig[K <: Key[V], V](key: K)(using AsString[K], Decoder[V]): F[Option[V]]
 
 /*
  * A thread-safe concurrent in-memory version of `DynamicConfig`.
  */
 object InMemoryDynamicConfig:
-  def make[F[_]: Sync, Txn[_]: Sync](state: Map[Key[?], Any]): F[DynamicConfig[Txn]] =
-    Ref.in[F, Txn, Map[Key[?], Any]](state).map { storage =>
+  def makeWithKvPair[F[_]: Sync, Txn[_]: Sync, K <: Key[V], V](key: K, value: V)(using AsString[K], Encoder[V]) =
+    make[F, Txn](Map(key.asString() -> value.asJson))
+
+  def make[F[_]: Sync, Txn[_]: Sync](state: Map[String, Json]): F[DynamicConfig[Txn]] =
+    Ref.in[F, Txn, Map[String, Json]](state).map { storage =>
       new DynamicConfig[Txn]():
-        // There's a limitation on this implementation with the assumption that the caller knows
-        // the type of value `V` of a given key `K`. A `ClassCastExpetion will be thrown at runtime in case of a mistake.
-        override def getConfig[V](key: Key[V]): Txn[Option[V]] =
-          storage.get.map(_.get(key).asInstanceOf[Option[V]])
+        override def getConfig[K <: Key[V], V](key: K)(using AsString[K], Decoder[V]): Txn[Option[V]] =
+          storage.get.map {
+            _.get(key.asString()).map(_.noSpaces).map { json =>
+              decode[V](json).toOption.getOrElse(throw new IllegalStateException(s"failed to parse input as JSON: $json"))
+            }
+          }
+
+        // Note: see `PostgresDynamicConfigStore` for the rationale behind throwing an exception
+        // when the expected JSON is unparsable.
     }

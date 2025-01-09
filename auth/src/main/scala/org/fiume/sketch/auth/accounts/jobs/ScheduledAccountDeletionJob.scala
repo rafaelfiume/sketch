@@ -5,6 +5,7 @@ import cats.effect.Sync
 import cats.implicits.*
 import org.fiume.sketch.auth.accounts.jobs.ScheduledAccountDeletionJob.JobReport
 import org.fiume.sketch.auth.config.Dynamic.RecipientsKey
+import org.fiume.sketch.auth.config.Dynamic.given
 import org.fiume.sketch.shared.auth.UserId
 import org.fiume.sketch.shared.auth.accounts.{AccountDeletedNotificationProducer, AccountDeletionEventConsumer}
 import org.fiume.sketch.shared.auth.accounts.AccountDeletedNotification.{Notified, ToNotify}

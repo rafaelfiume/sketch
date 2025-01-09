@@ -12,13 +12,12 @@ import org.fiume.sketch.shared.common.events.{EventId, Recipient}
 import org.fiume.sketch.shared.testkit.ClockContext
 import org.fiume.sketch.shared.testkit.syntax.OptionSyntax.*
 import org.fiume.sketch.storage.testkit.DockerPostgresSuite
-import org.scalacheck.{Gen, ShrinkLowPriority}
+import org.scalacheck.Gen
 
 class PostgresAccountDeletedNotificationsStoreSpec
     extends CatsEffectSuite
     with ClockContext
-    with PostgresAccountDeletedNotificationStoreSpecContext
-    with ShrinkLowPriority:
+    with PostgresAccountDeletedNotificationStoreSpecContext:
 
   // Notes
 

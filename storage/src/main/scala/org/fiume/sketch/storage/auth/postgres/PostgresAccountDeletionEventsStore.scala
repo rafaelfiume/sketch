@@ -1,6 +1,6 @@
 package org.fiume.sketch.storage.auth.postgres
 
-import cats.effect.{Async, Resource}
+import cats.effect.{Resource, Sync}
 import cats.implicits.*
 import doobie.*
 import doobie.free.connection.ConnectionIO
@@ -16,7 +16,7 @@ import org.fiume.sketch.shared.auth.accounts.AccountDeletionEvent.{Scheduled, To
 import org.fiume.sketch.storage.auth.postgres.DatabaseCodecs.given
 
 object PostgresAccountDeletionEventsStore:
-  def make[F[_]: Async]()
+  def make[F[_]: Sync]()
     : Resource[F, CancellableAccountDeletionEventProducer[ConnectionIO] & AccountDeletionEventConsumer[ConnectionIO]] =
     Resource.pure(new PostgresAccountDeletionEventsStore())
 
