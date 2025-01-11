@@ -42,7 +42,7 @@ private class ScheduledAccountDeletionJob[F[_]: Sync, Txn[_]: Monad] private (
 
   given Logger[F] = Slf4jLogger.getLogger[F]
 
-  override val description: String = "permanent deletion of a user account"
+  override val description: String = "Permanently deletes a user account"
 
   override def run(): F[Option[JobReport]] =
     val job = accountDeletionEventConsumer

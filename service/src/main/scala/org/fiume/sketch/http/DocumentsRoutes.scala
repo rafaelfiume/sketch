@@ -61,7 +61,7 @@ class DocumentsRoutes[F[_]: Concurrent, Txn[_]: FlatMap](
             document <- uploadRequest.validated().foldF(_.raiseError, _.pure)
             uuid <- accessControl
               .ensureAccess_(user.uuid, ContextualRole.Owner) {
-                store.store(document)
+                store.store(document) // TODO Add ownder to metadata
               }
               .commit()
             created <- Created(uuid.asResponsePayload)
