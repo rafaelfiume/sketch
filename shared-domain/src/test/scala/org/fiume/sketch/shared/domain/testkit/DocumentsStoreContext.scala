@@ -4,6 +4,7 @@ import cats.effect.IO
 import cats.effect.unsafe.IORuntime
 import cats.implicits.*
 import fs2.Stream
+import org.fiume.sketch.shared.auth.UserId
 import org.fiume.sketch.shared.common.WithUuid
 import org.fiume.sketch.shared.domain.documents.{
   Document,
@@ -47,6 +48,9 @@ trait DocumentsStoreContext:
 
         override def fetchDocuments(uuids: fs2.Stream[IO, DocumentId]): fs2.Stream[IO, DocumentWithId] =
           uuids.flatMap { uuid => fetchAll().find(_.uuid === uuid) }
+
+        override def fetchDocumentsByOwnerId(ownerId: UserId): fs2.Stream[IO, DocumentWithId] =
+          fetchAll().find(_.metadata.ownerId === ownerId)
 
         override def delete(uuid: DocumentId): IO[Unit] = storage.update { _.removed(uuid) }
 

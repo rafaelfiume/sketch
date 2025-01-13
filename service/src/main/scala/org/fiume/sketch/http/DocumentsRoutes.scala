@@ -9,7 +9,7 @@ import io.circe.syntax.*
 import org.fiume.sketch.http.DocumentsRoutes.DocumentIdVar
 import org.fiume.sketch.http.DocumentsRoutes.Model.*
 import org.fiume.sketch.http.DocumentsRoutes.Model.json.given
-import org.fiume.sketch.shared.auth.User
+import org.fiume.sketch.shared.auth.{User, UserId}
 import org.fiume.sketch.shared.authorisation.{AccessControl, ContextualRole}
 import org.fiume.sketch.shared.common.EntityId.given
 import org.fiume.sketch.shared.common.app.syntax.StoreSyntax.*
@@ -58,7 +58,7 @@ class DocumentsRoutes[F[_]: Concurrent, Txn[_]: FlatMap](
       case cx @ POST -> Root / "documents" as user =>
         cx.req.decode { (uploadRequest: Multipart[F]) =>
           for
-            document <- uploadRequest.validated().foldF(_.raiseError, _.pure)
+            document <- uploadRequest.validated(forUserWithId = user.uuid).foldF(_.raiseError, _.pure)
             uuid <- accessControl
               .ensureAccess_(user.uuid, ContextualRole.Owner) {
                 store.store(document) // TODO Add ownder to metadata
@@ -135,7 +135,7 @@ private[http] object DocumentsRoutes:
 
     private val errorCode = "9011".code
     extension [F[_]: MonadThrow: Concurrent](m: Multipart[F])
-      def validated(): EitherT[F, SemanticInputError, DocumentWithStream[F]] =
+      def validated(forUserWithId: UserId): EitherT[F, SemanticInputError, DocumentWithStream[F]] =
         (m.metadata(), m.bytes()).parTupled
           .flatMap { case (part, bytes) =>
             part
@@ -149,7 +149,7 @@ private[http] object DocumentsRoutes:
               EitherT.fromEither(Name.validated(payload.name).leftMap(_.asDetails)),
               EitherT.pure(Description(payload.description)),
               EitherT.pure(stream)
-            ).parMapN((name, description, bytes) => Document.make[F](bytes, Metadata(name, description)))
+            ).parMapN((name, description, bytes) => Document.make[F](bytes, Metadata(name, description, ownerId = forUserWithId)))
           }
           .leftMap(details => SemanticInputError.make(errorCode, details))
 

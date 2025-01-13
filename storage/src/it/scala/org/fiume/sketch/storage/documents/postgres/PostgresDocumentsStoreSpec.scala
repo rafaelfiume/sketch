@@ -73,6 +73,21 @@ class PostgresDocumentsStoreSpec
       }
     }
 
+  test("fetches documents by ownerId"):
+    forAllF { (fstDoc: DocumentWithStream[IO], sndDoc: DocumentWithStream[IO]) =>
+      will(cleanStorage) {
+        PostgresDocumentsStore.make[IO](transactor()).use { store =>
+          for
+            fstUuid <- store.store(fstDoc).ccommit
+            sndUuid <- store.store(sndDoc).ccommit
+
+            result <- store.fetchDocumentsByOwnerId(sndDoc.metadata.ownerId).ccommitStream.compile.toList
+//
+          yield assertEquals(result.map(_.metadata.ownerId), List(sndDoc.metadata.ownerId))
+        }
+      }
+    }
+
   test("deletes stored document"):
     forAllF { (fstDoc: DocumentWithStream[IO], sndDoc: DocumentWithStream[IO]) =>
       will(cleanStorage) {
