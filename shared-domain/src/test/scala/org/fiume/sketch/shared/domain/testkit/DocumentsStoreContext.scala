@@ -52,7 +52,10 @@ trait DocumentsStoreContext:
         override def fetchDocumentsByOwnerId(ownerId: UserId): fs2.Stream[IO, DocumentWithId] =
           fetchAll().find(_.metadata.ownerId === ownerId)
 
-        override def delete(uuid: DocumentId): IO[Unit] = storage.update { _.removed(uuid) }
+        override def delete(uuid: DocumentId): IO[Option[DocumentId]] = storage.modify { state =>
+          if state.contains(uuid) then state.removed(uuid) -> uuid.some
+          else state -> none
+        }
 
         override val lift: [A] => IO[A] => IO[A] = [A] => (action: IO[A]) => action
 

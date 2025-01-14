@@ -11,5 +11,4 @@ trait DocumentsStore[F[_], Txn[_]] extends Store[F, Txn]:
   def documentStream(uuid: DocumentId): fs2.Stream[Txn, Byte]
   def fetchDocuments(uuids: fs2.Stream[Txn, DocumentId]): fs2.Stream[Txn, DocumentWithId]
   def fetchDocumentsByOwnerId(ownerId: UserId): fs2.Stream[Txn, DocumentWithId]
-  // TODO Change it so it return the id of the deleted entity
-  def delete(uuid: DocumentId): Txn[Unit]
+  def delete(uuid: DocumentId): Txn[Option[DocumentId]]

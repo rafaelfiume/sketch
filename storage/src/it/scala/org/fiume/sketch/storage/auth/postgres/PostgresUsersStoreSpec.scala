@@ -84,10 +84,12 @@ class PostgresUsersStoreSpec extends ScalaCheckEffectSuite with PostgresUsersSto
           for
             userId <- store.createAccount(credentials).ccommit
 
-            _ <- store.deleteAccount(userId).ccommit
+            result <- store.deleteAccount(userId).ccommit
 
             account <- store.fetchAccount(userId).ccommit
-          yield assert(account.isEmpty)
+          yield
+            assertEquals(result, userId.some)
+            assert(account.isEmpty)
         }
       }
     }

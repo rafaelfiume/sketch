@@ -53,8 +53,8 @@ private class PostgresDocumentsStore[F[_]: Async] private (lift: F ~> Connection
   def fetchDocumentsByOwnerId(userId: UserId): fs2.Stream[ConnectionIO, DocumentWithId] =
     Statements.selectDocumentsByOwnerId(userId).stream
 
-  override def delete(uuid: DocumentId): ConnectionIO[Unit] =
-    Statements.delete(uuid).run.void
+  override def delete(uuid: DocumentId): ConnectionIO[Option[DocumentId]] =
+    Statements.delete(uuid).option
 
 private object Statements:
   def insertDocument(metadata: Metadata, bytes: Array[Byte]): Update0 =
@@ -117,9 +117,10 @@ private object Statements:
          |WHERE d.user_id = $ownerId
     """.stripMargin.query[DocumentWithId]
 
-  def delete(uuid: DocumentId): Update0 =
+  def delete(uuid: DocumentId): Query0[DocumentId] =
     sql"""
          |DELETE
          |FROM domain.documents d
          |WHERE d.uuid = $uuid
-    """.stripMargin.update
+         |RETURNING d.uuid
+    """.stripMargin.query[DocumentId]

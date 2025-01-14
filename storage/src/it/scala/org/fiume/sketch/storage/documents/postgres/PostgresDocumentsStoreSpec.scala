@@ -96,11 +96,12 @@ class PostgresDocumentsStoreSpec
             fstUuid <- store.store(fstDoc).ccommit
             sndUuid <- store.store(sndDoc).ccommit
 
-            _ <- store.delete(fstUuid).ccommit
+            result <- store.delete(fstUuid).ccommit
 
             fstDocResult <- store.fetchDocument(fstUuid).ccommit
             sndDocResult <- store.fetchDocument(sndUuid).ccommit
           yield
+            assertEquals(result, fstUuid.some)
             assertEquals(fstDocResult, none)
             assertEquals(sndDocResult.someOrFail.uuid, sndUuid)
         }
