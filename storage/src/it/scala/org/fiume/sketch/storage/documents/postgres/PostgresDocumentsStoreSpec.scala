@@ -5,7 +5,7 @@ import cats.implicits.*
 import doobie.{ConnectionIO, *}
 import doobie.implicits.*
 import doobie.postgres.implicits.*
-import munit.ScalaCheckEffectSuite
+import munit.{CatsEffectSuite, ScalaCheckEffectSuite}
 import org.fiume.sketch.shared.domain.documents.{Document, DocumentId, DocumentWithIdAndStream, DocumentWithStream}
 import org.fiume.sketch.shared.domain.documents.algebras.DocumentsStore
 import org.fiume.sketch.shared.domain.testkit.DocumentsGens.*
@@ -21,7 +21,8 @@ import org.scalacheck.effect.PropF.forAllF
 import java.time.Instant
 
 class PostgresDocumentsStoreSpec
-    extends ScalaCheckEffectSuite
+    extends CatsEffectSuite
+    with ScalaCheckEffectSuite
     with DockerPostgresSuite
     with FileContentContext
     with PostgresStoreSpecContext
@@ -73,6 +74,21 @@ class PostgresDocumentsStoreSpec
       }
     }
 
+  test("fetches documents by ownerId"):
+    forAllF { (fstDoc: DocumentWithStream[IO], sndDoc: DocumentWithStream[IO]) =>
+      will(cleanStorage) {
+        PostgresDocumentsStore.make[IO](transactor()).use { store =>
+          for
+            fstUuid <- store.store(fstDoc).ccommit
+            sndUuid <- store.store(sndDoc).ccommit
+
+            result <- store.fetchDocumentsByOwnerId(sndDoc.metadata.ownerId).ccommitStream.compile.toList
+//
+          yield assertEquals(result.map(_.metadata.ownerId), List(sndDoc.metadata.ownerId))
+        }
+      }
+    }
+
   test("deletes stored document"):
     forAllF { (fstDoc: DocumentWithStream[IO], sndDoc: DocumentWithStream[IO]) =>
       will(cleanStorage) {
@@ -81,11 +97,12 @@ class PostgresDocumentsStoreSpec
             fstUuid <- store.store(fstDoc).ccommit
             sndUuid <- store.store(sndDoc).ccommit
 
-            _ <- store.delete(fstUuid).ccommit
+            result <- store.delete(fstUuid).ccommit
 
             fstDocResult <- store.fetchDocument(fstUuid).ccommit
             sndDocResult <- store.fetchDocument(sndUuid).ccommit
           yield
+            assertEquals(result, fstUuid.some)
             assertEquals(fstDocResult, none)
             assertEquals(sndDocResult.someOrFail.uuid, sndUuid)
         }

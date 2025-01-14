@@ -2,6 +2,7 @@ package org.fiume.sketch.shared.auth.testkit
 
 import cats.effect.IO
 import cats.effect.kernel.Clock
+import cats.implicits.*
 import org.fiume.sketch.shared.auth.Passwords.HashedPassword
 import org.fiume.sketch.shared.auth.User.{UserCredentials, UserCredentialsWithId, Username}
 import org.fiume.sketch.shared.auth.UserId
@@ -20,6 +21,7 @@ trait UsersStoreContext:
       case (_, account) if account.credentials.username == username => account
     }
     def --(uuid: UserId): State = copy(accounts = accounts - uuid)
+    def contains(uuid: UserId): Boolean = accounts.contains(uuid)
 
   private object State:
     val empty = State(Map.empty)
@@ -50,7 +52,10 @@ trait UsersStoreContext:
 
         override def updatePassword(userId: UserId, newPassword: HashedPassword): IO[Unit] = ???
 
-        override def deleteAccount(userId: UserId): IO[Unit] = storage.update { _.--(userId) }.void
+        override def deleteAccount(uuid: UserId): IO[Option[UserId]] = storage.modify { state =>
+          if state.contains(uuid) then state.--(uuid) -> uuid.some
+          else state -> none
+        }
 
         override def updateAccount(account: Account): IO[Unit] = storage.update { _.++(account) }.void
 

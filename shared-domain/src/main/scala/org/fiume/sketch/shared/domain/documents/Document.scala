@@ -3,6 +3,7 @@ package org.fiume.sketch.shared.domain.documents
 import cats.Eq
 import cats.data.{EitherNec, Validated}
 import cats.implicits.*
+import org.fiume.sketch.shared.auth.UserId
 import org.fiume.sketch.shared.common.{Entity, EntityId, InvalidUuid, WithUuid}
 import org.fiume.sketch.shared.common.troubleshooting.InvariantError
 import org.fiume.sketch.shared.common.typeclasses.FromString
@@ -38,7 +39,7 @@ object Document:
     new Document(metadata) with WithStream[F]:
       override val stream: fs2.Stream[F, Byte] = stream0
 
-  case class Metadata(name: Name, description: Description)
+  case class Metadata(name: Name, description: Description, ownerId: UserId)
 
   object Metadata:
     sealed abstract case class Name(value: String)

@@ -23,4 +23,4 @@ trait UsersStore[F[_], Txn[_]: Monad] extends Store[F, Txn]:
 
   def updateAccount(account: Account): Txn[Unit]
 
-  def deleteAccount(userId: UserId): Txn[Unit]
+  def deleteAccount(userId: UserId): Txn[Option[UserId]]

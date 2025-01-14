@@ -8,7 +8,7 @@ import munit.Assertions.*
 import org.fiume.sketch.http.DocumentsRoutes.Model.*
 import org.fiume.sketch.http.DocumentsRoutes.Model.json.given
 import org.fiume.sketch.shared.auth.User
-import org.fiume.sketch.shared.auth.testkit.AuthMiddlewareContext
+import org.fiume.sketch.shared.auth.testkit.{AuthMiddlewareContext, UserGens}
 import org.fiume.sketch.shared.auth.testkit.UserGens.given
 import org.fiume.sketch.shared.authorisation.{AccessControl, ContextualRole}
 import org.fiume.sketch.shared.authorisation.testkit.AccessControlContext
@@ -51,7 +51,8 @@ class DocumentsRoutesSpec
 
   test("uploads document"):
     // TODO How to restrict access to posting documents?
-    forAllF { (metadata: Document.Metadata, user: User, randomUser: User) =>
+    forAllF { (metadata0: Document.Metadata, user: User, randomUser: User) =>
+      val metadata = metadata0.copy(ownerId = user.uuid)
       val multipart = Multipart[IO](
         parts = Vector(
           Part.formData("metadata", metadata.asRequestPayload.asJson.spaces2SortKeys),
@@ -72,6 +73,7 @@ class DocumentsRoutesSpec
           .expectJsonResponseWith[DocumentIdResponsePayload](Status.Created)
         stored <- store.fetchDocument(result.uuid)
         grantedAccessToUser <- accessControl.canAccess(user.uuid, result.uuid)
+        // TODO it feels that access-control related properties are mixed with other domain properties
         noGrantedAccessToRandomUser <- accessControl.canAccess(randomUser.uuid, result.uuid).map(!_)
       yield
         assertEquals(stored.map(_.metadata), metadata.some)
@@ -245,7 +247,8 @@ class DocumentsRoutesSpec
     /* Also see `given accumulatingParallel: cats.Parallel[EitherT[IO, String, *]] = EitherT.accumulatingParallel` */
     // no metadata part / no bytes part
     val noMultiparts = Multipart[IO](parts = Vector.empty, boundary = Boundary("boundary"))
-    for inputErrors <- noMultiparts.validated().attempt.map(_.leftOrFail)
+    val ownerId = UserGens.userIds.sample.someOrFail
+    for inputErrors <- noMultiparts.validated(ownerId).attempt.map(_.leftOrFail)
     yield assert(
       inputErrors.asInstanceOf[SemanticInputError].details.tips.size === 2,
       clue = inputErrors

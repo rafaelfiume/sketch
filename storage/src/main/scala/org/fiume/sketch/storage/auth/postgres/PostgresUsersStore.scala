@@ -36,7 +36,7 @@ private class PostgresUsersStore[F[_]: Async] private (lift: F ~> ConnectionIO, 
   override def updatePassword(userId: UserId, password: HashedPassword): ConnectionIO[Unit] =
     Statements.updatePassword(userId, password).run.void
 
-  override def deleteAccount(userId: UserId): ConnectionIO[Unit] = Statements.delete(userId).run.void
+  override def deleteAccount(userId: UserId): ConnectionIO[Option[UserId]] = Statements.delete(userId).option
 
   override def updateAccount(account: Account): ConnectionIO[Unit] =
     Statements.update(account).run.void
@@ -118,5 +118,5 @@ private object Statements:
          |WHERE uuid = ${account.uuid}
     """.stripMargin.update
 
-  def delete(userId: UserId): Update0 =
-    sql"DELETE FROM auth.users WHERE uuid = $userId".update
+  def delete(userId: UserId): Query0[UserId] =
+    sql"DELETE FROM auth.users u WHERE u.uuid = $userId RETURNING u.uuid".query

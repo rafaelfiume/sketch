@@ -67,13 +67,13 @@ object AppConfig:
       // TODO Load from the environment
       account = AccountConfig(
         delayUntilPermanentDeletion = 90.days,
-        permanentDeletionJobInterval = 15.seconds
+        permanentDeletionJobInterval = 1.minute // consider to increase this interval
       ),
       documents = DocumentsConfig(documentMbSizeLimit)
     )).load[F]
 
   def makeDynamicConfig[F[_]: Sync](): Resource[F, DynamicConfig[ConnectionIO]] =
-    PostgresDynamicConfigStore.makeForNamespace[F](Namespace("sketch"))
+    PostgresDynamicConfigStore.makeForNamespace[F](Namespace("sketch")) // see system.dynamic_configs table
 
   given ConfigDecoder[String, Environment] = ConfigDecoder[String].map(Environment.apply)
 

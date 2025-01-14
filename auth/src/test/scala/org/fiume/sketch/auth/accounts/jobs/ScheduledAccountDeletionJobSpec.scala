@@ -32,16 +32,16 @@ class ScheduledAccountDeletionJobSpec
   override def scalaCheckTestParameters = super.scalaCheckTestParameters.withMinSuccessfulTests(10)
 
   test("deletes the account when a permanent deletion is scheduled and recipients are defined"):
-    forAllF { (account: Account, triggeringEventId: EventId, permanentDeletionAt: Instant, recipients: Set[Recipient]) =>
+    forAllF { (triggeringEventId: EventId, account: Account, permanentDeletionAt: Instant, recipients: Set[Recipient]) =>
       for
         dynamicConfig <- InMemoryDynamicConfig.makeWithKvPair[IO, IO, RecipientsKey.type, Set[Recipient]](
           key = RecipientsKey,
           value = recipients
         )
-        store <- makeUsersStoreForAccount(account.copy(state = AccountState.SoftDeleted(Instant.now())))
         eventConsumer <- makeEventConsumer(nextEvent =
           AccountDeletionEvent.scheduled(triggeringEventId, account.uuid, permanentDeletionAt)
         )
+        store <- makeUsersStoreForAccount(account.copy(state = AccountState.SoftDeleted(Instant.now())))
         notificationProducer <- makeAccountDeletedNotificationProducer()
         job = ScheduledAccountDeletionJob.make(eventConsumer, notificationProducer, store, dynamicConfig)
 
@@ -61,8 +61,8 @@ class ScheduledAccountDeletionJobSpec
   test("skips processing if no permanent deletions are scheduled"):
     forAllF { (recipients: Set[Recipient]) =>
       for
-        store <- makeEmptyUsersStore()
         eventConsumer <- makeEmptyEventConsumer()
+        store <- makeEmptyUsersStore()
         notificationProducer <- makeAccountDeletedNotificationProducer()
         dynamicConfig <- InMemoryDynamicConfig.makeWithKvPair[IO, IO, RecipientsKey.type, Set[Recipient]](
           key = RecipientsKey,
