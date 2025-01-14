@@ -5,7 +5,7 @@ import cats.implicits.*
 import doobie.ConnectionIO
 import doobie.implicits.*
 import doobie.postgres.implicits.*
-import munit.ScalaCheckEffectSuite
+import munit.{CatsEffectSuite, ScalaCheckEffectSuite}
 import org.fiume.sketch.shared.auth.{Passwords, UserId}
 import org.fiume.sketch.shared.auth.Passwords.HashedPassword
 import org.fiume.sketch.shared.auth.User.*
@@ -23,7 +23,11 @@ import org.scalacheck.effect.PropF.forAllF
 
 import java.time.Instant
 
-class PostgresUsersStoreSpec extends ScalaCheckEffectSuite with PostgresUsersStoreSpecContext with ShrinkLowPriority:
+class PostgresUsersStoreSpec
+    extends CatsEffectSuite
+    with ScalaCheckEffectSuite
+    with PostgresUsersStoreSpecContext
+    with ShrinkLowPriority:
 
   override def scalaCheckTestParameters = super.scalaCheckTestParameters.withMinSuccessfulTests(1)
 

@@ -56,9 +56,14 @@ private class UserDataDeletionJob[F[_]: Sync, Txn[_]: Monad] private (
         notif0 = notif.some
         process(notif)
       }
-    job.commitStream().compile.toList.map { affectedEntityIds =>
-      notif0.map(n => JobReport(n.uuid, n.userId, affectedEntityIds))
-    }
+    job
+      .commitStream()
+      .compile
+      .toList
+      .map { affectedEntityIds =>
+        notif0.map(n => JobReport(n.uuid, n.userId, affectedEntityIds))
+      }
+      .flatTap { _.traverse_(r => info(r.triggeringEventId, r.deletedUserId, r.deletedEntities)) }
 
   private def process(event: AccountDeletedNotification.Notified): fs2.Stream[Txn, EntityId[?]] =
     store
@@ -71,8 +76,8 @@ private class UserDataDeletionJob[F[_]: Sync, Txn[_]: Monad] private (
    * See https://github.com/typelevel/doobie/issues/1561
    */
 
-  private def info(eventId: EventId, userId: UserId, entityIds: List[EntityId[?]]): Txn[Unit] =
+  private def info(eventId: EventId, userId: UserId, entityIds: List[EntityId[?]]): F[Unit] =
     val l = s"UserDataDeletionJob completed successfully: triggeringEventId=${eventId}, " +
       s"deletedUserId=${userId}, " +
       s"affectedEntityIds=${entityIds.map(id => s"[UUID: ${id}, Entity Type: ${id.entityType}]").mkString(", ")}}"
-    store.lift { info"$l" }
+    info"$l"

@@ -5,7 +5,7 @@ import cats.implicits.*
 import doobie.{ConnectionIO, *}
 import doobie.implicits.*
 import doobie.postgres.implicits.*
-import munit.ScalaCheckEffectSuite
+import munit.{CatsEffectSuite, ScalaCheckEffectSuite}
 import org.fiume.sketch.shared.domain.documents.{Document, DocumentId, DocumentWithIdAndStream, DocumentWithStream}
 import org.fiume.sketch.shared.domain.documents.algebras.DocumentsStore
 import org.fiume.sketch.shared.domain.testkit.DocumentsGens.*
@@ -21,7 +21,8 @@ import org.scalacheck.effect.PropF.forAllF
 import java.time.Instant
 
 class PostgresDocumentsStoreSpec
-    extends ScalaCheckEffectSuite
+    extends CatsEffectSuite
+    with ScalaCheckEffectSuite
     with DockerPostgresSuite
     with FileContentContext
     with PostgresStoreSpecContext

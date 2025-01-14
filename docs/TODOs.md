@@ -3,9 +3,9 @@
 
 ### Account deativation/deletion - Missing steps:
 
-1) Clean up all entities upon permanent deletion
+1) Delete data from access-control module/service
 
-- Services (e.g. sketch) deletes user data upon accound deletion
+1) Separate schema for event-bus
 
 
 ### Others

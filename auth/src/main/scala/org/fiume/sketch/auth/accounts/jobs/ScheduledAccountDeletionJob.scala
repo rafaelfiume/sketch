@@ -50,7 +50,9 @@ private class ScheduledAccountDeletionJob[F[_]: Sync, Txn[_]: Monad] private (
       .flatMap {
         _.fold(ifEmpty = none.pure[Txn])(process(_))
       }
-    store.commit { job }
+    store
+      .commit { job }
+      .flatTap { _.traverse(r => info(r.triggeringEventId, r.deletedUserId, r.notificationsSent)) }
 
   private def process(scheduled: Scheduled): Txn[Option[JobReport]] =
     dynamicConfig.getConfig(RecipientsKey).flatMap {
@@ -61,13 +63,12 @@ private class ScheduledAccountDeletionJob[F[_]: Sync, Txn[_]: Monad] private (
           notifs <- recipients.toList.traverse { recipient =>
             notificationProducer.produceEvent(ToNotify(scheduled.userId, recipient))
           }
-          _ <- info(scheduled.uuid, scheduled.userId, notifs)
         yield JobReport(scheduled.uuid, scheduled.userId, notifs).some
     }
 
-  private def info(eventId: EventId, userId: UserId, notifs: List[Notified]): Txn[Unit] =
+  private def info(eventId: EventId, userId: UserId, notifs: List[Notified]): F[Unit] =
     // I should probably think seriously about structure logging...
-    val l = s"Job completed successfully: triggeringEventId=${eventId}, " +
+    val l = s"ScheduledAccountDeletionJob completed successfully: triggeringEventId=${eventId}, " +
       s"deletedUserId=${userId}, " +
-      s"notificationsSent=${notifs.map(n => s"[ID: ${n.uuid}, Recipient: ${n.recipient}]").mkString(", ")}}"
-    store.lift { info"$l" }
+      s"notificationsSent=${notifs.map(n => s"[${n.recipient}]").mkString(", ")}"
+    info"$l"
