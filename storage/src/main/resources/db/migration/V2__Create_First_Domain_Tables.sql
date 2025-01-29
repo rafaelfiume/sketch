@@ -5,6 +5,7 @@ CREATE TABLE domain.documents (
   name VARCHAR NOT NULL,
   description VARCHAR,
   bytes BYTEA,
+  user_id UUID NOT NULL,                              -- the documents's owner
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );

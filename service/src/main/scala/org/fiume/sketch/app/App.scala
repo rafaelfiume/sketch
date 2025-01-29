@@ -12,6 +12,7 @@ import org.fiume.sketch.auth.http.middlewares.Auth0Middleware
 import org.fiume.sketch.http.{DocumentsRoutes, HealthStatusRoutes}
 import org.fiume.sketch.shared.common.http.middlewares.{SemanticValidationMiddleware, TraceAuditLogMiddleware, WorkerMiddleware}
 import org.fiume.sketch.shared.common.jobs.PeriodicJob
+import org.fiume.sketch.users.UserDataDeletionJob
 import org.http4s.{HttpApp, HttpRoutes}
 import org.http4s.ember.server.EmberServerBuilder
 import org.http4s.implicits.*
@@ -19,6 +20,8 @@ import org.http4s.server.Server
 import org.http4s.server.middleware.*
 import org.typelevel.log4cats.LoggerFactory
 import org.typelevel.log4cats.slf4j.{Slf4jFactory, Slf4jLogger}
+
+import scala.concurrent.duration.*
 
 object App:
 
@@ -47,10 +50,21 @@ object App:
           dynamicConfig
         )
       )
-
-      stream = httpServiceStream
-        .concurrently(accountPermanentDeletionStream)
-    yield stream
+      sketchUserDataDeletionStream = PeriodicJob.makeWithDefaultJobErrorHandler(
+        /*
+         * User's data deletion should have moderate frequency (every minute or hour).
+         *
+         * A few minutes or even hours of latency won't likely have any impact on the outcome
+         * of a user's data deletion.
+         */
+        // TODO Extract `interval` to a proper place: load it from an env var.
+        interval = 1.minute, // consider to increase this interval
+        job = UserDataDeletionJob.make[F, ConnectionIO](comps.accountDeletedNotificationConsumer, comps.documentsStore)
+      )
+      streams = httpServiceStream
+        .concurrently(accountPermanentDeletionStream) // Auth
+        .concurrently(sketchUserDataDeletionStream) // Sketch
+    yield streams
 
     serviceStream
       .use { _.compile.drain }
@@ -75,7 +89,7 @@ object HttpApi:
     val authMiddleware = Auth0Middleware(comps.authenticator)
 
     val authRoutes: HttpRoutes[F] = new AuthRoutes[F](comps.authenticator).router()
-    val usersRoutes: HttpRoutes[F] = new UsersRoutes[F, ConnectionIO](authMiddleware, comps.userManager).router()
+    val usersRoutes: HttpRoutes[F] = new UsersRoutes[F, ConnectionIO](authMiddleware, comps.usersManager).router()
     val documentsRoutes: HttpRoutes[F] =
       new DocumentsRoutes[F, ConnectionIO](
         authMiddleware,

@@ -55,7 +55,7 @@ class PeriodicJobSpec extends CatsEffectSuite with JobErrorHandlerContext:
       )
       assertEquals(result, expectedEmittedOutput)
 
-  test("stops running jobs when interrupted"):
+  test("stops running jobs when cancelled"):
     for
       jobCounter <- IO.ref(0)
       job = JobWrapper(jobCounter.update(_ + 1), "increments a counter")

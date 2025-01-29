@@ -23,7 +23,7 @@ CREATE TABLE system.dynamic_configs (
 
 INSERT INTO system.dynamic_configs (namespace, key, value)
 VALUES(
-  'sketch', 'account.deletion.notification.recipients', '["sketch-projects"]'::jsonb
+  'sketch', 'account.deletion.notification.recipients', '["sketch"]'::jsonb -- TODO access-control
 );
 
 CREATE SCHEMA auth;

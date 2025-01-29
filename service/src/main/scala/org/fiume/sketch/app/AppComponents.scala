@@ -7,11 +7,16 @@ import org.fiume.sketch.app.SketchVersions.VersionFile
 import org.fiume.sketch.auth.Authenticator
 import org.fiume.sketch.auth.accounts.UsersManager
 import org.fiume.sketch.rustic.RusticHealthCheck
-import org.fiume.sketch.shared.auth.accounts.{AccountDeletedNotificationProducer, AccountDeletionEventConsumer}
+import org.fiume.sketch.shared.auth.accounts.{
+  AccountDeletedNotificationConsumer,
+  AccountDeletedNotificationProducer,
+  AccountDeletionEventConsumer
+}
 import org.fiume.sketch.shared.auth.algebras.UsersStore
 import org.fiume.sketch.shared.authorisation.AccessControl
 import org.fiume.sketch.shared.common.app.{HealthChecker, Versions}
 import org.fiume.sketch.shared.common.app.ServiceStatus.Dependency.*
+import org.fiume.sketch.shared.common.events.Recipient
 import org.fiume.sketch.shared.domain.documents.algebras.DocumentsStore
 import org.fiume.sketch.storage.auth.postgres.{
   PostgresAccountDeletedNotificationsStore,
@@ -31,17 +36,33 @@ import scala.concurrent.ExecutionContext
 import scala.concurrent.duration.*
 
 trait AppComponents[F[_]]:
+  /**
+   * App admin
+   */
   val customWorkerThreadPool: ExecutionContext
   val dbHealthCheck: HealthChecker.DependencyHealthChecker[F, Database]
   val rusticHealthCheck: HealthChecker.DependencyHealthChecker[F, Rustic]
   val versions: Versions[F]
+
+  /*
+   * Authentication & Account Mangement
+   */
   val authenticator: Authenticator[F]
-  val accessControl: AccessControl[F, ConnectionIO]
   val accountDeletionEventConsumer: AccountDeletionEventConsumer[ConnectionIO]
   val accountDeletedNotificationProducer: AccountDeletedNotificationProducer[ConnectionIO]
   val usersStore: UsersStore[F, ConnectionIO]
+  val usersManager: UsersManager[F]
+
+  /**
+   * Authorisation
+   */
+  val accessControl: AccessControl[F, ConnectionIO]
+
+  /**
+   * Domain
+   */
   val documentsStore: DocumentsStore[F, ConnectionIO]
-  val userManager: UsersManager[F]
+  val accountDeletedNotificationConsumer: AccountDeletedNotificationConsumer[ConnectionIO]
 
 object AppComponents:
   given [F[_]: Sync]: LoggerFactory[F] = Slf4jFactory.create[F]
@@ -54,6 +75,7 @@ object AppComponents:
       httpClient <- EmberClientBuilder.default[F].build
       rusticHealthCheck0 = RusticHealthCheck.make[F](config.rusticClient, httpClient)
       versions0 <- SketchVersions.make[F](config.env, VersionFile("sketch.version"))
+
       accountDeletionEventStore0 <- PostgresAccountDeletionEventsStore.make[F]()
       accountDeletedNotificationProducer0 <- PostgresAccountDeletedNotificationsStore.makeProducer[F]()
       usersStore0 <- PostgresUsersStore.make[F](transactor)
@@ -67,27 +89,37 @@ object AppComponents:
         )
       }
       accessControl0 <- PostgresAccessControl.make[F](transactor)
+      usersManager0 = UsersManager.make[F, ConnectionIO](
+        usersStore0,
+        accountDeletionEventStore0,
+        accessControl0,
+        Clock[F],
+        config.account.delayUntilPermanentDeletion
+      )
+
       documentsStore0 <- PostgresDocumentsStore.make[F](transactor)
+      accountDeletedNotificationConsumer0 <- PostgresAccountDeletedNotificationsStore.makeConsumer(
+        Recipient("sketch") // see system.dynamic_configs table
+      )
+//
     yield new AppComponents[F]:
       override val customWorkerThreadPool: ExecutionContext = customWorkerThreadPool0
       override val dbHealthCheck: HealthChecker.DependencyHealthChecker[F, Database] = dbHealthCheck0
       override val rusticHealthCheck: HealthChecker.DependencyHealthChecker[F, Rustic] = rusticHealthCheck0
       override val versions: Versions[F] = versions0
+
       override val authenticator: Authenticator[F] = authenticator0
-      override val accessControl: AccessControl[F, ConnectionIO] = accessControl0
       override val accountDeletionEventConsumer: AccountDeletionEventConsumer[ConnectionIO] =
         accountDeletionEventStore0
       override val accountDeletedNotificationProducer: AccountDeletedNotificationProducer[ConnectionIO] =
         accountDeletedNotificationProducer0
       override val usersStore: UsersStore[F, ConnectionIO] = usersStore0
+      override val usersManager: UsersManager[F] = usersManager0
+
+      override val accessControl: AccessControl[F, ConnectionIO] = accessControl0
+
       override val documentsStore: DocumentsStore[F, ConnectionIO] = documentsStore0
-      override val userManager: UsersManager[F] =
-        UsersManager.make[F, ConnectionIO](usersStore0,
-                                           accountDeletionEventStore0,
-                                           accessControl0,
-                                           Clock[F],
-                                           config.account.delayUntilPermanentDeletion
-        )
+      override val accountDeletedNotificationConsumer = accountDeletedNotificationConsumer0
 
   private def newCustomWorkerThreadPool[F[_]: Sync]() = Resource
     .make(
