@@ -29,7 +29,7 @@ class UserDataDeletionJobSpec
       val userId = sndDoc.metadata.ownerId
       for
         eventConsumer <- makeEventConsumer(nextEvent =
-          AccountDeletedNotification.notified(triggeringEventId, userId, Recipient("job-pbt"))
+          AccountDeletedNotification.notified(triggeringEventId, userId, Recipient("test-recipient"))
         )
         store <- makeDocumentsStore(state = fstDoc, sndDoc)
         job = UserDataDeletionJob.make(eventConsumer, store)

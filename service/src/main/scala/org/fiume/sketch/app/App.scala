@@ -52,12 +52,12 @@ object App:
       )
       sketchUserDataDeletionStream = PeriodicJob.makeWithDefaultJobErrorHandler(
         /*
-         * It should have Moderate Frequency (every minute or hour).
+         * User's data deletion should have moderate frequency (every minute or hour).
          *
          * A few minutes or even hours of latency won't likely have any impact on the outcome
-         * of a user's data permanent deletion.
+         * of a user's data deletion.
          */
-        // TODO Extract this to a proper place. Load from an env var
+        // TODO Extract `interval` to a proper place: load it from an env var.
         interval = 1.minute, // consider to increase this interval
         job = UserDataDeletionJob.make[F, ConnectionIO](comps.accountDeletedNotificationConsumer, comps.documentsStore)
       )
