@@ -50,8 +50,7 @@ object App:
           dynamicConfig
         )
       )
-
-      sketchProjectUserDataDeletionStream = PeriodicJob.makeWithDefaultJobErrorHandler(
+      sketchUserDataDeletionStream = PeriodicJob.makeWithDefaultJobErrorHandler(
         /*
          * It should have Moderate Frequency (every minute or hour).
          *
@@ -62,11 +61,10 @@ object App:
         interval = 1.minute, // consider to increase this interval
         job = UserDataDeletionJob.make[F, ConnectionIO](comps.accountDeletedNotificationConsumer, comps.documentsStore)
       )
-
-      stream = httpServiceStream
-        .concurrently(accountPermanentDeletionStream)
-        .concurrently(sketchProjectUserDataDeletionStream)
-    yield stream
+      streams = httpServiceStream
+        .concurrently(accountPermanentDeletionStream) // Auth
+        .concurrently(sketchUserDataDeletionStream) // Sketch
+    yield streams
 
     serviceStream
       .use { _.compile.drain }

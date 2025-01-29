@@ -39,7 +39,7 @@ class UserDataDeletionJobSpec
       yield assertEquals(result, JobReport(triggeringEventId, userId, List(sndDoc.uuid)))
     }
 
-  test("skips processing if there are no account's deletion notfications"):
+  test("skips processing if there are no account deletion notifications"):
     forAllF { (fstDoc: DocumentWithIdAndStream[IO], sndDoc: DocumentWithIdAndStream[IO]) =>
       for
         eventConsumer <- makeEmptyEventConsumer()

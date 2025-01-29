@@ -46,7 +46,7 @@ private class UserDataDeletionJob[F[_]: Sync, Txn[_]: Monad] private (
    */
   given Logger[F] = Slf4jLogger.getLogger[F]
 
-  override val description: String = "Deletes user data following account deletion"
+  override val description: String = "Deletes user data from Sketch module following account deletion"
 
   override def run(): F[Option[JobReport]] =
     var notif0: Option[AccountDeletedNotification.Notified] = None

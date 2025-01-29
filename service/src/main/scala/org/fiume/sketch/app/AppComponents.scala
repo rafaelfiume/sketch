@@ -98,10 +98,9 @@ object AppComponents:
       )
 
       documentsStore0 <- PostgresDocumentsStore.make[F](transactor)
-      // Dynamic configuation for recipients works well for producers, but it is not a game changer for comsumers.
       accountDeletedNotificationConsumer0 <- PostgresAccountDeletedNotificationsStore.makeConsumer(
-        Recipient("sketch-projects")
-      ) // see system.dynamic_configs table
+        Recipient("sketch") // see system.dynamic_configs table
+      )
 //
     yield new AppComponents[F]:
       override val customWorkerThreadPool: ExecutionContext = customWorkerThreadPool0
