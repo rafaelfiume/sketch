@@ -1,4 +1,4 @@
-import sbt._
+import sbt.*
 
 // format: off
 object Dependency {
@@ -21,9 +21,9 @@ object Dependency {
     val gatling               = "3.11.5"
     val logstash              = "8.0"
     val munit                 = "1.0.1"
-    val munitCatsEffect       = "2.0.0"
+    val munitCatsEffect       = "2.1.0"
     val munitDiscipline       = "2.0.0"
-    val munitScalaCheck       = "1.0.0" 
+    val munitScalaCheck       = "1.0.0"
     val munitScalaCheckEffect = "1.0.4"
     val munitTestcontainers   = "0.41.4"
   }
