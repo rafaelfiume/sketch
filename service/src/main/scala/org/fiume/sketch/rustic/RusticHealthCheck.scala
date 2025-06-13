@@ -2,7 +2,6 @@ package org.fiume.sketch.rustic
 
 import cats.effect.Async
 import cats.implicits.*
-import fs2.io.net.Network
 import org.fiume.sketch.shared.common.app.{HealthChecker, ServiceStatus}
 import org.fiume.sketch.shared.common.app.ServiceStatus.{DependencyStatus, Status}
 import org.fiume.sketch.shared.common.app.ServiceStatus.Dependency.*
@@ -13,7 +12,7 @@ import org.http4s.client.*
 
 object RusticHealthCheck:
 
-  def make[F[_]: Async: Network](config: RusticClientConfig, client: Client[F]): RusticHealthCheck[F] =
+  def make[F[_]: { Async }](config: RusticClientConfig, client: Client[F]): RusticHealthCheck[F] =
     new RusticHealthCheck(config.httpRusticUri, client)
 
 private class RusticHealthCheck[F[_]: Async] private (baseUri: Uri, client: Client[F])

@@ -6,9 +6,9 @@ import doobie.ConnectionIO
 import doobie.implicits.*
 import doobie.postgres.implicits.*
 import munit.{CatsEffectSuite, ScalaCheckEffectSuite}
-import org.fiume.sketch.shared.auth.{Passwords, UserId}
 import org.fiume.sketch.shared.auth.Passwords.HashedPassword
 import org.fiume.sketch.shared.auth.User.*
+import org.fiume.sketch.shared.auth.UserId
 import org.fiume.sketch.shared.auth.accounts.{Account, AccountDeletionEvent, AccountState}
 import org.fiume.sketch.shared.auth.algebras.UsersStore
 import org.fiume.sketch.shared.auth.testkit.AccountGens.given

@@ -1,6 +1,6 @@
 package org.fiume.sketch.storage.auth.postgres
 
-import cats.effect.{Resource, Sync}
+import cats.effect.Resource
 import doobie.*
 import doobie.free.connection.ConnectionIO
 import doobie.implicits.*
@@ -14,10 +14,10 @@ import org.fiume.sketch.shared.common.events.Recipient
 import org.fiume.sketch.storage.auth.postgres.DatabaseCodecs.given
 
 object PostgresAccountDeletedNotificationsStore:
-  def makeProducer[F[_]: Sync](): Resource[F, AccountDeletedNotificationProducer[ConnectionIO]] =
+  def makeProducer[F[_]](): Resource[F, AccountDeletedNotificationProducer[ConnectionIO]] =
     Resource.pure(new PostgresAccountDeletedNotificationProducerStore())
 
-  def makeConsumer[F[_]: Sync](recipient: Recipient): Resource[F, AccountDeletedNotificationConsumer[ConnectionIO]] =
+  def makeConsumer[F[_]](recipient: Recipient): Resource[F, AccountDeletedNotificationConsumer[ConnectionIO]] =
     Resource.pure(new PostgresAccountDeletedNotificationConsumerStore(recipient))
 
 private class PostgresAccountDeletedNotificationProducerStore() extends AccountDeletedNotificationProducer[ConnectionIO]:

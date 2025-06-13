@@ -11,8 +11,8 @@ import org.fiume.sketch.shared.auth.Passwords.PlainPassword
 import org.fiume.sketch.shared.auth.User.Username
 import org.fiume.sketch.shared.auth.accounts.{Account, AccountState}
 import org.fiume.sketch.shared.auth.accounts.AccountState.SoftDeleted
-import org.fiume.sketch.shared.auth.testkit.{UserGens, UsersStoreContext}
 import org.fiume.sketch.shared.auth.testkit.UserGens.*
+import org.fiume.sketch.shared.auth.testkit.UsersStoreContext
 import org.fiume.sketch.shared.testkit.ClockContext
 import org.fiume.sketch.shared.testkit.Gens.DateAndTime.shortDurations
 import org.fiume.sketch.shared.testkit.syntax.EitherSyntax.*
@@ -22,7 +22,6 @@ import org.scalacheck.effect.PropF.forAllF
 
 import java.security.Security
 import java.time.Instant
-import scala.concurrent.duration.*
 
 class AuthenticatorSpec
     extends CatsEffectSuite

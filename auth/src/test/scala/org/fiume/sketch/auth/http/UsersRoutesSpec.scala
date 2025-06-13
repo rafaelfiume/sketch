@@ -26,7 +26,7 @@ import org.fiume.sketch.shared.testkit.{ContractContext, Http4sRoutesContext}
 import org.http4s.*
 import org.http4s.client.dsl.io.*
 import org.http4s.dsl.io.*
-import org.scalacheck.{Arbitrary, ShrinkLowPriority}
+import org.scalacheck.ShrinkLowPriority
 import org.scalacheck.effect.PropF.forAllF
 
 import java.time.Instant
@@ -77,7 +77,7 @@ class UsersRoutesSpec
     // format: on
   ).foreach { (description, error, expectedStatusCode, expectedErrorInfo) =>
     test(s"handles marking account for deletion when $description") {
-      forAllF { (ownerId: UserId, authed: User, isSuperuser: Boolean) =>
+      forAllF { (ownerId: UserId, authed: User) =>
         val authMiddleware = makeAuthMiddleware(authenticated = authed)
         val usersManager = primeMarkAccountForDeletion(authed.uuid, ownerId, toReturn = error.asLeft)
         val usersRoutes = new UsersRoutes[IO, IO](authMiddleware, usersManager)

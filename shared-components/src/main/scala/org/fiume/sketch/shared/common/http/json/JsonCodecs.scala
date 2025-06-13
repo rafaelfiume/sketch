@@ -6,4 +6,4 @@ import org.fiume.sketch.shared.common.EntityId.given
 
 object JsonCodecs:
 
-  given [T <: Entity]: Encoder[EntityId[T]] = Encoder[String].contramap[EntityId[T]](_.asString())
+  given [T <: Entity] => Encoder[EntityId[T]] = Encoder[String].contramap[EntityId[T]](_.asString())

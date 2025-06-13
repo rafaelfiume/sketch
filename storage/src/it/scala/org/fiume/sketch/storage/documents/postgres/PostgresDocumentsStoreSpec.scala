@@ -6,7 +6,7 @@ import doobie.{ConnectionIO, *}
 import doobie.implicits.*
 import doobie.postgres.implicits.*
 import munit.{CatsEffectSuite, ScalaCheckEffectSuite}
-import org.fiume.sketch.shared.domain.documents.{Document, DocumentId, DocumentWithIdAndStream, DocumentWithStream}
+import org.fiume.sketch.shared.domain.documents.{DocumentId, DocumentWithIdAndStream, DocumentWithStream}
 import org.fiume.sketch.shared.domain.documents.algebras.DocumentsStore
 import org.fiume.sketch.shared.domain.testkit.DocumentsGens.*
 import org.fiume.sketch.shared.domain.testkit.DocumentsGens.given

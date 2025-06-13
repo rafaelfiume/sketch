@@ -1,6 +1,5 @@
 package org.fiume.sketch.auth
 
-import cats.FlatMap
 import cats.implicits.*
 import io.circe.{Decoder, Encoder, HCursor, Json, ParsingFailure}
 import io.circe.parser.parse
@@ -19,7 +18,7 @@ import scala.concurrent.duration.Duration
 
 private[auth] object JwtIssuer:
   // offset: a shift in time from a reference point
-  def make[F[_]: FlatMap](privateKey: PrivateKey, user: User, now: Instant, expirationOffset: Duration): Jwt =
+  def make[F[_]](privateKey: PrivateKey, user: User, now: Instant, expirationOffset: Duration): Jwt =
     val content = Content(
       preferredUsername = user.username
     )
@@ -53,11 +52,11 @@ private[auth] object JwtIssuer:
   private case class Content(preferredUsername: Username) extends AnyVal
 
   private object Content:
-    given Encoder[Content] with
+    given Encoder[Content]:
       override def apply(a: Content): Json = Json.obj(
         "preferred_username" -> a.preferredUsername.value.asJson
       )
 
-    given Decoder[Content] with
+    given Decoder[Content]:
       override def apply(c: HCursor): Decoder.Result[Content] =
         c.downField("preferred_username").as[String].map(value => Content(Username.makeUnsafeFromString(value)))

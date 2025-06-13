@@ -6,7 +6,6 @@ import org.fiume.sketch.shared.auth.UserId
 import org.fiume.sketch.shared.auth.UserId.given
 import org.fiume.sketch.shared.auth.accounts.AccountDeletionEvent
 import org.fiume.sketch.shared.common.events.EventId
-import org.fiume.sketch.shared.common.troubleshooting.syntax.ErrorInfoSyntax.*
 
 import java.time.Instant
 

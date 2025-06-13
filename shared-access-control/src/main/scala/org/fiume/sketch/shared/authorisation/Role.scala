@@ -20,13 +20,13 @@ enum ContextualRole:
   case Owner
 
 object Role:
-  given AsString[Role] with
+  given AsString[Role]:
     extension (role: Role)
       override def asString(): String = role match
         case Role.Global(designation)     => designation.toString()
         case Role.Contextual(designation) => designation.toString()
 
-  given FromString[InvalidRoleError, Role] with
+  given FromString[InvalidRoleError, Role]:
     extension (role: String)
       override def parsed() =
         Try(GlobalRole.valueOf(role))

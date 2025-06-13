@@ -1,6 +1,5 @@
 package org.fiume.sketch.rustic
 
-import cats.implicits.*
 import com.comcast.ip4s.*
 import org.http4s.Uri
 

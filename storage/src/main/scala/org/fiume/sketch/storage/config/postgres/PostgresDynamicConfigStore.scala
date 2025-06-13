@@ -1,6 +1,6 @@
 package org.fiume.sketch.storage.config.postgres
 
-import cats.effect.{Resource, Sync}
+import cats.effect.Resource
 import doobie.free.connection.ConnectionIO
 import doobie.implicits.*
 import doobie.util.query.Query0
@@ -12,7 +12,7 @@ import org.fiume.sketch.shared.common.typeclasses.AsString
 import org.fiume.sketch.storage.config.postgres.DatabaseCodecs.given
 
 object PostgresDynamicConfigStore:
-  def makeForNamespace[F[_]: Sync](namespace: Namespace): Resource[F, DynamicConfig[ConnectionIO]] =
+  def makeForNamespace[F[_]](namespace: Namespace): Resource[F, DynamicConfig[ConnectionIO]] =
     Resource.pure(new PostgresDynamicConfigStore(namespace))
 
 private class PostgresDynamicConfigStore private (namespace: Namespace) extends DynamicConfig[ConnectionIO]:

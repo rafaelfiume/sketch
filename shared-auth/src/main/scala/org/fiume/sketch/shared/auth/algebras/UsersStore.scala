@@ -2,9 +2,9 @@ package org.fiume.sketch.shared.auth.algebras
 
 import cats.Monad
 import cats.implicits.*
-import org.fiume.sketch.shared.auth.{User, UserId}
 import org.fiume.sketch.shared.auth.Passwords.HashedPassword
 import org.fiume.sketch.shared.auth.User.*
+import org.fiume.sketch.shared.auth.UserId
 import org.fiume.sketch.shared.auth.accounts.Account
 import org.fiume.sketch.shared.common.app.Store
 

@@ -15,7 +15,7 @@ import org.fiume.sketch.shared.authorisation.ContextualRole.Owner
 import org.fiume.sketch.shared.authorisation.GlobalRole.{Admin, Superuser}
 import org.fiume.sketch.shared.authorisation.testkit.AccessControlGens.*
 import org.fiume.sketch.shared.authorisation.testkit.AccessControlGens.given
-import org.fiume.sketch.shared.domain.documents.{DocumentEntity, DocumentId, DocumentWithIdAndStream}
+import org.fiume.sketch.shared.domain.documents.{DocumentId, DocumentWithIdAndStream}
 import org.fiume.sketch.shared.domain.testkit.DocumentsGens.*
 import org.fiume.sketch.shared.domain.testkit.DocumentsGens.given
 import org.fiume.sketch.shared.testkit.syntax.EitherSyntax.*

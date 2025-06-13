@@ -1,6 +1,6 @@
 package org.fiume.sketch.app
 
-import cats.effect.{Async, Resource, Sync}
+import cats.effect.{Async, Resource}
 import cats.implicits.*
 import ciris.*
 import com.comcast.ip4s.*
@@ -72,7 +72,7 @@ object AppConfig:
       documents = DocumentsConfig(documentMbSizeLimit)
     )).load[F]
 
-  def makeDynamicConfig[F[_]: Sync](): Resource[F, DynamicConfig[ConnectionIO]] =
+  def makeDynamicConfig[F[_]](): Resource[F, DynamicConfig[ConnectionIO]] =
     PostgresDynamicConfigStore.makeForNamespace[F](Namespace("sketch")) // see system.dynamic_configs table
 
   given ConfigDecoder[String, Environment] = ConfigDecoder[String].map(Environment.apply)
