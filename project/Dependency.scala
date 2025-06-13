@@ -1,4 +1,4 @@
-import sbt._
+import sbt.*
 
 // format: off
 object Dependency {
@@ -15,7 +15,7 @@ object Dependency {
     val flyway                = "10.17.2"
     val fs2                   = "3.11.0"
     val http4s                = "1.0.0-M41"
-    val log4cats              = "2.7.0"
+    val log4cats              = "2.7.1"
     val slf4j                 = "2.0.16"
 
     val gatling               = "3.11.5"
@@ -23,7 +23,7 @@ object Dependency {
     val munit                 = "1.0.1"
     val munitCatsEffect       = "2.0.0"
     val munitDiscipline       = "2.0.0"
-    val munitScalaCheck       = "1.0.0" 
+    val munitScalaCheck       = "1.0.0"
     val munitScalaCheckEffect = "1.0.4"
     val munitTestcontainers   = "0.41.4"
   }
