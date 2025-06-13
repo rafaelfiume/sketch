@@ -1,4 +1,4 @@
-import sbt._
+import sbt.*
 
 // format: off
 object Dependency {
@@ -9,7 +9,7 @@ object Dependency {
 
     val cats                  = "2.12.0"
     val catsEffect            = "3.5.4"
-    val circe                 = "0.14.9"
+    val circe                 = "0.14.13"
     val ciris                 = "3.6.0"
     val doobie                = "1.0.0-RC5"
     val flyway                = "10.17.2"
@@ -23,7 +23,7 @@ object Dependency {
     val munit                 = "1.0.1"
     val munitCatsEffect       = "2.0.0"
     val munitDiscipline       = "2.0.0"
-    val munitScalaCheck       = "1.0.0" 
+    val munitScalaCheck       = "1.0.0"
     val munitScalaCheckEffect = "1.0.4"
     val munitTestcontainers   = "0.41.4"
   }
