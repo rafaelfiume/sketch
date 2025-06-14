@@ -25,7 +25,7 @@ import scala.concurrent.duration.*
 
 object App:
 
-  def run[F[_]: { Async, Network }](): F[Unit] =
+  def run[F[_]: {Async, Network}](): F[Unit] =
     given LoggerFactory[F] = Slf4jFactory.create[F]
     val logger = Slf4jLogger.getLogger[F]
 
@@ -70,7 +70,7 @@ object App:
       .use { _.compile.drain }
       .onError { case ex => logger.error(s"The service has failed with $ex") }
 
-  private def httpServer[F[_]: { Async, Network, LoggerFactory }](
+  private def httpServer[F[_]: {Async, Network, LoggerFactory}](
     config: AppConfig.Static,
     comps: AppComponents[F]
   ): Resource[F, Server] =
@@ -85,7 +85,7 @@ object App:
     Resource.suspend(server.map(_.build))
 
 object HttpApi:
-  def httpApp[F[_]: { Async, LoggerFactory }](config: AppConfig.Static, comps: AppComponents[F]): F[HttpApp[F]] =
+  def httpApp[F[_]: {Async, LoggerFactory}](config: AppConfig.Static, comps: AppComponents[F]): F[HttpApp[F]] =
     val authMiddleware = Auth0Middleware(comps.authenticator)
 
     val authRoutes: HttpRoutes[F] = new AuthRoutes[F](comps.authenticator).router()

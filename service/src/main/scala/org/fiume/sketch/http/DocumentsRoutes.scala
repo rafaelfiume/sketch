@@ -72,8 +72,8 @@ class DocumentsRoutes[F[_]: Concurrent, Txn[_]: FlatMap](
         for
           document <- accessControl.attempt(user.uuid, uuid) { store.fetchDocument }.commit()
           res <- document match
-            case Right(document)    => document.map(_.asResponsePayload).fold(ifEmpty = NotFound())(Ok(_))
-            case Left(_) => Forbidden()
+            case Right(document) => document.map(_.asResponsePayload).fold(ifEmpty = NotFound())(Ok(_))
+            case Left(_)         => Forbidden()
         yield res
 
       case GET -> Root / "documents" / DocumentIdVar(uuid) as user =>
@@ -134,7 +134,7 @@ private[http] object DocumentsRoutes:
     extension [F[_]](id: DocumentId) def asResponsePayload: DocumentIdResponsePayload = DocumentIdResponsePayload(id)
 
     private val errorCode = "9011".code
-    extension [F[_]: { MonadThrow }](m: Multipart[F])
+    extension [F[_]: {MonadThrow}](m: Multipart[F])
       def validated(forUserWithId: UserId)(using c: Concurrent[F]): EitherT[F, SemanticInputError, DocumentWithStream[F]] =
         (m.metadata(), m.bytes()).parTupled
           .flatMap { case (part, bytes) =>

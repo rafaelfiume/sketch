@@ -56,7 +56,7 @@ private class ScheduledAccountDeletionJob[F[_]: Sync, Txn[_]: Monad] private (
 
   private def process(scheduled: Scheduled): Txn[Option[JobReport]] =
     dynamicConfig.getConfig(RecipientsKey).flatMap {
-      case None => none.pure[Txn] // TODO log
+      case None             => none.pure[Txn] // TODO log
       case Some(recipients) =>
         for
           _ <- store.deleteAccount(scheduled.userId)

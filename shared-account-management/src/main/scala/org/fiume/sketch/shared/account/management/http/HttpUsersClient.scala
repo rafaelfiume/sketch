@@ -64,9 +64,9 @@ class HttpUsersClient[F[_]: Async] private (baseUri: Uri, client: Client[F]):
       authHeader <- Async[F].delay { Authorization.parse(s"Bearer ${jwt.value}") }
       request = Request[F](POST, baseUri / "users" / id.value / "restore").withHeaders(authHeader)
       result <- client.run(request).use {
-        case NoContent(_) => ().asRight[ClientAuthorisationError | AccessDenied.type | ActivateAccountError].pure[F]
-        case Conflict(_)  => ActivateAccountError.AccountAlreadyActive.asLeft.pure[F]
-        case NotFound(_)  => ActivateAccountError.AccountNotFound.asLeft.pure[F]
+        case NoContent(_)       => ().asRight[ClientAuthorisationError | AccessDenied.type | ActivateAccountError].pure[F]
+        case Conflict(_)        => ActivateAccountError.AccountAlreadyActive.asLeft.pure[F]
+        case NotFound(_)        => ActivateAccountError.AccountNotFound.asLeft.pure[F]
         case Unauthorized(resp) =>
           resp.bodyText.compile.string
             .flatTap { error => warn"Unauthorised to restore account: $error" }

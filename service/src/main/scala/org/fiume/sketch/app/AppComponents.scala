@@ -67,7 +67,7 @@ trait AppComponents[F[_]]:
 object AppComponents:
   given [F[_]: Sync] => LoggerFactory[F] = Slf4jFactory.create[F]
 
-  def make[F[_]: { Async, Network }](config: AppConfig.Static): Resource[F, AppComponents[F]] =
+  def make[F[_]: {Async, Network}](config: AppConfig.Static): Resource[F, AppComponents[F]] =
     for
       customWorkerThreadPool0 <- newCustomWorkerThreadPool()
       transactor <- DbTransactor.make(config.db)

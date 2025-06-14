@@ -33,7 +33,7 @@ class UsersRoutes[F[_]: Concurrent, Txn[_]](
         usersManager
           .attemptToMarkAccountForDeletion(authed.uuid, uuid)
           .flatMap {
-            case Right(job) => Ok(job.asResponsePayload)
+            case Right(job)                          => Ok(job.asResponsePayload)
             case Left(error: SoftDeleteAccountError) =>
               error match
                 // The request conflicts with the current state of the account (state machine transition error).
@@ -46,7 +46,7 @@ class UsersRoutes[F[_]: Concurrent, Txn[_]](
         usersManager
           .attemptToRestoreAccount(authed.uuid, uuid)
           .flatMap {
-            case Right(_) => NoContent()
+            case Right(_)                          => NoContent()
             case Left(error: ActivateAccountError) =>
               error match
                 case AccountAlreadyActive                 => Conflict(error.toActivateErrorInfo)
