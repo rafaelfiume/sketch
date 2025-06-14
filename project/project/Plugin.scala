@@ -3,7 +3,7 @@ import sbt.*
 // format: off
 object Plugin {
   private object Version {
-    val Gatling             = "4.9.2"
+    val Gatling             = "4.16.0"
     val Git                 = "2.1.0"
     val SbtNativePackager   = "1.11.1"
     val Scalafix            = "0.14.3"
