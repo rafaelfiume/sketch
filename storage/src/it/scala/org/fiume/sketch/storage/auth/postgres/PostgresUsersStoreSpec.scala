@@ -6,11 +6,10 @@ import doobie.ConnectionIO
 import doobie.implicits.*
 import doobie.postgres.implicits.*
 import munit.{CatsEffectSuite, ScalaCheckEffectSuite}
-import org.fiume.sketch.shared.auth.{Passwords, UserId}
 import org.fiume.sketch.shared.auth.Passwords.HashedPassword
 import org.fiume.sketch.shared.auth.User.*
+import org.fiume.sketch.shared.auth.UserId
 import org.fiume.sketch.shared.auth.accounts.{Account, AccountDeletionEvent, AccountState}
-import org.fiume.sketch.shared.auth.algebras.UsersStore
 import org.fiume.sketch.shared.auth.testkit.AccountGens.given
 import org.fiume.sketch.shared.auth.testkit.PasswordsGens.given
 import org.fiume.sketch.shared.auth.testkit.UserGens
@@ -59,7 +58,7 @@ class PostgresUsersStoreSpec
 
             _ <- store.updatePassword(uuid, newPassword).ccommit
 
-            result <- store.fetchPassword(uuid).ccommit
+            result <- fetchPassword(uuid).ccommit
           yield assertEquals(result, newPassword)
         }
       }
@@ -102,17 +101,16 @@ trait PostgresUsersStoreSpecContext extends DockerPostgresSuite:
   def cleanStorage: ConnectionIO[Unit] =
     sql"TRUNCATE TABLE auth.users".update.run.void
 
-  extension (store: UsersStore[IO, ConnectionIO])
-    def fetchPassword(uuid: UserId): ConnectionIO[HashedPassword] =
+  def fetchPassword(uuid: UserId): ConnectionIO[HashedPassword] =
       sql"SELECT password_hash FROM auth.users WHERE uuid = ${uuid}".query[HashedPassword].unique
 
-    def fetchCreatedAt(uuid: UserId): ConnectionIO[Instant] =
+  def fetchCreatedAt(uuid: UserId): ConnectionIO[Instant] =
       sql"SELECT created_at FROM auth.users WHERE uuid = ${uuid}".query[Instant].unique
 
-    def fetchUpdatedAt(uuid: UserId): ConnectionIO[Instant] =
+  def fetchUpdatedAt(uuid: UserId): ConnectionIO[Instant] =
       sql"SELECT updated_at FROM auth.users WHERE uuid = ${uuid}".query[Instant].unique
 
-    def fetchScheduledAccountDeletion(uuid: UserId): ConnectionIO[Option[AccountDeletionEvent.Scheduled]] =
+  def fetchScheduledAccountDeletion(uuid: UserId): ConnectionIO[Option[AccountDeletionEvent.Scheduled]] =
       sql"SELECT * FROM auth.account_deletion_scheduled_events WHERE user_id = ${uuid}"
         .query[AccountDeletionEvent.Scheduled]
         .option

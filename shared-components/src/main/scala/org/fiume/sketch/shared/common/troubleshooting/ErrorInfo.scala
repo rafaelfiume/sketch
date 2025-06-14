@@ -23,7 +23,7 @@ object ErrorInfo:
   object ErrorDetails:
     def apply(details: (String, String)*): ErrorDetails = ErrorDetails(details.toMap)
 
-    given Semigroup[ErrorDetails] with
+    given Semigroup[ErrorDetails]:
       def combine(x: ErrorDetails, y: ErrorDetails): ErrorDetails = ErrorDetails(x.tips.combine(y.tips))
 
   object json:

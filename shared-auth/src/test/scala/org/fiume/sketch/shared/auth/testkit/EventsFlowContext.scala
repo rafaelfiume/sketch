@@ -3,7 +3,6 @@ package org.fiume.sketch.shared.auth.testkit
 import cats.effect.IO
 import cats.effect.kernel.Ref
 import cats.implicits.*
-import org.fiume.sketch.shared.auth.accounts.AccountDeletionEvent.*
 import org.fiume.sketch.shared.common.WithUuid
 import org.fiume.sketch.shared.common.events.{CancellableEvent, CancellableEventProducer, EventConsumer, EventId, EventProducer}
 

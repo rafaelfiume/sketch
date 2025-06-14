@@ -1,6 +1,5 @@
 package org.fiume.sketch.users
 
-import cats.Monad
 import cats.effect.kernel.Sync
 import cats.implicits.*
 import org.fiume.sketch.shared.auth.UserId
@@ -22,7 +21,7 @@ object UserDataDeletionJob:
     deletedEntities: List[EntityId[?]] // The id of the entities deleted as result of the user account deletions
   )
 
-  def make[F[_]: Sync, Txn[_]: Monad](
+  def make[F[_]: Sync, Txn[_]](
     accountDeletedNotificationConsumer: AccountDeletedNotificationConsumer[Txn],
     store: DocumentsStore[F, Txn]
   ) =
@@ -31,7 +30,7 @@ object UserDataDeletionJob:
       store
     )
 
-private class UserDataDeletionJob[F[_]: Sync, Txn[_]: Monad] private (
+private class UserDataDeletionJob[F[_]: Sync, Txn[_]] private (
   accountDeletedNotificationConsumer: AccountDeletedNotificationConsumer[Txn],
   store: DocumentsStore[F, Txn]
 ) extends Job[F, Option[JobReport]]:

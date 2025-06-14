@@ -1,7 +1,6 @@
 package org.fiume.sketch.auth
 
 import cats.effect.IO
-import munit.Assertions.*
 import munit.ScalaCheckSuite
 import org.bouncycastle.jce.provider.BouncyCastleProvider
 import org.fiume.sketch.auth.testkit.EcKeysGens

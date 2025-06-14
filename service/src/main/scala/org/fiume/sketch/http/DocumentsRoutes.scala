@@ -29,7 +29,7 @@ import org.http4s.circe.CirceEntityDecoder.*
 import org.http4s.circe.CirceEntityEncoder.*
 import org.http4s.dsl.Http4sDsl
 import org.http4s.headers.`Content-Disposition`
-import org.http4s.multipart.{Multipart, Part, *}
+import org.http4s.multipart.{Multipart, Part}
 import org.http4s.server.{AuthMiddleware, Router}
 import org.http4s.server.middleware.EntityLimiter
 
@@ -73,7 +73,7 @@ class DocumentsRoutes[F[_]: Concurrent, Txn[_]: FlatMap](
           document <- accessControl.attempt(user.uuid, uuid) { store.fetchDocument }.commit()
           res <- document match
             case Right(document)    => document.map(_.asResponsePayload).fold(ifEmpty = NotFound())(Ok(_))
-            case Left(unauthorised) => Forbidden()
+            case Left(_) => Forbidden()
         yield res
 
       case GET -> Root / "documents" / DocumentIdVar(uuid) as user =>
@@ -107,7 +107,7 @@ class DocumentsRoutes[F[_]: Concurrent, Txn[_]: FlatMap](
           res <- document match
             case Right(_) => NoContent()
             // TODO Return error info?
-            case Left(unauthorised) => Forbidden()
+            case Left(_) => Forbidden()
         yield res
     }
 
@@ -134,8 +134,8 @@ private[http] object DocumentsRoutes:
     extension [F[_]](id: DocumentId) def asResponsePayload: DocumentIdResponsePayload = DocumentIdResponsePayload(id)
 
     private val errorCode = "9011".code
-    extension [F[_]: MonadThrow: Concurrent](m: Multipart[F])
-      def validated(forUserWithId: UserId): EitherT[F, SemanticInputError, DocumentWithStream[F]] =
+    extension [F[_]: { MonadThrow }](m: Multipart[F])
+      def validated(forUserWithId: UserId)(using c: Concurrent[F]): EitherT[F, SemanticInputError, DocumentWithStream[F]] =
         (m.metadata(), m.bytes()).parTupled
           .flatMap { case (part, bytes) =>
             part
@@ -177,7 +177,7 @@ private[http] object DocumentsRoutes:
         }
 
     object json:
-      import io.circe.{Decoder, Encoder, *}
+      import io.circe.{Decoder, Encoder}
       import io.circe.generic.semiauto.*
       import org.http4s.circe.*
 

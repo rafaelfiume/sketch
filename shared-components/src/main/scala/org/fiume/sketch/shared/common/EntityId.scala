@@ -30,7 +30,7 @@ abstract case class EntityId[T <: Entity](val value: UUID):
 object EntityId:
   inline def apply[T <: Entity](value: UUID): EntityId[T] = ${ Macros.entityIdApplyMacro[T]('value) }
 
-  given [T <: Entity]: AsString[EntityId[T]] with
+  given [T <: Entity] => AsString[EntityId[T]]:
     extension (id: EntityId[T]) override def asString(): String = id.value.toString
 
   object FromString:
@@ -42,7 +42,7 @@ object EntityId:
               .map(factory)
               .leftMap(_ => UnparsableUuid(id))
 
-  given [T <: Entity]: Eq[EntityId[T]] = Eq.instance { (thiss, other) =>
+  given [T <: Entity] => Eq[EntityId[T]] = Eq.instance { (thiss, other) =>
     (thiss.value === other.value) && (thiss.entityType === other.entityType)
   }
 

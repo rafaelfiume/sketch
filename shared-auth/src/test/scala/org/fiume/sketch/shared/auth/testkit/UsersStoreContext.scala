@@ -8,7 +8,6 @@ import org.fiume.sketch.shared.auth.User.{UserCredentials, UserCredentialsWithId
 import org.fiume.sketch.shared.auth.UserId
 import org.fiume.sketch.shared.auth.accounts.{Account, AccountState}
 import org.fiume.sketch.shared.auth.algebras.UsersStore
-import org.fiume.sketch.shared.testkit.syntax.OptionSyntax.*
 
 import java.time.Instant
 

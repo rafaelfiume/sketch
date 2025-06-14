@@ -1,7 +1,5 @@
 package org.fiume.sketch.shared.auth
 
-import cats.implicits.*
-
 case class Jwt private (value: String) extends AnyVal
 
 /*

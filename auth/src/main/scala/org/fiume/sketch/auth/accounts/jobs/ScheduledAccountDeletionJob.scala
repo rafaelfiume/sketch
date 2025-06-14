@@ -12,7 +12,7 @@ import org.fiume.sketch.shared.auth.accounts.AccountDeletedNotification.{Notifie
 import org.fiume.sketch.shared.auth.accounts.AccountDeletionEvent.Scheduled
 import org.fiume.sketch.shared.auth.algebras.UsersStore
 import org.fiume.sketch.shared.common.config.DynamicConfig
-import org.fiume.sketch.shared.common.events.{EventId, Recipient}
+import org.fiume.sketch.shared.common.events.EventId
 import org.fiume.sketch.shared.common.jobs.Job
 import org.typelevel.log4cats.Logger
 import org.typelevel.log4cats.slf4j.Slf4jLogger

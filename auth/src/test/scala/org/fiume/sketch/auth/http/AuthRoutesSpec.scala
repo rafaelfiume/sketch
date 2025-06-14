@@ -3,7 +3,6 @@ package org.fiume.sketch.auth.http
 import cats.effect.IO
 import cats.implicits.*
 import munit.{CatsEffectSuite, ScalaCheckEffectSuite}
-import munit.Assertions.*
 import org.fiume.sketch.auth.testkit.AuthenticatorContext
 import org.fiume.sketch.shared.auth.Passwords.PlainPassword
 import org.fiume.sketch.shared.auth.Passwords.PlainPassword.WeakPasswordError
@@ -17,7 +16,7 @@ import org.fiume.sketch.shared.auth.testkit.PasswordsGens.*
 import org.fiume.sketch.shared.auth.testkit.UserGens.*
 import org.fiume.sketch.shared.common.http.middlewares.SemanticValidationMiddleware
 import org.fiume.sketch.shared.common.troubleshooting.ErrorInfo
-import org.fiume.sketch.shared.common.troubleshooting.ErrorInfo.{ErrorCode, ErrorDetails, ErrorMessage}
+import org.fiume.sketch.shared.common.troubleshooting.ErrorInfo.{ErrorCode, ErrorMessage}
 import org.fiume.sketch.shared.common.troubleshooting.ErrorInfo.json.given
 import org.fiume.sketch.shared.common.troubleshooting.syntax.ErrorInfoSyntax.*
 import org.fiume.sketch.shared.testkit.{ContractContext, Http4sRoutesContext}

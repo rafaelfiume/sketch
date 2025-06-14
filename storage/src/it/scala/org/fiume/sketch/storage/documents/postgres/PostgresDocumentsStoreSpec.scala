@@ -6,9 +6,7 @@ import doobie.{ConnectionIO, *}
 import doobie.implicits.*
 import doobie.postgres.implicits.*
 import munit.{CatsEffectSuite, ScalaCheckEffectSuite}
-import org.fiume.sketch.shared.domain.documents.{Document, DocumentId, DocumentWithIdAndStream, DocumentWithStream}
-import org.fiume.sketch.shared.domain.documents.algebras.DocumentsStore
-import org.fiume.sketch.shared.domain.testkit.DocumentsGens.*
+import org.fiume.sketch.shared.domain.documents.{DocumentId, DocumentWithIdAndStream, DocumentWithStream}
 import org.fiume.sketch.shared.domain.testkit.DocumentsGens.given
 import org.fiume.sketch.shared.domain.testkit.syntax.DocumentSyntax.*
 import org.fiume.sketch.shared.testkit.FileContentContext
@@ -79,8 +77,8 @@ class PostgresDocumentsStoreSpec
       will(cleanStorage) {
         PostgresDocumentsStore.make[IO](transactor()).use { store =>
           for
-            fstUuid <- store.store(fstDoc).ccommit
-            sndUuid <- store.store(sndDoc).ccommit
+            _ <- store.store(fstDoc).ccommit
+            _ <- store.store(sndDoc).ccommit
 
             result <- store.fetchDocumentsByOwnerId(sndDoc.metadata.ownerId).ccommitStream.compile.toList
 //
@@ -116,8 +114,8 @@ class PostgresDocumentsStoreSpec
           for
             uuid <- store.store(document).ccommit
 
-            createdAt <- store.fetchCreatedAt(uuid).ccommit
-            updatedAt <- store.fetchUpdatedAt(uuid).ccommit
+            createdAt <- fetchCreatedAt(uuid).ccommit
+            updatedAt <- fetchUpdatedAt(uuid).ccommit
 //
           yield assertEquals(createdAt, updatedAt)
         }
@@ -127,12 +125,20 @@ class PostgresDocumentsStoreSpec
   // no support for updates yet.
 
   test("play it".ignore): // good to see it in action
+    import org.fiume.sketch.shared.auth.UserId
+    import java.util.UUID
+    import org.fiume.sketch.shared.domain.documents.Document
+    import org.fiume.sketch.shared.domain.documents.Document.Metadata.*
     val filename = "mountain-bike-liguria-ponent.jpg"
     IO { bytesFrom[IO](filename) }.flatMap { content =>
       will(cleanStorage) {
         PostgresDocumentsStore.make[IO](transactor()).use { store =>
+          val docWithStream = Document.make(
+            content,
+            Document.Metadata(Name.makeUnsafeFromString(filename), Description(""), UserId(UUID.randomUUID()))
+          )
           for
-            uuid <- store.store(documentsWithStream.sample.someOrFail).ccommit
+            uuid <- store.store(docWithStream).ccommit
             _ <- store
               .documentStream(uuid)
               .ccommitStream
@@ -147,8 +153,7 @@ class PostgresDocumentsStoreSpec
 trait PostgresStoreSpecContext:
   def cleanStorage: ConnectionIO[Unit] = sql"TRUNCATE TABLE domain.documents".update.run.void
 
-  extension (store: DocumentsStore[IO, ConnectionIO])
-    def fetchCreatedAt(uuid: DocumentId): ConnectionIO[Instant] =
-      sql"SELECT created_at FROM domain.documents WHERE uuid = ${uuid}".query[Instant].unique
-    def fetchUpdatedAt(uuid: DocumentId): ConnectionIO[Instant] =
-      sql"SELECT updated_at FROM domain.documents WHERE uuid = ${uuid}".query[Instant].unique
+  def fetchCreatedAt(uuid: DocumentId): ConnectionIO[Instant] =
+    sql"SELECT created_at FROM domain.documents WHERE uuid = ${uuid}".query[Instant].unique
+  def fetchUpdatedAt(uuid: DocumentId): ConnectionIO[Instant] =
+    sql"SELECT updated_at FROM domain.documents WHERE uuid = ${uuid}".query[Instant].unique

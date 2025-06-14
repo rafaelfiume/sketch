@@ -1,4 +1,4 @@
-import sbt._
+import sbt.*
 
 // format: off
 object Dependency {
@@ -7,23 +7,23 @@ object Dependency {
     val jwtCirce              = "10.0.1"
     val bouncycastle          = "1.78.1"
 
-    val cats                  = "2.12.0"
-    val catsEffect            = "3.5.4"
+    val cats                  = "2.13.0"
+    val catsEffect            = "3.5.7"
     val circe                 = "0.14.9"
     val ciris                 = "3.6.0"
     val doobie                = "1.0.0-RC5"
     val flyway                = "10.17.2"
     val fs2                   = "3.11.0"
     val http4s                = "1.0.0-M41"
-    val log4cats              = "2.7.0"
-    val slf4j                 = "2.0.16"
+    val log4cats              = "2.7.1"
+    val slf4j                 = "2.0.17"
 
     val gatling               = "3.11.5"
     val logstash              = "8.0"
     val munit                 = "1.0.1"
-    val munitCatsEffect       = "2.0.0"
+    val munitCatsEffect       = "2.1.0"
     val munitDiscipline       = "2.0.0"
-    val munitScalaCheck       = "1.0.0" 
+    val munitScalaCheck       = "1.0.0"
     val munitScalaCheckEffect = "1.0.4"
     val munitTestcontainers   = "0.41.4"
   }

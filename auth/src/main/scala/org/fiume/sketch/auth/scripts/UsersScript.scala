@@ -7,9 +7,9 @@ import cats.implicits.*
 import doobie.ConnectionIO
 import org.fiume.sketch.auth.accounts.UsersManager
 import org.fiume.sketch.auth.scripts.UsersScript.Args
-import org.fiume.sketch.shared.auth.{User, UserId}
 import org.fiume.sketch.shared.auth.Passwords.PlainPassword
 import org.fiume.sketch.shared.auth.User.Username
+import org.fiume.sketch.shared.auth.UserId
 import org.fiume.sketch.shared.auth.accounts.AccountConfig
 import org.fiume.sketch.shared.authorisation.GlobalRole
 import org.fiume.sketch.shared.common.troubleshooting.{ErrorInfo, InvariantError}
@@ -48,7 +48,7 @@ object UsersScript extends IOApp:
    * An experimental implementation of `AsString` for `ErrorInfo`
    * which doesn't seem to work particularly well when, for example, sent over the network via a json field.
    */
-  given AsString[ErrorInfo] with // yolo
+  given AsString[ErrorInfo]: // yolo
     extension (error: ErrorInfo)
       override def asString(): String =
         val basicMessage = s"""

@@ -8,7 +8,7 @@ import org.fiume.sketch.shared.common.typeclasses.AsString
 object Dynamic:
   case object RecipientsKey extends DynamicConfig.Key[Set[Recipient]]
 
-  given AsString[RecipientsKey.type] with
+  given AsString[RecipientsKey.type]:
     extension (key: RecipientsKey.type) override def asString() = "account.deletion.notification.recipients"
 
   given Decoder[Recipient] = Decoder.decodeString.map(Recipient(_))

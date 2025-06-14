@@ -1,7 +1,6 @@
 package org.fiume.sketch.auth.scripts
 
 import cats.effect.{Async, ExitCode, IO, IOApp}
-import cats.implicits.*
 import fs2.io.file.{Files, Path}
 import org.bouncycastle.jce.provider.BouncyCastleProvider
 import org.fiume.sketch.auth.KeyStringifier

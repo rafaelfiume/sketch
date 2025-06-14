@@ -1,11 +1,11 @@
 package org.fiume.sketch.auth.http
 
-import cats.effect.{Concurrent, Sync}
+import cats.effect.Concurrent
 import cats.implicits.*
 import org.fiume.sketch.auth.accounts.UsersManager
 import org.fiume.sketch.shared.account.management.http.model.AccountStateTransitionErrorSyntax.*
 import org.fiume.sketch.shared.auth.User
-import org.fiume.sketch.shared.auth.accounts.{Account, ActivateAccountError, SoftDeleteAccountError}
+import org.fiume.sketch.shared.auth.accounts.{ActivateAccountError, SoftDeleteAccountError}
 import org.fiume.sketch.shared.auth.accounts.ActivateAccountError.*
 import org.fiume.sketch.shared.auth.accounts.SoftDeleteAccountError.*
 import org.fiume.sketch.shared.auth.http.model.Users.{UserIdVar, *}
@@ -18,7 +18,7 @@ import org.http4s.circe.CirceEntityEncoder.*
 import org.http4s.dsl.Http4sDsl
 import org.http4s.server.{AuthMiddleware, Router}
 
-class UsersRoutes[F[_]: Concurrent, Txn[_]: Sync](
+class UsersRoutes[F[_]: Concurrent, Txn[_]](
   authMiddleware: AuthMiddleware[F, User],
   usersManager: UsersManager[F]
 ) extends Http4sDsl[F]:

@@ -1,7 +1,7 @@
 package org.fiume.sketch.shared.common.http.json
 
 import io.circe.Json
-import org.http4s.{Charset, EntityEncoder, MediaType, *}
+import org.http4s.{Charset, EntityEncoder, MediaType}
 import org.http4s.headers.`Content-Type`
 
 import NewlineDelimitedJson.Line
@@ -18,7 +18,7 @@ enum NewlineDelimitedJson:
   case Linebreak extends NewlineDelimitedJson
 
 object NewlineDelimitedJsonEncoder:
-  def make[F[_]: cats.Functor]: EntityEncoder[F, NewlineDelimitedJson] =
+  def make[F[_]]: EntityEncoder[F, NewlineDelimitedJson] =
     EntityEncoder.stringEncoder
       .contramap[NewlineDelimitedJson] { line =>
         line match

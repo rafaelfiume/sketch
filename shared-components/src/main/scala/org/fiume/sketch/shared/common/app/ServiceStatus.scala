@@ -20,7 +20,7 @@ object ServiceStatus:
     case Degraded
 
   object Status:
-    given AsString[Status] with
+    given AsString[Status]:
       extension (value: Status) override def asString(): String = value.toString() // yolo
 
     given Eq[Status] = Eq.fromUniversalEquals
@@ -41,10 +41,10 @@ object ServiceStatus:
     val database: Database = new Database {}
     val rustic: Rustic = new Rustic {}
 
-    given [T <: Dependency]: AsString[T] = new AsString[T]:
+    given [T <: Dependency] => AsString[T] = new AsString[T]:
       extension (value: T) override def asString(): String = value.name // yolo
 
-    given FromString[String, Dependency] with
+    given FromString[String, Dependency]:
       extension (value: String)
         override def parsed() = value match // yolo
           case "database" => database.asRight[String]
@@ -65,13 +65,13 @@ object ServiceStatus:
     given Encoder[Status] = Encoder.encodeString.contramap(_.asString())
     given Decoder[Status] = Decoder.decodeString.map(Status.valueOf(_))
 
-    given Encoder[DependencyStatus[?]] with
+    given Encoder[DependencyStatus[?]]:
       override def apply(dependency: DependencyStatus[?]): Json =
         Json.obj(
           dependency.dependency.asString() -> dependency.status.asJson
         )
 
-    given Decoder[DependencyStatus[?]] with
+    given Decoder[DependencyStatus[?]]:
       def apply(c: HCursor): Result[DependencyStatus[?]] =
         for
           dependency0 <- c.keys // assumes only one key: 'dependencies'
@@ -81,7 +81,7 @@ object ServiceStatus:
           status <- c.downField(dependency0).as[Status]
         yield DependencyStatus(dependency, status)
 
-    given Encoder[ServiceStatus] with
+    given Encoder[ServiceStatus]:
       override def apply(service: ServiceStatus): Json =
         Json.obj(
           "env" -> service.version.env.asJson,
@@ -91,7 +91,7 @@ object ServiceStatus:
           "dependencies" -> service.dependencies.asJson
         )
 
-    given Decoder[ServiceStatus] with
+    given Decoder[ServiceStatus]:
       override def apply(c: HCursor): Result[ServiceStatus] =
         for
           env <- c.downField("env").as[Environment]

@@ -76,7 +76,7 @@ trait HttpUsersClientSpecContext extends CatsEffectSuite with Http4sClientContex
 
   private def makeUsersRoute(error: AccessDenied.type | SoftDeleteAccountError | ActivateAccountError): HttpRoutes[IO] =
     HttpRoutes.of[IO] {
-      case req @ DELETE -> Root / "users" / UserIdVar(uuid) =>
+      case DELETE -> Root / "users" / UserIdVar(_) =>
         error match
           case e: SoftDeleteAccountError =>
             e match
@@ -87,7 +87,7 @@ trait HttpUsersClientSpecContext extends CatsEffectSuite with Http4sClientContex
           case error: AccessDenied.type => Forbidden(error.asInstanceOf[AccessDenied.type | SoftDeleteAccountError].toErrorInfo)
           case unknown                  => throw UnsupportedOperationException(s"unexpected $unknown")
 
-      case req @ POST -> Root / "users" / UserIdVar(uuid) / "restore" =>
+      case POST -> Root / "users" / UserIdVar(_) / "restore" =>
         error match
           case e: ActivateAccountError =>
             e match

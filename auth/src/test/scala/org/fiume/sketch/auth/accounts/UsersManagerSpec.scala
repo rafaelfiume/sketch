@@ -3,7 +3,6 @@ package org.fiume.sketch.auth.accounts
 import cats.effect.IO
 import cats.implicits.*
 import munit.{CatsEffectSuite, ScalaCheckEffectSuite}
-import munit.Assertions.*
 import org.fiume.sketch.shared.auth.Passwords.PlainPassword
 import org.fiume.sketch.shared.auth.User.{UserCredentials, Username}
 import org.fiume.sketch.shared.auth.UserId
@@ -14,7 +13,6 @@ import org.fiume.sketch.shared.auth.accounts.{
   ActivateAccountError,
   SoftDeleteAccountError
 }
-import org.fiume.sketch.shared.auth.accounts.AccountDeletionEvent.*
 import org.fiume.sketch.shared.auth.testkit.{UserGens, UsersStoreContext}
 import org.fiume.sketch.shared.auth.testkit.AccountGens.given
 import org.fiume.sketch.shared.auth.testkit.EventsFlowContext.CancellableEventProducerContext
@@ -23,7 +21,6 @@ import org.fiume.sketch.shared.auth.testkit.UserGens.given
 import org.fiume.sketch.shared.authorisation.{AccessDenied, ContextualRole, GlobalRole}
 import org.fiume.sketch.shared.authorisation.testkit.AccessControlContext
 import org.fiume.sketch.shared.authorisation.testkit.AccessControlGens.given
-import org.fiume.sketch.shared.common.events.EventId
 import org.fiume.sketch.shared.testkit.ClockContext
 import org.fiume.sketch.shared.testkit.syntax.EitherSyntax.*
 import org.fiume.sketch.shared.testkit.syntax.OptionSyntax.*
