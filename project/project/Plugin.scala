@@ -4,7 +4,7 @@ import sbt.*
 object Plugin {
   private object Version {
     val Gatling             = "4.9.2"
-    val Git                 = "2.0.1"
+    val Git                 = "2.1.0"
     val SbtNativePackager   = "1.10.4"
     val Scalafix            = "0.14.3"
     val ScalaFmt            = "2.5.4"
