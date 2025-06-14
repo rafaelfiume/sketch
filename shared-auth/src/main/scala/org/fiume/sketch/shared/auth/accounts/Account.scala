@@ -32,7 +32,7 @@ enum AccountState:
 object AccountState:
   def transitionToActive(account: Account, activatedAt: Instant): Either[ActivateAccountError, Account] =
     account.state match
-      case AccountState.Active(_) => AccountAlreadyActive.asLeft
+      case AccountState.Active(_)      => AccountAlreadyActive.asLeft
       case AccountState.SoftDeleted(_) =>
         account.copy(state = AccountState.Active(activatedAt)).asRight
 

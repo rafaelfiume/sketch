@@ -10,7 +10,7 @@ import scala.concurrent.duration.FiniteDuration
 object PeriodicJob:
   private val logger = LoggerFactory.getLogger(PeriodicJob.getClass)
 
-  def makeWithDefaultJobErrorHandler[F[_]: { Sync, Temporal }, A](
+  def makeWithDefaultJobErrorHandler[F[_]: {Sync, Temporal}, A](
     interval: FiniteDuration,
     job: Job[F, A]
   ): fs2.Stream[F, A] = make(interval, job, JobErrorLogger.make())
@@ -28,7 +28,7 @@ object PeriodicJob:
       }
       .flatMap {
         case Right(a) => fs2.Stream.emit(a)
-        case Left(e) =>
+        case Left(e)  =>
           fs2.Stream.exec {
             logger.warn("Job failed", e)
             errorHandler.handleJobError(e)

@@ -12,7 +12,7 @@ import org.http4s.client.*
 
 object RusticHealthCheck:
 
-  def make[F[_]: { Async }](config: RusticClientConfig, client: Client[F]): RusticHealthCheck[F] =
+  def make[F[_]: {Async}](config: RusticClientConfig, client: Client[F]): RusticHealthCheck[F] =
     new RusticHealthCheck(config.httpRusticUri, client)
 
 private class RusticHealthCheck[F[_]: Async] private (baseUri: Uri, client: Client[F])
