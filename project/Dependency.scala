@@ -25,7 +25,7 @@ object Dependency {
     val munitDiscipline       = "2.0.0"
     val munitScalaCheck       = "1.1.0"
     val munitScalaCheckEffect = "1.0.4"
-    val munitTestcontainers   = "0.41.4"
+    val munitTestcontainers   = "0.41.8"
   }
 
   // auth
