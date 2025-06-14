@@ -41,7 +41,7 @@ object PostgresDynamicConfigStoreSpecContext:
   given Encoder[SampleValue] = Encoder.encodeString.contramap(_.value)
   given Decoder[SampleValue] = Decoder.decodeString.map(SampleValue(_))
 
-  given AsString[SampleKey.type] with
+  given AsString[SampleKey.type]:
     extension (key: SampleKey.type) override def asString() = "sample.key"
 
 trait PostgresDynamicConfigStoreSpecContext extends DockerPostgresSuite:

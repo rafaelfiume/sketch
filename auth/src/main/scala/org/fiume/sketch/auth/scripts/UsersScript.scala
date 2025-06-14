@@ -7,9 +7,9 @@ import cats.implicits.*
 import doobie.ConnectionIO
 import org.fiume.sketch.auth.accounts.UsersManager
 import org.fiume.sketch.auth.scripts.UsersScript.Args
-import org.fiume.sketch.shared.auth.{UserId}
 import org.fiume.sketch.shared.auth.Passwords.PlainPassword
 import org.fiume.sketch.shared.auth.User.Username
+import org.fiume.sketch.shared.auth.UserId
 import org.fiume.sketch.shared.auth.accounts.AccountConfig
 import org.fiume.sketch.shared.authorisation.GlobalRole
 import org.fiume.sketch.shared.common.troubleshooting.{ErrorInfo, InvariantError}

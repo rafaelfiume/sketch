@@ -90,7 +90,7 @@ class PostgresAccountDeletionEventsStoreSpec
             .toList
 
           // when
-          result <-
+          _ <-
             fs2.Stream
               .range(0, numEvents)
               .covary[IO]

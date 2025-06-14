@@ -176,7 +176,7 @@ class PostgresAccessControlSpec
     }
 
   test("does not perform operation on entity if the user is not authorized to access it"):
-    forAllF { (userId: UserId, document: DocumentWithIdAndStream[IO], role: Role) =>
+    forAllF { (userId: UserId, document: DocumentWithIdAndStream[IO]) =>
       will(cleanStorage) {
         (
           PostgresAccessControl.make[IO](transactor()),
@@ -210,7 +210,7 @@ class PostgresAccessControlSpec
             for
               fstDocumentId <- accessControl.ensureAccess_(fstUserId, role) { documentStore.store(fstDocument) }.ccommit
               sndDocumentId <- accessControl.ensureAccess_(fstUserId, role) { documentStore.store(sndDocument) }.ccommit
-              trdDocumentId <- accessControl.ensureAccess_(sndUserId, role) { documentStore.store(trdDocument) }.ccommit
+              _ <- accessControl.ensureAccess_(sndUserId, role) { documentStore.store(trdDocument) }.ccommit
 
               result <- accessControl
                 .fetchAllAuthorisedEntityIds(fstUserId, "DocumentEntity")

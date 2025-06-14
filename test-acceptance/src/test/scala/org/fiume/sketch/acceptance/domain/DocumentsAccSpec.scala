@@ -73,7 +73,6 @@ class DocumentsAccSpec extends CatsEffectSuite with AccountSetUpAndLoginContext 
 trait DocumentsSpecContext extends Http4sClientContext with FileContentContext:
   import org.http4s.{MediaType, Request}
   import org.http4s.multipart.{Boundary, Multipart, Part}
-  import org.http4s.client.dsl.io.*
   import org.http4s.headers.`Content-Type`
 
   def fileUploadRequest(payload: String, pathToFile: String, authHeader: Authorization): Request[IO] =

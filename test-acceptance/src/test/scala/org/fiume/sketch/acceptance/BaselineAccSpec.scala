@@ -1,6 +1,5 @@
 package org.fiume.sketch.acceptance
 
-import munit.Assertions.*
 import munit.CatsEffectSuite
 import org.fiume.sketch.shared.testkit.Http4sClientContext
 

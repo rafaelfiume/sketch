@@ -118,7 +118,7 @@ class PostgresAccountDeletedNotificationsStoreSpec
             .map(_.flatten)
 
           // when
-          result <-
+          _ <-
             fs2.Stream
               .range(0, numNotifications)
               .covary[IO]
