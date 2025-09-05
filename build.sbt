@@ -92,6 +92,7 @@ lazy val service =
         Dependency.http4sEmberClient,
         Dependency.http4sEmberServer,
         Dependency.log4catsSlf4j,
+        Dependency.logbackJson,
         Dependency.slf4jSimple,
         Dependency.munit % "test,it",
         Dependency.munitCatsEffect % "test,it",

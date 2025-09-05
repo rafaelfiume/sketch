@@ -15,6 +15,7 @@ services:
       - "9999:9999" # expose JMX port
     environment:
       - ENV=$ENV
+      - LOG_LEVEL=${LOG_LEVEL}
       - HTTP_SERVER_PORT=${HTTP_SERVER_PORT}
       - HTTP_REQ_RES_LOG_ENABLED=${HTTP_REQ_RES_LOG_ENABLED}
       - HTTP_CORS_ALLOWS_ORIGIN=${HTTP_CORS_ALLOWS_ORIGIN}

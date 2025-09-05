@@ -1,7 +1,14 @@
 <configuration scan="true" scanPeriod="30 seconds">
     <appender name="STDOUT" class="ch.qos.logback.core.ConsoleAppender">
         <encoder class="net.logstash.logback.encoder.LogstashEncoder">
-            <customFields>{"service": "sketch"}</customFields>
+            <customFields>
+               {
+                 "service": "sketch",
+                 "version": "${VERSION:-snapshot}",
+                 "env": "${ENV:-local}",
+                 "hostname": "${HOSTNAME:-unknown}"
+               }
+            </customFields>
         </encoder>
     </appender>
 
@@ -14,7 +21,7 @@
 
     <logger name="org.http4s" level="INFO"/>
 
-    <root level="INFO">
+    <root level="${LOG_LEVEL:-INFO}">
         <appender-ref ref="STDOUT"/>
         <appender-ref ref="STDERR"/>
     </root>
