@@ -31,7 +31,8 @@ services:
       - PUBLIC_KEY=${PUBLIC_KEY}
       - JAVA_OPTS=-Xmx2g -XX:+UseG1GC -Djava.rmi.server.hostname=localhost -Dcom.sun.management.jmxremote -Dcom.sun.management.jmxremote.port=9999 -Dcom.sun.management.jmxremote.rmi.port=9999 -Dcom.sun.management.jmxremote.ssl=false -Dcom.sun.management.jmxremote.authenticate=false
     depends_on:
-      - sketch-database
+      sketch-database:
+        condition: service_healthy
     logging:
       driver: "json-file"
       options:
@@ -50,6 +51,11 @@ services:
       - POSTGRES_PASSWORD=${DB_PASS}
     volumes:
       - sketch_postgres_data:/var/lib/postgresql/sketch/data # Persist the database data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER} -d ${DB_NAME}"]
+      interval: 2s
+      timeout: 30s
+      retries: 15
 
   rustic-sketch:
     image: rafaelfiume/rustic-sketch:latest

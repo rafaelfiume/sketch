@@ -56,13 +56,13 @@ parse_params() {
 exit_with_error_if_service_fails_to_start() {
   local status_endpoint=$1
   wait_till_next_try_in_sec=0.3
-  max_tries=20
+  max_retries=100
   attempt=0
   while ! curl_output=$(curl -sSf $status_endpoint 2>&1); do
     debug "$curl_output"
     attempt=$((attempt + 1))
-    if [ $attempt -ge $max_tries ]; then
-      timeout=$(echo "$wait_till_next_try_in_sec * $max_tries" | bc)
+    if [ $attempt -ge $max_retries ]; then
+      timeout=$(echo "$wait_till_next_try_in_sec * $max_retries" | bc)
       error "Failed to start application after $timeout seconds"
       exit 55
     fi

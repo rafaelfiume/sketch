@@ -18,4 +18,5 @@
 *secrets*
 
 # Logs
-tools/stack/logs
+tools/stack/logs/*
+!tools/stack/logs/.gitkeep
