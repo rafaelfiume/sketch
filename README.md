@@ -7,6 +7,8 @@
 
 Read the [Onboarding](docs/start-here/Onboarding.md) guide to have the app and its dependencies running on your machine.
 
+**Note:** Project docs are currently being rewritten to conform to the [Documentation Guidelines](docs/best-practices/Documentation.md).
+
 ## Modules
 
 This service is designed as a small monolith with proper separation of main system components in modules. That should lead to rapid development, while still alowing to switch to a microservice architecture when - or immediatilly before/after - scalability issues arise.
