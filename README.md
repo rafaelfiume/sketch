@@ -5,10 +5,13 @@
 
 ## Start Here
 
-There's a [Postman collection](docs/Sketch.postman_collection.json) that can be used to send requests to the service,
-and a [start-local.sh](/tools/stack/start-local.sh) script to initialise the services locally.
+Read the [Onboarding](docs/start-here/Onboarding.md) guide to have the app and its dependencies running on your machine.
 
- - [Authentication](docs/Auth.md) properties:
+## Modules
+
+This service is designed as a small monolith with proper separation of main system components in modules. That should lead to rapid development, while still alowing to switch to a microservice architecture when - or immediatilly before/after - scalability issues arise.
+
+ - [Authentication](auth/README.md) properties:
    - [Authenticator](auth/src/test/scala/org/fiume/sketch/auth/AuthenticatorSpec.scala)
    - [Jwt generation & verification](auth/src/test/scala/org/fiume/sketch/auth/JwtIssuerSpec.scala)
    - [Password hashing](shared-auth/src/test/scala/org/fiume/sketch/shared/auth/HashedPasswordSpec.scala)
