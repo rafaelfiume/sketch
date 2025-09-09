@@ -3,9 +3,27 @@
 Defines how our systems authenticate users, manage sessions, and handle account deletion, ensuring security, scalability and compliance.
 
 
-# 1. Goals
+---
 
-The authentication module must:
+**Table of Contents**
+
+1. [Goals](#1-goals)
+2. [Overview](#2-overview)
+3. [Authentication Flow](#3-authentication-flow)
+    - 3.1 [Session Verification](#31-session-verification)
+    - 3.2 [Account Creation](#32-account-creation)
+4. [Algorithms & Configuration](#4-algorithms--configuration)
+    - 4.1 [Password Hashing (BCrypt)](#41-password-hashing-bcrypt)
+    - 4.2 [Session Tokens (Jwt + ECDSA P256)](#42-session-tokens-jwt--ecdsa-p-256)
+5. [Security Best Practices](#5-security-best-practices)
+6. [Account Lifecycle & Deletion](#6-account-lifecycle--deletion)
+7. [Common Pitfalls & Tradeoffs](#7-common-pitfalls--tradeoffs)
+8. [References](#8-references)
+
+
+## 1. Goals
+
+The authentication system must:
  * Securely **store and verify passwords**
  * Issue **stateless tokens** for authentication at scale
  * Provide a clear **user data lifecycle** (soft and hard deletion).
@@ -24,7 +42,7 @@ The authentication module must:
 
 ## 3. Authentication Flow
 
-#### 3.1 Session Verification
+### 3.1 Session Verification
 
 ```
 [User submits credentials]
@@ -130,18 +148,19 @@ Hard Deletion:
 
 ## 7. Common Pitfalls & Tradeoffs
 
-### Avoid UNIQUE Constraints on Stored Hashes ❌
+**Avoid UNIQUE Constraints on Stored Hashes ❌:**
 
 * BCrypt hashes are always unique (built-in salts)
 * It could lead to migration issues when changing costs or algorithm
 * It might create a false sense of password reuse prevention.
 
-### Prevent Same Password Functionality
+**Prevent Same Password Functionality:**
 
 * Depends on policy/business rules
 * Must be enforced at application layer
   - Example: deriving a deduplication key with HMAC
 * Currently not implemented by this system.
+
 
 ## 8. References
 

@@ -1,16 +1,19 @@
 
 # Dev Environment Troubleshooting
 
-### Quick guide:
 
-- For **common issues**, see Section 1 (Docker Debugging) and Section 4 (Ports and Network).
-- For **clean up** tasks, go to Section 2 (Docker Cleanup Commands).
-- To debug **running OS processes**, see Section 5 (OS Process Management)
-- For **API debugging**, skip to Section 7 (Other Useful Tools).
-- Section 3 (Docker Build & Run) can be helpful to speed up development by dealing with docker directly locally.
-- See Section 6 (Sbt Workflow) for additional tips when working with **Sbt**.
+**Table of Contents**
+1.  [Docker Debugging](#1-docker-debugging)
+2.  [Docker Cleanup Commands](#2-docker-cleanup-commands)
+3.  [Docker Build & Run](#3-docker-build--run)
+4.  [Ports and Network](#4-ports-and-network)
+5.  [OS Process Management](#5-os-process-management)
+6.  [Sbt Workflow](#6-sbt-workflow)
+7.  [Other Useful Tools](#7-other-useful-tools)
+    -   [Debug with `jq`](#debug-with-jq)
 
-### 1. Docker Debugging
+
+## 1. Docker Debugging
 
 List all containers, running or stopped:
 ```bash
@@ -57,7 +60,7 @@ Show a Docker volume info:
 docker volume inspect <volume-name>
 ```
 
-### 2. Docker Cleanup Commands
+## 2. Docker Cleanup Commands
 
 Remove all stopped containers:
 ```bash
@@ -84,7 +87,7 @@ Cleanup unused containers, networks, images and intermediate layers:
 docker system prune
 ```
 
-### 3. Docker Build & Run
+## 3. Docker Build & Run
 
 Build and publish the app's Docker image locally:
 ```bash
@@ -111,7 +114,7 @@ Stop and remove containers created by docker-compose directly:
 docker compose down
 ```
 
-### 4. Ports and Network
+## 4. Ports and Network
 
 Check network connectivity to a host:
 ```bash
@@ -139,7 +142,7 @@ dig <hostname>
 nslookup <hostname>
 ```
 
-### 5. OS Process Management
+## 5. OS Process Management
 
 Find info about running processes, e.g. Java:
 ```bash
@@ -151,7 +154,7 @@ Force-kill a process:
 kill -9 <pid>
 ```
 
-### 6. Sbt Workflow
+## 6. Sbt Workflow
 
 Recompile while coding:
 ```bash
@@ -160,7 +163,7 @@ sbt ~compile
 
 💡 Combine commands, for example, `sbt clean test it:test`.
 
-### 7. Other Useful Tools
+## 7. Other Useful Tools
 
 Debug environment variables:
 ```bash

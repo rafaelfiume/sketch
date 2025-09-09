@@ -8,18 +8,21 @@ Defines **how system grants or denies access to entities**, combining Role-Based
 | Ownership-based | Entity-level             |
 
 > ⚠️ **Work in Progress**: This system is in early-stage development.
-> See **Section 3: Future Directions" for planned changes.
+> See [Section 3: Future Directions](#3-future-directions) for planned changes.
 
+---
 
-1. Goals
-2. Current Rules
-    - 2.1 Global Permissions (Role-Based Access Control)
-    - 2.2 Entity-Level Permissions (Ownership-Based Access Control)
-    - 2.3 Permission Rules
-    - 2.4 Privileges & Current Limitations
-3. Future Directions
-4. Implementation Reference
-5. References
+**Table of Contents**
+
+1. [Goals](#1-goals)
+2. [Current Rules](#2-current-rules)
+    - [2.1 Global Permissions (Role-Based Access Control)](#21-global-permissions-role-based-access-control)
+    - [2.2 Entity-Level Permissions (Ownership-Based Access Control)](#22-entity-level-permissions-ownership-based-access-control)
+    - [2.3 Permission Rules](#23-permission-rules)
+    - [2.4 Privileges & Current Limitations](#24-privileges--current-limitations)
+3. [Future Directions](#3-future-directions)
+4. [Implementation Reference](#4-implementation-reference)
+5. [References](#5-references)
 
 
 ## 1. Goals
@@ -34,7 +37,7 @@ The authorisation system must:
 
 These are the heart of the authorisation system.
 
-#### 2.1 Global Permissions (Role-Based Access Control)
+### 2.1 Global Permissions (Role-Based Access Control)
 
 * Roles define global permissions that are **applied across all entities**
 * A user can have **at most one global role**.
@@ -45,7 +48,7 @@ These are the heart of the authorisation system.
 | **Superuser**      | System-wide access to all entities, except for user/account management |
 | **No Global Role** | Can only access their own resources |
 
-#### 2.2 Entity-Level Permissions (Ownership-Based Access Control)
+### 2.2 Entity-Level Permissions (Ownership-Based Access Control)
 
 Ownership-Based control is a simplified form of [Relationship-Based Access Control (ReBAC)](https://en.wikipedia.org/wiki/Relationship-based_access_control), and a project-specific pattern.
 
@@ -57,7 +60,7 @@ Ownership-Based control is a simplified form of [Relationship-Based Access Contr
 See the test `"grants a user ownership, and thus access, to an entity"` in [PostgresAccessControlSpec](../storage/src/it/scala/org/fiume/sketch/storage/authorisation/postgres/PostgresAccessControlSpec.scala) for the definitive implementation. For integration examples, see [UsersManagerSpec](../auth/src/test/scala/org/fiume/sketch/auth/accounts/UsersManagerSpec.scala).
 
 
-#### 2.3 Permission Rules
+### 2.3 Permission Rules
 
 **Access Rules**:
 
@@ -74,7 +77,7 @@ See the test `"grants a user ownership, and thus access, to an entity"` in [Post
 | **All** entities     | User must be **authenticated**                 |
 | **Restrictions**     | None yet. See **Section 5. Future Directions** |
 
-#### 2.4 Privileges & Current Limitations
+### 2.4 Privileges & Current Limitations
 
 Right now, **access implies full permission**:
   * If a user can access an entity, they **can read, edit and delete** it.

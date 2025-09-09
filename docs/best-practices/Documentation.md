@@ -1,6 +1,18 @@
 # Documentation Guidelines
 
-## 1. Goal 
+
+**Table of Contents**
+
+1. [Goals](#1-goals)
+2. [Core Principles](#2-core-principles)
+3. [Information Density: Signal-to-Noise Ratio (SNR)](#3-information-density-signal-to-noise-ratio-snr)
+4. [Reduce Entropy](#4-reduce-entropy)
+5. [Progressive Disclosure](#5-progressive-disclosure)
+6. [Actionable References](#6-actionable-references)
+7. [Checklist](#7-checklist)
+
+
+## 1. Goals
 
 Write effective, high signal-to-noise ratio, low-entropy technical documentation for rapid comprehension of relevant information by applying Information Theory concepts:
 
@@ -33,7 +45,7 @@ SNR measures the amount of relevant information (signal) compared to irrelevant 
 | Tables for quick scanning & short and precise bullets       | Long paragraphs                   |
 | Diagrams for flow                                           | Text-only processes descriptions  |
 
-#### Bad: Low SNR
+**Bad - Low SNR:**
 
 From the [old authentication doc](https://github.com/rafaelfiume/sketch/blob/c7604e84843a07c6cba269adadb7b911c8558baa/docs/Auth.md):
 
@@ -41,7 +53,7 @@ From the [old authentication doc](https://github.com/rafaelfiume/sketch/blob/c76
 
 This is useful general theory, but it **doesn't help to maintain a specific system** -> _noise_.
 
-#### Good: High SNR
+**Good - High SNR:**
 
 Compare with:
 
@@ -62,7 +74,7 @@ A **predictable structure** lowers entropy, making the document easier to naviga
 | Clear scope for each section                  | Mixed concepts with no clear order  |
 | Easy to reference specific sections           | Hard to pinpoint specific topics   |
 
-#### Bad: High SNR, but High Entropy
+**Bad - High SNR, but High Entropy:**
 
 Excerpt from the old [Strategy](https://github.com/rafaelfiume/sketch/blob/c7604e84843a07c6cba269adadb7b911c8558baa/docs/Auth.md#strategy) section:
 
@@ -71,7 +83,7 @@ Excerpt from the old [Strategy](https://github.com/rafaelfiume/sketch/blob/c7604
 All the content is relevant, but too many concepts (hashing, JWT, salt) packed together without clear boundaries.
 This forces the reader to digest the information, a classic symptom of high entropy.
 
-#### Good: Predictable, Low Entropy
+**Good - Predictable, Low Entropy:**
 
 Numbered sections:
 
@@ -85,7 +97,7 @@ This makes the document predictable, enabling readers to jump to relevant sectio
 Introduce concepts in **layers**, starting with a high-level view and gradually revealing details.
 This prevents the reader from being overwhelmed and lets them **naturally zoom in as they progress**.
 
-#### Example - Authentication Doc:
+**Example - Authentication Doc:**
 
 | Layer                          | [Final Doc](../../auth/README.md) ✅                | [Previous Doc](https://github.com/rafaelfiume/sketch/blob/c7604e84843a07c6cba269adadb7b911c8558baa/docs/Auth.md) ❌  |
 | -------------------------------| ----------------------------------------------------| ------------------------------------------------|
@@ -114,7 +126,7 @@ Enable readers to take **clear next steps**.
 Takeaway: Inlining basic theory increases noise. Use link to external resources instead.
 
 
-## Checklist
+## 7. Checklist
 
 Before completing a documentation, ask yourself:
 
