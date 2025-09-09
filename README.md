@@ -11,7 +11,9 @@ Read the [Onboarding](docs/start-here/Onboarding.md) guide to have the app and i
 
 ## Modules
 
-This service is designed as a small monolith with proper separation of main system components in modules. That should lead to rapid development, while still alowing to switch to a microservice architecture when - or immediatilly before/after - scalability issues arise.
+This service is designed as a small monolith with proper separation of system components in modules.
+
+That should lead to rapid development, while still alowing to switch to a microservice architecture when - or immediatilly before/after - scalability issues arise.
 
  - [Authentication](auth/README.md) properties:
    - [Authenticator](auth/src/test/scala/org/fiume/sketch/auth/AuthenticatorSpec.scala)
@@ -21,8 +23,7 @@ This service is designed as a small monolith with proper separation of main syst
    - [Valid usernames](shared-auth/src/test/scala/org/fiume/sketch/shared/auth/UsernameSpec.scala)
    - [Valid passwords](shared-auth/src/test/scala/org/fiume/sketch/shared/auth/PlainPasswordSpec.scala)
 
- - [Authorisation](docs/Authorisation.md) properties:
-   - [Access control](auth/src/test/scala/org/fiume/sketch/auth/UsersManagerSpec.scala)
+ - [Authorisation](shared-access-control/README.md)
 
  - [Design](docs/Design.md)
 
@@ -33,8 +34,6 @@ This service is designed as a small monolith with proper separation of main syst
  - [Error Codes](docs/ErrorCodes.md)
 
  - [Pipeline & Stack (& Infra)](docs/Pipeline.md)
-
- - [Workspace](docs/Workspace.md)
 
 
 ### "Academic" techniques that prove useful in real life
