@@ -5,7 +5,7 @@
 
 ## Start Here
 
-Read the [Onboarding](docs/start-here/Onboarding.md) guide to have the app and its dependencies running on your machine.
+Read the [Onboarding](docs/start-here/Onboarding.md) guide to have the application and its dependencies running on your machine.
 
 **Note:** Project docs are currently being rewritten to conform to the [Documentation Guidelines](docs/best-practices/Documentation.md).
 
@@ -16,12 +16,6 @@ This service is designed as a small monolith with proper separation of system co
 That should lead to rapid development, while still alowing to switch to a microservice architecture when - or immediatilly before/after - scalability issues arise.
 
  - [Authentication](auth/README.md) properties:
-   - [Authenticator](auth/src/test/scala/org/fiume/sketch/auth/AuthenticatorSpec.scala)
-   - [Jwt generation & verification](auth/src/test/scala/org/fiume/sketch/auth/JwtIssuerSpec.scala)
-   - [Password hashing](shared-auth/src/test/scala/org/fiume/sketch/shared/auth/HashedPasswordSpec.scala)
-   - [Salt generation](shared-auth/src/test/scala/org/fiume/sketch/shared/auth/SaltSpec.scala)
-   - [Valid usernames](shared-auth/src/test/scala/org/fiume/sketch/shared/auth/UsernameSpec.scala)
-   - [Valid passwords](shared-auth/src/test/scala/org/fiume/sketch/shared/auth/PlainPasswordSpec.scala)
 
  - [Authorisation](shared-access-control/README.md)
 

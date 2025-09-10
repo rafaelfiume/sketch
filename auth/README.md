@@ -7,18 +7,20 @@ Defines how our systems authenticate users, manage sessions, and handle account 
 
 **Table of Contents**
 
-1. [Goals](#1-goals)
-2. [Overview](#2-overview)
-3. [Authentication Flow](#3-authentication-flow)
-    - 3.1 [Session Verification](#31-session-verification)
-    - 3.2 [Account Creation](#32-account-creation)
-4. [Algorithms & Configuration](#4-algorithms--configuration)
-    - 4.1 [Password Hashing (BCrypt)](#41-password-hashing-bcrypt)
-    - 4.2 [Session Tokens (Jwt + ECDSA P256)](#42-session-tokens-jwt--ecdsa-p-256)
-5. [Security Best Practices](#5-security-best-practices)
-6. [Account Lifecycle & Deletion](#6-account-lifecycle--deletion)
-7. [Common Pitfalls & Tradeoffs](#7-common-pitfalls--tradeoffs)
-8. [References](#8-references)
+ 1. [Goals](#1-goals)
+ 2. [Overview](#2-overview)
+ 3. [Authentication Flow](#3-authentication-flow)
+     - 3.1 [Session Verification](#31-session-verification)
+     - 3.2 [Account Creation](#32-account-creation)
+ 4. [Algorithms & Configuration](#4-algorithms--configuration)
+     - 4.1 [Password Hashing (BCrypt)](#41-password-hashing-bcrypt)
+     - 4.2 [Session Tokens (Jwt + ECDSA P256)](#42-session-tokens-jwt--ecdsa-p-256)
+ 5. [Security Best Practices](#5-security-best-practices)
+ 6. [Account Lifecycle & Deletion](#6-account-lifecycle--deletion)
+ 7. [Common Pitfalls & Tradeoffs](#7-common-pitfalls--tradeoffs)
+ 8. [Admin Processes](#8-admin-processes)
+ 9. [Implementation Reference](#9-implementation-reference)
+10. [References](#10-references)
 
 
 ## 1. Goals
@@ -62,7 +64,7 @@ The authentication system must:
 
 ### 3.2 Account Creation
 
-Triggered by an Admin using [UsersScript](src/main/scala/org/fiume/sketch/auth/scripts/UsersScript.scala). Account creation is handled by [UsersManager](src/main/scala/org/fiume/sketch/auth/accounts/UsersManager.scala). 
+Triggered by an Admin. See [Admin Processes](#8-admin-processes) section.
 
 (Flow below excludes authorisation tasks for simplicity.)
 
@@ -162,7 +164,33 @@ Hard Deletion:
 * Currently not implemented by this system.
 
 
-## 8. References
+## 8. Admin Processes
+
+There are operational tasks associated with the Authentication system:
+
+* **Setup a new user account** - right now, a user cannot create their account
+* **Generate ECDSA P-256keys** - necessary to sign and verify JWTs issued by the system.
+
+See the 'Authentication Ops' section in [Admin Processes](../docs/devops/Admin.md) guide.
+
+
+## 9. Implementation Reference
+
+The expected behaviour of authentication primitives and validations are specified by the following property-based tests.
+
+**Executable Specifications:**
+
+| Category                   | Component                  | Specification                  |
+|----------------------------|----------------------------|--------------------------------|
+| Authentication Flow        | [AuthenticatorSpec](../auth/src/test/scala/org/fiume/sketch/auth/AuthenticatorSpec.scala) | Authentication and Jwt issue |
+| Tokens                     | [JwtIssuerSpec](../auth/src/test/scala/org/fiume/sketch/auth/JwtIssuerSpec.scala) | Jwt generation, signing and validation |
+| Salts & Hashing            | [SaltSpec](../shared-auth/src/test/scala/org/fiume/sketch/shared/auth/SaltSpec.scala)  | Salt properties used for password hashing |
+|                            | [HashedPasswordSpec](../shared-auth/src/test/scala/org/fiume/sketch/shared/auth/HashedPasswordSpec.scala) | Passwords hashing and verification properties |
+| Account Policies           | [UsernameSpec](../shared-auth/src/test/scala/org/fiume/sketch/shared/auth/UsernameSpec.scala) | Rules for valid usernames (length, characters, etc.) |
+|                            | [PasswordSpec](../shared-auth/src/test/scala/org/fiume/sketch/shared/auth/PlainPasswordSpec.scala) | Password strength and complexity requirements|
+
+
+## 10. References
 
 * [Jwt](https://www.jwt.io/introduction)
 * [BCrypt](https://en.wikipedia.org/wiki/Bcrypt)

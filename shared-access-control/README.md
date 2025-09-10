@@ -105,15 +105,13 @@ These are planned features:
 
 The authorisation rules provided in this document are defined by the `AccessControl` algebra, and implemented by `PostgresAccessControl`. The logic is thoroughly tested with property-based tests, and they serve as living specs.
 
-| Component    | Purpose       |
-|--------------|---------------|
-| [AccessControl](../shared-access-control/src/main/scala/org/fiume/sketch/shared/authorisation/AccessControl.scala) | Defines all access control operations and implements fundamental logic |
-| [PostgresAccessControl](../storage/src/main/scala/org/fiume/sketch/storage/authorisation/postgres/PostgresAccessControl.scala) | Concrete implementation of `AccessControl` using Postgres for persistence |
-| [PostgresAccessControlSpec](../storage/src/it/scala/org/fiume/sketch/storage/authorisation/postgres/PostgresAccessControlSpec.scala) | The **canonical reference for the rules in Section 2.3** |
-| [DocumentsRoutesSpec](../service/src/test/scala/org/fiume/sketch/http/DocumentsRoutesSpec.scala) | Example of how access control is integrated with a business component (e.g. reading a document)
-| [UsersManagerSpec](../auth/src/test/scala/org/fiume/sketch/auth/accounts/UsersManagerSpec.scala) | Example of how access control is integrated with a business component (e.g. user account deletion in `UsersManager) |
+| Category                       | Component                  | Specification                  |
+|--------------------------------|----------------------------|--------------------------------|
+| Authorisation Flow             | [PostgresAccessControlSpec](../storage/src/it/scala/org/fiume/sketch/storage/authorisation/postgres/PostgresAccessControlSpec.scala) | The reference implementation for [AccessControl](../shared-access-control/src/main/scala/org/fiume/sketch/shared/authorisation/AccessControl.scala) |
+| Business component integration | [DocumentsRoutesSpec](../service/src/test/scala/org/fiume/sketch/http/DocumentsRoutesSpec.scala) | Ensures only authorised users have access to documents |
 
-> ⚠️ Access control tests in `UsersManagerSpec` and similar components might be moved to a dedicated spec in the near future, e.g. `UsersManagerAccessControlSpec`.
+
+> ⚠️ Access control tests in `DocumentsRoutesSpec` and similar components might be moved to a dedicated spec in the near future, e.g. `DocumentsRoutesAccessControlSpec`.
 
 
 ## 5. References
