@@ -9,11 +9,41 @@ import org.fiume.sketch.shared.common.typeclasses.{AsString, FromString}
 import java.util.UUID
 import scala.util.Try
 
-/*
- * A phantom type is a parameterised type whose parameters do not all appear on the right-hand side of its definition.
- * See https://wiki.haskell.org/Phantom_type
+/**
+ * ### Motivations:
  *
- * About EntityId Equality:
+ * Guarantees at compile time that IDs are not accidently mixed up.
+ *
+ * Suppose that there is no phantom types, only a single universal EntityId:
+ * {{{
+ * val userId: EntityId = fetchBestFriend()
+ * . . .
+ * val docId: EntityId = fetchFakeNews()
+ * . . .
+ * eraseFromEarth(userId) // ops! Compiles fine causing a massive (depending on your friend) - runtime error
+ * }}}
+ *
+ * Phantom Types makes an entire class of problem impossible to happen by catching them at compile time with zero runtime cost!
+ * {{{
+ * val userId: EntityId[User] = fetchBestFriend()
+ * . . .
+ * val docId: EntityId[Document] = fetchFakeNews()
+ * . . .
+ * eraseFromEarth(userId) // Won't compile: type mismatch
+ * }}}
+ *
+ * `User` and `Document` in the latter example are phantom type markers:
+ * they only exist at compilation time, thus there is no runtime overhead.
+ *
+ * From a Domain-Driven Development perspective, domain intent is explicit and enforced by the type system:
+ *
+ * > Unknown or invalid states are unrepresentable.
+ *
+ * For any non-trivial codebase, preventing mix-up of ids - picture a function that expects two or more different types of ids -
+ * the upfront cost associated with Phantom Types machinery pays for itself
+ * by enabling the compiler to prevent potentially severe bugs from going into production.
+ *
+ * ### Equality:
  *
  * val fst = OrderId(uuid)
  * val snd = ItemId(uuid)
