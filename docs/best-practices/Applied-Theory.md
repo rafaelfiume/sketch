@@ -1,10 +1,21 @@
 # Applied Theory
 
+## Goals
+
+*We've all been there:* coming across **powerful ideas** that seem cool, yet **disconnected** from the harsh reality of **deadlines**.
+
+My goal is to help **bridge that gap** and facilitate the **adoption of "academic" techniques** in real-world software-engineering.
+
+We developers deserve the **peace of mind** that comes from building something **reliable**, **long-lasting** and **meaningful**.
+
+---
+
+<small>(The benefits illustrated in each example are non-exhaustive.)</small>
+
 
 ## 1. Type Theory -> Encoding Invariants at Compile Time
 
 Because we prefer to catch bugs during compilation rather than execution.
-
 
 | Concept                               | Problem It Solves     | Prevents             | Example      |
 |---------------------------------------|-----------------------|----------------------|--------------|
@@ -13,6 +24,7 @@ Because we prefer to catch bugs during compilation rather than execution.
 | **Phantom Types**                     | **Compile-time guarantee** that the correct ID type is used, with zero runtime cost | Corrupting data by passing IDs of wrong type (e.g. `UserId` vs. `DocumentId`), fragile refactoring | [EntityId](../../shared-components/src/main/scala/org/fiume/sketch/shared/common/EntityId.scala) |
 | **Extension Methods**                 | * **Enriches** types without modifying their sourcecode <br>* Improves API **fluency and discoverability** | * Harder to discover, e.g. `JobUtils.toResponse(job)` . <br>* Clumsier to read: `ScheduledForPermanentDeletionResponse(job.uuid, job.userId, job.permanentDeletionAt)` vs. `job.asResponsePayload` | [Users](../../shared-auth/src/main/scala/org/fiume/sketch/shared/auth/http/model/Users.scala). See <br>`extension (job: AccountDeletionEvent.Scheduled)` |
 
+---
 
 ## 2. Stream Processing -> Declarative & Resilient Flows
 
@@ -27,4 +39,24 @@ They are a natural fit for encoding complex business in a single composable flow
 | **Concurrent** Streams          | Predictable and safe execution of **parallel, independent workflows** | Deadlocks, race conditions and other forms non-deterministic behaviour, like heinsenbugs and starvation | `httpServiceStream // core service`<br>`.concurrently(accountPermanentDeletionStream) // account lifecycle`<br>`.concurrently(sketchUserDataDeletionStream) // data cleanup`<br><br>See: [App](../../service/src/main/scala/org/fiume/sketch/app/App.scala) |
 | **Producer-Consumer Streams**   | Build **reliable event-driven systems with clear delivery semantics** | * Lost or duplicated events <br>* The low-level complexity generelly associated with this type of programming | Exactly-once semantics backed by [Postgres as a Lightweight Event Bus](../../README.md). <br><br>`producer.produceEvent(. . .).ccommit`<br>`. . .`<br>`consumer.consumeEvent().flatMap { notification => . . . business logic }`<br><br>See: [PostgresAccountDeletedNotificationsStoreSpec](../../storage/src/it/scala/org/fiume/sketch/storage/auth/postgres/PostgresAccountDeletedNotificationsStoreSpec.scala) |
 
+---
 
+## 3. Managing Effects -> Composable and Predictable Real-World Programs
+
+Because developers need I/O, concurrency, mutation, failures. And we prefer to reason about them locally.
+
+| Concept                         | Problem It Solves    | Prevents         | Example      |
+|---------------------------------|----------------------|------------------|--------------|
+| Controlled Mutation             | **Safe and performant shared, mutable state** in concurrent contexts | The **hard-to-reproduce bugs** caused by race conditions, dirty reads and data corruption | Implementing **fully-functional storage components for integration tests**.<br><br>* Replaces databases and other external dependencies with fast, deterministic, in-memory versions.<br>* Enables unit testing components in concurrent contexts without flakiness.<br><br> See: Tests in [UsersManagerSpec](../../auth/src/test/scala/org/fiume/sketch/auth/accounts/UsersManagerSpec.scala) that use an [**in-Memory Implementation**](../../shared-auth/src/test/scala/org/fiume/sketch/shared/auth/testkit/UsersStoreContext.scala#L39) of [UsersStore](../../shared-auth/src/main/scala/org/fiume/sketch/shared/auth/algebras/UsersStore.scala) interface. |
+
+---
+
+## 4. Mathematical Foundations (Category Theory) -> Safe & Composable Components
+
+Category Theory can lead to predictable and composable components with safety guarantees.
+
+| Concept                         | Problem It Solves    | Prevents         | Example      |
+|---------------------------------|----------------------|------------------|--------------|
+| **Natural Transformation** (`F ~> G`) | Defines cross-cutting concerns like transactions as **composable, type-safe boundaries.** | Transactional-mechanics (commit/rollback) from the database leaking into core domain logic | [Store](shared-components/src/main/scala/org/fiume/sketch/shared/common/app/Store.scala) |
+| **Isomorphism**                 | **Lossless conversions** between data representations. E.g. Cryptographic keys can be serialised and deserialised without corruption | Corrupted keys leading to severe authentication failures | [KeyStringifierSpec](auth/src/test/scala/org/fiume/sketch/auth/KeyStringifierSpec.scala) |
+| **Semigroups**                  | **Accumulates** multiple errors automatically, avoiding multiple calls to `combine` in validation logic | Error-prone boilerplate code; subtle bugs caused by fail-fast validation instead of all errors | [ErrorDetailsLawSpec](/shared-components/src/test/scala/org/fiume/sketch/shared/common/troubleshooting/ErrorDetailsLawsSpec.scala) |

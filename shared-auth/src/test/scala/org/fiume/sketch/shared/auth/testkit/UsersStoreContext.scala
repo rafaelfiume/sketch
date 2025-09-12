@@ -36,7 +36,7 @@ trait UsersStoreContext:
     makeUsersStore(State.makeWith(account), clock)
 
   private def makeUsersStore(state: State, clock: Clock[IO]): IO[UsersStore[IO, IO]] =
-    IO.ref(state).map { storage =>
+    IO.ref(state).map { storage => //L39
       new UsersStore[IO, IO]:
         override def createAccount(credentials: UserCredentials): IO[UserId] =
           for
