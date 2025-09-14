@@ -1,6 +1,6 @@
 # Onboarding
 
-You should have the all the basic develoment tools installed and be able to have the system running locally once you complete the steps in this doc.
+You should have all the basic develoment tools installed and be able to have the system running locally once you complete the steps in this doc.
 
 **Table of Contents**
 

@@ -1,16 +1,18 @@
 # Applied Theory
 
-## Goals
 
-*We've all been there:* coming across **powerful ideas** that seem cool, yet **disconnected** from the harsh reality of **deadlines**.
-
-My goal is to help **bridge that gap** and facilitate the **adoption of "academic" techniques** in real-world software-engineering.
-
-We developers deserve the **peace of mind** that comes from building something **reliable**, **long-lasting** and **meaningful**.
+Bridging that gap between "academic" techniques and real-world software-engineering.
 
 ---
 
 <small>(The benefits illustrated in each example are non-exhaustive.)</small>
+
+**Table of Contents**
+
+1. [Type Theory -> Encoding Invariants at Compile Time](#1-type-theory---encoding-invariants-at-compile-time)
+2. [Stream Processing -> Expressive & Resilient Flows](#2-stream-processing---expressive--resilient-flows)
+3. [Managing Effects -> Composable & Predictable Real-World Programs](#3-managing-effects---composable--predictable-real-world-programs)
+4. [Mathematical Foundations (Category Theory) -> Safe & Composable Components](#4-mathematical-foundations-category-theory---safe--composable-components)
 
 
 ## 1. Type Theory -> Encoding Invariants at Compile Time
@@ -26,7 +28,7 @@ Because we prefer to catch bugs during compilation rather than execution.
 
 ---
 
-## 2. Stream Processing -> Declarative & Resilient Flows
+## 2. Stream Processing -> Expressive & Resilient Flows
 
 Streams excels modelling asynchronous, concurrent and infinite data flows.
 They are a natural fit for encoding complex business in a single composable flow.
@@ -41,7 +43,7 @@ They are a natural fit for encoding complex business in a single composable flow
 
 ---
 
-## 3. Managing Effects -> Composable and Predictable Real-World Programs
+## 3. Managing Effects -> Composable & Predictable Real-World Programs
 
 Because developers need I/O, concurrency, mutation, failures. And we prefer to reason about them locally.
 
@@ -57,6 +59,6 @@ Category Theory can lead to predictable and composable components with safety gu
 
 | Concept                         | Problem It Solves    | Prevents         | Example      |
 |---------------------------------|----------------------|------------------|--------------|
-| **Natural Transformation** (`F ~> G`) | Defines cross-cutting concerns like transactions as **composable, type-safe boundaries.** | Transactional-mechanics (commit/rollback) from the database leaking into core domain logic | [Store](shared-components/src/main/scala/org/fiume/sketch/shared/common/app/Store.scala) |
-| **Isomorphism**                 | **Lossless conversions** between data representations. E.g. Cryptographic keys can be serialised and deserialised without corruption | Corrupted keys leading to severe authentication failures | [KeyStringifierSpec](auth/src/test/scala/org/fiume/sketch/auth/KeyStringifierSpec.scala) |
+| **Natural Transformation** (`F ~> G`) | **Separates core business logic** (e.g. rules for setting up a user account) **from low-level infrastructure details** (e.g.transactions commit/rollback) | Mixing concerns, causing readability and maintainance nightmare, and making regression tests near impossible | **Define a clear transaction boundary.** <br><br>`val setupAccount = ... // create account, grant access to owner`<br>`setupAccount.commit()` <br><br>See: [UsersManager](../../auth/src/main/scala/org/fiume/sketch/auth/accounts/UsersManager.scala) (core domain) depends on [Store](shared-components/src/main/scala/org/fiume/sketch/shared/common/app/Store.scala) (infrastructure abstraction) |
+| **Isomorphism**                 | **Lossless conversions** between data representations. | Corrupted keys leading to severe authentication failures | Ensuring cryptographic keys can be serialised and deserialised without corruption. <br><br>See: [KeyStringifierSpec](auth/src/test/scala/org/fiume/sketch/auth/KeyStringifierSpec.scala) |
 | **Semigroups**                  | **Accumulates** multiple errors automatically, avoiding multiple calls to `combine` in validation logic | Error-prone boilerplate code; subtle bugs caused by fail-fast validation instead of all errors | [ErrorDetailsLawSpec](/shared-components/src/test/scala/org/fiume/sketch/shared/common/troubleshooting/ErrorDetailsLawsSpec.scala) |

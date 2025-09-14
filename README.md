@@ -8,24 +8,24 @@
 1. [Project Philosophy](#1-project-philosophy)
 2. [Start Here](#2-start-here)
 3. [Modules](#3-modules)
-4. ["Academic" Techniques that Prove Useful in Real-Life](#4-academic-techniques-that-prove-useful-in-real-life)
+4. ["Academic" Techniques for Real-World Software Engineering](#4-academic-techniques-for-real-world-software-engineering)
     - 4.1 [Postgres as a Lightweight Event Bus](#41-postgres-as-a-lightweight-event-bus)
 
 ## 1. Project Philosophy
 
 Sketch is built on the principle of conceptual alchemy: **transforming abstract theory into practical engineering solutions**. 
 
-This backend template creatively uses non-obvious ideas, like using Information Theory to [write clearer docs](docs/best-practices/Documentation.md) and Category Theory for building predictable and composable software components.
+This backend template uses non-obvious ideas, like using Information Theory to [write clearer docs](docs/best-practices/Documentation.md) and [Category Theory](docs/best-practices/Applied-Theory.md#4-mathematical-foundations-category-theory---safe--composable-components) for building predictable and composable software components.
 
-These diverse theories are applied not for their own sake, but to craft elegant solutions to real-world problems. The result is a product that is secure, maintainable and scalable.
+These diverse theories are applied not for their own sake, but to craft solutions to real-world problems. The result is a product that is secure, maintainable and scalable.
 
-> See the section ["Academic" Techniques that Prove Useful in Real-Life](#4-academic-techniques-that-prove-useful-in-real-life) for concrete examples of this philosophy in action.
+> See the section ["Academic" Techniques for Real-World Software Engineering](#4-academic-techniques-for-real-world-software-engineering) for examples of this philosophy in action.
+
 
 ## 2. Start Here
 
 To quickly run Sketch and its dependencies on your local machine, follow the [Onboarding](docs/start-here/Onboarding.md) guide.
 
-> **Note:** Documentation is actively being rewritten to follow our [Documentation Guidelines](docs/best-practices/Documentation.md).
 
 ## 3. Modules
 
@@ -33,9 +33,9 @@ Sketch is a small monolith carefully divided into **modules** with clear boundar
 
 This design provides two key benefits:
  * Rapid development during early and mid stages
- * A smooth migration path to a microservice a microservice architecture when scalaling challenges appear.
+ * A smooth migration path to a microservice architecture when scalaling challenges appear.
 
- - [Authentication](auth/README.md):
+ - [Authentication](auth/README.md)
 
  - [Authorisation](shared-access-control/README.md)
 
@@ -43,21 +43,18 @@ This design provides two key benefits:
    - [Valid document names](shared-domain/src/test/scala/org/fiume/sketch/shared/domain/documents/DocumentSpec.scala)
 
 
-E.g. ensuring cryptographic keys can be serialised and deserialised without corruption.
-
-## 4. "Academic" Techniques that Prove Useful in Real-Life
+## 4. "Academic" Techniques for Real-World Software Engineering
 
 | Concept                         | Problem It Solves    | Prevents         | Example      |
 |---------------------------------|----------------------|------------------|--------------|
-| **Natural Transformation** (`F ~> G`) | Defines cross-cutting concerns like transactions as **composable, type-safe boundaries.** | Transactional-mechanics (commit/rollback) from the database leaking into core domain logic | [Store](shared-components/src/main/scala/org/fiume/sketch/shared/common/app/Store.scala) |
-| **Isomorphism**                 | **Lossless conversions** between data representations. E.g. Cryptographic keys can be serialised and deserialised without corruption | Corrupted keys leading to severe authentication failures | [KeyStringifierSpec](auth/src/test/scala/org/fiume/sketch/auth/KeyStringifierSpec.scala) |
+| **Natural Transformation** (`F ~> G`) | **Separates core business logic** (e.g. rules for setting up a user account) **from low-level infrastructure details** (e.g.transactions commit/rollback) | Mixing concerns, causing readability and maintainance nightmare, and making regression tests near impossible | **Define a clear transaction boundary.** <br><br>`val setupAccount = ... // create account, grant access to owner`<br>`setupAccount.commit()` <br><br>See: [UsersManager](auth/src/main/scala/org/fiume/sketch/auth/accounts/UsersManager.scala) (core domain) depends on [Store](shared-components/src/main/scala/org/fiume/sketch/shared/common/app/Store.scala) (infrastructure abstraction) |
+| **Isomorphism**                 | **Lossless conversions** between data representations. | Corrupted keys leading to severe authentication failures | Ensuring cryptographic keys can be serialised and deserialised without corruption. <br><br>See: [KeyStringifierSpec](auth/src/test/scala/org/fiume/sketch/auth/KeyStringifierSpec.scala) |
 | **Producer-Consumer Streams**   | Build **reliable event-driven systems with clear delivery semantics** | * Lost or duplicated events <br>* The low-level complexity generelly associated with this type of programming | Exactly-once semantics backed by [Postgres as a Lightweight Event Bus](../../README.md). <br><br>`producer.produceEvent(. . .).ccommit`<br>`. . .`<br>`consumer.consumeEvent().flatMap { notification => . . . business logic }`<br><br>See: [PostgresAccountDeletedNotificationsStoreSpec](../../storage/src/it/scala/org/fiume/sketch/storage/auth/postgres/PostgresAccountDeletedNotificationsStoreSpec.scala) |
 | **Phantom Types**               | **Compile-time guarantee** that the correct ID type is used, with zero runtime cost | Corrupting data by passing IDs of wrong type (e.g. `UserId` vs. `DocumentId`), fragile refactoring | [EntityId](shared-components/src/main/scala/org/fiume/sketch/shared/common/EntityId.scala) |
 | **Linear Logic**                | Processes events **concurrently with strict exactly-once guarantees** | Stale events, duplicate-processing. E.g., sending dozens of emails to each client, effectively turning your business into a spam machine (yes, I've seen this happen) | See: <br>* [Postgres as a Lightweight Event Bus](#41-postgres-as-a-lightweight-event-bus) doc <br>* [ScheduledAccountDeletionJob](../sketch/auth/src/main/scala/org/fiume/sketch/auth/accounts/jobs/ScheduledAccountDeletionJob.scala) (implementation)  |
 
-> ⚡ For more useful techniques applied to software engineering, see [Applied Theory](docs/best-practices/Applied-Theory.md).
+> ⚡ See [Applied Theory](docs/best-practices/Applied-Theory.md) for a broader collection of theory-to-practice insights.
 
-> ⚡ Coming soon: how tests can be used as (lightweight) proof components work as expected.
 
 ### 4.1 Postgres as a Lightweight Event Bus
 
