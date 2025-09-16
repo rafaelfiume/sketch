@@ -1,6 +1,6 @@
 # Scripting Guidelines
 
-## Tips for a Better Scripting   
+## Tips for a Better Scripting
 
 - Always test that "stdout is for output, and stderr is for messages", for instance by running:
 

@@ -1,4 +1,4 @@
-# Authorisation
+# Access Control Module
 
 Defines **how system grants or denies access to entities**, combining Role-Based Access Control (RBAC) and Ownership-Based Access Control.
 
@@ -90,14 +90,14 @@ This will change, as we introduce, for example:
 ## 3. Future Directions
 
 These are planned features:
-* Contributors
 * Fine-grained Permissions
+* Contributors
 * Attribute-Based Access Control.
 
-| Feature                        | Purpose                                 | Notes                              |
+| Feature                        | Description                             | Purpose                            |
 |--------------------------------|-----------------------------------------|------------------------------------|
-| Contributors                   | Users who cannot fully control entities | Needed for collaborative workflows |
 | Fine-Grained Permissions       | Specific privileges: `can view`, `can edit`, `can delete` | Avoid all-or-nothing permissions |
+| Contributors                   | Users who cannot fully control entities | Needed for collaborative workflows |
 | Attribute-Based Access Control | Restricted access by attributes like location, time or resource limits | Example: to limit the number of projects a user can create |
 
 

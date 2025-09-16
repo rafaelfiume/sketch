@@ -1,4 +1,4 @@
-# Authentication
+# Identity Module
 
 Defines how our systems authenticate users, manage sessions, and handle account deletion, ensuring security, scalability and compliance.
 
