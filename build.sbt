@@ -109,7 +109,7 @@ lazy val service =
         Seq(versionFile)
       },
       Compile / mainClass := Some("org.fiume.sketch.app.Main"),
-      dockerBaseImage := "openjdk:22-jdk-slim",
+      dockerBaseImage := "openjdk:26-jdk-slim",
       dockerCommands += Cmd("USER", "root"),
       dockerCommands ++= Seq(
         Cmd("RUN", "apt-get update -y && apt-get install -y curl")
