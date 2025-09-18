@@ -26,5 +26,5 @@ The scripts that perform the admin/management tasks should:
 
 | Name | Path | Description | How to Execute |
 |------|------|-------------|----------------|
-| **Create User Account** | [create_user_account.sh](../../tools/users/create_user_account.sh) | Adds a new user account to the system. | From terminal: <br>```./tools/users/create_user_account.sh alice supersecret<br>``` |
+| **Create User Account** | [create-user-account.sh](../../tools/admin/users/create-user-account.sh) | Adds a new user account to the system. | From terminal: <br>```./tools/admin/users/create-user-account.sh alice supersecret<br>``` |
 | **EC Key Pair PEM Generator** | [EcKeyPairPemGenScript.scala](../../auth/src/main/scala/org/fiume/sketch/auth/scripts/EcKeyPairPemGenScript.scala) | Generates an Elliptic Curve key pair in PEM format for JWT signing. Must be run for each environment (dev, staging, prod) to securely provision keys. | **Option 1: sbt** <br>```bash<br>sbt "auth/runMain org.fiume.sketch.auth.scripts.EcKeyPairPemGenScript"<br>```<br>**Option 2: IDE** <br>Run the `EcKeyPairPemGenScript` object directly from IntelliJ or another Scala IDE. |

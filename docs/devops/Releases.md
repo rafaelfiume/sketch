@@ -86,12 +86,12 @@ It is designed around the following principles:
 
 ```
 tools/
+├── admin/                                      # Admin scripts for user account management (run ad-hoc, not CI related)
 ├── deploy/                                     # (Future) Deployment scripts for prod
 ├── environments/dev/                           # Environment configuration and secrets
 ├── pipeline/                                   # CI automation scripts (versioning, docker image tagging, publishing)
 ├── stack/                                      # Application stack management (start/stop)
 ├── tests/                                      # Acceptance and load testing scripts
-├── users/                                      # Admin scripts for user account management (run ad-hoc, not CI related)
 ├── utilities/                                  # Shared shell function library (logging, env vars, etc.)
 ```
 

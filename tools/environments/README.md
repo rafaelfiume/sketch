@@ -3,10 +3,10 @@
 
 ## Development Environments Overview
 
-| Environment | Purpose                                     | Example                                |
-|-------------|---------------------------------------------|----------------------------------------|
-| **`dev`**   | Running the full stack locally              | Starting services via `start-local.sh` |
-| **`local`** | Running tests that interact with the stack  | `acc-tests.sh`, `load-tests.sh`        |
+| Environment | Purpose                                     | Example                                 |
+|-------------|---------------------------------------------|-----------------------------------------|
+| **`dev`**   | Running the full stack locally              | Starting services via `start-local.sh`  |
+| **`local`** | Running tests that interact with the stack  | `run-acc-tests.sh`, `run-load-tests.sh` |
 
 ## Secrets
 

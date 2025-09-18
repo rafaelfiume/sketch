@@ -76,7 +76,7 @@ jobs:
             mv tools/stack/logs/sketch-database.log pipeline/stack/logs/sketch-database.log
             mv tools/stack/logs/rustic.log pipeline/stack/logs/rustic.log
             mv tools/stack/logs/rustic-database.log pipeline/stack/logs/rustic-database.log
-            ./tools/tests/acc-tests.sh
+            ./tools/tests/run-acc-tests.sh
 
       - store_artifacts:
           path: pipeline/stack/logs
