@@ -1,8 +1,9 @@
-# Admin Processes
+# Admin Processes (The 12th Factor)
 
 The 12-Factors [Admin Processes principle](https://12factor.net/admin-processes) says:
 
    _"Run admin/management tasks as one-off processes in an identical environment as the regular long-running processes of the app"_.
+
 
 ## 1. Goals
 
@@ -21,6 +22,7 @@ The scripts that perform the admin/management tasks should:
   * Single source of truth: no tribal knowledge
   * Auditable: changes can be reviewed like the rest of the code
   * Automatable: can be run as part of the e.g. CD pipeline.
+
 
 ## 2. Authentication Ops
 

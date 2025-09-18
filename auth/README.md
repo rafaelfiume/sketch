@@ -171,7 +171,7 @@ There are operational tasks associated with the Authentication system:
 * **Setup a new user account** - right now, a user cannot create their account
 * **Generate ECDSA P-256keys** - necessary to sign and verify JWTs issued by the system.
 
-See the 'Authentication Ops' section in [Admin Processes](../docs/devops/Admin.md) guide.
+See the 'Authentication Ops' section in [Admin Processes](/docs/devops/Admin.md) guide.
 
 
 ## 9. Implementation Reference

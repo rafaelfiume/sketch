@@ -134,7 +134,7 @@ See [Releases documentation](docs/devops/Releases.md).
 
 Applying the 12-Factors helps ensure the application is **portable**, **cloud-native** and **scalable**. 
 
-Current focus includes [Admin Processes](docs/devops/Admin.md),
+Current focus includes [Admin Processes](/docs/devops/Admin.md),
 with future guides planned for other principles, such as processes and logs.
 
 ### 4.3 Scripting Guidelines

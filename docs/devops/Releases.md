@@ -30,21 +30,23 @@ The release process produces immutable, versioned, promotable artifacts. It must
 
 ## 3. Application Versioning
 
-| Context         | Version Format                             | Example                   |
-|-----------------|--------------------------------------------|---------------------------|
-| `main` branch   | `${circleci_build_number}`                 | `105`                     |
-| Local build     | `snapshot`                                 | `snapshot`                |
-| Feature branch  | `${branch.name}.${circleci_build_number}`  | `sign.jwt.105`            |
+The application version (`${app.version}`) is a **unique and traceable identifier** that follows these simple and automation-friendly rules:
+
+| Context         | Version Format                             | Example                             |
+|-----------------|--------------------------------------------|-------------------------------------|
+| `main` branch   | `${circleci_build_number}`                 | `975`                               |
+| Feature branch  | `${branch.name}.${circleci_build_number}`  | `register_user_account_deleted.975` |
+| Local build     | `snapshot`                                 | `snapshot`                          |
 
 > **Note:** This logic exists in both [version.sh](/tools/pipeline/version.sh) and [build.sbt](/build.sbt), with `build.sbt` required for Docker image tagging with `docker:publishLocal` or `docker:publish` via `sbt-native-packager`.
 
 ### 3.1 Docker Image Tags
 
-| Tag                        | Description                              | Purpose                          |
-|----------------------------|------------------------------------------|----------------------------------|
-| `stable`                   | Latest successful build on `main`        | Production-ready releases        |
-| `latest`                   | Latest successful build from any branch  | Development and testing          |
-| `${circleci_build_number}` | Successful build corresponding to a specific CI run | Reverting releases to exact previous state |
+| Tag                                 | Description                              | Purpose                          |
+|-------------------------------------|------------------------------------------|----------------------------------|
+| `stable`                            | Latest successful build on `main`        | Production-ready releases        |
+| `latest`                            | Latest successful build from any branch  | Development and testing          |
+| `${app.version}` (as defined above) | Successful build corresponding to a specific CI run | Reverting releases to exact previous state |
 
 
 ## 4. CI Pipeline
