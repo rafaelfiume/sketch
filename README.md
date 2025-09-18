@@ -20,6 +20,7 @@
     - 4.4 [Future Directions](#44-future-directions)
 5. ["Academic" Techniques for Real-World Software Engineering](#5-academic-techniques-for-real-world-software-engineering)
     - 5.1 [Postgres as a Lightweight Event Bus](#51-postgres-as-a-lightweight-event-bus)
+6. [Further Reading](#6-further-reading)
 
 ## 1. Project Philosophy
 
@@ -216,3 +217,8 @@ This solution will give us:
  - *Atomicity:* Consuming, Processing and removing the event from the table happens as part of the same transaction
  - *Error Handling*: Atomicity ensures that the event is either fully processed or safely retried
  - *No Double Processing*: `FOR UPDATE SKIP LOCKED` prevents race conditions and duplicate work
+
+
+## 6. Further Reading
+
+* [Release Guidelines](/docs/devops/Releases.md)

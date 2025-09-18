@@ -116,7 +116,7 @@ The authorisation rules provided in this document are defined by the `AccessCont
 
 ## 5. References
 
- * [Role-Based Access Control (RBAC)](https://en.wikipedia.org/wiki/Role-based_access_control)
- * [Relationship-Based Access Control (ReBAC)](https://en.wikipedia.org/wiki/Relationship-based_access_control)
- * [Attribute-Based Access Control (ABAC)](https://en.wikipedia.org/wiki/Attribute-based_access_control)
+* [Role-Based Access Control (RBAC)](https://en.wikipedia.org/wiki/Role-based_access_control)
+* [Relationship-Based Access Control (ReBAC)](https://en.wikipedia.org/wiki/Relationship-based_access_control)
+* [Attribute-Based Access Control (ABAC)](https://en.wikipedia.org/wiki/Attribute-based_access_control)
  

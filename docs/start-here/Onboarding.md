@@ -169,6 +169,7 @@ testAcceptance/scalafixAll  # linter
 ## 3. Optional Steps
 
 ### 3.1 Install Visual Studio Code
-  - [Visual Studio Code](https://code.visualstudio.com/)
-  - [Scala Syntax (official)](https://marketplace.visualstudio.com/items?itemName=scala-lang.scala)
-  - [Scala (Metals)](https://marketplace.visualstudio.com/items?itemName=scalameta.metals)
+
+* [Visual Studio Code](https://code.visualstudio.com/)
+* [Scala Syntax (official)](https://marketplace.visualstudio.com/items?itemName=scala-lang.scala)
+* [Scala (Metals)](https://marketplace.visualstudio.com/items?itemName=scalameta.metals)

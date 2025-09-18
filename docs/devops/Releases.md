@@ -1,124 +1,106 @@
 # Release Guidelines
 
-## Goals
+**Table of Contents**
 
- * Determinism: same actions, same results
- * Specification: straightforward to learn, and reduced or no ambiguities
- * Speed: the quickest we do our job, the faster we can are free to focus on the other things that matter to us
- * Correction: preventing repetitive, boring manual tasks which are error prone
- * Criativity: save mental energy for non-repetitive interesting tasks.
-
-
-## App Semantic Versioning Rules
-
-App Version should conform to the following rules:
-1) Use `${circleci_build_number}` when branch is `main`
-1) Use `${branch.name}.${circleci_build_number}` when in a branch other than `main`
-1) Use `snapshot` when building it locally.
-
-For instance: version `105` (main), `branch.105` (feature branch) or `snapshot` (local).
-
-Note about Scala services: the above logic has been implemented both in [version.sh](/tools/pipeline/version.sh) and [build.sbt](/build.sbt). The latter is necessary so `sbt-native-packager` can properly tag the docker image created with `docker:publishLocal` or `docker:publish`.
-
-## Docker Image Tags
-
-A Docker image tag should correspond to the App Version:
-
-```
-  docker-image-tag <==> app-version
-```
-
-Additionally, `stable` and `latest` tags should always exist.
-
-### `stable` and `latest` Image Tags
-
-A `stable` tag should be defined and point to the latest stable release, which must correspond to the latest commit in the `main` branch.
-This is useful for whenever we want to ensure we are running the latest stable version of the service.
-
-A `latest` tag should be defined and point to the latest build, including snapshots on a workstation.
-This is useful in development mode when we want to work with the most recent version of a service.
-
-## On Continuous Delivery, Trunk-based Development and Feature-branchs
-
-1) `main` <==> `production` <==> `live`
-
-Code in `main` should be the same as code live always.
-
-1) There can only be a `production` environment besides development (`dev` and `local`).
-
-In other words, no stagging, no QA environments. Our engineering practices and pipeline must ensure that any changes commited to `main` works as expected.
-
-1) Stack should always be runnable anywhere
-
-A service and the whole stack should be runnable anywhere, including:
- - pipeline
- - local workstation.
-
-This will allow for improved developer ergonomics, fast feedback - by e.g. running load tests before commiting changes -, prototyping and more.
+1. [Goals](#1-goals)
+2. [Promotable `main`](#2-promotable-main)
+3. [Application Versioning](#3-application-versioning)
+    - 3.1 [Docker Image Tags](#31-docker-image-tags)
+4. [CI Pipeline](#4-ci-pipeline)
+    - 4.1 [Environment Variables & Secrests](#41-environment-variables--secrets)
+    - 4.2 [Tools for Reliable Automation](#42-tools-for-reliable-automation)
+5. [Further Reading](#5-further-reading)
 
 
-## Pipeline & CircleCI
+## 1. Goals
 
-### Environment Variables
+The release process produces immutable, versioned, promotable artifacts. It must be:
 
-All the environment variables necessary to run Sketch should be defined in [../tools/environments/dev/](../tools/environments/dev/), unless:
- * You've just cloned `sketch` repository. In that case, you might want to refer to [these instructions](../tools/environments/z.read.this.first.md) to define the secrets Sketch stack depends on;
-
-**Manually Configurable Environment Variables:**
-
-There are a few environment variables that should be [manually configured when setting up the pipeline](https://app.circleci.com/settings/project/github/rafaelfiume/sketch/environment-variables?return-to=https%3A%2F%2Fapp.circleci.com%2Fpipelines%2Fgithub%2Frafaelfiume%2Fsketch) and running scripts in the [tools](../tools) directory.
-
-Service Secrets:
-
- - `PRIVATE_KEY_BASE64_ONE_LINER` and `PUBLIC_KEY_BASE64_ONE_LINER`
-
- Please, refer to `load_key_pair_from_pem_files_if_not_set` funtion in [../tools/pipeline/generate_one_liner_keys.sh](../tools/pipeline/generate_one_liner_keys.sh).
-
-Authentication to 3rd Parties:
-
- - `DOCKER_LOGIN` and `DOCKER_PWD`
-
- Required so the pipeline and scripts have access to [Docker Hub](https://hub.docker.com/repository/docker/rafaelfiume/sketch/general).
+* **Reliable**: Automation removes repetitive and error-prone steps, reducing mistakes
+* **Deterministic**: Same actions, same results
+* **Fast**: Short release cycles encourage frequent relases and provide quick feedback.
 
 
-### Pipeline Tools Directory Structure
+## 2. Promotable `main`
+
+* **`main` is always production-ready**: Every commit to main must be promotable to production
+* **No separate QA or staging environments**: All validation must happen through automated checks during the CI build
+* **Environment Parity**: The stack must run identically on a developer machine, CI or production.
+
+
+## 3. Application Versioning
+
+| Context         | Version Format                             | Example                   |
+|-----------------|--------------------------------------------|---------------------------|
+| `main` branch   | `${circleci_build_number}`                 | `105`                     |
+| Local build     | `snapshot`                                 | `snapshot`                |
+| Feature branch  | `${branch.name}.${circleci_build_number}`  | `sign.jwt.105`            |
+
+> **Note:** This logic exists in both [version.sh](/tools/pipeline/version.sh) and [build.sbt](/build.sbt), with `build.sbt` required for Docker image tagging with `docker:publishLocal` or `docker:publish` via `sbt-native-packager`.
+
+### 3.1 Docker Image Tags
+
+| Tag                        | Description                              | Purpose                          |
+|----------------------------|------------------------------------------|----------------------------------|
+| `stable`                   | Latest successful build on `main`        | Production-ready releases        |
+| `latest`                   | Latest successful build from any branch  | Development and testing          |
+| `${circleci_build_number}` | Successful build corresponding to a specific CI run | Reverting releases to exact previous state |
+
+
+## 4. CI Pipeline
+
+### 4.1 Environment Variables & Secrets
+
+The [tools/environments/dev/](/tools/environments/dev/) directory is the source of truth for environment configuration, for both local development and the CI pipeline:
+
+  * **Configuration values** are version-controlled and automatically loaded
+  * **Secrets** are not stored in Git. They must be set in the [CircleCI project settings](https://app.circleci.com/settings/project/github/rafaelfiume/sketch/environment-variables?return-to=https%3A%2F%2Fapp.circleci.com%2Fpipelines%2Fgithub%2Frafaelfiume%2Fsketch).
+
+> **Note:** For initial local setup, follow the [Onboarding](/docs/start-here/Onboarding.md) guide.
+
+**CircleCI-specific variables:**
+
+| Variable                         | Purpose                                        |
+|----------------------------------|------------------------------------------------|
+| `PRIVATE_KEY_BASE64_ONE_LINER`   | Base64 version of `PRIVATE_KEY` compatible with CircleCI |
+| `PUBLIC_KEY_BASE64_ONE_LINER`    | Base64 version of `PUBLIC_KEY` compatible with CircleCI  |
+
+These are generated from `PRIVATE_KEY` and `PUBLIC_KEY` using [generate_one_liner_keys.sh](/tools/pipeline/generate_one_liner_keys.sh) script.
+
+> For the **full list of required secrets**, see [Onboarding - Required Secrets](/docs/start-here/Onboarding.md#143-required-secrets).
+
+
+### 4.2 Tools for Reliable Automation
+
+The `tools` directory organises scripts and configuration that power automated, deterministic builds.
+
+It is designed around the following principles:
+
+  * **Portability**: Works the same locally and in CI
+  * **Functional Structure**: Scripts grouped by functionality (`environments`, `pipeline`, `stack`), not technology
+  * **Composability**: Complex scripts are composed from smaller and reusable scripts, e.g. defined in `utilities/`
+  * **Self-Documentation**
+      - **Path == Domain**, e.g. [tools/pipeline/docker/](/tools/pipeline/docker/)
+      - **File Name == Intent**, e.g. [publish-image.sh](/tools/pipeline/docker/publish-image.sh)
+      - **Code == Executable documentation**.
 
 ```
 tools/
-├── environments/
-│   ├── dev/
-│   │   ├── secrets/                           # See `.gitginore`
-|   |   |   ├── private_key.pem
-|   |   |   ├── public_key.pem
-│   │   |   └── ...
-│   │   └── ...
-├── infra/                                      # (Proposal) Infrastructure setup (scripts, terraform modules)
-│   ├── ...
-├── pipeline/                                   # Power the pipeline. See `.circleci/config.yaml`
-│   ├── docker/                                 # Docker related scripts
-│   |   └── ...                                 # See `.gitginore`
-│   ├── version.sh
-│   ├── deploy.sh                               # (Proposal) Deployment script for the pipeline
-│   └── ...
-├── stack/                                      # All related to start/stop sketch stack locally or during release pipeline
-│   ├── logs/                                   # Log output from the scripts in the 'stacks' directory.
-│   |   └── ...                                 # See `.gitginore`
-│   ├── docker-compose.yml
-│   ├── start-local.sh
-│   └── stop-local.sh
-├── tests/                                      # Scripts to run tests
-│   ├── ...
-├── users/                                      # Scripts to admin service users
-│   ├── ...
-├── utilities/                                  # General utility functions
-│   ├── env-vars-loader.sh
-│   ├── logs.sh
-│   └── ...
-└── ...
+├── deploy/                                     # (Future) Deployment scripts for prod
+├── environments/dev/                           # Environment configuration and secrets
+├── pipeline/                                   # CI automation scripts (versioning, docker image tagging, publishing)
+├── stack/                                      # Application stack management (start/stop)
+├── tests/                                      # Acceptance and load testing scripts
+├── users/                                      # Admin scripts for user account management (run ad-hoc, not CI related)
+├── utilities/                                  # Shared shell function library (logging, env vars, etc.)
 ```
 
-## Useful Resources
- - [CircleCI - Workflows](https://circleci.com/docs/workflows/)
+
+## 5. Further Reading
+
+* [Project CI Configuration](/.circleci/config.yml)
+* [CircleCI - Workflows](https://circleci.com/docs/workflows/)
+* [Scripting Guidelines](Scripting.md)
 
 
 Feito com ❤️.

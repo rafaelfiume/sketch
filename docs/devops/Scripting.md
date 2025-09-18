@@ -16,8 +16,8 @@ You should find all the logs in `errors.txt` and the expectec output - if any - 
 $ ./tools/stack/stop-local.sh --trace
 ```
 
-## Useful Resources
+## Further Reading
 
- - [12 Factor CLI Apps](https://medium.com/@jdxcode/12-factor-cli-apps-dd3c227a0e46)
- - [Bash best practices](https://bertvv.github.io/cheat-sheets/Bash.html)
- - [Minimal Safe Bash Script Template](https://betterdev.blog/minimal-safe-bash-script-template/)
+ * [12 Factor CLI Apps](https://medium.com/@jdxcode/12-factor-cli-apps-dd3c227a0e46)
+ * [Bash best practices](https://bertvv.github.io/cheat-sheets/Bash.html)
+ * [Minimal Safe Bash Script Template](https://betterdev.blog/minimal-safe-bash-script-template/)
