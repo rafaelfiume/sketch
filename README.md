@@ -98,10 +98,10 @@ Layers provide a clear separation of concerns, ensuring the system remains adapt
 
 | Layer                       | Responsibility             | Components             | Dependencies             |  Do Not Allow |
 |-----------------------------|----------------------------|------------------------|--------------------------|---------------|
-| Inbound Adapters            | Exposes functionalities via external interfaces (REST, gRPC, etc).<br>Handles input validation, serialisation/deserialisation.<br>Convert external calls into a format the application layer understands, thus isolating the core domain | Http Routes. E.g., [UserRoutes](auth/src/main/scala/org/fiume/sketch/auth/http/UsersRoutes.scala) | Application / Domain (entities) | 🚫 Exposed domain entities to external world (use DTOs)<br> 🚫 Business-logic <br> 🚫 DAOs or external APIs used directly |
-| Application                 | Implements use-cases by orchestrating domain components and invoking external modules through ports.<br>Defines transaction boundaries | E.g. [UsersManager](auth/src/main/scala/org/fiume/sketch/auth/accounts/UsersManager.scala) | Domain (entities, ports) | 🚫 Bypass business rules <br> 🚫 Direct infrastructure access (e.g. low-level transaction code) |
-| Domain                      | The core value of the system. Expresses the business model, rules, and ports (contracts) for required external capabilities | * *Entities*, e.g. [User](shared-auth/src/main/scala/org/fiume/sketch/shared/auth/User.scala)<br>* *Ports*, e.g. [UsersStore](shared-auth/src/main/scala/org/fiume/sketch/shared/auth/algebras/UsersStore.scala) | None | 🚫 Dependencies on any other layer |
-| Infrastructure (Outbound Adapters) | Implements ports, persisting the domain state, or calling external APIs | *DAO*, e.g. [PostgresUsersStore](storage/src/main/scala/org/fiume/sketch/storage/auth/postgres/PostgresUsersStore.scala) | Domain (ports; entities as inputs/outputs) | 🚫 Business rules 🚫 Leaking infrastructure details <br> |
+| Inbound Adapters            | Exposes functionalities via external interfaces (REST, gRPC, etc).<br>Handles input validation, serialisation/deserialisation.<br>Convert external calls into a format the application layer understands, thus isolating the core domain | Http Routes. E.g., [UserRoutes](/auth/src/main/scala/org/fiume/sketch/auth/http/UsersRoutes.scala) | Application / Domain (entities) | 🚫 Exposed domain entities to external world (use DTOs)<br> 🚫 Business-logic <br> 🚫 DAOs or external APIs used directly |
+| Application                 | Implements use-cases by orchestrating domain components and invoking external modules through ports.<br>Defines transaction boundaries | E.g. [UsersManager](/auth/src/main/scala/org/fiume/sketch/auth/accounts/UsersManager.scala) | Domain (entities, ports) | 🚫 Bypass business rules <br> 🚫 Direct infrastructure access (e.g. low-level transaction code) |
+| Domain                      | The core value of the system. Expresses the business model, rules, and ports (contracts) for required external capabilities | * *Entities*, e.g. [User](/shared-auth/src/main/scala/org/fiume/sketch/shared/auth/User.scala)<br>* *Ports*, e.g. [UsersStore](/shared-auth/src/main/scala/org/fiume/sketch/shared/auth/algebras/UsersStore.scala) | None | 🚫 Dependencies on any other layer |
+| Infrastructure (Outbound Adapters) | Implements ports, persisting the domain state, or calling external APIs | *DAO*, e.g. [PostgresUsersStore](/storage/src/main/scala/org/fiume/sketch/storage/auth/postgres/PostgresUsersStore.scala) | Domain (ports; entities as inputs/outputs) | 🚫 Business rules 🚫 Leaking infrastructure details <br> |
 
 > **Note**: We favour pragmatism over purism. The Application Layer exposes Domain Entities as input and output to Inbound Adapters to avoid unnecessary DTOs, reducing indirection without sacrificing maintainability. 
 
@@ -221,4 +221,5 @@ This solution will give us:
 
 ## 6. Further Reading
 
+* [Documentation Guidelines](/docs/best-practices/Documentation.md)
 * [Release Guidelines](/docs/devops/Releases.md)
