@@ -21,7 +21,7 @@ sealed trait DocumentEntity extends Entity
 
 case class Document(metadata: Metadata)
 
-type DocumentWithId = Document & WithUuid[DocumentId]
+type DocumentWithId = Document & WithUuid[DocumentId] // L24
 
 trait WithStream[F[_]]:
   val stream: fs2.Stream[F, Byte]
