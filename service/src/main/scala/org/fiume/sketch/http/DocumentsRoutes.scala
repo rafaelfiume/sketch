@@ -28,10 +28,11 @@ import org.http4s.{EntityEncoder, HttpRoutes, *}
 import org.http4s.circe.CirceEntityDecoder.*
 import org.http4s.circe.CirceEntityEncoder.*
 import org.http4s.dsl.Http4sDsl
-import org.http4s.headers.`Content-Disposition`
+import org.http4s.headers.*
 import org.http4s.multipart.{Multipart, Part}
 import org.http4s.server.{AuthMiddleware, Router}
 import org.http4s.server.middleware.EntityLimiter
+import org.typelevel.ci.CIStringSyntax
 
 class DocumentsRoutes[F[_]: Concurrent, Txn[_]: FlatMap](
   authMiddleware: AuthMiddleware[F, User],
@@ -81,21 +82,26 @@ class DocumentsRoutes[F[_]: Concurrent, Txn[_]: FlatMap](
             .canAccess(user.uuid, uuid)
             .commit()
             .ifM(
-              ifTrue = Ok(store.documentStream(uuid).commitStream(), `Content-Disposition`("attachment", Map.empty)),
+              ifTrue = Ok(
+                store.documentStream(uuid).commitStream(),
+                // TODO Content-Disposition("attachment", Map("filename" -> "document.pdf"))
+                `Content-Disposition`("attachment", Map.empty),
+                // TODO Specific MIME type, e.g. `Content-Type`(MediaType.application.pdf)
+                `Content-Type`(MediaType.application.`octet-stream`)
+              ),
               ifFalse = Forbidden()
             )
         yield res
 
       case GET -> Root / "documents" as user =>
         val stream = accessControl
-          .fetchAllAuthorisedEntityIds(user.uuid, "DocumentEntity") // always return 200
+          .fetchAllAuthorisedEntityIds(user.uuid, "DocumentEntity")
           .through(store.fetchDocuments)
           .commitStream()
           .map(_.asResponsePayload.asJson)
           .map(Line(_))
           .intersperse(Linebreak)
-        // MIME type could be `application/jsonl`
-        Ok(stream)
+        Ok(stream, Header.Raw(ci"Content-Type", "application/x-ndjson"))
 
       case DELETE -> Root / "documents" / DocumentIdVar(uuid) as user =>
         for
