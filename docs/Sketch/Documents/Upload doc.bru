@@ -1,0 +1,29 @@
+meta {
+  name: Upload doc
+  type: http
+  seq: 1
+}
+
+post {
+  url: http://localhost:8080/documents
+  body: multipartForm
+  auth: inherit
+}
+
+headers {
+  ~Authorization: Bearer eyJ0eXAiOiJKV1QiLCJhbGciOiJFUzI1NiJ9.eyJzdWIiOiIyODYyYzEzMS03ZWM1LTRiYjEtYTBlNi00NjVlNjE2NWEyNzQiLCJleHAiOjE2OTE4ODM0NzksImlhdCI6MTY5MTg3OTg3OSwicHJlZmVycmVkX3VzZXJuYW1lIjoiYWJhY2F4aW5hb2ZhenhpeGkifQ.-vBlbx4YMrBq2nVf7J8cCUOZkmhde_V96wtnFWwHLgsF6H9RDSylGPA_Tz58UZakbH1zjyR_9dAiLt8iu3GUtQ
+}
+
+body:multipart-form {
+  bytes: @file(/Users/rafafium/Desktop/Foto 01-11-20, 15 01 29.png)
+  metadata: '''
+    {
+        "name": "mountain-bike-liguria-ponent.jpg",
+        "description": "Mountain bike in liguria ponent.jpg"
+    }
+  '''
+}
+
+settings {
+  encodeUrl: true
+}

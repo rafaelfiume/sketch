@@ -9,6 +9,7 @@ import org.fiume.sketch.shared.common.events.EventId
 
 import java.time.Instant
 
+// L17
 object Users:
 
   case class ScheduledForPermanentDeletionResponse(eventId: EventId, userId: UserId, permanentDeletionAt: Instant)

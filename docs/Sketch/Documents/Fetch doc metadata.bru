@@ -1,0 +1,19 @@
+meta {
+  name: Fetch doc metadata
+  type: http
+  seq: 2
+}
+
+get {
+  url: http://localhost:8080/documents/dbf69e6f-a104-472e-a33d-d7f0f3cfdb55/metadata
+  body: none
+  auth: inherit
+}
+
+headers {
+  Authorization: Bearer eyJ0eXAiOiJKV1QiLCJhbGciOiJFUzI1NiJ9.eyJzdWIiOiI0ZmU2MmY0MC1lOTM0LTRhNTQtODYyYy1lZmJiNjdiZmRiMmQiLCJleHAiOjE3MjU1Nzc1MzcsImlhdCI6MTcyNTU3MzkzNywicHJlZmVycmVkX3VzZXJuYW1lIjoiYWJhY2F4aW5hb2ZhenhpeGkifQ.fJc5uuocM82e4JJqpBt8ExoDog3IgHBOSY-_PhDrLWdJBQuEQQym7ta7z8PvLO_QqsM7-fo4TmKdEiTLoPZysw
+}
+
+settings {
+  encodeUrl: true
+}

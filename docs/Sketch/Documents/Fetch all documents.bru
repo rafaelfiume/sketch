@@ -1,0 +1,19 @@
+meta {
+  name: Fetch all documents
+  type: http
+  seq: 4
+}
+
+get {
+  url: http://localhost:8080/documents
+  body: none
+  auth: inherit
+}
+
+headers {
+  Authorization: Bearer eyJ0eXAiOiJKV1QiLCJhbGciOiJFUzI1NiJ9.eyJzdWIiOiIwYmNiYjU4NC1mZTc5LTQwYzktOWIzMi03ZWNlNjkwYjQ4NzQiLCJleHAiOjE3MjU3MTI2NjcsImlhdCI6MTcyNTcwOTA2NywicHJlZmVycmVkX3VzZXJuYW1lIjoiam92ZW5zLnNlbS5hbW9yIn0.N7pygXnOzq1FfVlCvsZvJWBvWEfPsbG3qbjY7Rr0-67qp8ly33KgrzgoMA--v_Jm118V1sb_V8x5xJonS-IkEA
+}
+
+settings {
+  encodeUrl: true
+}

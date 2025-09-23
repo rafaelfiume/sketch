@@ -20,7 +20,7 @@ Write effective, high signal-to-noise ratio, low-entropy technical documentation
 * Minimise Noise: less confusion and clutter
 * Low Entropy: predictable & structured content.
 
-This guide compares the [Authentication Guide](../../auth/README.md) with its [previous version](https://github.com/rafaelfiume/sketch/blob/c7604e84843a07c6cba269adadb7b911c8558baa/docs/Auth.md).
+This guide compares the [Authentication Guide](/auth/README.md) with its [previous version](https://github.com/rafaelfiume/sketch/blob/c7604e84843a07c6cba269adadb7b911c8558baa/docs/Auth.md).
 
 
 ## 2. Core Principles
@@ -38,12 +38,12 @@ This guide compares the [Authentication Guide](../../auth/README.md) with its [p
 
 SNR measures the amount of relevant information (signal) compared to irrelevant or distracting content (noise).
 
-| High Signal ✅                                              | High Noise ❌                |
+| **✓** High Signal                                           | **✗** High Noise                   |
 | ------------------------------------------------------------| -----------------------------------|
-| System-specific info, brief definitions, references to code | General theory, long background |
+| System-specific info, brief definitions, references to code | General theory, long background    |
 | Links to detailed resources                                 | Forcing to read long paragraphs for context |
-| Tables for quick scanning & short and precise bullets       | Long paragraphs                   |
-| Diagrams for flow                                           | Text-only processes descriptions  |
+| Tables for quick scanning & short and precise bullets       | Long paragraphs                    |
+| Diagrams for flow                                           | Text-only processes descriptions   |
 
 **Bad - Low SNR:**
 
@@ -69,9 +69,9 @@ High entropy makes a documentation harder to scan and increases cognitive load (
 
 A **predictable structure** lowers entropy, making the document easier to navigate.
 
-| Low Entropy ✅                                | High Entropy ❌                |
+| **✓** Low Entropy                             | **✗** High Entropy                 |
 | ----------------------------------------------| -----------------------------------|
-| Clear scope for each section                  | Mixed concepts with no clear order  |
+| Clear scope for each section                  | Mixed concepts with no clear order |
 | Easy to reference specific sections           | Hard to pinpoint specific topics   |
 
 **Bad - High SNR, but High Entropy:**
@@ -99,7 +99,7 @@ This prevents the reader from being overwhelmed and lets them **naturally zoom i
 
 **Example - Authentication Doc:**
 
-| Layer                          | [Final Doc](../../auth/README.md) ✅                | [Previous Doc](https://github.com/rafaelfiume/sketch/blob/c7604e84843a07c6cba269adadb7b911c8558baa/docs/Auth.md) ❌  |
+| Layer                          | [Final Doc](/auth/README.md) **✓**                  | [Previous Doc](https://github.com/rafaelfiume/sketch/blob/c7604e84843a07c6cba269adadb7b911c8558baa/docs/Auth.md) **✗** |
 | -------------------------------| ----------------------------------------------------| ------------------------------------------------|
 | High-level context             | Section 1 - Goals                                   | Missing entirely                                |
 | Overview                       | Section 2 - Concise, table for quick scan           | Buried inside paragraphs                        |
@@ -107,7 +107,7 @@ This prevents the reader from being overwhelmed and lets them **naturally zoom i
 | Technical details              | Section 4-5 - Algorithms & Best practices           | Spread throughout the document                  |
 | Policies / lifecycle           | Section 6 - Concise points and table                | Text heavy, hard to scan                        |
 | Edge cases & pitfalls          | Section 7 - Clearly separated                       | Mixed into salt discussion                      |
-| References & external links    | Section 8 - External ressources & links to codebase | Basic Jwt explained inline                      |
+| References & external links    | Section 8 - External resources & links to codebase  | Basic Jwt explained inline                      |
 
 Takeaway: Gradually move from _context -> details -> related information -> optional references_, allowing the reader to find what they need without wading through irrelevant information.
 
@@ -117,9 +117,9 @@ Takeaway: Gradually move from _context -> details -> related information -> opti
 Make the document **practical**, not just theoretical.
 Enable readers to take **clear next steps**.
 
-|  [Final Doc](../../auth/README.md) ✅                          | [Previous Doc](https://github.com/rafaelfiume/sketch/blob/c7604e84843a07c6cba269adadb7b911c8558baa/docs/Auth.md) ❌  | 
+|  [Final Doc](/auth/README.md) **✓**                            | [Previous Doc](https://github.com/rafaelfiume/sketch/blob/c7604e84843a07c6cba269adadb7b911c8558baa/docs/Auth.md) **✗** |
 |----------------------------------------------------------------|----------------------------------------------------|
-| Clear warnings: _Avoid UNIQUE Constraints on Stored Hashes ❌_ | Vague allusion to collisions, no clear warning |
+| Clear warnings: _"Avoid UNIQUE Constraints on Stored Hashes"_  | Vague allusion to collisions, no clear warning |
 | Direct links to code: [UsersScript](../../auth/src/main/scala/org/fiume/sketch/auth/scripts/UsersScript.scala) | No mentions of scripts or links |
 | External links for deep-diving: JWT, BCrypt, ECDSA             | Explains JWT basics inline                     |
 

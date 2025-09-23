@@ -1,0 +1,23 @@
+meta {
+  name: Login
+  type: http
+  seq: 1
+}
+
+post {
+  url: http://localhost:8080/login
+  body: text
+  auth: inherit
+}
+
+body:text {
+  {
+      "username" : "abacaxinaofazxixi",
+      "password" : "Abr@c@d@br@123"
+  }
+  
+}
+
+settings {
+  encodeUrl: true
+}

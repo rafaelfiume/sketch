@@ -84,8 +84,8 @@ Triggered by an Admin. See [Admin Processes](#8-admin-processes) section.
 
 ### 4.1 Password Hashing (BCrypt)
 
-* **Brute-force atack resistant** via tunnable computational cost
-* **Unique salts** prevents [Rainbow Table atacks](https://en.wikipedia.org/wiki/Rainbow_table).
+* **Brute-force attack resistant** via tunable computational cost
+* **Unique salts** prevents [Rainbow Table attacks](https://en.wikipedia.org/wiki/Rainbow_table).
 * Adjustable cost factor - default: `12`. See [HashedPassword](../shared-auth/src/main/scala/org/fiume/sketch/shared/auth/Passwords.scala).
 
 BCrypt format comprises **algorithm id**, **cost**, **unique salt** and **hash**:
@@ -150,7 +150,7 @@ Hard Deletion:
 
 ## 7. Common Pitfalls & Tradeoffs
 
-**Avoid UNIQUE Constraints on Stored Hashes ❌:**
+**Avoid UNIQUE Constraints on Stored Hashes:**
 
 * BCrypt hashes are always unique (built-in salts)
 * It could lead to migration issues when changing costs or algorithm
@@ -182,12 +182,12 @@ The expected behaviour of authentication primitives and validations are specifie
 
 | Category                   | Component                  | Specification                  |
 |----------------------------|----------------------------|--------------------------------|
-| Authentication Flow        | [AuthenticatorSpec](../auth/src/test/scala/org/fiume/sketch/auth/AuthenticatorSpec.scala) | Authentication and Jwt issue |
-| Tokens                     | [JwtIssuerSpec](../auth/src/test/scala/org/fiume/sketch/auth/JwtIssuerSpec.scala) | Jwt generation, signing and validation |
-| Salts & Hashing            | [SaltSpec](../shared-auth/src/test/scala/org/fiume/sketch/shared/auth/SaltSpec.scala)  | Salt properties used for password hashing |
-|                            | [HashedPasswordSpec](../shared-auth/src/test/scala/org/fiume/sketch/shared/auth/HashedPasswordSpec.scala) | Passwords hashing and verification properties |
-| Account Policies           | [UsernameSpec](../shared-auth/src/test/scala/org/fiume/sketch/shared/auth/UsernameSpec.scala) | Rules for valid usernames (length, characters, etc.) |
-|                            | [PasswordSpec](../shared-auth/src/test/scala/org/fiume/sketch/shared/auth/PlainPasswordSpec.scala) | Password strength and complexity requirements|
+| Authentication Flow        | [AuthenticatorSpec](/auth/src/test/scala/org/fiume/sketch/auth/AuthenticatorSpec.scala) | Authentication and Jwt issue |
+| Tokens                     | [JwtIssuerSpec](/auth/src/test/scala/org/fiume/sketch/auth/JwtIssuerSpec.scala) | Jwt generation, signing and validation |
+| Salts & Hashing            | [SaltSpec](/shared-auth/src/test/scala/org/fiume/sketch/shared/auth/SaltSpec.scala)  | Salt properties used for password hashing |
+|                            | [HashedPasswordSpec](/shared-auth/src/test/scala/org/fiume/sketch/shared/auth/HashedPasswordSpec.scala) | Passwords hashing and verification properties |
+| Account Policies           | [UsernameSpec](/shared-auth/src/test/scala/org/fiume/sketch/shared/auth/UsernameSpec.scala) | Rules for valid usernames (length, characters, etc.) |
+|                            | [PasswordSpec](/shared-auth/src/test/scala/org/fiume/sketch/shared/auth/PlainPasswordSpec.scala) | Password strength and complexity requirements|
 
 
 ## 10. References

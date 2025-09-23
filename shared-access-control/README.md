@@ -2,11 +2,6 @@
 
 Defines **how system grants or denies access to entities**, combining Role-Based Access Control (RBAC) and Ownership-Based Access Control.
 
-| Access Control  | Permission Level         |
-|-----------------|--------------------------|
-| Role-based      | Global permission        |
-| Ownership-based | Entity-level             |
-
 > ⚠️ **Work in Progress**: This system is in early-stage development.
 > See [Section 3: Future Directions](#3-future-directions) for planned changes.
 
@@ -37,6 +32,11 @@ The authorisation system must:
 
 These are the heart of the authorisation system.
 
+| Permission Level         | Access Control      |
+|--------------------------|---------------------|
+| Global permission        | **Role-based**      |
+| Entity-level             | **Ownership-based** |
+
 ### 2.1 Global Permissions (Role-Based Access Control)
 
 * Roles define global permissions that are **applied across all entities**
@@ -57,18 +57,18 @@ Ownership-Based control is a simplified form of [Relationship-Based Access Contr
 * Ownership grants **full permissions**: read, edit, delete.
 
 
-See the test `"grants a user ownership, and thus access, to an entity"` in [PostgresAccessControlSpec](../storage/src/it/scala/org/fiume/sketch/storage/authorisation/postgres/PostgresAccessControlSpec.scala) for the definitive implementation. For integration examples, see [UsersManagerSpec](../auth/src/test/scala/org/fiume/sketch/auth/accounts/UsersManagerSpec.scala).
+See the test `"grants a user ownership, and thus access, to an entity"` in [PostgresAccessControlSpec](/storage/src/it/scala/org/fiume/sketch/storage/authorisation/postgres/PostgresAccessControlSpec.scala) for the definitive implementation. For integration examples, see [UsersManagerSpec](/auth/src/test/scala/org/fiume/sketch/auth/accounts/UsersManagerSpec.scala).
 
 
 ### 2.3 Permission Rules
 
 **Access Rules**:
 
-| Role / Relationship | Access To Entities                       |
-|---------------------|------------------------------------------|
-| **Admin**           | ✅ **All entities** (bypasses ownership) |
-| **Superuser**       | ✅ All entities **except UserEntity**, which they can only access if they are the owner |
-| **Owner**           | ✅ Only entities they **own**            |
+| Role / Relationship | Access To Entities                          |
+|---------------------|---------------------------------------------|
+| **Admin**           | **✓** **All entities** (bypasses ownership) |
+| **Superuser**       | **✓** All entities **except UserEntity**, which they can only access if they are the owner |
+| **Owner**           | **✓** Only entities they **own**            |
 
 **Creation Rules**:
 
@@ -107,8 +107,8 @@ The authorisation rules provided in this document are defined by the `AccessCont
 
 | Category                       | Component                  | Specification                  |
 |--------------------------------|----------------------------|--------------------------------|
-| Authorisation Flow             | [PostgresAccessControlSpec](../storage/src/it/scala/org/fiume/sketch/storage/authorisation/postgres/PostgresAccessControlSpec.scala) | The reference implementation for [AccessControl](../shared-access-control/src/main/scala/org/fiume/sketch/shared/authorisation/AccessControl.scala) |
-| Business component integration | [DocumentsRoutesSpec](../service/src/test/scala/org/fiume/sketch/http/DocumentsRoutesSpec.scala) | Ensures only authorised users have access to documents |
+| Authorisation Flow             | [PostgresAccessControlSpec](/storage/src/it/scala/org/fiume/sketch/storage/authorisation/postgres/PostgresAccessControlSpec.scala) | The reference implementation for [AccessControl](/shared-access-control/src/main/scala/org/fiume/sketch/shared/authorisation/AccessControl.scala) |
+| Business component integration | [DocumentsRoutesSpec](/service/src/test/scala/org/fiume/sketch/http/DocumentsRoutesSpec.scala) | Ensures only authorised users have access to documents |
 
 
 > ⚠️ Access control tests in `DocumentsRoutesSpec` and similar components might be moved to a dedicated spec in the near future, e.g. `DocumentsRoutesAccessControlSpec`.

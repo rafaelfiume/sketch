@@ -19,8 +19,8 @@ package org.fiume.sketch.shared.common.app
  *
  * ##### 2. Testability
  *
- * Business logic is expressed as `Txn[A]`, a description of business operations. This keeps the same business logic isolated
- * from the transaction implementation details, allowing it to:
+ * Business logic is expressed as `Txn[A]`, a description of business operations. This keeps the same business logic isolated from
+ * the transaction implementation details, allowing it to:
  *   - Run in production against a real database, using a `Store` that wraps the business logic in a true transactional boundary
  *     (BEGIN, COMMIT, ROLLBACK)
  *   - Run in unit tests, using an in-memory `Store` implemented with `Ref` and `IO` to simulate stateful, atomic updates.
@@ -45,8 +45,8 @@ trait Store[F[_], Txn[_]]:
    *   - Logging
    *   - Calls to external APIs wrapped in `F`.
    *
-   * > **Important**: in case the transaction is **rolled back**, these lifited operations will **not be reverted**. For
-   * example, a logged message will still be output. It's the programer's responsibility to revert such actions when necessary.
+   * > **Important**: in case the transaction is **rolled back**, these lifited operations will **not be reverted**. For example,
+   * a logged message will still be output. It's the programer's responsibility to revert such actions when necessary.
    */
   val lift: [A] => F[A] => Txn[A]
 

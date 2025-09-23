@@ -1,4 +1,4 @@
-# HTTP Layer Design Guidelines
+# HTTP Inbound Adapters - Design Guidelines
 
 The HTTP layer provides public APIs that must securely map external requests into the domain in a client-agnostic way.
 
@@ -27,11 +27,11 @@ The HTTP layer provides public APIs that must securely map external requests int
 ## 1. Goals
 
 * Expose functionalities to external services through HTTP API endpoints
-* Support API evolution without breaking clients
-* Shield the domain layer from external representations and concerns
-* Handle errors gracefully, keeping the service intact and providing useful information to clients
-* Ensure only authenticated and authorised requests reach the business layer
-* Secure resources against too many requests and other security issues
+* Support API evolution without breaking existing clients
+* Isolate the domain layer from external representations and protocols
+* Handle errors gracefully, maintaining service integrity and delivering clean and actionable feedback to clients
+* Ensure that only authenticated and authorised requests reach the business layer
+* Protect the system against abuse, such as excessive requests or malicious input
 
 
 ## 2. APIs
@@ -84,7 +84,7 @@ Streamable data include:
 
 A stream is processed chunk by chunk, avoiding loading the whole content into memory.
 
-```
+```scala
 case GET -> Root / "documents" / DocumentIdVar(uuid) as user =>
   for res <- accessControl
       .canAccess(user.uuid, uuid)
@@ -103,7 +103,7 @@ case GET -> Root / "documents" / DocumentIdVar(uuid) as user =>
 
 Consider using NDJSON for large lists of resources. It provides lower memory overhead in both clients and server, and clients can start processing data immediately.
 
-```
+```scala
 case GET -> Root / "documents" as user =>
   val stream = accessControl
     .fetchAllAuthorisedEntityIds(user.uuid, "DocumentEntity")
@@ -142,7 +142,8 @@ Provide a client library that:
 
 **Example - [HttpAuthClient](/shared-auth/src/main/scala/org/fiume/sketch/shared/auth/http/HttpAuthClient.scala)**:
 
-```
+
+```scala
 authClient = HttpAuthClient.make(config, client)
 
 authClient.login(username, password)
@@ -166,9 +167,9 @@ authClient.login(username, password)
 
 | Context                          | **URL Versioning** | **Client Library Versioning** |
 | -------------------------------- | ------------------ | ----------------------------- |
-| Internal clients                 | x Avoid            | ✓ Prefer                      |
-| Public API, uncontrolled clients | ✓ Recommended      | ✓ Optional                    |
-| Strict regulatory requirements   | ✓ Recommended      | ✓ Optional                    |
+| Internal clients                 | **✗**  Avoid       | **✓** Prefer                  |
+| Public API, uncontrolled clients | **✓** Recommended  | **✓** Optional                |
+| Strict regulatory requirements   | **✓** Recommended  | **✓** Optional                |
 
 
 #### 2.5.1 URL Versioning
@@ -334,7 +335,7 @@ When validation fails, endpoints must return a payload that corresponds to a est
 
 **Example:**
 
-```
+```json
 {
   "code": "1000",
   "message": "Invalid username or password",

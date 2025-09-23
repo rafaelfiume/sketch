@@ -1,0 +1,19 @@
+meta {
+  name: Restore Account
+  type: http
+  seq: 3
+}
+
+post {
+  url: http://localhost:8080/users/df51a361-fc3f-4d87-bc1c-f48233e1c15d/restore
+  body: text
+  auth: inherit
+}
+
+headers {
+  Authorization: Bearer eyJ0eXAiOiJKV1QiLCJhbGciOiJFUzI1NiJ9.eyJzdWIiOiJkZjUxYTM2MS1mYzNmLTRkODctYmMxYy1mNDgyMzNlMWMxNWQiLCJleHAiOjE3MjY1Mjk3NjEsImlhdCI6MTcyNjUyNjE2MSwicHJlZmVycmVkX3VzZXJuYW1lIjoiYWJhY2F4aW5hb2ZhenhpeGkifQ.W3Ht7cPNsNVvwpV_vuF5DW-jN9HgzyX7JTVaHTsZo9G8HOgLYbO_Z3i8u9v-hD5ZId2eijB_s0IwLG100Pw9kA
+}
+
+settings {
+  encodeUrl: true
+}

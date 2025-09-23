@@ -23,10 +23,10 @@ class PostgresAccountDeletedNotificationsStoreSpec
 
   // Properties: No processing order guarantees are provided by the current implementation.
 
-  // Performance: A extremelly simple benchmark assuming that the number of writes is roughly the same as the number of reads:
+  // Performance: A extremely simple benchmark assuming that the number of writes is roughly the same as the number of reads:
   // - consumed 50000 notifications in 127485 ms with _no_ indexing
   // - consumed 50000 notifications in 147354 ms with indexing on `recipient` column.
-  // The reason for the indexing not improving performace could be that
+  // The reason for the indexing not improving performance could be that
   // there is only a handful possible values for a recipient, so the index is not selective enough.
   // "An index must be selective enough to reduce the number of disk lookups for it to be worth it." Source:
   // https://devcenter.heroku.com/articles/postgresql-indexes

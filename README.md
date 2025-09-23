@@ -18,7 +18,7 @@
     - 4.2 [12-Factor Principles](#42-the-12-factor-principles)
     - 4.3 [Scripting Guidelines](#43-scripting-guidelines)
     - 4.4 [Future Directions](#44-future-directions)
-5. ["Academic" Techniques for Real-World Software Engineering](#5-academic-techniques-for-real-world-software-engineering)
+5. [From Ivory Tower to Production Code](#5-from-ivory-tower-to-production-code)
     - 5.1 [Postgres as a Lightweight Event Bus](#51-postgres-as-a-lightweight-event-bus)
 6. [Further Reading](#6-further-reading)
 
@@ -26,11 +26,11 @@
 
 Sketch is built on the principle of conceptual alchemy: **transforming abstract theory into practical engineering solutions**. 
 
-This backend template uses non-obvious ideas, like using Information Theory to [write clearer docs](docs/best-practices/Documentation.md) and [Category Theory](docs/best-practices/Applied-Theory.md#4-mathematical-foundations-category-theory---safe--composable-components) for building predictable and composable software components.
+This backend template uses non-obvious ideas, like using Information Theory to [write clear docs](docs/best-practices/Documentation.md) and [Category Theory](docs/best-practices/Applied-Theory.md#4-mathematical-foundations-category-theory---safe--composable-components) for building predictable and composable software components.
 
 These diverse theories are applied not for their own sake, but to craft solutions to real-world problems. The result is a product that is secure, maintainable and scalable.
 
-> See the section ["Academic" Techniques for Real-World Software Engineering](#5-academic-techniques-for-real-world-software-engineering) for examples of this philosophy in action.
+> See the section [From Ivory Tower to Production Code](#5-from-ivory-tower-to-production-code) for examples of this philosophy in action.
 
 
 ## 2. Start Here
@@ -53,43 +53,13 @@ Each can be evolved or extracted to a microservice independently later. They:
   * Encapsulate their data and internal implementation
   * Expose functionality through APIs (algebras) with well-defined behaviour.
 
-The following modules compose the current system.
+The following modules compose the current system:
 
----
-
-#### Identity
-
-Purpose: Identifies users and manages their account lifecycle.
-
-Scope: Handles user registration and authentication.
-
-Future direction: profile management.
-
-([Documentation](auth/README.md))
-
----
-
-#### Access Control
-
-Purpose: Defines and enforces access-control policies and rules.
-
-Scope: Provides role- and owner-based authorisation mechanisms across modules.
-
-Future direction: Fine-grained permissions to move beyond all-or-nothing access.
-
-([Documentation](shared-access-control/README.md))
-
----
-
-#### Projects
-
-Scope: Securely handles user documents.
-
-Future direction:
-  * Expand to full project lifecycle management, from early business opportunities to live operations
-  * Provide actionable business insights, such development opportunities and ROI.
-
----
+| **Module**            | Purpose                   | Scope              | Future Directions      |
+------------------------|---------------------------|--------------------|------------------------|
+| **[Identity](auth/README.md)** | Identifies users and manages their account lifecycle | Handles user registration and authentication | Profile management |
+| **[Access Control](shared-access-control/README.md)** | Defines and enforces access-control policies and rules | Provides role- and owner-based authorisation mechanisms across modules | Fine-grained permissions to move beyond all-or-nothing access |
+| **Projects** | Project lifecycle management | Securely handles user documents | - Expand to full lifecycle management, from early business opportunities to live operations<br><br> - Provide actionable business insights, such development opportunities and ROI |
 
 ### 3.2 Application Layers
 
@@ -98,14 +68,14 @@ Layers provide a clear separation of concerns, ensuring the system remains adapt
 
 | Layer                       | Responsibility             | Components             | Dependencies             |  Do Not Allow |
 |-----------------------------|----------------------------|------------------------|--------------------------|---------------|
-| Inbound Adapters            | Exposes functionalities via external interfaces (REST, gRPC, etc).<br>Handles input validation, serialisation/deserialisation.<br>Convert external calls into a format the application layer understands, thus isolating the core domain | Http Routes. E.g., [UserRoutes](/auth/src/main/scala/org/fiume/sketch/auth/http/UsersRoutes.scala) | Application / Domain (entities) | 🚫 Exposed domain entities to external world (use DTOs)<br> 🚫 Business-logic <br> 🚫 DAOs or external APIs used directly |
-| Application                 | Implements use-cases by orchestrating domain components and invoking external modules through ports.<br>Defines transaction boundaries | E.g. [UsersManager](/auth/src/main/scala/org/fiume/sketch/auth/accounts/UsersManager.scala) | Domain (entities, ports) | 🚫 Bypass business rules <br> 🚫 Direct infrastructure access (e.g. low-level transaction code) |
-| Domain                      | The core value of the system. Expresses the business model, rules, and ports (contracts) for required external capabilities | * *Entities*, e.g. [User](/shared-auth/src/main/scala/org/fiume/sketch/shared/auth/User.scala)<br>* *Ports*, e.g. [UsersStore](/shared-auth/src/main/scala/org/fiume/sketch/shared/auth/algebras/UsersStore.scala) | None | 🚫 Dependencies on any other layer |
-| Infrastructure (Outbound Adapters) | Implements ports, persisting the domain state, or calling external APIs | *DAO*, e.g. [PostgresUsersStore](/storage/src/main/scala/org/fiume/sketch/storage/auth/postgres/PostgresUsersStore.scala) | Domain (ports; entities as inputs/outputs) | 🚫 Business rules 🚫 Leaking infrastructure details <br> |
+| **Inbound Adapters**        | Entry points into the application.<br><br>Convert external inputs into a format the application layer understands, thus isolating the core domain | - [**Http APIs**](/docs/architecture/inbound-adapters/http/Design.md). E.g. [UserRoutes](/auth/src/main/scala/org/fiume/sketch/auth/http/UsersRoutes.scala)<br>- **Event Consumers**<br>- **CLI commands**<br>- **gRPC** | Application / Domain (entities) | **✗** Exposed domain entities to external world (use DTOs)<br><br> **✗**  Business-logic<br><br> **✗**  DAOs or external APIs used directly |
+| **Application Layer**       | Implements use-cases by orchestrating domain components and invoking external modules through ports.<br><br>Defines transaction boundaries | E.g. [UsersManager](/auth/src/main/scala/org/fiume/sketch/auth/accounts/UsersManager.scala) | Domain (entities, ports) | **✗**  Bypass business rules<br><br> **✗**  Direct infrastructure access (e.g. low-level transaction code) |
+| **Domain Layer**            | The core value of the system.<br><br> Expresses the business model, rules, and ports (contracts) for required external capabilities | - **Entities**. E.g. [User](/shared-auth/src/main/scala/org/fiume/sketch/shared/auth/User.scala)<br>- **Ports**. E.g. [UsersStore](/shared-auth/src/main/scala/org/fiume/sketch/shared/auth/algebras/UsersStore.scala) | None | **✗**  Dependencies on any other layer |
+| **Outbound Adapters** (Infrastructure) | Implements ports, persisting the domain state, or calling external APIs | - **DAO**. E.g. [PostgresUsersStore](/storage/src/main/scala/org/fiume/sketch/storage/auth/postgres/PostgresUsersStore.scala)<br> - **Event Producers** | Domain (ports; entities as inputs/outputs) | **✗** Business rules<br><br> **✗**  Leaking infrastructure details |
 
-> **Note**: We favour pragmatism over purism. The Application Layer exposes Domain Entities as input and output to Inbound Adapters to avoid unnecessary DTOs, reducing indirection without sacrificing maintainability. 
+> **Note**: We favour pragmatism over purism. The **Application Layer exposes Domain Entities as input and output to Inbound Adapters** to avoid unnecessary DTOs, reducing indirection without sacrificing maintainability. 
 
-> This simplifies the code and preserves strong encapsulation. The **key boundary** remains between domain and external systems: entities must be converted to DTOs within Adapters, shielding the domain from the outside world.
+> This simplifies the code and preserves strong encapsulation. The **key boundary** remains **between domain and external systems**: entities must be converted to DTOs within Adapters, shielding the domain from the outside world.
 
 **Compile-time dependencies:**
 
@@ -156,17 +126,17 @@ The plan is to expand DevOps practices in these areas:
 ```
 
 
-## 5. "Academic" Techniques for Real-World Software Engineering
+## 5. From Ivory Tower to Production Code
 
-| Concept                         | Problem It Solves    | Prevents         | Example      |
+| Concept                         | Benefits             | Prevents         | Example      |
 |---------------------------------|----------------------|------------------|--------------|
-| **Natural Transformation** (`F ~> G`) | **Separates core business logic** (e.g. rules for setting up a user account) **from low-level infrastructure details** (e.g.transactions commit/rollback) | Mixing concerns, causing readability and maintainance nightmare, and making regression tests near impossible | **Define a clear transaction boundary.** <br><br>`val setupAccount = ... // create account, grant access to owner`<br>`setupAccount.commit()` <br><br>See: [UsersManager](auth/src/main/scala/org/fiume/sketch/auth/accounts/UsersManager.scala) (core domain) depends on [Store](shared-components/src/main/scala/org/fiume/sketch/shared/common/app/Store.scala) (infrastructure abstraction) |
+| **Natural Transformation** (`F ~> G`) | **Separates core business logic** (e.g. rules for setting up a user account) **from low-level infrastructure details** (e.g.transactions commit/rollback) | Mixing concerns, causing readability and maintenance nightmare, and making regression tests near impossible | **Define a clear transaction boundary.** <br><br>`val setupAccount = ... // create account, grant access to owner`<br>`setupAccount.commit()` <br><br>See: [UsersManager](auth/src/main/scala/org/fiume/sketch/auth/accounts/UsersManager.scala) (core domain) depends on [Store](shared-components/src/main/scala/org/fiume/sketch/shared/common/app/Store.scala) (infrastructure abstraction) |
 | **Isomorphism**                 | **Lossless conversions** between data representations. | Corrupted keys leading to severe authentication failures | Ensuring cryptographic keys can be serialised and deserialised without corruption. <br><br>See: [KeyStringifierSpec](auth/src/test/scala/org/fiume/sketch/auth/KeyStringifierSpec.scala) |
-| **Producer-Consumer Streams**   | Build **reliable event-driven systems with clear delivery semantics** | * Lost or duplicated events <br>* The low-level complexity generelly associated with this type of programming | Exactly-once semantics backed by [Postgres as a Lightweight Event Bus](#51-postgres-as-a-lightweight-event-bus). <br><br>`producer.produceEvent(. . .).ccommit`<br>`. . .`<br>`consumer.consumeEvent().flatMap { notification => . . . business logic }`<br><br>See: [PostgresAccountDeletedNotificationsStoreSpec](storage/src/it/scala/org/fiume/sketch/storage/auth/postgres/PostgresAccountDeletedNotificationsStoreSpec.scala) |
-| **Phantom Types**               | **Compile-time guarantee** that the correct ID type is used, with zero runtime cost | Corrupting data by passing IDs of wrong type (e.g. `UserId` vs. `DocumentId`), fragile refactoring | [EntityId](shared-components/src/main/scala/org/fiume/sketch/shared/common/EntityId.scala) |
-| **Linear Logic**                | Processes events **concurrently with strict exactly-once guarantees** | Stale events, duplicate-processing. E.g., sending dozens of emails to each client, effectively turning your business into a spam machine (yes, I've seen this happen) | See: <br>* [Postgres as a Lightweight Event Bus](#51-postgres-as-a-lightweight-event-bus) doc <br>* [ScheduledAccountDeletionJob](auth/src/main/scala/org/fiume/sketch/auth/accounts/jobs/ScheduledAccountDeletionJob.scala) (implementation)  |
+| **Producer-Consumer Streams**   | Build **reliable event-driven systems with clear delivery semantics** | - Lost or duplicated events <br>- The low-level complexity generaPlly associated with this type of programming | Exactly-once semantics backed by [Postgres as a Lightweight Event Bus](#51-postgres-as-a-lightweight-event-bus). <br><br>`producer.produceEvent(. . .).ccommit`<br>`. . .`<br>`consumer.consumeEvent().flatMap { notification => . . . business logic }`<br><br>See: [PostgresAccountDeletedNotificationsStoreSpec](storage/src/it/scala/org/fiume/sketch/storage/auth/postgres/PostgresAccountDeletedNotificationsStoreSpec.scala) |
+| **Phantom Types**                     | - Provides **compile-time guarantee of correctness** without runtime overhead<br><br> - Encodes domain rules directly in the type signature | Corrupting data by passing wrong IDs, such as `UserId` vs. `DocumentId`<br><br> - Fragile refactoring | [EntityId](/shared-components/src/main/scala/org/fiume/sketch/shared/common/EntityId.scala) |
+| **Linear Logic**                | Processes events **concurrently with strict exactly-once guarantees** | Stale events, duplicate-processing. E.g., sending dozens of emails to each client, effectively turning your business into a spam machine (yes, I've seen this happen) | See: <br>- [Postgres as a Lightweight Event Bus](#51-postgres-as-a-lightweight-event-bus) doc <br>- [ScheduledAccountDeletionJob](auth/src/main/scala/org/fiume/sketch/auth/accounts/jobs/ScheduledAccountDeletionJob.scala) (implementation)  |
 
-> ⚡ See [Applied Theory](docs/best-practices/Applied-Theory.md) for a broader collection of theory-to-practice insights.
+> ⚡ See [From Ivory Tower to Production Code](docs/best-practices/Applied-Theory.md) for a broader collection of theory-to-practice insights.
 
 
 ### 5.1 Postgres as a Lightweight Event Bus

@@ -16,7 +16,7 @@
  It can be helpful when a set of operations can be invoked on a type depending on its state.
  See https://www.youtube.com/watch?v=bnnacleqg6k at around 33m.
 
-- Replace Postman by https://www.usebruno.com/
+- Infrastructure: Consider https://render.com/
 
 
 ## Courses

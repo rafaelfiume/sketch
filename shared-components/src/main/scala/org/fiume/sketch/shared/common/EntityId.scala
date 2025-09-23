@@ -12,7 +12,7 @@ import scala.util.Try
 /**
  * ### Motivations:
  *
- * Guarantees at compile time that IDs are not accidently mixed up.
+ * Guarantees at compile time that IDs are not accidentally mixed up.
  *
  * Suppose that there is no phantom types, only a single universal EntityId:
  * {{{
@@ -32,26 +32,27 @@ import scala.util.Try
  * eraseFromEarth(userId) // Won't compile: type mismatch
  * }}}
  *
- * `User` and `Document` in the latter example are phantom type markers:
- * they only exist at compilation time, thus there is no runtime overhead.
+ * `User` and `Document` in the latter example are phantom type markers: they only exist at compilation time, thus there is no
+ * runtime overhead.
  *
  * From a Domain-Driven Development perspective, domain intent is explicit and enforced by the type system:
  *
  * > Unknown or invalid states are unrepresentable.
  *
  * For any non-trivial codebase, preventing mix-up of ids - picture a function that expects two or more different types of ids -
- * the upfront cost associated with Phantom Types machinery pays for itself
- * by enabling the compiler to prevent potentially severe bugs from going into production.
+ * the upfront cost associated with Phantom Types machinery pays for itself by enabling the compiler to prevent potentially severe
+ * bugs from going into production.
  *
  * ### Equality:
- *
+ * {{{
  * val fst = OrderId(uuid)
  * val snd = ItemId(uuid)
  * fst === snd // boom! it won't compile
  * fst == snd // true!!!!
+ * }}}
  *
- * Whever possible, it is recommended to favour cats `Eq` over the standard `equals` function,
- * since the former is based both on the UUID value _and_ entityType.
+ * Whenever possible, it is recommended to favour cats `Eq` over the standard `equals` function, since the former is based both on
+ * the UUID value _and_ entityType.
  */
 abstract case class EntityId[T <: Entity](val value: UUID):
   def entityType: String
