@@ -59,3 +59,7 @@ For essential principles and best-practices for creating effective CLI scripts, 
  * [12 Factor CLI Apps](https://medium.com/@jdxcode/12-factor-cli-apps-dd3c227a0e46): Design guidelines for useful and intuitive CLI tools
  * [Bash best practices](https://bertvv.github.io/cheat-sheets/Bash.html): Best practices for writing maintainable and robust scripts
  * [Minimal Safe Bash Script Template](https://betterdev.blog/minimal-safe-bash-script-template/): A battle-tested template to jumpstart new scripts
+
+ > Note:<br>
+> **Terminal**: an interface that let's you interact with the shell (e.g. GNOME Terminal, iTerm2, Windows Terminal)<br>
+> **Shell**: a program running inside the terminal interpreting commands (e.g. bash, zsh).
