@@ -8,6 +8,7 @@ import org.fiume.sketch.shared.auth.Passwords.PlainPassword.WeakPasswordError.*
 import org.fiume.sketch.shared.common.troubleshooting.InvariantError
 import org.mindrot.jbcrypt.BCrypt
 
+// L50
 object Passwords:
 
   sealed abstract case class PlainPassword(value: String)
@@ -41,6 +42,7 @@ object Passwords:
       case InvalidChar extends WeakPasswordError("password.invalid.characters", "must not contain control characters or emojis")
 
     val minLength = 12
+    // (Also relevant: bcrypt has a maximum input password length of 72 bytes — useful to document as a constraint).
     val maxLength = 64
     val specialChars = Set('!', '@', '#', '$', '%', '^', '&', '*', '_', '+', '=', '~', ';', ':', ',', '.', '?')
     val invalidSpecialChars = Set('(', ')', '[', ']', '{', '}', '|', '\\', '\'', '"', '<', '>', '/')

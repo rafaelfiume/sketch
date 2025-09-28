@@ -1,7 +1,7 @@
 
 
 
-### Account deativation/deletion - Missing steps:
+### Account deletion - Missing steps:
 
 1) Delete data from access-control module/service
 
@@ -10,6 +10,7 @@
 
 ### Others
 
+- TODO Reconcile UserCredentials and Account (do I need both? likely not)
 - TODO POST /documents returns 201 with a Location header with a link to the newly created resource instead.
 
 - Consider the Type State technique, to encode the state of a component using the type system.
@@ -18,6 +19,38 @@
 
 - Infrastructure: Consider https://render.com/
 
+
+## Contextual Attributes
+-
+-There are attributes that dependent on context and don't belong to the core domain model
+-of the domain ADTs themselves. I.e. they are not instrinsic properties of the entities, but arise -
+-for example - from the relationship between a user and the entity (user roles and permissions).
+-
+-These external or contextual properties should be modelled separately from the core domain model
+-to achieve separation of concerns.
+-
+-Ideas to model contextual attributes:
+-
+-```
+-case class ContextualAttributes(
+-  roles: Role = Role.Contextual(Owner),
+-  lastAccessed: Option[String] = None,
+-  isFavorited: Boolean = false
+-)
+-```
+-
+-An entity view, like `DocumentResponsePayload` would then include an extra field `contextualAttributes`.
+-
+-There could be a Typeclass defined to generate a view model enriched with contextualAttributes:
+-
+-```
+-trait ContextualEnrichment[T]:
+-  def enrich(domain: D, contextualAttributes: Map[String, Any]): V
+-
+-def enrichDomainToView[D, V](domain: D, contextualAttributes: Map[String, Any])(using ev: ContextualEnrichment[D, V]): V =
+-  ev.enrich(domain, contextualAttributes)
+-```
+-
 
 ## Courses
 

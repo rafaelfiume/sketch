@@ -191,5 +191,22 @@ This solution will give us:
 
 ## 6. Further Reading
 
-* [Documentation Guidelines](/docs/best-practices/Documentation.md)
-* [Release Guidelines](/docs/devops/Releases.md)
+### 6.1 General Guidelines
+
+* [Documentation Guidelines](/docs/best-practices/Documentation.md) - Write concise, well-structured docs inspired by Information Theory principles.
+
+### 6.2 Architecture
+
+* [HTTP Inbound Adapters - Design Guidelines](/docs/architecture/inbound-adapters/http/Design.md) - Design effective and maintainable HTTP APIs.
+* [Domain Layer - Design Guidelines](/docs/architecture/domain/Design.md) - Model your business domain using DDD principles.
+
+### 6.3 DevOps
+
+* [Admin Processes (The 12th Factor)](/docs/devops/Admin.md) - Build and maintain admin/management scripts
+* [Release Guidelines](/docs/devops/Releases.md) - Learn about the project CI pipeline and release process
+* [Scripting Guidelines](/docs/devops/Scripting.md) - Write robust CLI apps and scripts
+
+### 6.4 Local Development
+
+* [Onboarding](/docs/start-here/Onboarding.md) - Run the application stack in your machine
+* [Dev Environment Troubleshooting](/docs/start-here/Local-Troubleshooting.md) - Solve common local development issues
