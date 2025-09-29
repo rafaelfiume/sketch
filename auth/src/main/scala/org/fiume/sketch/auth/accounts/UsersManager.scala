@@ -36,11 +36,6 @@ trait UsersManager[F[_]]:
     accountToBeRestored: UserId
   ): F[Either[AccessDenied.type | ActivateAccountError, Account]]
 
-  def markForDeletion(
-    userId: UserId,
-    timeUntilPermanentDeletion: Duration
-  ): F[Either[SoftDeleteAccountError, AccountDeletionEvent.Scheduled]]
-
   def restoreAccount(userId: UserId): F[Either[ActivateAccountError, Account]]
 
 object UsersManager:
@@ -97,13 +92,6 @@ object UsersManager:
           )
           .commit()
 
-      // commits the transaction... for now
-      override def markForDeletion(
-        userId: UserId,
-        timeUntilPermanentDeletion: Duration
-      ): F[Either[SoftDeleteAccountError, AccountDeletionEvent.Scheduled]] =
-        doMarkForDeletion(userId, timeUntilPermanentDeletion).commit()
-
       private def doMarkForDeletion(
         userId: UserId,
         timeUntilPermanentDeletion: Duration
@@ -123,7 +111,6 @@ object UsersManager:
             }
         }
 
-      // commits the transaction... for now
       def restoreAccount(userId: UserId): F[Either[ActivateAccountError, Account]] =
         doRestoreAccount(userId).commit()
 

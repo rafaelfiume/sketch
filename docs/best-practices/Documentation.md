@@ -14,7 +14,7 @@
 
 ## 1. Goals
 
-Write effective, high signal-to-noise ratio, low-entropy technical documentation for rapid comprehension of relevant information by applying Information Theory concepts:
+Write effective documentation for rapid comprehension of relevant information by applying Information Theory concepts:
 
 * Maximise Signal: only relevant information
 * Minimise Noise: less confusion and clutter

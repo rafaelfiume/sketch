@@ -9,7 +9,7 @@ It is technology-agnostic, independent from frameworks, and the communication wi
 
 1. [Goals](#1-goals)
 2. [Principles](#2-principles)
-3. [Keep Domain Clear From](#3-keep-domain-layer-clear-from)
+3. [Keep Domain Clear From](#3-keep-domain-layer-free-from)
 4. [Domain Errors as First-Class Citizens](#4-domain-errors-as-first-class-citizens)
 5. [Key Components](#5-key-components)
     - 5.1 [Entities](#51-entities)
@@ -17,6 +17,7 @@ It is technology-agnostic, independent from frameworks, and the communication wi
     - 5.3 [Aggregates](#53-aggregates)
     - 5.4 [Ports / Algebras](#54-ports--algebras)
     - 5.5 [Domain & Integration Events](#55-domain--integration-events)
+6. [Further Reading](#6-further-reading)
 
 
 ## 1. Goals
@@ -39,7 +40,7 @@ Define **business models and rules** that **capture business need** and **delive
     - Validation rules encoded directly in [types](/docs/best-practices/Applied-Theory.md#1-types---compile-time-invariants) and [constructors](/shared-auth/src/main/scala/org/fiume/sketch/shared/auth/Passwords.scala#L50).
 
 
-## 3. Keep Domain Layer Clear From
+## 3. Keep Domain Layer Free From
 
 | Concerns                              | Belongs To                                            | Rationale   |
 |---------------------------------------|-------------------------------------------------------|-------------|
@@ -194,3 +195,11 @@ The following practices take **event-driven systems to the next level**:
 
 ```
 > **Code Reference**: [AccountDeletedNotification.scala](/shared-auth/src/main/scala/org/fiume/sketch/shared/auth/accounts/AccountDeletedNotification.scala)
+
+
+## 6. Further Reading
+
+* [Hexagonal Architecture](https://en.wikipedia.org/wiki/Hexagonal_architecture_(software))
+* [Clean Architecture](https://blog.cleancoder.com/uncle-bob/2012/08/13/the-clean-architecture.html)
+* [HTTP Inbound Adapters - Design Guidelines](/docs/architecture/inbound-adapters/http/Design.md) - Design effective and maintainable HTTP APIs.
+* [Application Layer - Design Guidelines](/docs/architecture/application/Design.md) - Orchestrate stateless business workflows.

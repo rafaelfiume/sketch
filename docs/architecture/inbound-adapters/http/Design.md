@@ -2,6 +2,7 @@
 
 The HTTP layer provides public APIs that must securely map external requests into the domain in a client-agnostic way.
 
+
 **Table of Contents**
 
 1. [Goals](#1-goals)
@@ -23,6 +24,8 @@ The HTTP layer provides public APIs that must securely map external requests int
    - 4.2 [Input Validation](#42-input-validation)
 5. [Security](#5-security)
 6. [Future Directions](#6-future-directions)
+7. [Further Reading](#7-further-reading)
+
 
 ## 1. Goals
 
@@ -80,9 +83,9 @@ Streamable data include:
 
 #### 2.2.1 Binary Downloads
 
-**Example - Streaming Binary Documents:**
-
 A stream is processed chunk by chunk, avoiding loading the whole content into memory.
+
+**Example - Streaming Binary Documents:**
 
 ```scala
 case GET -> Root / "documents" / DocumentIdVar(uuid) as user =>
@@ -99,9 +102,9 @@ case GET -> Root / "documents" / DocumentIdVar(uuid) as user =>
 
 #### 2.2.2 Newline-delimited JSON (NDJSON)
 
-**Example - Streaming Document Resource List:**
-
 Consider using NDJSON for large lists of resources. It provides lower memory overhead in both clients and server, and clients can start processing data immediately.
+
+**Example - Streaming Document Resource List:**
 
 ```scala
 case GET -> Root / "documents" as user =>
@@ -115,7 +118,7 @@ case GET -> Root / "documents" as user =>
   Ok(stream, Header.Raw(ci"Content-Type", "application/x-ndjson"))
 ```
 
-> **See:** [NewlineDelimitedJson](/shared-components/src/main/scala/org/fiume/sketch/shared/common/http/json/NewlineDelimitedJson.scala).
+> **Code Reference:** [NewlineDelimitedJson.scala](/shared-components/src/main/scala/org/fiume/sketch/shared/common/http/json/NewlineDelimitedJson.scala).
 
 ### 2.3 Example
 
@@ -364,9 +367,19 @@ The HTTP layer acts as a security filter, rejecting invalid requests before they
 | Throttling                           | Not implemented      | API Gateway |
 | Request size limits                  | Not implemented      | [HTTP Layer](https://http4s.org/v1/docs/server-middleware.html#entitylimiter) |
 
+| TLS Enforcement | Not Implemented | API Gateway / Load Balancer
+
 
 ## 6. Future Directions
 
  * Improved Client Experience: Client guidelines, pagination support
  * Observability: Request ID's, tracing, tracking, metrics
  * Move security features to a dedicated API Gateway.
+
+
+## 7. Further Reading
+
+* [Hexagonal Architecture](https://en.wikipedia.org/wiki/Hexagonal_architecture_(software))
+* [Clean Architecture](https://blog.cleancoder.com/uncle-bob/2012/08/13/the-clean-architecture.html)
+* [Domain Layer - Design Guidelines](/docs/architecture/domain/Design.md) - Model business domains using DDD principles.
+* [Application Layer - Design Guidelines](/docs/architecture/application/Design.md) - Orchestrate stateless business workflows.

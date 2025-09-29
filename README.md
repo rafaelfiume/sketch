@@ -73,10 +73,6 @@ Layers provide a clear separation of concerns, ensuring the system remains adapt
 | **Domain Layer**            | The core value of the system.<br><br> Expresses the business model, rules, and ports (contracts) for required external capabilities | - **Entities**. E.g. [User](/shared-auth/src/main/scala/org/fiume/sketch/shared/auth/User.scala)<br>- **Ports**. E.g. [UsersStore](/shared-auth/src/main/scala/org/fiume/sketch/shared/auth/algebras/UsersStore.scala) | None | **✗**  Dependencies on any other layer |
 | **Outbound Adapters** (Infrastructure) | Implements ports, persisting the domain state, or calling external APIs | - **DAO**. E.g. [PostgresUsersStore](/storage/src/main/scala/org/fiume/sketch/storage/auth/postgres/PostgresUsersStore.scala)<br> - **Event Producers** | Domain (ports; entities as inputs/outputs) | **✗** Business rules<br><br> **✗**  Leaking infrastructure details |
 
-> **Note**: We favour pragmatism over purism. The **Application Layer exposes Domain Entities as input and output to Inbound Adapters** to avoid unnecessary DTOs, reducing indirection without sacrificing maintainability. 
-
-> This simplifies the code and preserves strong encapsulation. The **key boundary** remains **between domain and external systems**: entities must be converted to DTOs within Adapters, shielding the domain from the outside world.
-
 **Compile-time dependencies:**
 
 ```
@@ -198,7 +194,8 @@ This solution will give us:
 ### 6.2 Architecture
 
 * [HTTP Inbound Adapters - Design Guidelines](/docs/architecture/inbound-adapters/http/Design.md) - Design effective and maintainable HTTP APIs.
-* [Domain Layer - Design Guidelines](/docs/architecture/domain/Design.md) - Model your business domain using DDD principles.
+* [Domain Layer - Design Guidelines](/docs/architecture/domain/Design.md) - Model business domains using DDD principles.
+* [Application Layer - Design Guidelines](/docs/architecture/application/Design.md) - Orchestrate stateless business workflows.
 
 ### 6.3 DevOps
 

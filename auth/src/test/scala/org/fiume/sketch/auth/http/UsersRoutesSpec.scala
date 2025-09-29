@@ -8,7 +8,6 @@ import org.fiume.sketch.shared.auth.{User, UserId}
 import org.fiume.sketch.shared.auth.Passwords.PlainPassword
 import org.fiume.sketch.shared.auth.User.Username
 import org.fiume.sketch.shared.auth.accounts.{Account, AccountDeletionEvent, ActivateAccountError, SoftDeleteAccountError}
-import org.fiume.sketch.shared.auth.accounts.AccountDeletionEvent.Scheduled
 import org.fiume.sketch.shared.auth.accounts.ActivateAccountError.AccountAlreadyActive
 import org.fiume.sketch.shared.auth.accounts.SoftDeleteAccountError.{AccountAlreadyPendingDeletion, AccountNotFound}
 import org.fiume.sketch.shared.auth.http.model.Users.ScheduledForPermanentDeletionResponse
@@ -178,9 +177,5 @@ trait UsersManagerContext:
       restoringAccount: UserId,
       accountToBeRestored: UserId
     ): IO[Either[AccessDenied.type | ActivateAccountError, Account]] = ???
-
-    override def markForDeletion(userId: UserId,
-                                 timeUntilPermanentDeletion: Duration
-    ): IO[Either[SoftDeleteAccountError, Scheduled]] = ???
 
     override def restoreAccount(userId: UserId): IO[Either[ActivateAccountError, Account]] = ???

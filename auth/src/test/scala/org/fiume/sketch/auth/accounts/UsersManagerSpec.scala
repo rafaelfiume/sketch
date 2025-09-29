@@ -153,7 +153,7 @@ class UsersManagerSpec
     }
 
   test("only Admin users can restore user accounts"):
-    forAllF { (owner: UserCredentials, authed: UserCredentials) =>
+    forAllF { (owner: UserCredentials, admin: UserCredentials) =>
       val accountReactivationDate = Instant.now.truncatedTo(MILLIS)
       val clock = makeFrozenClock(accountReactivationDate)
       for
@@ -161,9 +161,9 @@ class UsersManagerSpec
         eventProducer <- makeCancellableAccountDeletionEventProducer()
         accessControl <- makeAccessControl()
         ownerId <- store.createAccount(owner)
-        adminId <- store.createAccount(authed).flatTap { accessControl.grantGlobalAccess(_, GlobalRole.Admin) }
+        adminId <- store.createAccount(admin).flatTap { accessControl.grantGlobalAccess(_, GlobalRole.Admin) }
         usersManager = UsersManager.make[IO, IO](store, eventProducer, accessControl, clock, delayUntilPermanentDeletion)
-        _ <- usersManager.markForDeletion(ownerId, 0.seconds)
+        _ <- usersManager.attemptToMarkAccountForDeletion(adminId, ownerId)
 
         result <- usersManager.attemptToRestoreAccount(adminId, ownerId).map(_.rightOrFail)
 
