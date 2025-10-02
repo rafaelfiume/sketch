@@ -3,6 +3,13 @@
 The application layer implements business use-cases, orchestrating domain components and using external capabilities through [ports](/docs/architecture/domain/Design.md#54-ports--algebras) (algebras). It checks authorisation, coordinates multiple domain tasks into atomic operations, handles retries and supports application monitoring.
 
 
+> This document is part of the project's [Architecture Guidelines](/README.md#62-architecture).
+
+```
+[ Inbound Adapters ] --> [ Application Layer (you're here) ] --> [ Domain Layer ] <-- [ Outbound Adapters ]
+```
+
+
 **Table of Contents**
 
 1. [Goals](#1-goals)
@@ -20,7 +27,6 @@ The application layer implements business use-cases, orchestrating domain compon
     - 7.3 [Domain Errors Exposed to Adapters](#73-domain-errors-exposed-to-adapters)
     - 7.4 [Input Validation Delegated to Inbound-Adapters (via Domain Factories)](#74-input-validation-delegated-to-inbound-adapters-via-domain-factories)
 8. [Future Directions](#8-future-directions)
-9. [Further Reading](#9-further-reading)
 
 
 ## 1. Goals
@@ -42,7 +48,7 @@ The application layer implements business use-cases, orchestrating domain compon
 
 ## 3. Keep the Application Layer Free From
 
-| Concerns                         | Belongs To                  | Rationale                               |
+| Concern                          | Proper Layer                | Rationale   |
 |----------------------------------|-----------------------------|-----------------------------------------|
 | **✗** State                      | Infrastructure Layer        | Preserving in-memory state between process hurts scalability |
 | **✗** Domain logic               | Domain Layer                | - Prevents duplication of core business modes and rules<br> - Centralised code favours composition, testability and correctness |
@@ -129,6 +135,7 @@ trait UsersManager[F[_]]:
 
   . . . // other operations
 ```
+> **See:** [UsersManager.scala](/auth/src/main/scala/org/fiume/sketch/auth/accounts/UsersManager.scala)
 
 **Implementation:**
 
@@ -157,14 +164,14 @@ object UsersManager:
 
       . . . // remaining` operations
 ```
+> **See:** [UsersManager.scala](/auth/src/main/scala/org/fiume/sketch/auth/accounts/UsersManager.scala)
+
 * **Domain Logic**: Domain primitives are used to hash a password
 * **Ports Usage**: `store` and `accessControl` are outbound ports (algebras)
 * **Atomic Operation**: The entire `setUpAccount` block represents one transaction.
 * **Error Handling**: Any failure triggers a rollback of all operations.
 
 > **Transaction Mechanics:** See [Store](/shared-components/src/main/scala/org/fiume/sketch/shared/common/app/Store.scala) documentation to dive deeper on defining transactional boundaries, and how that is done without having low-level infrastructure details leaking into the application layer.
-
-> **Code Reference:** [UsersManager.scala](/auth/src/main/scala/org/fiume/sketch/auth/accounts/UsersManager.scala)
 
 
 ## 7. Pragmatic Compromises
@@ -210,7 +217,7 @@ Example of a suitable case for merging adapter and application layer concerns:
   }
 
 ```
-**Code Reference:** [DocumentsRoutes.scala](/service/src/main/scala/org/fiume/sketch/http/DocumentsRoutes.scala)
+> **See:** [DocumentsRoutes.scala](/service/src/main/scala/org/fiume/sketch/http/DocumentsRoutes.scala)
 
 ### 7.2 Domain Objects Exposed To Adapters
 
@@ -236,7 +243,7 @@ The **key boundary** remains **between domain and external systems**: entities m
   }
 
 ```
-**Code Reference:** [DocumentsRoutes.scala](/service/src/main/scala/org/fiume/sketch/http/DocumentsRoutes.scala)
+> **See:** [DocumentsRoutes.scala](/service/src/main/scala/org/fiume/sketch/http/DocumentsRoutes.scala)
 
 Do not expose domain objects to inbound adapters when:
 
@@ -245,7 +252,7 @@ Do not expose domain objects to inbound adapters when:
 > **Important!**<br>
 > High-discipline must be in place to ensure adapters **convert domain objects into DTOs**, **preventing them from leaking** to the external world.
 
-See [Shielding the Domain (Data Representation)](/docs/architecture/inbound-adapters/http/Design.md#3-shielding-the-domain-data-representation) for more details.
+See [Shielding The Domain](/docs/architecture/inbound-adapters/http/Design.md#3-shielding-the-domain) for more details.
 
 ### 7.3 Domain Errors Exposed to Adapters
 
@@ -274,7 +281,7 @@ For example, in the code below, `AccountAlreadyPendingDeletion` and `SoftDeleteA
           }
     }
 ```
-**Code Reference:** [UsersRoutes.scala](/auth/src/main/scala/org/fiume/sketch/auth/http/UsersRoutes.scala)
+> **See:** [UsersRoutes.scala](/auth/src/main/scala/org/fiume/sketch/auth/http/UsersRoutes.scala)
 
 You may want to map domain to application errors if:
   - Domain errors are not stable, with changes propagating to multiple adapters
@@ -304,7 +311,7 @@ Besides checking that there are no structural errors, adapters are responsible f
           _.pure[F] // Or else a tuple with `Username` and `PlainPassword` is returned (both domain value objects)
         )
 ```
-**Code Reference:** [Login.scala](/shared-auth/src/main/scala/org/fiume/sketch/shared/auth/http/model/Login.scala)
+> **See:** [Login.scala](/shared-auth/src/main/scala/org/fiume/sketch/shared/auth/http/model/Login.scala)
 
 > **Important!**<br>
 > Extra care needs to be taken to ensure **no business validation is implemented in adapters**.
@@ -315,11 +322,3 @@ Besides checking that there are no structural errors, adapters are responsible f
 * Improved Monitoring:
   - Currently, the application logs the bare minimum information to pinpoint potential problems
   - Tracking and tracing are missing entirely. The plan is to define tracking ports/algebras, and leave their implementation to when the app infrastructure is ready for deployment in a production environment.
-
-
-## 9. Further Reading
-
-* [Hexagonal Architecture](https://en.wikipedia.org/wiki/Hexagonal_architecture_(software))
-* [Clean Architecture](https://blog.cleancoder.com/uncle-bob/2012/08/13/the-clean-architecture.html)
-* [HTTP Inbound Adapters - Design Guidelines](/docs/architecture/inbound-adapters/http/Design.md) - Design effective and maintainable HTTP APIs.
-* [Domain Layer - Design Guidelines](/docs/architecture/domain/Design.md) - Model business domains using DDD principles.

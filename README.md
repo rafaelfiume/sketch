@@ -19,7 +19,6 @@
     - 4.3 [Scripting Guidelines](#43-scripting-guidelines)
     - 4.4 [Future Directions](#44-future-directions)
 5. [From Ivory Tower to Production Code](#5-from-ivory-tower-to-production-code)
-    - 5.1 [Postgres as a Lightweight Event Bus](#51-postgres-as-a-lightweight-event-bus)
 6. [Further Reading](#6-further-reading)
 
 ## 1. Project Philosophy
@@ -128,61 +127,11 @@ The plan is to expand DevOps practices in these areas:
 |---------------------------------|----------------------|------------------|--------------|
 | **Natural Transformation** (`F ~> G`) | **Separates core business logic** (e.g. rules for setting up a user account) **from low-level infrastructure details** (e.g.transactions commit/rollback) | Mixing concerns, causing readability and maintenance nightmare, and making regression tests near impossible | **Define a clear transaction boundary.** <br><br>`val setupAccount = ... // create account, grant access to owner`<br>`setupAccount.commit()` <br><br>See: [UsersManager](auth/src/main/scala/org/fiume/sketch/auth/accounts/UsersManager.scala) (core domain) depends on [Store](shared-components/src/main/scala/org/fiume/sketch/shared/common/app/Store.scala) (infrastructure abstraction) |
 | **Isomorphism**                 | **Lossless conversions** between data representations. | Corrupted keys leading to severe authentication failures | Ensuring cryptographic keys can be serialised and deserialised without corruption. <br><br>See: [KeyStringifierSpec](auth/src/test/scala/org/fiume/sketch/auth/KeyStringifierSpec.scala) |
-| **Producer-Consumer Streams**   | Build **reliable event-driven systems with clear delivery semantics** | - Lost or duplicated events <br>- The low-level complexity generaPlly associated with this type of programming | Exactly-once semantics backed by [Postgres as a Lightweight Event Bus](#51-postgres-as-a-lightweight-event-bus). <br><br>`producer.produceEvent(. . .).ccommit`<br>`. . .`<br>`consumer.consumeEvent().flatMap { notification => . . . business logic }`<br><br>See: [PostgresAccountDeletedNotificationsStoreSpec](storage/src/it/scala/org/fiume/sketch/storage/auth/postgres/PostgresAccountDeletedNotificationsStoreSpec.scala) |
 | **Phantom Types**                     | - Provides **compile-time guarantee of correctness** without runtime overhead<br><br> - Encodes domain rules directly in the type signature | Corrupting data by passing wrong IDs, such as `UserId` vs. `DocumentId`<br><br> - Fragile refactoring | [EntityId](/shared-components/src/main/scala/org/fiume/sketch/shared/common/EntityId.scala) |
-| **Linear Logic**                | Processes events **concurrently with strict exactly-once guarantees** | Stale events, duplicate-processing. E.g., sending dozens of emails to each client, effectively turning your business into a spam machine (yes, I've seen this happen) | See: <br>- [Postgres as a Lightweight Event Bus](#51-postgres-as-a-lightweight-event-bus) doc <br>- [ScheduledAccountDeletionJob](auth/src/main/scala/org/fiume/sketch/auth/accounts/jobs/ScheduledAccountDeletionJob.scala) (implementation)  |
 
 > ⚡ See [From Ivory Tower to Production Code](docs/best-practices/Applied-Theory.md) for a broader collection of theory-to-practice insights.
 
 
-### 5.1 Postgres as a Lightweight Event Bus
-
-We backend developers understand the immense value an event-driven architecture can bring to a business when implemented effectively.
-
-But what if you don't have access to a Kafka broker or if a Redis Pub/Sub feels overkill, for example?
-In such cases, Postgres' `FOR UPDATE SKIP LOCKED` can be an excellent alternative.
-
-Here's how it works, using the example of an event-driven system to delete a user's personal data from multiple datasets after their account is deleted:
-
-#### User Account Deleted Event
-
-Define a specific event table (the equivalent of a Kafka topic).
-
-```
-CREATE TABLE account_deleted_notifications (
-    uuid UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
-    user_id UUID NOT NULL, -- The ID of the deleted user
-    recipient VARCHAR(50) NOT NULL, -- The service responsible for processing
-    created_at TIMESTAMP DEFAULT NOW() -- When the event was created
-);
-```
-
-I recommend a single table for each event type to avoid overgeneralisation.
-
-Including `created_at` to the schema adds minimal complexity while offering significant diagnostic value for monitoring stale events. 
-
-#### Microservice Polling
-
-Each service runs a polling job that selects and locks the event for processing:
-
-```
--- Lock the next available event for this consumer
-DELETE FROM account_deleted_notifications
-WHERE id = (
-    SELECT id
-    FROM account_deleted_notifications
-    WHERE recipient = 'recipient'
-    FOR UPDATE SKIP LOCKED
-    LIMIT 1
-)
-RETURNING *;
-```
-
-This solution will give us:
- - *Concurrent Processing*: Multiple instances of a service can poll the table for events without locking each other out
- - *Atomicity:* Consuming, Processing and removing the event from the table happens as part of the same transaction
- - *Error Handling*: Atomicity ensures that the event is either fully processed or safely retried
- - *No Double Processing*: `FOR UPDATE SKIP LOCKED` prevents race conditions and duplicate work
 
 
 ## 6. Further Reading
@@ -193,9 +142,13 @@ This solution will give us:
 
 ### 6.2 Architecture
 
-* [HTTP Inbound Adapters - Design Guidelines](/docs/architecture/inbound-adapters/http/Design.md) - Design effective and maintainable HTTP APIs.
-* [Domain Layer - Design Guidelines](/docs/architecture/domain/Design.md) - Model business domains using DDD principles.
-* [Application Layer - Design Guidelines](/docs/architecture/application/Design.md) - Orchestrate stateless business workflows.
+* [Hexagonal Architecture](https://en.wikipedia.org/wiki/Hexagonal_architecture_(software)): Inspiration for inbound/outbound adapters design and implementation guidelines
+* [Clean Architecture](https://blog.cleancoder.com/uncle-bob/2012/08/13/the-clean-architecture.html): Informs the project architectural layers and dependencies rules
+* [HTTP Inbound Adapters - Design Guidelines](/docs/architecture/inbound-adapters/http/Design.md): Design effective and maintainable HTTP APIs.
+* [Domain Layer - Design Guidelines](/docs/architecture/domain/Design.md): Model business domains using DDD principles
+* [Application Layer - Design Guidelines](/docs/architecture/application/Design.md): Orchestrate domain objects to perform business workflows
+* [Datastore Outbound Adapters - Design Guidelines](/docs/architecture/outbound-adapters/datastore/Design.md): Implement domain-defined storage capabilities without leaking infrastructure details into the domain or application layers.
+
 
 ### 6.3 DevOps
 

@@ -3,6 +3,13 @@
 The HTTP layer provides public APIs that must securely map external requests into the domain in a client-agnostic way.
 
 
+> This document is part of the project's [Architecture Guidelines](/README.md#62-architecture).
+
+```
+[ HTTP Inbound Adapters (you're here) ] --> [ Application Layer ] --> [ Domain Layer ] <-- [ Outbound Adapters ]
+```
+
+
 **Table of Contents**
 
 1. [Goals](#1-goals)
@@ -11,20 +18,19 @@ The HTTP layer provides public APIs that must securely map external requests int
    - 2.2 [Streaming APIs](#22-streaming-apis)
        - 2.2.1 [Binary Downloads](#221-binary-downloads)
        - 2.2.2 [Newline-delimited JSON (NDJSON)](#222-newline-delimited-json-ndjson)
-   - 2.3 [Example](#23-example)
+   - 2.3 [Example - Documents Management APIs (REST & Streaming)](#23-example---documents-management-apis-rest--streaming)
    - 2.4 [Client Libraries](#24-client-libraries)
    - 2.5 [Versioning](#25-versioning)
        - 2.5.1 [URL Versioning](#251-url-versioning)
        - 2.5.2 [Client Library Versioning](#252-client-library-versioning)
        - 2.5.3 [Cross-Channel Divergence](#253-cross-channel-divergence)
        - 2.5.4 [Semantic Drift](#254-semantic-drift)
-3. [Shielding the Domain (Data Representation)](#3-shielding-the-domain-data-representation)
+3. [Shielding The Domain](#3-shielding-the-domain)
 4. [Error Handling](#4-error-handling)
    - 4.1 [HTTP Status Code](#41-http-status-codes)
    - 4.2 [Input Validation](#42-input-validation)
 5. [Security](#5-security)
 6. [Future Directions](#6-future-directions)
-7. [Further Reading](#7-further-reading)
 
 
 ## 1. Goals
@@ -99,6 +105,7 @@ case GET -> Root / "documents" / DocumentIdVar(uuid) as user =>
   yield res
 
 ```
+> **See:** [DocumentsRoutes.scala](/service/src/main/scala/org/fiume/sketch/http/DocumentsRoutes.scala)
 
 #### 2.2.2 Newline-delimited JSON (NDJSON)
 
@@ -117,17 +124,16 @@ case GET -> Root / "documents" as user =>
     .intersperse(Linebreak)
   Ok(stream, Header.Raw(ci"Content-Type", "application/x-ndjson"))
 ```
+> **See:** [DocumentsRoutes.scala](/service/src/main/scala/org/fiume/sketch/http/DocumentsRoutes.scala)
 
-> **Code Reference:** [NewlineDelimitedJson.scala](/shared-components/src/main/scala/org/fiume/sketch/shared/common/http/json/NewlineDelimitedJson.scala).
+See [NewlineDelimitedJson.scala](/shared-components/src/main/scala/org/fiume/sketch/shared/common/http/json/NewlineDelimitedJson.scala) for more details on how to support NDJSON in this project.
 
-### 2.3 Example
-
-Documents Management APIs:
+### 2.3 Example - Documents Management APIs (REST & Streaming)
 
 | Method   | API Endpoint                 | Description         |
 | -------- | ---------------------------- | ------------------- |
 | `POST`   | `/documents`                 | Upload a document   |
-| `GET`    | `/documents/{uuid}`          | Download a document |
+| `GET`    | `/documents/{uuid}`          | Stream a document   |
 | `GET`    | `/documents/{uuid}/metadata` | Fetch metadata      |
 | `DELETE` | `/documents/{uuid}`          | Delete a document   |
 
@@ -245,7 +251,7 @@ Using a version bump (`v3` -> `v4`) for a significant semantic shift hides the m
 > Use a new name when changes potentially require new business logic on clients to adapt.
 
 
-## 3. Shielding the Domain (Data Representation)
+## 3. Shielding The Domain
 
 Use [DTO](https://martinfowler.com/eaaCatalog/dataTransferObject.html)s to represent **request and response payloads**,
 decoupling the business layer from external clients concerns.
@@ -375,11 +381,3 @@ The HTTP layer acts as a security filter, rejecting invalid requests before they
  * Improved Client Experience: Client guidelines, pagination support
  * Observability: Request ID's, tracing, tracking, metrics
  * Move security features to a dedicated API Gateway.
-
-
-## 7. Further Reading
-
-* [Hexagonal Architecture](https://en.wikipedia.org/wiki/Hexagonal_architecture_(software))
-* [Clean Architecture](https://blog.cleancoder.com/uncle-bob/2012/08/13/the-clean-architecture.html)
-* [Domain Layer - Design Guidelines](/docs/architecture/domain/Design.md) - Model business domains using DDD principles.
-* [Application Layer - Design Guidelines](/docs/architecture/application/Design.md) - Orchestrate stateless business workflows.
