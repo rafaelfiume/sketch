@@ -1,6 +1,7 @@
 package org.fiume.sketch.storage.documents.postgres
 
 import doobie.Meta
+import doobie.free.connection.ConnectionIO
 import doobie.postgres.implicits.*
 import doobie.util.Read
 import org.fiume.sketch.shared.auth.UserId
@@ -20,3 +21,5 @@ private[storage] object DatabaseCodecs:
     Read[(DocumentId, Name, Description, UserId)].map { case (uuid, name, description, ownerId) =>
       Document.make(uuid, Metadata(name, description, ownerId))
     }
+
+  given Read[fs2.Stream[ConnectionIO, Byte]] = Read[Array[Byte]].map(bytes => fs2.Stream.chunk(fs2.Chunk.array(bytes)))

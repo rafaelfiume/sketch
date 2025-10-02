@@ -193,9 +193,13 @@ This solution will give us:
 
 ### 6.2 Architecture
 
-* [HTTP Inbound Adapters - Design Guidelines](/docs/architecture/inbound-adapters/http/Design.md) - Design effective and maintainable HTTP APIs.
-* [Domain Layer - Design Guidelines](/docs/architecture/domain/Design.md) - Model business domains using DDD principles.
-* [Application Layer - Design Guidelines](/docs/architecture/application/Design.md) - Orchestrate stateless business workflows.
+* [Hexagonal Architecture](https://en.wikipedia.org/wiki/Hexagonal_architecture_(software)): Inspiration for inbound/outbound adapters design and implementation guidelines
+* [Clean Architecture](https://blog.cleancoder.com/uncle-bob/2012/08/13/the-clean-architecture.html): Informs the project architectural layers and dependencies rules
+* [HTTP Inbound Adapters - Design Guidelines](/docs/architecture/inbound-adapters/http/Design.md): Design effective and maintainable HTTP APIs.
+* [Domain Layer - Design Guidelines](/docs/architecture/domain/Design.md): Model business domains using DDD principles
+* [Application Layer - Design Guidelines](/docs/architecture/application/Design.md): Orchestrate domain objects to perform business workflows
+* [Datastore Outbound Adapters - Design Guidelines](/docs/architecture/outbound-adapters/datastore/Design.md): Implement domain-defined storage capabilities without leaking infrastructure details into the domain or application layers.
+
 
 ### 6.3 DevOps
 

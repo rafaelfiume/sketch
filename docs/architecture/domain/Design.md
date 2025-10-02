@@ -5,17 +5,26 @@ The domain layer represents the core business of an application.
 It is technology-agnostic, independent from frameworks, and the communication with the external world must be made through ports (interfaces).
 
 
+> This document is part of the project's [Architecture Guidelines](/README.md#62-architecture).
+
+```
+[ Inbound Adapters ] --> [ Application Layer ] --> [ Domain Layer (you're here) ] <-- [ Outbound Adapters ]
+```
+
+
 **Table of Contents**
 
 1. [Goals](#1-goals)
 2. [Principles](#2-principles)
-3. [Keep Domain Clear From](#3-keep-domain-layer-free-from)
+3. [Keep Domain Free From](#3-keep-domain-layer-free-from)
 4. [Domain Errors as First-Class Citizens](#4-domain-errors-as-first-class-citizens)
 5. [Key Components](#5-key-components)
     - 5.1 [Entities](#51-entities)
     - 5.2 [Value Objects](#52-value-objects)
     - 5.3 [Aggregates](#53-aggregates)
     - 5.4 [Ports / Algebras](#54-ports--algebras)
+        - 5.4.1 [Persistence Ports](#541-persistence-ports)
+        - 5.4.2 [Support for Unit Testing without External Dependencies](#542-support-for-unit-testing-without-external-dependencies)
     - 5.5 [Domain & Integration Events](#55-domain--integration-events)
 6. [Further Reading](#6-further-reading)
 
@@ -42,7 +51,7 @@ Define **business models and rules** that **capture business need** and **delive
 
 ## 3. Keep Domain Layer Free From
 
-| Concerns                              | Belongs To                                            | Rationale   |
+| Concern                               | Proper Layer                                          | Rationale   |
 |---------------------------------------|-------------------------------------------------------|-------------|
 | **✗** Serialisation / Deserialisation | Inbound / Outbound Adapters                           | Data formats for communication (e.g. JSON, Protobuf) are infrastructure concerns handled by adapters |
 | **✗** Side-effects                    | - Inbound / Outbound Adapters<br> - Application Layer | Keep the domain pure and deterministic |
@@ -60,7 +69,7 @@ Define **business models and rules** that **capture business need** and **delive
 | **✓** **Collect errors**, don't fail fast  | Factory functions should provide a comprehensive list of invariant errors with actionable feedback  | `EitherNec[WeakPasswordError, PlainPassword]`<br><br> |
 | **✓** Define **unsafe factory functions** for trusted contexts (e.g. tests) | Never bypass validation in production | `def makeUnsafeFromString(value: String): PlainPassword` |
 
-> **Code Reference**: [Passwords.scala](/shared-auth/src/main/scala/org/fiume/sketch/shared/auth/Passwords.scala)
+> **See**: [Passwords.scala](/shared-auth/src/main/scala/org/fiume/sketch/shared/auth/Passwords.scala)
 
 
 ## 5. Key Components
@@ -102,7 +111,7 @@ Value objects are first-class citizens. The table below explain their benefits:
 | **Immutable**               | Combined with factory functions, immutability guarantees that an instance cannot drift into an invalid state | Simplicity: either get a valid `PlainPassword`, or an error with actionable feedback |
 | **Identity based on attributes** | Certain concepts are defined by their attributes | `PlainPassword` instances are equal _iff_ they hold the same string |
 
-> **Code Reference**: [Passwords.scala](/shared-auth/src/main/scala/org/fiume/sketch/shared/auth/Passwords.scala)
+> **See**: [Passwords.scala](/shared-auth/src/main/scala/org/fiume/sketch/shared/auth/Passwords.scala)
 
 
 ### 5.3 Aggregates
@@ -119,7 +128,7 @@ Let's use `DocumentWithId` as the canonical example of an aggregate:
 
 > **Note:** `DocumentWithId` is mostly a validated data holder for now.
 
-> **Code Reference**:
+> **See**:
 > * [Document.scala](/shared-domain/src/main/scala/org/fiume/sketch/shared/domain/documents/Document.scala)
 > * [DocumentsStore.scala](/shared-domain/src/main/scala/org/fiume/sketch/shared/domain/documents/algebras/DocumentsStore.scala)
 
@@ -135,8 +144,41 @@ The following properties help designing predictable, composable interfaces for e
 | **✓** **Return Valid Aggregate**           | Helps to ensure invariants are always preserved | `def fetchDocument(uuid: DocumentId): Txn[Option[DocumentWithId]]` |
 | **✓** **Streaming for Large Datasets**     | - Avoids memory issues<br><br> - Supports backpressure | `def fetchDocuments(uuids: fs2.Stream[Txn, DocumentId]): fs2.Stream[Txn, DocumentWithId]` |
 
-> **Code Reference**: [DocumentsStore.scala](/shared-domain/src/main/scala/org/fiume/sketch/shared/domain/documents/algebras/DocumentsStore.scala)
+> **See**: [DocumentsStore.scala](/shared-domain/src/main/scala/org/fiume/sketch/shared/domain/documents/algebras/DocumentsStore.scala)
 
+#### 5.4.1 Persistence Ports
+
+Persistence ports **define the contract** (or capabilities) for interacting with persistence infrastructure.
+
+Persistence port APIs typically return a type wrapped in `Txn[_]` to represent transactional operations.
+This allows the application layer to combine discrete operations into an atomic workflow.
+
+Example:
+
+```scala
+trait UsersStore[F[_], Txn[_]: Monad] extends Store[F, Txn]:
+  def createAccount(credentials: UserCredentials): Txn[UserId]
+  def fetchAccount(userId: UserId): Txn[Option[Account]]
+  . . .
+  def deleteAccount(userId: UserId): Txn[Option[UserId]]
+```
+
+Concrete adapters fulfill the contract (i.e. implement the capabilities) and provide the `Txn[_]` implementation (e.g. Doobie ConnectionIO).
+
+For more details, refer to:
+  * [Store.scala](/shared-components/src/main/scala/org/fiume/sketch/shared/common/app/Store.scala)
+  * [Application Layer - Design Guidelines](/docs/architecture/application/Design.md)
+  * [Enables Transaction Boundaries In The Application Layer](/docs/architecture/outbound-adapters/datastore/Design.md#62-enable-transaction-boundaries-in-the-application-layer) section in the Datastore Outbound Adapters - Design Guidelines
+
+#### 5.4.2 Support for Unit Testing without External Dependencies
+
+It is a good practice to **provide in-memory implementations of ports** to support **fast and isolated unit tests** for components that rely on the capabilities defined on the domain layer.
+
+For example, the [DocumentsStoreContext](/shared-domain/src/test/scala/org/fiume/sketch/shared/domain/testkit/DocumentsStoreContext.scala) trait can be mixed into application layer test suites to avoid depending on infrastructure such as databases.
+
+The trait offers different versions of `makeDocumentsStore()` factory that return a concurrent-safe in-memory `DocumentsStore`, which tests can use to verify component behaviour without external dependencies.
+
+> **Note:** Production implementation of ports (adapters) belong to the Outbound Adapters layer and must be verified against real infrastructure. See also [Adapter Integration Tests](/docs/architecture/outbound-adapters/datastore/Design.md#7-adapter-integration-tests) in the Datastore Outbound Adapter - Design Guidelines.
 
 ### 5.5 Domain & Integration Events
 
@@ -173,7 +215,7 @@ The following practices take **event-driven systems to the next level**:
                                ▼
                           [ Adapter ]       (Infrastructure implementation )
 ```
-> **Code Reference**: [AccountDeletionEvent.scala](/shared-auth/src/main/scala/org/fiume/sketch/shared/auth/accounts/AccountDeletionEvent.scala)
+> **See**: [AccountDeletionEvent.scala](/shared-auth/src/main/scala/org/fiume/sketch/shared/auth/accounts/AccountDeletionEvent.scala)
 
 **Cross-Module Communication with Integration Events - User Data Deletion:**
 
@@ -194,12 +236,9 @@ The following practices take **event-driven systems to the next level**:
    [  Infrastructure  ]                [  Infrastructure  ]
 
 ```
-> **Code Reference**: [AccountDeletedNotification.scala](/shared-auth/src/main/scala/org/fiume/sketch/shared/auth/accounts/AccountDeletedNotification.scala)
+> **See**: [AccountDeletedNotification.scala](/shared-auth/src/main/scala/org/fiume/sketch/shared/auth/accounts/AccountDeletedNotification.scala)
 
 
 ## 6. Further Reading
 
-* [Hexagonal Architecture](https://en.wikipedia.org/wiki/Hexagonal_architecture_(software))
-* [Clean Architecture](https://blog.cleancoder.com/uncle-bob/2012/08/13/the-clean-architecture.html)
-* [HTTP Inbound Adapters - Design Guidelines](/docs/architecture/inbound-adapters/http/Design.md) - Design effective and maintainable HTTP APIs.
-* [Application Layer - Design Guidelines](/docs/architecture/application/Design.md) - Orchestrate stateless business workflows.
+* [Domain-Driven Design (DDD)](https://en.wikipedia.org/wiki/Domain-driven_design): A set of principles and practices for modelling real-world business concepts into software components

@@ -26,10 +26,8 @@ private class PostgresDocumentsStore[F[_]: Async] private (lift: F ~> Connection
   override def store(document: DocumentWithStream[F]): ConnectionIO[DocumentId] =
     for
       // Avoid reading all bytes into memory by using a large object?
-      // https://tpolecat.github.io/doobie-cats-0.4.2/15-Extensions-PostgreSQL.html
-      // https://github.com/tpolecat/doobie/blob/32838f90044f5c3acac6b9f4ae7a2be10b5f1bb0/modules/postgres/src/main/scala/doobie/postgres/hi/largeobjectmanager.scala#L34
-      // https://github.com/tpolecat/doobie/blob/32838f90044f5c3acac6b9f4ae7a2be10b5f1bb0/modules/example/src/main/scala/example/PostgresLargeObject.scala#L18
-      bytes <- lift { Async[F].cede *> document.stream.compile.toVector.map(_.toArray) <* Async[F].cede }
+      // https://typelevel.org/doobie/docs/15-Extensions-PostgreSQL.html
+      bytes <- lift { Async[F].cede *> document.stream.compile.to(Array) <* Async[F].cede }
       uuid <- Statements
         .insertDocument(document.metadata, bytes)
         // Move this to Statements?
@@ -40,7 +38,7 @@ private class PostgresDocumentsStore[F[_]: Async] private (lift: F ~> Connection
     Statements.selectDocumentById(uuid).option
 
   override def documentStream(uuid: DocumentId): fs2.Stream[ConnectionIO, Byte] =
-    Statements.selectDocumentBytesById(uuid).stream.flatMap(fs2.Stream.emits)
+    Statements.selectDocumentBytesById(uuid).stream.flatMap(identity)
 
   private val documentsChunkSize = 50 // could be configurable
   override def fetchDocuments(uuids: fs2.Stream[ConnectionIO, DocumentId]): fs2.Stream[ConnectionIO, DocumentWithId] =
@@ -84,14 +82,13 @@ private object Statements:
          |WHERE d.uuid = $uuid
     """.stripMargin.query[DocumentWithId]
 
-  def selectDocumentBytesById(uuid: DocumentId): Query0[Array[Byte]] =
-    // This seems to be loading all document bytes in memory?
+  def selectDocumentBytesById(uuid: DocumentId): Query0[fs2.Stream[ConnectionIO, Byte]] =
     sql"""
          |SELECT
          |  d.bytes
          |FROM domain.documents d
          |WHERE d.uuid = $uuid
-    """.stripMargin.query[Array[Byte]]
+    """.stripMargin.query[fs2.Stream[ConnectionIO, Byte]]
 
   def selectDocumentsByIds(uuids: NonEmptyList[DocumentId]): Query0[DocumentWithId] =
     val in = Fragments.in(fr"uuid", uuids)
