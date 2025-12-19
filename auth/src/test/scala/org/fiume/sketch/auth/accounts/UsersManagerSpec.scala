@@ -68,6 +68,26 @@ class UsersManagerSpec
         else assert(assignedGlobalRole.isEmpty)
     }
 
+  test("user account is not created when granting permission fails"):
+    forAllF { (username: Username, password: PlainPassword, globalRole: Option[GlobalRole]) =>
+      for
+        usersStore <- makeEmptyUsersStore()
+        eventProducer <- makeCancellableAccountDeletionEventProducer()
+        accessControl = makeUnreliableAccessControl()
+        usersManager = UsersManager.make[IO, IO](
+          usersStore,
+          eventProducer,
+          accessControl,
+          makeFrozenClock(),
+          delayUntilPermanentDeletion
+        )
+
+        _ <- usersManager.createAccount(username, password, globalRole).attempt
+
+        account <- usersStore.fetchAccount(username)
+      yield assert(account.isEmpty)
+    }
+
   test("only the owner or an Admin can mark an account for deletion"):
     forAllF { (owner: UserCredentials, admin: UserCredentials, isAdminMarkingForDeletion: Boolean) =>
       val markedForDeletionAt = Instant.now()

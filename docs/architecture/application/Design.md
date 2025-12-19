@@ -1,6 +1,6 @@
 # Application Layer - Design Guidelines
 
-The application layer implements business use-cases, orchestrating domain components and using external capabilities through [ports](/docs/architecture/domain/Design.md#54-ports--algebras) (algebras). It checks authorisation, coordinates multiple domain tasks into atomic operations, handles retries and supports application monitoring.
+The application layer implements business use-cases, orchestrating domain components and uses external capabilities through [ports](/docs/architecture/domain/Design.md#54-ports--algebras) (algebras). It checks authorisation, coordinates multiple domain tasks into atomic operations, handles retries and supports application monitoring.
 
 
 > This document is part of the project's [Architecture Guidelines](/README.md#62-architecture).

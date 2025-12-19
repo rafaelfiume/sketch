@@ -34,6 +34,19 @@ trait AccessControlContext:
 
   def makeAccessControl(): IO[AccessControl[IO, IO] & InspectAccessControl] = makeAccessControl(State.empty)
 
+  def makeUnreliableAccessControl(): AccessControl[IO, IO] = new AccessControl[IO, IO]:
+    override def storeGlobalGrant(userId: UserId, role: GlobalRole): IO[Unit] = error
+    override def storeGrant[T <: Entity](userId: UserId, entityId: EntityId[T], role: ContextualRole): IO[Unit] = error
+    override def fetchAllAuthorisedEntityIds[T <: Entity](userId: UserId, entityType: String): fs2.Stream[IO, EntityId[T]] =
+      fs2.Stream.eval[IO, EntityId[T]](error)
+    override def fetchRole[T <: Entity](userId: UserId, entityId: EntityId[T]): IO[Option[Role]] = error
+    override def deleteContextualGrant[T <: Entity](userId: UserId, entityId: EntityId[T]): IO[Unit] = error
+    override val lift: [A] => IO[A] => IO[A] = [A] => (_: IO[A]) => error
+    override val commit: [A] => IO[A] => IO[A] = [A] => (_: IO[A]) => error
+    override val commitStream: [A] => fs2.Stream[IO, A] => fs2.Stream[IO, A] = [A] =>
+      (_: fs2.Stream[IO, A]) => fs2.Stream.eval[IO, A](error)
+    private def error[A]: IO[A] = IO.raiseError(new RuntimeException("boom"))
+
   private def makeAccessControl(state: State): IO[AccessControl[IO, IO] & InspectAccessControl] =
     IO.ref(state).map { ref =>
       new AccessControl[IO, IO] with InspectAccessControl:

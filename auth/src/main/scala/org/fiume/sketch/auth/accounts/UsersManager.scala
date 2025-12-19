@@ -63,7 +63,7 @@ object UsersManager:
           _ <- globalRole.fold(ifEmpty = ().pure[Txn])(accessControl.grantGlobalAccess(userId, _))
         yield userId
 
-        setUpAccount.commit()
+        store.commit { setUpAccount }
 
       override def attemptToMarkAccountForDeletion(
         markingForDeletion: UserId,

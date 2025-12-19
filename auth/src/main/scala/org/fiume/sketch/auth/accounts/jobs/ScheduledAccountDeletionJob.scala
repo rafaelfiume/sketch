@@ -11,6 +11,7 @@ import org.fiume.sketch.shared.auth.accounts.{AccountDeletedNotificationProducer
 import org.fiume.sketch.shared.auth.accounts.AccountDeletedNotification.{Notified, ToNotify}
 import org.fiume.sketch.shared.auth.accounts.AccountDeletionEvent.Scheduled
 import org.fiume.sketch.shared.auth.algebras.UsersStore
+import org.fiume.sketch.shared.common.app.syntax.StoreSyntax.commit
 import org.fiume.sketch.shared.common.config.DynamicConfig
 import org.fiume.sketch.shared.common.events.EventId
 import org.fiume.sketch.shared.common.jobs.Job
@@ -42,6 +43,9 @@ private class ScheduledAccountDeletionJob[F[_]: Sync, Txn[_]: Monad] private (
 
   given Logger[F] = Slf4jLogger.getLogger[F]
 
+  // enable Store's syntax
+  given UsersStore[F, Txn] = store
+
   override val description: String = "Permanently deletes a user account"
 
   override def run(): F[Option[JobReport]] =
@@ -50,9 +54,9 @@ private class ScheduledAccountDeletionJob[F[_]: Sync, Txn[_]: Monad] private (
       .flatMap {
         _.fold(ifEmpty = none.pure[Txn])(process(_))
       }
-    store
-      .commit { job }
-      .flatTap { _.traverse(r => info(r.triggeringEventId, r.deletedUserId, r.notificationsSent)) }
+    job.commit().flatTap {
+      _.traverse(r => info(r.triggeringEventId, r.deletedUserId, r.notificationsSent))
+    }
 
   private def process(scheduled: Scheduled): Txn[Option[JobReport]] =
     dynamicConfig.getConfig(RecipientsKey).flatMap {
