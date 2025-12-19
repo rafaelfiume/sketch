@@ -7,7 +7,7 @@ import org.fiume.sketch.shared.auth.AuthenticationError.*
 import org.fiume.sketch.shared.auth.Passwords.{HashedPassword, PlainPassword}
 import org.fiume.sketch.shared.auth.User.Username
 import org.fiume.sketch.shared.auth.algebras.UsersStore
-import org.fiume.sketch.shared.common.app.syntax.StoreSyntax.commit
+import org.fiume.sketch.shared.common.app.TransactionManager
 
 import java.security.{PrivateKey, PublicKey}
 import scala.concurrent.duration.Duration
@@ -19,17 +19,17 @@ trait Authenticator[F[_]]:
 object Authenticator:
   def make[F[_]: Sync, Txn[_]](
     clock: Clock[F],
-    store: UsersStore[F, Txn],
+    store: UsersStore[Txn],
+    tx: TransactionManager[F, Txn],
     privateKey: PrivateKey,
     publicKey: PublicKey,
     expirationOffset: Duration
   ): F[Authenticator[F]] = Sync[F].delay {
-    given UsersStore[F, Txn] = store
 
     new Authenticator[F]:
       override def identify(username: Username, password: PlainPassword): F[Either[AuthenticationError, Jwt]] =
         for
-          account <- store.fetchAccount(username).commit()
+          account <- tx.commit { store.fetchAccount(username) }
           jwt <- account match
             case None =>
               UserNotFoundError.asLeft.pure[F]

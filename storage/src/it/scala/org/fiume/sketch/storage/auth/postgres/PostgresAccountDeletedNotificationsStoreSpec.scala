@@ -11,6 +11,7 @@ import org.fiume.sketch.shared.auth.testkit.UserGens
 import org.fiume.sketch.shared.common.events.{EventId, Recipient}
 import org.fiume.sketch.shared.testkit.ClockContext
 import org.fiume.sketch.shared.testkit.syntax.OptionSyntax.*
+import org.fiume.sketch.storage.postgres.PostgresTransactionManager
 import org.fiume.sketch.storage.testkit.DockerPostgresSuite
 import org.scalacheck.Gen
 
@@ -41,8 +42,9 @@ class PostgresAccountDeletedNotificationsStoreSpec
       val recipient = Gen.oneOf(recipients).sample.someOrFail
       val numNotifications = numUsers * recipients.size
       (PostgresAccountDeletedNotificationsStore.makeProducer[IO](),
-       PostgresAccountDeletedNotificationsStore.makeConsumer[IO](recipient)
-      ).tupled.use { case (producer, consumer) =>
+       PostgresAccountDeletedNotificationsStore.makeConsumer[IO](recipient),
+       PostgresTransactionManager.make[IO](transactor())
+      ).tupled.use { case (producer, consumer, tx) =>
         for
           // start <- Clock[IO].realTime.map(_.toMillis)
           notifications <- fs2.Stream
@@ -51,7 +53,9 @@ class PostgresAccountDeletedNotificationsStoreSpec
             .parEvalMapUnbounded { _ =>
               val userId = UserGens.userIds.sample.someOrFail
               recipients.traverse { recipient =>
-                producer.produceEvent(AccountDeletedNotification.ToNotify(userId, recipient)).ccommit
+                tx.commit {
+                  producer.produceEvent(AccountDeletedNotification.ToNotify(userId, recipient))
+                }
               }
             }
             // .evalTap { eventId => IO.println(s"new event: $eventId") } // uncomment to debug
@@ -64,7 +68,7 @@ class PostgresAccountDeletedNotificationsStoreSpec
             fs2.Stream
               .range(0, numNotifications)
               .covary[IO]
-              .parEvalMapUnorderedUnbounded { _ => consumer.consumeEvent().ccommit }
+              .parEvalMapUnorderedUnbounded { _ => tx.commit { consumer.consumeEvent() } }
               // .evalTap { eventId => IO.println(s"consumed event: ${eventId}") } // uncomment to debug
               .unNone
               .compile
@@ -74,7 +78,7 @@ class PostgresAccountDeletedNotificationsStoreSpec
           // then
           expectedResultSize = numNotifications / recipients.size
           expectedNotifications = notifications.filter(_.recipient == recipient)
-          pendingNotifications <- fetchPendingEvents().ccommit
+          pendingNotifications <- tx.commit { fetchPendingEvents() }
           expectedPendingNotifications = notifications.filterNot(_.recipient == recipient)
         // _ <- IO.println(s"consumed ${result.size} notifications in ${end - start} ms")
         yield
@@ -95,8 +99,9 @@ class PostgresAccountDeletedNotificationsStoreSpec
       val numNotifications = numUsers * recipients.size
       val errorFrequency = 2
       (PostgresAccountDeletedNotificationsStore.makeProducer[IO](),
-       PostgresAccountDeletedNotificationsStore.makeConsumer[IO](recipient)
-      ).tupled.use { case (producer, consumer) =>
+       PostgresAccountDeletedNotificationsStore.makeConsumer[IO](recipient),
+       PostgresTransactionManager.make[IO](transactor())
+      ).tupled.use { case (producer, consumer, tx) =>
         for
           /*
            * If `Ref` seems overkill and that a simple `mutable.Set.empty[EventId]` would be sufficient,
@@ -110,7 +115,9 @@ class PostgresAccountDeletedNotificationsStoreSpec
             .parEvalMapUnbounded { _ =>
               val userId = UserGens.userIds.sample.someOrFail
               recipients.traverse { recipient =>
-                producer.produceEvent(AccountDeletedNotification.ToNotify(userId, recipient)).map(_.uuid).ccommit
+                tx.commit {
+                  producer.produceEvent(AccountDeletedNotification.ToNotify(userId, recipient)).map(_.uuid)
+                }
               }
             }
             .compile
@@ -123,20 +130,20 @@ class PostgresAccountDeletedNotificationsStoreSpec
               .range(0, numNotifications)
               .covary[IO]
               .parEvalMapUnorderedUnbounded { i =>
-                consumer
-                  .consumeEvent()
-                  .flatMap { notification =>
-                    if i % errorFrequency == 0 then
-                      lift {
-                        atLeastOnceFailedEventIdsRef.update(s => notification.fold(s)(s + _.uuid)) *>
-                          RuntimeException(s"failed: ${notification.map(_.uuid)}").raiseError
-                      }
-                    else
-                      lift { successfullyProcessedEventIdsRef.update(s => notification.fold(s)(s + _.uuid)) } *>
-                        notification.pure[ConnectionIO]
-                  }
-                  .ccommit
-                  .handleErrorWith { _ => none.pure[IO] }
+                tx.commit {
+                  consumer
+                    .consumeEvent()
+                    .flatMap { notification =>
+                      if i % errorFrequency == 0 then
+                        lift {
+                          atLeastOnceFailedEventIdsRef.update(s => notification.fold(s)(s + _.uuid)) *>
+                            RuntimeException(s"failed: ${notification.map(_.uuid)}").raiseError
+                        }
+                      else
+                        lift { successfullyProcessedEventIdsRef.update(s => notification.fold(s)(s + _.uuid)) } *>
+                          notification.pure[ConnectionIO]
+                    }
+                }.handleErrorWith { _ => none.pure[IO] }
               }
               .map(_.map(_.uuid))
               .unNone
@@ -146,7 +153,7 @@ class PostgresAccountDeletedNotificationsStoreSpec
           // then
           atLeastOnceFailedNotificationIds <- atLeastOnceFailedEventIdsRef.get
           successfullyProcessedNotificationIds <- successfullyProcessedEventIdsRef.get
-          pendingNotificationIds <- fetchPendingEvents().ccommit.map(_.toSet.map(_.uuid))
+          pendingNotificationIds <- tx.commit { fetchPendingEvents() }.map(_.toSet.map(_.uuid))
           expectedPendingNotificationIds = sentNotificationIds.toSet -- successfullyProcessedNotificationIds
         yield
           assert(

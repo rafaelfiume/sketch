@@ -26,11 +26,7 @@ trait DockerPostgresSuite extends CatsEffectSuite:
 
   override def munitFixtures = List(dbContainerAndTransactor)
 
-  extension [A](ops: ConnectionIO[A]) def ccommit: IO[A] = ops.transact(dbContainerAndTransactor().transactor)
-
-  extension [A](stream: fs2.Stream[ConnectionIO, A])
-    def ccommitStream: fs2.Stream[IO, A] = stream.transact(dbContainerAndTransactor().transactor)
-
+  // TODO Delete this??
   def lift: [A] => IO[A] => ConnectionIO[A] = [A] => (fa: IO[A]) => naturalTransformation()(fa)
 
   /*

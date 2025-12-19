@@ -1,26 +1,21 @@
 package org.fiume.sketch.storage.authorisation.postgres
 
-import cats.{~>, effect}
-import cats.effect.kernel.Async
+import cats.effect.Resource
 import cats.implicits.*
 import doobie.*
 import doobie.free.connection.ConnectionIO
 import doobie.implicits.*
-import doobie.util.transactor.Transactor
 import org.fiume.sketch.shared.auth.UserId
 import org.fiume.sketch.shared.authorisation.{AccessControl, ContextualRole, GlobalRole, Role}
 import org.fiume.sketch.shared.common.{Entity, EntityId}
 import org.fiume.sketch.storage.authorisation.postgres.DatabaseCodecs.given
-import org.fiume.sketch.storage.postgres.AbstractPostgresStore
 import org.slf4j.LoggerFactory
 
 object PostgresAccessControl:
-  def make[F[_]: Async](tx: Transactor[F]): effect.Resource[F, PostgresAccessControl[F]] =
-    WeakAsync.liftK[F, ConnectionIO].map(lift => PostgresAccessControl(lift, tx))
+  def make[F[_]](): Resource[F, PostgresAccessControl[F]] =
+    Resource.pure(PostgresAccessControl())
 
-private class PostgresAccessControl[F[_]: Async] private (lift: F ~> ConnectionIO, tx: Transactor[F])
-    extends AbstractPostgresStore[F](lift, tx)
-    with AccessControl[F, ConnectionIO]:
+private class PostgresAccessControl[F[_]] private () extends AccessControl[ConnectionIO]:
 
   override def storeGlobalGrant(userId: UserId, role: GlobalRole): ConnectionIO[Unit] =
     Statements.insertGlobalGrant(userId, role).run.void

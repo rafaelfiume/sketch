@@ -1,8 +1,7 @@
 package org.fiume.sketch.storage.auth.postgres
 
-import cats.effect.{Async, Resource}
+import cats.effect.Resource
 import cats.implicits.*
-import cats.~>
 import doobie.*
 import doobie.free.connection.ConnectionIO
 import doobie.implicits.*
@@ -14,15 +13,12 @@ import org.fiume.sketch.shared.auth.accounts.{Account, AccountState}
 import org.fiume.sketch.shared.auth.algebras.UsersStore
 import org.fiume.sketch.storage.auth.postgres.DatabaseCodecs.given
 import org.fiume.sketch.storage.auth.postgres.Statements.*
-import org.fiume.sketch.storage.postgres.AbstractPostgresStore
 
 object PostgresUsersStore:
-  def make[F[_]: Async](tx: Transactor[F]): Resource[F, UsersStore[F, ConnectionIO]] =
-    WeakAsync.liftK[F, ConnectionIO].map(lift => new PostgresUsersStore[F](lift, tx))
+  def make[F[_]](): Resource[F, UsersStore[ConnectionIO]] =
+    Resource.pure(new PostgresUsersStore[F]())
 
-private class PostgresUsersStore[F[_]: Async] private (lift: F ~> ConnectionIO, tx: Transactor[F])
-    extends AbstractPostgresStore[F](lift, tx)
-    with UsersStore[F, ConnectionIO]:
+private class PostgresUsersStore[F[_]] private () extends UsersStore[ConnectionIO]:
 
   override def createAccount(credentials: UserCredentials): ConnectionIO[UserId] =
     insertUserCredentials(credentials.username, credentials.hashedPassword, credentials.salt)

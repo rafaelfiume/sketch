@@ -4,6 +4,7 @@ import cats.effect.IO
 import org.fiume.sketch.shared.auth.UserId
 import org.fiume.sketch.shared.authorisation.{AccessControl, ContextualRole, GlobalRole, Role}
 import org.fiume.sketch.shared.common.{Entity, EntityId}
+import org.fiume.sketch.shared.testkit.TxRef
 
 /*
  * Note that this is a > simplified < version of AccessControlContext that provides support
@@ -13,56 +14,56 @@ import org.fiume.sketch.shared.common.{Entity, EntityId}
  */
 trait AccessControlContext:
 
-  private case class State(
+  case class PermissionsState(
     global: Map[UserId, GlobalRole],
     contextual: Map[(UserId, EntityId[?]), ContextualRole]
   ):
-    def +++(userId: UserId, role: GlobalRole): State = copy(global = global + (userId -> role))
+    def +++(userId: UserId, role: GlobalRole): PermissionsState = copy(global = global + (userId -> role))
 
     def getGlobalRole(userId: UserId): Option[Role.Global] = global.get(userId).map(Role.Global(_))
 
-    def ++(userId: UserId, entityId: EntityId[?], role: ContextualRole): State =
+    def ++(userId: UserId, entityId: EntityId[?], role: ContextualRole): PermissionsState =
       copy(contextual = contextual + ((userId, entityId) -> role))
 
-    def --(userId: UserId, entityId: EntityId[?]): State = copy(contextual = contextual - (userId -> entityId))
+    def --(userId: UserId, entityId: EntityId[?]): PermissionsState = copy(contextual = contextual - (userId -> entityId))
 
     def getContextualRole(userId: UserId, entityId: EntityId[?]): Option[Role.Contextual] =
       contextual.get(userId -> entityId).map(Role.Contextual(_))
 
-  private object State:
-    val empty = State(Map.empty, Map.empty)
+  private object PermissionsState:
+    val empty = PermissionsState(Map.empty, Map.empty)
 
-  def makeAccessControl(): IO[AccessControl[IO, IO] & InspectAccessControl] = makeAccessControl(State.empty)
+  def makeAccessControl(): IO[(AccessControl[IO] & InspectAccessControl, TxRef[PermissionsState])] =
+    makeAccessControl(PermissionsState.empty)
 
-  def makeUnreliableAccessControl(): AccessControl[IO, IO] = new AccessControl[IO, IO]:
+  def makeUnreliableAccessControl(): AccessControl[IO] = new AccessControl[IO]:
     override def storeGlobalGrant(userId: UserId, role: GlobalRole): IO[Unit] = error
     override def storeGrant[T <: Entity](userId: UserId, entityId: EntityId[T], role: ContextualRole): IO[Unit] = error
     override def fetchAllAuthorisedEntityIds[T <: Entity](userId: UserId, entityType: String): fs2.Stream[IO, EntityId[T]] =
       fs2.Stream.eval[IO, EntityId[T]](error)
     override def fetchRole[T <: Entity](userId: UserId, entityId: EntityId[T]): IO[Option[Role]] = error
     override def deleteContextualGrant[T <: Entity](userId: UserId, entityId: EntityId[T]): IO[Unit] = error
-    override val lift: [A] => IO[A] => IO[A] = [A] => (_: IO[A]) => error
-    override val commit: [A] => IO[A] => IO[A] = [A] => (_: IO[A]) => error
-    override val commitStream: [A] => fs2.Stream[IO, A] => fs2.Stream[IO, A] = [A] =>
-      (_: fs2.Stream[IO, A]) => fs2.Stream.eval[IO, A](error)
     private def error[A]: IO[A] = IO.raiseError(new RuntimeException("boom"))
 
-  private def makeAccessControl(state: State): IO[AccessControl[IO, IO] & InspectAccessControl] =
-    IO.ref(state).map { ref =>
-      new AccessControl[IO, IO] with InspectAccessControl:
+  private def makeAccessControl(
+    state: PermissionsState
+  ): IO[(AccessControl[IO] & InspectAccessControl, TxRef[PermissionsState])] =
+    for txRef <- TxRef.of(state)
+    yield (
+      new AccessControl[IO] with InspectAccessControl:
 
         override def getGlobalRole(userId: UserId): IO[Option[GlobalRole]] =
-          ref.get.map(_.getGlobalRole(userId).map(_.designation))
+          txRef.get.map(_.getGlobalRole(userId).map(_.designation))
 
         override def storeGlobalGrant(userId: UserId, role: GlobalRole): IO[Unit] =
-          ref.update(_ +++ (userId, role))
+          txRef.update(_ +++ (userId, role))
 
         override def storeGrant[T <: Entity](userId: UserId, entityId: EntityId[T], role: ContextualRole): IO[Unit] =
-          ref.update(_ ++ (userId, entityId, role))
+          txRef.update(_ ++ (userId, entityId, role))
 
         override def fetchAllAuthorisedEntityIds[T <: Entity](userId: UserId, entityType: String): fs2.Stream[IO, EntityId[T]] =
           fs2.Stream.evals(
-            ref.get.map(
+            txRef.get.map(
               _.contextual
                 .collect {
                   case ((u -> id), _) if u == userId => id.asInstanceOf[EntityId[T]]
@@ -72,20 +73,13 @@ trait AccessControlContext:
           )
 
         override def fetchRole[T <: Entity](userId: UserId, entityId: EntityId[T]): IO[Option[Role]] =
-          // miminics the behaviour of fetchRole in PostgresAccessControl
+          // mimics the behaviour of fetchRole in PostgresAccessControl
           // where the least permissive contextual role take precedence over global roles
-          ref.get.map(state => state.getContextualRole(userId, entityId).orElse(state.getGlobalRole(userId)))
+          txRef.get.map(state => state.getContextualRole(userId, entityId).orElse(state.getGlobalRole(userId)))
 
         override def deleteContextualGrant[T <: Entity](userId: UserId, entityId: EntityId[T]): IO[Unit] =
-          ref.update(_ -- (userId, entityId))
+          txRef.update(_ -- (userId, entityId))
+    ) -> txRef
 
-        override val lift: [A] => IO[A] => IO[A] = [A] => (action: IO[A]) => action
-
-        override val commit: [A] => IO[A] => IO[A] = [A] => (action: IO[A]) => action
-
-        override val commitStream: [A] => fs2.Stream[IO, A] => fs2.Stream[IO, A] = [A] => (action: fs2.Stream[IO, A]) => action
-    }
-
-// This doesn't look very nice and should be temporary
 trait InspectAccessControl:
   def getGlobalRole(userId: UserId): IO[Option[GlobalRole]]

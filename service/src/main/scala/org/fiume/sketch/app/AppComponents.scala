@@ -14,7 +14,7 @@ import org.fiume.sketch.shared.auth.accounts.{
 }
 import org.fiume.sketch.shared.auth.algebras.UsersStore
 import org.fiume.sketch.shared.authorisation.AccessControl
-import org.fiume.sketch.shared.common.app.{HealthChecker, Versions}
+import org.fiume.sketch.shared.common.app.{HealthChecker, TransactionManager, Versions}
 import org.fiume.sketch.shared.common.app.ServiceStatus.Dependency.*
 import org.fiume.sketch.shared.common.events.Recipient
 import org.fiume.sketch.shared.domain.documents.algebras.DocumentsStore
@@ -25,7 +25,7 @@ import org.fiume.sketch.storage.auth.postgres.{
 }
 import org.fiume.sketch.storage.authorisation.postgres.PostgresAccessControl
 import org.fiume.sketch.storage.documents.postgres.PostgresDocumentsStore
-import org.fiume.sketch.storage.postgres.{DbTransactor, PostgresHealthCheck}
+import org.fiume.sketch.storage.postgres.{DbTransactor, PostgresHealthCheck, PostgresTransactionManager}
 import org.http4s.ember.client.EmberClientBuilder
 import org.typelevel.log4cats.LoggerFactory
 import org.typelevel.log4cats.slf4j.Slf4jFactory
@@ -40,6 +40,7 @@ trait AppComponents[F[_]]:
    * App admin
    */
   val customWorkerThreadPool: ExecutionContext
+  val transactionManager: TransactionManager[F, ConnectionIO]
   val dbHealthCheck: HealthChecker.DependencyHealthChecker[F, Database]
   val rusticHealthCheck: HealthChecker.DependencyHealthChecker[F, Rustic]
   val versions: Versions[F]
@@ -50,18 +51,18 @@ trait AppComponents[F[_]]:
   val authenticator: Authenticator[F]
   val accountDeletionEventConsumer: AccountDeletionEventConsumer[ConnectionIO]
   val accountDeletedNotificationProducer: AccountDeletedNotificationProducer[ConnectionIO]
-  val usersStore: UsersStore[F, ConnectionIO]
+  val usersStore: UsersStore[ConnectionIO]
   val usersManager: UsersManager[F]
 
   /**
    * Authorisation
    */
-  val accessControl: AccessControl[F, ConnectionIO]
+  val accessControl: AccessControl[ConnectionIO]
 
   /**
    * Domain
    */
-  val documentsStore: DocumentsStore[F, ConnectionIO]
+  val documentsStore: DocumentsStore[ConnectionIO]
   val accountDeletedNotificationConsumer: AccountDeletedNotificationConsumer[ConnectionIO]
 
 object AppComponents:
@@ -71,6 +72,7 @@ object AppComponents:
     for
       customWorkerThreadPool0 <- newCustomWorkerThreadPool()
       transactor <- DbTransactor.make(config.db)
+      transactionManager0 <- PostgresTransactionManager.make(transactor)
       dbHealthCheck0 <- PostgresHealthCheck.make[F](transactor)
       httpClient <- EmberClientBuilder.default[F].build
       rusticHealthCheck0 = RusticHealthCheck.make[F](config.rusticClient, httpClient)
@@ -78,32 +80,35 @@ object AppComponents:
 
       accountDeletionEventStore0 <- PostgresAccountDeletionEventsStore.make[F]()
       accountDeletedNotificationProducer0 <- PostgresAccountDeletedNotificationsStore.makeProducer[F]()
-      usersStore0 <- PostgresUsersStore.make[F](transactor)
+      usersStore0 <- PostgresUsersStore.make[F]()
       authenticator0 <- Resource.liftK {
         Authenticator.make[F, ConnectionIO](
           Clock[F],
           usersStore0,
+          transactionManager0,
           config.keyPair.privateKey,
           config.keyPair.publicKey,
           expirationOffset = 1.hour
         )
       }
-      accessControl0 <- PostgresAccessControl.make[F](transactor)
+      accessControl0 <- PostgresAccessControl.make[F]()
       usersManager0 = UsersManager.make[F, ConnectionIO](
         usersStore0,
         accountDeletionEventStore0,
         accessControl0,
+        transactionManager0,
         Clock[F],
         config.account.delayUntilPermanentDeletion
       )
 
-      documentsStore0 <- PostgresDocumentsStore.make[F](transactor)
+      documentsStore0 <- PostgresDocumentsStore.make[F]()
       accountDeletedNotificationConsumer0 <- PostgresAccountDeletedNotificationsStore.makeConsumer(
         Recipient("sketch") // see system.dynamic_configs table
       )
 //
     yield new AppComponents[F]:
       override val customWorkerThreadPool: ExecutionContext = customWorkerThreadPool0
+      override val transactionManager: TransactionManager[F, ConnectionIO] = transactionManager0
       override val dbHealthCheck: HealthChecker.DependencyHealthChecker[F, Database] = dbHealthCheck0
       override val rusticHealthCheck: HealthChecker.DependencyHealthChecker[F, Rustic] = rusticHealthCheck0
       override val versions: Versions[F] = versions0
@@ -113,12 +118,12 @@ object AppComponents:
         accountDeletionEventStore0
       override val accountDeletedNotificationProducer: AccountDeletedNotificationProducer[ConnectionIO] =
         accountDeletedNotificationProducer0
-      override val usersStore: UsersStore[F, ConnectionIO] = usersStore0
+      override val usersStore: UsersStore[ConnectionIO] = usersStore0
       override val usersManager: UsersManager[F] = usersManager0
 
-      override val accessControl: AccessControl[F, ConnectionIO] = accessControl0
+      override val accessControl: AccessControl[ConnectionIO] = accessControl0
 
-      override val documentsStore: DocumentsStore[F, ConnectionIO] = documentsStore0
+      override val documentsStore: DocumentsStore[ConnectionIO] = documentsStore0
       override val accountDeletedNotificationConsumer = accountDeletedNotificationConsumer0
 
   private def newCustomWorkerThreadPool[F[_]: Sync]() = Resource

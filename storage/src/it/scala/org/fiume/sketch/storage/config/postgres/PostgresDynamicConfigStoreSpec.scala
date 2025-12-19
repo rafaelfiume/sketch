@@ -14,6 +14,7 @@ import org.fiume.sketch.shared.testkit.syntax.OptionSyntax.*
 import org.fiume.sketch.storage.config.postgres.DatabaseCodecs.given
 import org.fiume.sketch.storage.config.postgres.PostgresDynamicConfigStoreSpecContext.*
 import org.fiume.sketch.storage.config.postgres.PostgresDynamicConfigStoreSpecContext.given
+import org.fiume.sketch.storage.postgres.PostgresTransactionManager
 import org.fiume.sketch.storage.testkit.DockerPostgresSuite
 
 class PostgresDynamicConfigStoreSpec extends CatsEffectSuite with PostgresDynamicConfigStoreSpecContext:
@@ -22,11 +23,14 @@ class PostgresDynamicConfigStoreSpec extends CatsEffectSuite with PostgresDynami
     will(cleanStorage) {
       val namespace = Namespace("it-test")
       val value = Set(SampleValue("change-me-at-runtime"))
-      PostgresDynamicConfigStore.makeForNamespace[IO](namespace).use { case provider =>
+      (
+        PostgresDynamicConfigStore.makeForNamespace[IO](namespace),
+        PostgresTransactionManager.make[IO](transactor())
+      ).tupled.use { case (provider, tx) =>
         for
-          _ <- givenConfig(namespace, SampleKey, value).ccommit
+          _ <- tx.commit { givenConfig(namespace, SampleKey, value) }
 
-          result <- provider.getConfig(SampleKey).map(_.someOrFail).ccommit
+          result <- tx.commit { provider.getConfig(SampleKey).map(_.someOrFail) }
 //
         yield assertEquals(result, value)
       }

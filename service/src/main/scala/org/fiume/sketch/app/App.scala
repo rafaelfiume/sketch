@@ -47,6 +47,7 @@ object App:
           comps.accountDeletionEventConsumer,
           comps.accountDeletedNotificationProducer,
           comps.usersStore,
+          comps.transactionManager,
           dynamicConfig
         )
       )
@@ -59,7 +60,10 @@ object App:
          */
         // TODO Extract `interval` to a proper place: load it from an env var.
         interval = 1.minute, // consider to increase this interval
-        job = UserDataDeletionJob.make[F, ConnectionIO](comps.accountDeletedNotificationConsumer, comps.documentsStore)
+        job = UserDataDeletionJob.make[F, ConnectionIO](comps.accountDeletedNotificationConsumer,
+                                                        comps.documentsStore,
+                                                        comps.transactionManager
+        )
       )
       streams = httpServiceStream
         .concurrently(accountPermanentDeletionStream) // Auth
@@ -95,7 +99,8 @@ object HttpApi:
         authMiddleware,
         config.documents.documentBytesSizeLimit,
         comps.accessControl,
-        comps.documentsStore
+        comps.documentsStore,
+        comps.transactionManager
       ).router()
     val healthStatusRoutes: HttpRoutes[F] =
       new HealthStatusRoutes[F](comps.versions, comps.dbHealthCheck, comps.rusticHealthCheck).router()

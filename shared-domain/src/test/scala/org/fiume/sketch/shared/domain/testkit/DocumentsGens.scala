@@ -1,7 +1,6 @@
 package org.fiume.sketch.shared.domain.testkit
 
 import cats.effect.IO
-import fs2.Stream
 import org.fiume.sketch.shared.auth.testkit.UserGens
 import org.fiume.sketch.shared.common.WithUuid
 import org.fiume.sketch.shared.domain.documents.{
@@ -75,8 +74,8 @@ object DocumentsGens:
       ownerId <- UserGens.userIds
     yield Metadata(name, description, ownerId)
 
-  given Arbitrary[Stream[IO, Byte]] = Arbitrary(bytesG)
-  def bytesG: Gen[Stream[IO, Byte]] = Gen.nonEmptyListOf(bytes).map(Stream.emits)
+  given Arbitrary[Array[Byte]] = Arbitrary(bytesG)
+  def bytesG: Gen[Array[Byte]] = Gen.nonEmptyListOf(bytes).map(_.toArray)
 
   given Arbitrary[Document] = Arbitrary(documents)
   def documents: Gen[Document] =
@@ -103,10 +102,10 @@ object DocumentsGens:
     for
       id <- documentsIds
       metadata <- metadataG
-      stream0 <- bytesG
+      bytes0 <- bytesG
     yield new Document(metadata) with WithUuid[DocumentId] with WithStream[IO]:
-      val uuid = id
-      val stream = stream0
+      override val uuid = id
+      override val bytes = bytes0
 
 private def nameChars: Gen[Char] =
   Gen.frequency(9 -> Gen.alphaNumChar, 1 -> Gen.const(' '), 1 -> Gen.const('_'), 1 -> Gen.const('-'), 1 -> Gen.const('.'))

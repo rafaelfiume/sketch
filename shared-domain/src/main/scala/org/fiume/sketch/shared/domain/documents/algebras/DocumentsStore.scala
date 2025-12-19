@@ -1,12 +1,11 @@
 package org.fiume.sketch.shared.domain.documents.algebras
 
 import org.fiume.sketch.shared.auth.UserId
-import org.fiume.sketch.shared.common.app.Store
-import org.fiume.sketch.shared.domain.documents.{DocumentId, DocumentWithId, DocumentWithStream}
+import org.fiume.sketch.shared.domain.documents.{Document, DocumentId, DocumentWithId}
 
-trait DocumentsStore[F[_], Txn[_]] extends Store[F, Txn]:
+trait DocumentsStore[Txn[_]]:
 
-  def store(document: DocumentWithStream[F]): Txn[DocumentId]
+  def store(bytes: Array[Byte], document: Document): Txn[DocumentId]
   def fetchDocument(uuid: DocumentId): Txn[Option[DocumentWithId]]
   def documentStream(uuid: DocumentId): fs2.Stream[Txn, Byte]
   def fetchDocuments(uuids: fs2.Stream[Txn, DocumentId]): fs2.Stream[Txn, DocumentWithId]

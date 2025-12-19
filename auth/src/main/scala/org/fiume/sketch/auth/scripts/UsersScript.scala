@@ -19,7 +19,7 @@ import org.fiume.sketch.shared.common.troubleshooting.syntax.InvariantErrorSynta
 import org.fiume.sketch.shared.common.typeclasses.AsString
 import org.fiume.sketch.storage.auth.postgres.{PostgresAccountDeletionEventsStore, PostgresUsersStore}
 import org.fiume.sketch.storage.authorisation.postgres.PostgresAccessControl
-import org.fiume.sketch.storage.postgres.{DatabaseConfig, DbTransactor}
+import org.fiume.sketch.storage.postgres.{DatabaseConfig, DbTransactor, PostgresTransactionManager}
 
 import scala.concurrent.duration.*
 import scala.util.Try
@@ -112,13 +112,14 @@ class UsersScript private (dbConfig: DatabaseConfig, accountConfig: AccountConfi
       .make[IO](dbConfig)
       .flatMap { transactor =>
         (
-          PostgresUsersStore.make[IO](transactor),
-          PostgresAccessControl.make[IO](transactor),
-          PostgresAccountDeletionEventsStore.make[IO]()
+          PostgresUsersStore.make[IO](),
+          PostgresAccessControl.make[IO](),
+          PostgresAccountDeletionEventsStore.make[IO](),
+          PostgresTransactionManager.make(transactor)
         ).tupled
       }
-      .use { case (usersStore, accessControl, eventStore) =>
+      .use { case (usersStore, accessControl, eventStore, tx) =>
         UsersManager
-          .make[IO, ConnectionIO](usersStore, eventStore, accessControl, clock, accountConfig.delayUntilPermanentDeletion)
+          .make[IO, ConnectionIO](usersStore, eventStore, accessControl, tx, clock, accountConfig.delayUntilPermanentDeletion)
           .createAccount(args.username, args.password, args.globalRole)
       }

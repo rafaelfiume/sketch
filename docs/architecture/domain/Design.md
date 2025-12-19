@@ -156,19 +156,19 @@ This allows the application layer to combine discrete operations into an atomic 
 Example:
 
 ```scala
-trait UsersStore[F[_], Txn[_]: Monad] extends Store[F, Txn]:
+trait UsersStore[Txn[_]: Monad]:
   def createAccount(credentials: UserCredentials): Txn[UserId]
   def fetchAccount(userId: UserId): Txn[Option[Account]]
   . . .
   def deleteAccount(userId: UserId): Txn[Option[UserId]]
 ```
 
-Concrete adapters fulfill the contract (i.e. implement the capabilities) and provide the `Txn[_]` implementation (e.g. Doobie ConnectionIO).
+Concrete adapters fulfill the contract (i.e. implement the capabilities).
 
 For more details, refer to:
-  * [Store.scala](/shared-components/src/main/scala/org/fiume/sketch/shared/common/app/Store.scala)
+  * [TransactionManager.scala](/shared-components/src/main/scala/org/fiume/sketch/shared/common/app/TransactionManager.scala)
   * [Application Layer - Design Guidelines](/docs/architecture/application/Design.md)
-  * [Enables Transaction Boundaries In The Application Layer](/docs/architecture/outbound-adapters/datastore/Design.md#62-enable-transaction-boundaries-in-the-application-layer) section in the Datastore Outbound Adapters - Design Guidelines
+  * [Business Transaction Boundaries In The Application Layer](/docs/architecture/outbound-adapters/datastore/Design.md#62-business-transaction-boundaries-in-the-application-layer) section in the Datastore Outbound Adapters - Design Guidelines
 
 #### 5.4.2 Support for Unit Testing without External Dependencies
 

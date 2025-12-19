@@ -13,6 +13,7 @@ import org.fiume.sketch.shared.common.events.EventId
 import org.fiume.sketch.shared.testkit.ClockContext
 import org.fiume.sketch.shared.testkit.syntax.OptionSyntax.*
 import org.fiume.sketch.storage.auth.postgres.DatabaseCodecs.given
+import org.fiume.sketch.storage.postgres.PostgresTransactionManager
 import org.fiume.sketch.storage.testkit.DockerPostgresSuite
 import org.scalacheck.effect.PropF.forAllF
 
@@ -29,7 +30,10 @@ class PostgresAccountDeletionEventsStoreSpec
 
   test("consumes next event with exactly-once semantics"):
     will(cleanStorage) {
-      PostgresAccountDeletionEventsStore.make[IO]().use { eventStore =>
+      (
+        PostgresAccountDeletionEventsStore.make[IO](),
+        PostgresTransactionManager.make[IO](transactor())
+      ).tupled.use { case (eventStore, tx) =>
         // given
         val numEvents = 1000
         val due = Instant.now()
@@ -39,7 +43,9 @@ class PostgresAccountDeletionEventsStoreSpec
             .covary[IO]
             .parEvalMapUnbounded { _ =>
               val userId = UserGens.userIds.sample.someOrFail
-              eventStore.produceEvent(AccountDeletionEvent.ToSchedule(userId, due)).ccommit
+              tx.commit {
+                eventStore.produceEvent(AccountDeletionEvent.ToSchedule(userId, due))
+              }
             }
             // .evalTap { eventId => IO.println(s"new event: $eventId") } // uncomment to debug
             .compile
@@ -50,7 +56,9 @@ class PostgresAccountDeletionEventsStoreSpec
             fs2.Stream
               .range(0, numEvents)
               .covary[IO]
-              .parEvalMapUnorderedUnbounded { _ => eventStore.consumeEvent().ccommit }
+              .parEvalMapUnorderedUnbounded { _ =>
+                tx.commit { eventStore.consumeEvent() }
+              }
               // .evalTap { eventId => IO.println(s"consumed event: ${eventId}") } // uncomment to debug
               .unNone
               .compile
@@ -67,7 +75,10 @@ class PostgresAccountDeletionEventsStoreSpec
   // Ideally, failed events should be retried using exponential backoff with a maximum number of retries.
   test("event becomes available for reprocessing if its processing fails"):
     will(cleanStorage) {
-      PostgresAccountDeletionEventsStore.make[IO]().use { eventStore =>
+      (
+        PostgresAccountDeletionEventsStore.make[IO](),
+        PostgresTransactionManager.make[IO](transactor())
+      ).tupled.use { case (eventStore, tx) =>
         // given
         val numEvents = 1000
         val due = Instant.now()
@@ -84,7 +95,9 @@ class PostgresAccountDeletionEventsStoreSpec
             .covary[IO]
             .parEvalMapUnbounded { _ =>
               val userId = UserGens.userIds.sample.someOrFail
-              eventStore.produceEvent(AccountDeletionEvent.ToSchedule(userId, due)).map(_.uuid).ccommit
+              tx.commit {
+                eventStore.produceEvent(AccountDeletionEvent.ToSchedule(userId, due)).map(_.uuid)
+              }
             }
             .compile
             .toList
@@ -95,20 +108,20 @@ class PostgresAccountDeletionEventsStoreSpec
               .range(0, numEvents)
               .covary[IO]
               .parEvalMapUnorderedUnbounded { i =>
-                eventStore
-                  .consumeEvent()
-                  .flatMap { event =>
-                    if i % errorFrequency == 0 then
-                      lift {
-                        atLeastOnceFailedEventIdsRef.update(s => event.fold(s)(s + _.uuid)) *>
-                          RuntimeException(s"failed: ${event.map(_.uuid)}").raiseError
-                      }
-                    else
-                      lift { successfullyProcessedEventIdsRef.update(s => event.fold(s)(s + _.uuid)) } *>
-                        event.pure[ConnectionIO]
-                  }
-                  .ccommit
-                  .handleErrorWith { _ => none.pure[IO] }
+                tx.commit {
+                  eventStore
+                    .consumeEvent()
+                    .flatMap { event =>
+                      if i % errorFrequency == 0 then
+                        lift {
+                          atLeastOnceFailedEventIdsRef.update(s => event.fold(s)(s + _.uuid)) *>
+                            RuntimeException(s"failed: ${event.map(_.uuid)}").raiseError
+                        }
+                      else
+                        lift { successfullyProcessedEventIdsRef.update(s => event.fold(s)(s + _.uuid)) } *>
+                          event.pure[ConnectionIO]
+                    }
+                }.handleErrorWith { _ => none.pure[IO] }
               }
               .map(_.map(_.uuid))
               .unNone
@@ -118,7 +131,7 @@ class PostgresAccountDeletionEventsStoreSpec
           // then
           atLeastOnceFailedEventIds <- atLeastOnceFailedEventIdsRef.get
           successfullyProcessedEventIds <- successfullyProcessedEventIdsRef.get
-          pendingEventIds <- fetchPendingEvents().ccommit.map(_.toSet.map(_.uuid))
+          pendingEventIds <- tx.commit { fetchPendingEvents() }.map(_.toSet.map(_.uuid))
           expectedPendingEventIds = sentEventIds.toSet -- successfullyProcessedEventIds
         yield
           assert(
@@ -132,18 +145,23 @@ class PostgresAccountDeletionEventsStoreSpec
   test("skips event if permanent deletion is not yet due"):
     forAllF { (fstUserId: UserId, sndUserId: UserId, trdUserId: UserId, fthUserId: UserId) =>
       will(cleanStorage) {
-        PostgresAccountDeletionEventsStore.make[IO]().use { eventStore =>
+        (
+          PostgresAccountDeletionEventsStore.make[IO](),
+          PostgresTransactionManager.make[IO](transactor())
+        ).tupled.use { case (eventStore, tx) =>
           val due = Instant.now()
           val notYetDue = due.plusSeconds(60)
           for
-            _ <- eventStore.produceEvent(AccountDeletionEvent.ToSchedule(fstUserId, notYetDue)).ccommit
-            _ <- eventStore.produceEvent(AccountDeletionEvent.ToSchedule(sndUserId, notYetDue)).ccommit
-            _ <- eventStore.produceEvent(AccountDeletionEvent.ToSchedule(trdUserId, due)).ccommit
-            _ <- eventStore.produceEvent(AccountDeletionEvent.ToSchedule(fthUserId, notYetDue)).ccommit
+            _ <- tx.commit {
+              eventStore.produceEvent(AccountDeletionEvent.ToSchedule(fstUserId, notYetDue)) *>
+                eventStore.produceEvent(AccountDeletionEvent.ToSchedule(sndUserId, notYetDue)) *>
+                eventStore.produceEvent(AccountDeletionEvent.ToSchedule(trdUserId, due)) *>
+                eventStore.produceEvent(AccountDeletionEvent.ToSchedule(fthUserId, notYetDue))
+            }
 
             result <- fs2.Stream
               .repeatEval {
-                eventStore.consumeEvent().ccommit
+                tx.commit { eventStore.consumeEvent() }
               }
               .unNone
               .take(1)

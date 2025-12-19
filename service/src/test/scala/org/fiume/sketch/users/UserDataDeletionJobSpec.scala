@@ -10,6 +10,7 @@ import org.fiume.sketch.shared.common.testkit.EventGens.given
 import org.fiume.sketch.shared.domain.documents.DocumentWithIdAndStream
 import org.fiume.sketch.shared.domain.testkit.DocumentsGens.given
 import org.fiume.sketch.shared.domain.testkit.DocumentsStoreContext
+import org.fiume.sketch.shared.testkit.TransactionManagerContext
 import org.fiume.sketch.shared.testkit.syntax.OptionSyntax.someOrFail
 import org.fiume.sketch.users.UserDataDeletionJob.JobReport
 import org.scalacheck.ShrinkLowPriority
@@ -20,6 +21,7 @@ class UserDataDeletionJobSpec
     with ScalaCheckEffectSuite
     with EventConsumerContext[ToNotify]
     with DocumentsStoreContext
+    with TransactionManagerContext
     with ShrinkLowPriority:
 
   override def scalaCheckTestParameters = super.scalaCheckTestParameters.withMinSuccessfulTests(10)
@@ -31,8 +33,9 @@ class UserDataDeletionJobSpec
         eventConsumer <- makeEventConsumer(nextEvent =
           AccountDeletedNotification.notified(triggeringEventId, userId, Recipient("test-recipient"))
         )
-        store <- makeDocumentsStore(state = fstDoc, sndDoc)
-        job = UserDataDeletionJob.make(eventConsumer, store)
+        (store, txRef) <- makeDocumentsStore(state = fstDoc, sndDoc)
+        tx = makeTransactionManager(List(txRef))
+        job = UserDataDeletionJob.make(eventConsumer, store, tx)
 
         result <- job.run().map(_.someOrFail)
 //
@@ -43,8 +46,9 @@ class UserDataDeletionJobSpec
     forAllF { (fstDoc: DocumentWithIdAndStream[IO], sndDoc: DocumentWithIdAndStream[IO]) =>
       for
         eventConsumer <- makeEmptyEventConsumer()
-        store <- makeDocumentsStore(state = fstDoc, sndDoc)
-        job = UserDataDeletionJob.make(eventConsumer, store)
+        (store, txRef) <- makeDocumentsStore(state = fstDoc, sndDoc)
+        tx = makeTransactionManager(List(txRef))
+        job = UserDataDeletionJob.make(eventConsumer, store, tx)
 
         result <- job.run()
 //

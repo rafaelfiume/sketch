@@ -16,6 +16,7 @@ import org.fiume.sketch.shared.auth.testkit.UserGens
 import org.fiume.sketch.shared.auth.testkit.UserGens.given
 import org.fiume.sketch.shared.testkit.syntax.OptionSyntax.*
 import org.fiume.sketch.storage.auth.postgres.DatabaseCodecs.given
+import org.fiume.sketch.storage.postgres.PostgresTransactionManager
 import org.fiume.sketch.storage.testkit.DockerPostgresSuite
 import org.scalacheck.ShrinkLowPriority
 import org.scalacheck.effect.PropF.forAllF
@@ -33,11 +34,14 @@ class PostgresUsersStoreSpec
   test("creates account and fetches it by username"):
     forAllF { (credentials: UserCredentials) =>
       will(cleanStorage) {
-        PostgresUsersStore.make[IO](transactor()).use { store =>
+        (
+          PostgresUsersStore.make[IO](),
+          PostgresTransactionManager.make[IO](transactor())
+        ).tupled.use { case (store, tx) =>
           for
-            uuid <- store.createAccount(credentials).ccommit
+            uuid <- tx.commit { store.createAccount(credentials) }
 
-            result <- store.fetchAccount(credentials.username).map(_.someOrFail).ccommit
+            result <- tx.commit { store.fetchAccount(credentials.username).map(_.someOrFail) }
 //
           yield
             assertEquals(result.uuid, uuid)
@@ -52,13 +56,16 @@ class PostgresUsersStoreSpec
   test("updates user password"):
     forAllF { (credentials: UserCredentials, newPassword: HashedPassword) =>
       will(cleanStorage) {
-        PostgresUsersStore.make[IO](transactor()).use { store =>
+        (
+          PostgresUsersStore.make[IO](),
+          PostgresTransactionManager.make[IO](transactor())
+        ).tupled.use { case (store, tx) =>
           for
-            uuid <- store.createAccount(credentials).ccommit
+            uuid <- tx.commit { store.createAccount(credentials) }
 
-            _ <- store.updatePassword(uuid, newPassword).ccommit
+            _ <- tx.commit { store.updatePassword(uuid, newPassword) }
 
-            result <- fetchPassword(uuid).ccommit
+            result <- tx.commit { fetchPassword(uuid) }
           yield assertEquals(result, newPassword)
         }
       }
@@ -67,14 +74,17 @@ class PostgresUsersStoreSpec
   test("updates user account"):
     forAllF { (credentials: UserCredentials, account: Account) =>
       will(cleanStorage) {
-        PostgresUsersStore.make[IO](transactor()).use { store =>
+        (
+          PostgresUsersStore.make[IO](),
+          PostgresTransactionManager.make[IO](transactor())
+        ).tupled.use { case (store, tx) =>
           for
-            uuid <- store.createAccount(credentials).ccommit
+            uuid <- tx.commit { store.createAccount(credentials) }
             updated = account.copy(uuid = uuid)
 
-            _ <- store.updateAccount(updated).ccommit
+            _ <- tx.commit { store.updateAccount(updated) }
 
-            result <- store.fetchAccount(uuid).map(_.someOrFail).ccommit
+            result <- tx.commit { store.fetchAccount(uuid).map(_.someOrFail) }
           yield assertEquals(result, updated)
         }
       }
@@ -83,13 +93,16 @@ class PostgresUsersStoreSpec
   test("deletes user account"):
     forAllF { (credentials: UserCredentials) =>
       will(cleanStorage) {
-        PostgresUsersStore.make[IO](transactor()).use { store =>
+        (
+          PostgresUsersStore.make[IO](),
+          PostgresTransactionManager.make[IO](transactor())
+        ).tupled.use { case (store, tx) =>
           for
-            userId <- store.createAccount(credentials).ccommit
+            userId <- tx.commit { store.createAccount(credentials) }
 
-            result <- store.deleteAccount(userId).ccommit
+            result <- tx.commit { store.deleteAccount(userId) }
 
-            account <- store.fetchAccount(userId).ccommit
+            account <- tx.commit { store.fetchAccount(userId) }
           yield
             assertEquals(result, userId.some)
             assert(account.isEmpty)

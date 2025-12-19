@@ -21,7 +21,7 @@ import org.fiume.sketch.shared.auth.testkit.UserGens.given
 import org.fiume.sketch.shared.authorisation.{AccessDenied, ContextualRole, GlobalRole}
 import org.fiume.sketch.shared.authorisation.testkit.AccessControlContext
 import org.fiume.sketch.shared.authorisation.testkit.AccessControlGens.given
-import org.fiume.sketch.shared.testkit.ClockContext
+import org.fiume.sketch.shared.testkit.{ClockContext, TransactionManagerContext}
 import org.fiume.sketch.shared.testkit.syntax.EitherSyntax.*
 import org.fiume.sketch.shared.testkit.syntax.OptionSyntax.*
 import org.scalacheck.ShrinkLowPriority
@@ -38,6 +38,7 @@ class UsersManagerSpec
     with AccessControlContext
     with ClockContext
     with UsersManagerSpecContext
+    with TransactionManagerContext
     with ShrinkLowPriority:
 
   override def scalaCheckTestParameters = super.scalaCheckTestParameters.withMinSuccessfulTests(1)
@@ -45,13 +46,15 @@ class UsersManagerSpec
   test("user account creation succeeds with a unique username"):
     forAllF { (username: Username, password: PlainPassword, globalRole: Option[GlobalRole]) =>
       for
-        usersStore <- makeEmptyUsersStore()
+        (usersStore, uTxRef) <- makeEmptyUsersStore()
         eventProducer <- makeCancellableAccountDeletionEventProducer()
-        accessControl <- makeAccessControl()
+        (accessControl, acTxRef) <- makeAccessControl()
+        tx = makeTransactionManager(List(uTxRef, acTxRef))
         usersManager = UsersManager.make[IO, IO](
           usersStore,
           eventProducer,
           accessControl,
+          tx,
           makeFrozenClock(),
           delayUntilPermanentDeletion
         )
@@ -71,13 +74,15 @@ class UsersManagerSpec
   test("user account is not created when granting permission fails"):
     forAllF { (username: Username, password: PlainPassword, globalRole: Option[GlobalRole]) =>
       for
-        usersStore <- makeEmptyUsersStore()
+        (usersStore, uTxRef) <- makeEmptyUsersStore()
+        tx = makeTransactionManager(List(uTxRef))
         eventProducer <- makeCancellableAccountDeletionEventProducer()
         accessControl = makeUnreliableAccessControl()
         usersManager = UsersManager.make[IO, IO](
           usersStore,
           eventProducer,
           accessControl,
+          tx,
           makeFrozenClock(),
           delayUntilPermanentDeletion
         )
@@ -93,13 +98,14 @@ class UsersManagerSpec
       val markedForDeletionAt = Instant.now()
       val clock = makeFrozenClock(markedForDeletionAt)
       for
-        store <- makeEmptyUsersStore()
+        (usersStore, uTxRef) <- makeEmptyUsersStore()
         eventProducer <- makeCancellableAccountDeletionEventProducer()
-        accessControl <- makeAccessControl()
-        ownerId <- store.createAccount(owner).flatTap { id => accessControl.grantAccess(id, id, ContextualRole.Owner) }
-        adminId <- store.createAccount(admin).flatTap { id => accessControl.grantGlobalAccess(id, GlobalRole.Admin) }
+        (accessControl, acTxRef) <- makeAccessControl()
+        tx = makeTransactionManager(List(uTxRef, acTxRef))
+        ownerId <- usersStore.createAccount(owner).flatTap { id => accessControl.grantAccess(id, id, ContextualRole.Owner) }
+        adminId <- usersStore.createAccount(admin).flatTap { id => accessControl.grantGlobalAccess(id, GlobalRole.Admin) }
         authorisedId = if isAdminMarkingForDeletion then adminId else ownerId
-        usersManager = UsersManager.make[IO, IO](store, eventProducer, accessControl, clock, delayUntilPermanentDeletion)
+        usersManager = UsersManager.make[IO, IO](usersStore, eventProducer, accessControl, tx, clock, delayUntilPermanentDeletion)
 
         result <- usersManager.attemptToMarkAccountForDeletion(authorisedId, ownerId).map(_.rightOrFail)
 
@@ -110,7 +116,7 @@ class UsersManagerSpec
           then assertIO(resp, SoftDeleteAccountError.AccountAlreadyPendingDeletion)
           else assertIO(resp, AccessDenied)
 
-        account <- store.fetchAccount(ownerId).map(_.someOrFail)
+        account <- usersStore.fetchAccount(ownerId).map(_.someOrFail)
         grantRemoved <- accessControl.canAccess(ownerId, ownerId).map(!_)
         eventId <- eventProducer.inspectProducedEvent(ownerId).map(_.someOrFail.uuid)
       yield
@@ -129,17 +135,19 @@ class UsersManagerSpec
   test("users cannot mark an account for deletion without permission"):
     forAllF { (owner: UserCredentials, authed: UserCredentials, isSuperuser: Boolean) =>
       for
-        store <- makeEmptyUsersStore()
+        (usersStore, uTxRef) <- makeEmptyUsersStore()
         eventProducer <- makeCancellableAccountDeletionEventProducer()
-        accessControl <- makeAccessControl()
-        authedId <- store.createAccount(authed).flatTap { id => accessControl.grantAccess(id, id, ContextualRole.Owner) }
+        (accessControl, acTxRef) <- makeAccessControl()
+        tx = makeTransactionManager(List(uTxRef, acTxRef))
+        authedId <- usersStore.createAccount(authed).flatTap { id => accessControl.grantAccess(id, id, ContextualRole.Owner) }
         _ <- accessControl.grantGlobalAccess(authedId, GlobalRole.Superuser).whenA(isSuperuser)
-        ownerId <- store.createAccount(owner).flatTap { id => accessControl.grantAccess(id, id, ContextualRole.Owner) }
+        ownerId <- usersStore.createAccount(owner).flatTap { id => accessControl.grantAccess(id, id, ContextualRole.Owner) }
 
         usersManager = UsersManager.make[IO, IO](
-          store,
+          usersStore,
           eventProducer,
           accessControl,
+          tx,
           makeFrozenClock(),
           delayUntilPermanentDeletion
         )
@@ -151,15 +159,17 @@ class UsersManagerSpec
   test("users cannot mark an inexistent account for deletion"):
     forAllF { (ownerId: UserId, authed: UserCredentials, maybeGlobalRole: Option[GlobalRole]) =>
       for
-        store <- makeEmptyUsersStore()
+        (usersStore, uTxRef) <- makeEmptyUsersStore()
         eventProducer <- makeCancellableAccountDeletionEventProducer()
-        accessControl <- makeAccessControl()
-        authedId <- store.createAccount(authed).flatTap { id => accessControl.grantAccess(id, id, ContextualRole.Owner) }
+        (accessControl, acTxRef) <- makeAccessControl()
+        tx = makeTransactionManager(List(uTxRef, acTxRef))
+        authedId <- usersStore.createAccount(authed).flatTap { id => accessControl.grantAccess(id, id, ContextualRole.Owner) }
         _ <- accessControl.grantGlobalAccess(authedId, maybeGlobalRole.someOrFail).whenA(maybeGlobalRole.isDefined)
         usersManager = UsersManager.make[IO, IO](
-          store,
+          usersStore,
           eventProducer,
           accessControl,
+          tx,
           makeFrozenClock(),
           delayUntilPermanentDeletion
         )
@@ -177,12 +187,13 @@ class UsersManagerSpec
       val accountReactivationDate = Instant.now.truncatedTo(MILLIS)
       val clock = makeFrozenClock(accountReactivationDate)
       for
-        store <- makeEmptyUsersStore()
+        (usersStore, uTxRef) <- makeEmptyUsersStore()
         eventProducer <- makeCancellableAccountDeletionEventProducer()
-        accessControl <- makeAccessControl()
-        ownerId <- store.createAccount(owner)
-        adminId <- store.createAccount(admin).flatTap { accessControl.grantGlobalAccess(_, GlobalRole.Admin) }
-        usersManager = UsersManager.make[IO, IO](store, eventProducer, accessControl, clock, delayUntilPermanentDeletion)
+        (accessControl, acTxRef) <- makeAccessControl()
+        tx = makeTransactionManager(List(uTxRef, acTxRef))
+        ownerId <- usersStore.createAccount(owner)
+        adminId <- usersStore.createAccount(admin).flatTap { accessControl.grantGlobalAccess(_, GlobalRole.Admin) }
+        usersManager = UsersManager.make[IO, IO](usersStore, eventProducer, accessControl, tx, clock, delayUntilPermanentDeletion)
         _ <- usersManager.attemptToMarkAccountForDeletion(adminId, ownerId)
 
         result <- usersManager.attemptToRestoreAccount(adminId, ownerId).map(_.rightOrFail)
@@ -196,7 +207,7 @@ class UsersManagerSpec
           usersManager.attemptToRestoreAccount(adminId, ownerId).map(_.leftOrFail),
           ActivateAccountError.AccountAlreadyActive
         )
-        account <- store.fetchAccount(ownerId).map(_.someOrFail)
+        account <- usersStore.fetchAccount(ownerId).map(_.someOrFail)
         userCanAccessHerAccount <- accessControl.canAccess(ownerId, ownerId)
       yield
         assert(account.isActive, clue = "account should be active after restore")
@@ -206,23 +217,25 @@ class UsersManagerSpec
   test("users cannot restore an account without permission"):
     forAllF { (owner: Account, authed: UserCredentials, isSuperuser: Boolean) =>
       for
-        store <- makeUsersStoreForAccount(owner.copy(state = AccountState.SoftDeleted(Instant.now())))
+        (usersStore, uTxRef) <- makeUsersStoreForAccount(owner.copy(state = AccountState.SoftDeleted(Instant.now())))
         eventProducer <- makeCancellableAccountDeletionEventProducer()
-        accessControl <- makeAccessControl()
-        nonAdminUserId <- store.createAccount(authed).flatTap {
+        (accessControl, acTxRef) <- makeAccessControl()
+        tx = makeTransactionManager(List(uTxRef, acTxRef))
+        nonAdminUserId <- usersStore.createAccount(authed).flatTap {
           accessControl.grantGlobalAccess(_, GlobalRole.Superuser).whenA(isSuperuser)
         }
         usersManager = UsersManager.make[IO, IO](
-          store,
+          usersStore,
           eventProducer,
           accessControl,
+          tx,
           makeFrozenClock(),
           delayUntilPermanentDeletion
         )
 
         result <- usersManager.attemptToRestoreAccount(nonAdminUserId, owner.uuid).map(_.leftOrFail)
 
-        account <- store.fetchAccount(owner.uuid).map(_.someOrFail)
+        account <- usersStore.fetchAccount(owner.uuid).map(_.someOrFail)
       yield
         assert(account.isMarkedForDeletion, clue = "account should remain marked for deletion")
         assertEquals(result, AccessDenied)
@@ -231,16 +244,18 @@ class UsersManagerSpec
   test("users cannot restore an inexistent account"):
     forAllF { (ownerId: UserId, authed: UserCredentials, maybeGlobalRole: Option[GlobalRole]) =>
       for
-        store <- makeEmptyUsersStore()
+        (usersStore, uTxRef) <- makeEmptyUsersStore()
         eventProducer <- makeCancellableAccountDeletionEventProducer()
-        accessControl <- makeAccessControl()
-        authedId <- store.createAccount(authed).flatTap {
+        (accessControl, acTxRef) <- makeAccessControl()
+        tx = makeTransactionManager(List(uTxRef, acTxRef))
+        authedId <- usersStore.createAccount(authed).flatTap {
           accessControl.grantGlobalAccess(_, maybeGlobalRole.someOrFail).whenA(maybeGlobalRole.isDefined)
         }
         usersManager = UsersManager.make[IO, IO](
-          store,
+          usersStore,
           eventProducer,
           accessControl,
+          tx,
           makeFrozenClock(),
           delayUntilPermanentDeletion
         )

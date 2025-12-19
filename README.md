@@ -123,14 +123,7 @@ The plan is to expand DevOps practices in these areas:
 
 ## 5. From Ivory Tower to Production Code
 
-| Concept                         | Benefits             | Prevents         | Example      |
-|---------------------------------|----------------------|------------------|--------------|
-| **Natural Transformation** (`F ~> G`) | **Separates core business logic** (e.g. rules for setting up a user account) **from low-level infrastructure details** (e.g.transactions commit/rollback) | Mixing concerns, causing readability and maintenance nightmare, and making regression tests near impossible | **Define a clear transaction boundary.** <br><br>`val setupAccount = ... // create account, grant access to owner`<br>`setupAccount.commit()` <br><br>See: [UsersManager](auth/src/main/scala/org/fiume/sketch/auth/accounts/UsersManager.scala) (core domain) depends on [Store](shared-components/src/main/scala/org/fiume/sketch/shared/common/app/Store.scala) (infrastructure abstraction) |
-| **Isomorphism**                 | **Lossless conversions** between data representations. | Corrupted keys leading to severe authentication failures | Ensuring cryptographic keys can be serialised and deserialised without corruption. <br><br>See: [KeyStringifierSpec](auth/src/test/scala/org/fiume/sketch/auth/KeyStringifierSpec.scala) |
-| **Phantom Types**                     | - Provides **compile-time guarantee of correctness** without runtime overhead<br><br> - Encodes domain rules directly in the type signature | Corrupting data by passing wrong IDs, such as `UserId` vs. `DocumentId`<br><br> - Fragile refactoring | [EntityId](/shared-components/src/main/scala/org/fiume/sketch/shared/common/EntityId.scala) |
-
-> ⚡ See [From Ivory Tower to Production Code](docs/best-practices/Applied-Theory.md) for a broader collection of theory-to-practice insights.
-
+⚡ See [From Ivory Tower to Production Code](docs/best-practices/Applied-Theory.md) for a broader collection of theory-to-practice insights.
 
 
 

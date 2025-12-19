@@ -24,7 +24,7 @@ case class Document(metadata: Metadata)
 type DocumentWithId = Document & WithUuid[DocumentId] // L24
 
 trait WithStream[F[_]]:
-  val stream: fs2.Stream[F, Byte]
+  val bytes: Array[Byte]
 
 type DocumentWithStream[F[_]] = Document & WithStream[F]
 
@@ -35,9 +35,10 @@ object Document:
     new Document(metadata) with WithUuid[DocumentId]:
       override val uuid: DocumentId = uuid0
 
-  def make[F[_]](stream0: fs2.Stream[F, Byte], metadata: Metadata): Document & WithStream[F] =
+  // TODO Do we want to keep this? F is unnecessary here...
+  def make[F[_]](bytes0: Array[Byte], metadata: Metadata): Document & WithStream[F] =
     new Document(metadata) with WithStream[F]:
-      override val stream: fs2.Stream[F, Byte] = stream0
+      override val bytes: Array[Byte] = bytes0
 
   case class Metadata(name: Name, description: Description, ownerId: UserId)
 

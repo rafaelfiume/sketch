@@ -11,6 +11,7 @@ import org.fiume.sketch.shared.auth.testkit.{AuthMiddlewareContext, UserGens}
 import org.fiume.sketch.shared.auth.testkit.UserGens.given
 import org.fiume.sketch.shared.authorisation.{AccessControl, ContextualRole}
 import org.fiume.sketch.shared.authorisation.testkit.AccessControlContext
+import org.fiume.sketch.shared.common.app.TransactionManager
 import org.fiume.sketch.shared.common.http.middlewares.{SemanticInputError, SemanticValidationMiddleware}
 import org.fiume.sketch.shared.common.troubleshooting.ErrorInfo
 import org.fiume.sketch.shared.common.troubleshooting.ErrorInfo.{ErrorCode, ErrorMessage}
@@ -21,7 +22,7 @@ import org.fiume.sketch.shared.domain.documents.algebras.DocumentsStore
 import org.fiume.sketch.shared.domain.testkit.DocumentsGens.*
 import org.fiume.sketch.shared.domain.testkit.DocumentsGens.given
 import org.fiume.sketch.shared.domain.testkit.DocumentsStoreContext
-import org.fiume.sketch.shared.testkit.{ContractContext, Http4sRoutesContext}
+import org.fiume.sketch.shared.testkit.{ContractContext, Http4sRoutesContext, TransactionManagerContext}
 import org.fiume.sketch.shared.testkit.syntax.EitherSyntax.*
 import org.fiume.sketch.shared.testkit.syntax.OptionSyntax.*
 import org.http4s.{MediaType, *}
@@ -41,6 +42,7 @@ class DocumentsRoutesSpec
     with AuthMiddlewareContext
     with AccessControlContext
     with DocumentsStoreContext
+    with TransactionManagerContext
     with ContractContext
     with DocumentsRoutesSpecContext
     with ShrinkLowPriority:
@@ -54,16 +56,17 @@ class DocumentsRoutesSpec
       val multipart = Multipart[IO](
         parts = Vector(
           Part.formData("metadata", metadata.asRequestPayload.asJson.spaces2SortKeys),
-          Part.fileData("bytes", montainBikeInLiguriaImageFile, `Content-Type`(MediaType.image.jpeg))
+          Part.fileData("bytes", mountainBikeInLiguriaImageFile, `Content-Type`(MediaType.image.jpeg))
         ),
         boundary = Boundary("boundary")
       )
       val request = POST(uri"/documents").withEntity(multipart).withHeaders(multipart.headers)
       for
-        accessControl <- makeAccessControl()
-        store <- makeDocumentsStore()
+        (accessControl, acTxRef) <- makeAccessControl()
+        (store, docTxRef) <- makeDocumentsStore()
+        tx = makeTransactionManager(List(acTxRef, docTxRef))
         authMiddleware = makeAuthMiddleware(authenticated = user)
-        documentsRoutes <- makeDocumentsRoutes(authMiddleware, accessControl, store)
+        documentsRoutes <- makeDocumentsRoutes(authMiddleware, accessControl, store, tx)
 
         result <- send(request)
           .to(documentsRoutes.router())
@@ -83,11 +86,12 @@ class DocumentsRoutesSpec
     forAllF { (document: DocumentWithIdAndStream[IO], user: User) =>
       val request = GET(Uri.unsafeFromString(s"/documents/${document.uuid.value}/metadata"))
       for
-        accessControl <- makeAccessControl()
+        (accessControl, acTxRef) <- makeAccessControl()
         _ <- accessControl.grantAccess(user.uuid, document.uuid, ContextualRole.Owner)
-        store <- makeDocumentsStore(state = document)
+        (store, docTxRef) <- makeDocumentsStore(state = document)
+        tx = makeTransactionManager(List(acTxRef, docTxRef))
         authMiddleware = makeAuthMiddleware(authenticated = user)
-        documentsRoutes <- makeDocumentsRoutes(authMiddleware, accessControl, store)
+        documentsRoutes <- makeDocumentsRoutes(authMiddleware, accessControl, store, tx)
 
         result <- send(request)
           .to(documentsRoutes.router())
@@ -100,18 +104,19 @@ class DocumentsRoutesSpec
     forAllF { (document: DocumentWithIdAndStream[IO], user: User) =>
       val request = GET(Uri.unsafeFromString(s"/documents/${document.uuid.value}"))
       for
-        accessControl <- makeAccessControl()
+        (accessControl, acTxRef) <- makeAccessControl()
         _ <- accessControl.grantAccess(user.uuid, document.uuid, ContextualRole.Owner)
-        store <- makeDocumentsStore(state = document)
+        (store, docTxRef) <- makeDocumentsStore(state = document)
+        tx = makeTransactionManager(List(acTxRef, docTxRef))
         authMiddleware = makeAuthMiddleware(authenticated = user)
-        documentsRoutes <- makeDocumentsRoutes(authMiddleware, accessControl, store)
+        documentsRoutes <- makeDocumentsRoutes(authMiddleware, accessControl, store, tx)
 
         result <- send(request)
           .to(documentsRoutes.router())
 //
           .expectByteStreamResponseWith(Status.Ok)
-        obtainedStream <- result.compile.toList
-        expectedStream <- document.stream.compile.toList
+        obtainedStream <- result.compile.to(List)
+        expectedStream = document.bytes.toList
       yield assertEquals(obtainedStream, expectedStream)
     }
 
@@ -119,11 +124,12 @@ class DocumentsRoutesSpec
     forAllF { (fstDoc: DocumentWithIdAndStream[IO], sndDoc: DocumentWithIdAndStream[IO], user: User) =>
       val request = GET(Uri.unsafeFromString("/documents"))
       for
-        accessControl <- makeAccessControl()
+        (accessControl, acTxRef) <- makeAccessControl()
         _ <- accessControl.grantAccess(user.uuid, sndDoc.uuid, ContextualRole.Owner)
-        store <- makeDocumentsStore(state = fstDoc, sndDoc)
+        (store, docTxRef) <- makeDocumentsStore(state = fstDoc, sndDoc)
+        tx = makeTransactionManager(List(acTxRef, docTxRef))
         authMiddleware = makeAuthMiddleware(authenticated = user)
-        documentsRoutes <- makeDocumentsRoutes(authMiddleware, accessControl, store)
+        documentsRoutes <- makeDocumentsRoutes(authMiddleware, accessControl, store, tx)
 
         result <- send(request)
           .to(documentsRoutes.router())
@@ -136,11 +142,12 @@ class DocumentsRoutesSpec
     forAllF { (document: DocumentWithIdAndStream[IO], user: User) =>
       val request = DELETE(Uri.unsafeFromString(s"/documents/${document.uuid.value}"))
       for
-        accessControl <- makeAccessControl()
+        (accessControl, acTxRef) <- makeAccessControl()
         _ <- accessControl.grantAccess(user.uuid, document.uuid, ContextualRole.Owner)
-        store <- makeDocumentsStore(state = document)
+        (store, docTxRef) <- makeDocumentsStore(state = document)
+        tx = makeTransactionManager(List(acTxRef, docTxRef))
         authMiddleware = makeAuthMiddleware(authenticated = user)
-        documentsRoutes <- makeDocumentsRoutes(authMiddleware, accessControl, store)
+        documentsRoutes <- makeDocumentsRoutes(authMiddleware, accessControl, store, tx)
 
         _ <- send(request)
           .to(documentsRoutes.router())
@@ -168,11 +175,12 @@ class DocumentsRoutesSpec
     }
     forAllF { (documentRequest: DocumentRequest, authenticated: User) =>
       for
-        accessControl <- makeAccessControl()
+        (accessControl, acTxRef) <- makeAccessControl()
         // the authenticated user is not the document owner nor a Superuser
-        store <- makeDocumentsStore(state = documentRequest.documentWithIdAndStream)
+        (store, docTxRef) <- makeDocumentsStore(state = documentRequest.documentWithIdAndStream)
+        tx = makeTransactionManager(List(acTxRef, docTxRef))
         authMiddleware = makeAuthMiddleware(authenticated)
-        documentsRoutes <- makeDocumentsRoutes(authMiddleware, accessControl, store)
+        documentsRoutes <- makeDocumentsRoutes(authMiddleware, accessControl, store, tx)
 
         _ <- send(documentRequest.httpRequest)
           .to(documentsRoutes.router())
@@ -188,10 +196,11 @@ class DocumentsRoutesSpec
   test("semantically invalid upload request results in 422 Unprocessable Entity"):
     forAllF(semanticallyInvalidDocumentRequests) { (multipart: Multipart[IO]) =>
       for
-        accessControl <- makeAccessControl()
-        store <- makeDocumentsStore()
+        (accessControl, acTxRef) <- makeAccessControl()
+        (store, docTxRef) <- makeDocumentsStore()
+        tx = makeTransactionManager(List(acTxRef, docTxRef))
         authMiddleware = makeAuthMiddleware()
-        documentsRoutes <- makeDocumentsRoutes(authMiddleware, accessControl, store)
+        documentsRoutes <- makeDocumentsRoutes(authMiddleware, accessControl, store, tx)
 
         request = POST(uri"/documents").withEntity(multipart).withHeaders(multipart.headers)
         result <- send(request)
@@ -212,10 +221,11 @@ class DocumentsRoutesSpec
   test("malformed upload request results in 422 Unprocessable Entity"):
     forAllF(malformedDocumentRequests) { (multipart: Multipart[IO]) =>
       for
-        accessControl <- makeAccessControl()
-        store <- makeDocumentsStore()
+        (accessControl, acTxRef) <- makeAccessControl()
+        (store, docTxRef) <- makeDocumentsStore()
+        tx = makeTransactionManager(List(acTxRef, docTxRef))
         authMiddleware = makeAuthMiddleware()
-        documentsRoutes <- makeDocumentsRoutes(authMiddleware, accessControl, store)
+        documentsRoutes <- makeDocumentsRoutes(authMiddleware, accessControl, store, tx)
 
         request = POST(uri"/documents").withEntity(multipart).withHeaders(multipart.headers)
         result <- send(request)
@@ -255,13 +265,13 @@ class DocumentsRoutesSpec
 
 trait DocumentsRoutesSpecContext:
 
-  def montainBikeInLiguriaImageFile = getClass.getClassLoader.getResource("mountain-bike-liguria-ponent.jpg")
+  def mountainBikeInLiguriaImageFile = getClass.getClassLoader.getResource("mountain-bike-liguria-ponent.jpg")
 
   def malformedDocumentRequests: Gen[Multipart[IO]] = Gen.delay {
     Multipart[IO](
       parts = Vector(
         Part.formData("metadata", """ { \"bananas\" : \"apples\" } """),
-        Part.fileData("bytes", montainBikeInLiguriaImageFile, `Content-Type`(MediaType.image.jpeg))
+        Part.fileData("bytes", mountainBikeInLiguriaImageFile, `Content-Type`(MediaType.image.jpeg))
       ),
       boundary = Boundary("boundary")
     )
@@ -287,7 +297,7 @@ trait DocumentsRoutesSpecContext:
     Multipart[IO](
       // no metadata mamma!
       parts = Vector(
-        Part.fileData("bytes", montainBikeInLiguriaImageFile, `Content-Type`(MediaType.image.jpeg))
+        Part.fileData("bytes", mountainBikeInLiguriaImageFile, `Content-Type`(MediaType.image.jpeg))
       ),
       boundary = Boundary("boundary")
     )
@@ -300,18 +310,19 @@ trait DocumentsRoutesSpecContext:
     yield Multipart[IO](
       parts = Vector(
         Part.formData("metadata", metadata.asJson.spaces2SortKeys),
-        Part.fileData("bytes", montainBikeInLiguriaImageFile, `Content-Type`(MediaType.image.jpeg))
+        Part.fileData("bytes", mountainBikeInLiguriaImageFile, `Content-Type`(MediaType.image.jpeg))
       ),
       boundary = Boundary("boundary")
     )) :| "invalidTooShortDocumentName"
 
   def makeDocumentsRoutes(
     authMiddleware: AuthMiddleware[IO, User],
-    accessControl: AccessControl[IO, IO],
-    withStore: DocumentsStore[IO, IO]
+    accessControl: AccessControl[IO],
+    store: DocumentsStore[IO],
+    tx: TransactionManager[IO, IO]
   ): IO[DocumentsRoutes[IO, IO]] =
     val documentBytesSizeLimit = 5 * 1024 * 1024
-    IO.delay { new DocumentsRoutes[IO, IO](authMiddleware, documentBytesSizeLimit, accessControl, withStore) }
+    IO.delay { new DocumentsRoutes[IO, IO](authMiddleware, documentBytesSizeLimit, accessControl, store, tx) }
 
   extension (m: Document.Metadata)
     def asRequestPayload: MetadataRequestPayload =

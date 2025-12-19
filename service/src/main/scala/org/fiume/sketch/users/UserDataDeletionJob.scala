@@ -5,7 +5,7 @@ import cats.implicits.*
 import org.fiume.sketch.shared.auth.UserId
 import org.fiume.sketch.shared.auth.accounts.{AccountDeletedNotification, AccountDeletedNotificationConsumer}
 import org.fiume.sketch.shared.common.EntityId
-import org.fiume.sketch.shared.common.app.syntax.StoreSyntax.commitStream
+import org.fiume.sketch.shared.common.app.TransactionManager
 import org.fiume.sketch.shared.common.events.EventId
 import org.fiume.sketch.shared.common.jobs.Job
 import org.fiume.sketch.shared.domain.documents.algebras.DocumentsStore
@@ -23,20 +23,16 @@ object UserDataDeletionJob:
 
   def make[F[_]: Sync, Txn[_]](
     accountDeletedNotificationConsumer: AccountDeletedNotificationConsumer[Txn],
-    store: DocumentsStore[F, Txn]
+    store: DocumentsStore[Txn],
+    tx: TransactionManager[F, Txn]
   ) =
-    new UserDataDeletionJob[F, Txn](
-      accountDeletedNotificationConsumer,
-      store
-    )
+    new UserDataDeletionJob[F, Txn](accountDeletedNotificationConsumer, store, tx)
 
 private class UserDataDeletionJob[F[_]: Sync, Txn[_]] private (
   accountDeletedNotificationConsumer: AccountDeletedNotificationConsumer[Txn],
-  store: DocumentsStore[F, Txn]
+  store: DocumentsStore[Txn],
+  tx: TransactionManager[F, Txn]
 ) extends Job[F, Option[JobReport]]:
-
-  // enable Store's syntax
-  given DocumentsStore[F, Txn] = store
 
   /*
    * There appears to be a way to instantiate a Logger without requiring `Sync`,
@@ -55,8 +51,7 @@ private class UserDataDeletionJob[F[_]: Sync, Txn[_]] private (
         notif0 = notif.some
         process(notif)
       }
-    job
-      .commitStream()
+    tx.commitStream { job }
       .compile
       .toList
       .map { affectedEntityIds =>

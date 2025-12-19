@@ -18,7 +18,7 @@ import org.fiume.sketch.shared.auth.algebras.UsersStore
 import org.fiume.sketch.shared.authorisation.{AccessControl, AccessDenied, ContextualRole, GlobalRole}
 import org.fiume.sketch.shared.authorisation.ContextualRole.Owner
 import org.fiume.sketch.shared.authorisation.syntax.AccessDeniedSyntax.*
-import org.fiume.sketch.shared.common.app.syntax.StoreSyntax.*
+import org.fiume.sketch.shared.common.app.TransactionManager
 import org.fiume.sketch.shared.common.events.CancellableEventProducer
 
 import scala.concurrent.duration.Duration
@@ -40,14 +40,13 @@ trait UsersManager[F[_]]:
 
 object UsersManager:
   def make[F[_]: Sync, Txn[_]: Monad](
-    store: UsersStore[F, Txn],
+    store: UsersStore[Txn],
     producer: CancellableEventProducer[Txn, AccountDeletionEvent.ToSchedule, UserId],
-    accessControl: AccessControl[F, Txn],
+    accessControl: AccessControl[Txn],
+    tx: TransactionManager[F, Txn],
     clock: Clock[F],
     delayUntilPermanentDeletion: Duration
   ): UsersManager[F] =
-    // enable Store's syntax
-    given UsersStore[F, Txn] = store
 
     new UsersManager[F]:
       override def createAccount(username: Username, password: PlainPassword, globalRole: Option[GlobalRole]): F[UserId] =
@@ -57,46 +56,48 @@ object UsersManager:
         yield UserCredentials(username, hashedPassword, salt)
 
         val setUpAccount = for
-          creds <- store.lift { credentials }
+          creds <- tx.lift { credentials }
           userId <- store.createAccount(creds)
           _ <- accessControl.grantAccess(userId, userId, ContextualRole.Owner)
           _ <- globalRole.fold(ifEmpty = ().pure[Txn])(accessControl.grantGlobalAccess(userId, _))
         yield userId
 
-        store.commit { setUpAccount }
+        tx.commit { setUpAccount }
 
       override def attemptToMarkAccountForDeletion(
         markingForDeletion: UserId,
         toBeMarkedForDeletion: UserId
       ): F[Either[AccessDenied.type | SoftDeleteAccountError, AccountDeletionEvent.Scheduled]] =
-        canManageAccount(markingForDeletion, toBeMarkedForDeletion)
-          .ifM(
-            ifTrue = accessControl
-              .ensureRevoked(toBeMarkedForDeletion, toBeMarkedForDeletion) {
-                doMarkForDeletion(_, delayUntilPermanentDeletion).map(_.widenErrorType)
-              },
-            ifFalse = AccessDenied.asLeft.pure[Txn]
-          )
-          .commit()
+        tx.commit {
+          canManageAccount(markingForDeletion, toBeMarkedForDeletion)
+            .ifM(
+              ifTrue = accessControl
+                .ensureRevoked(toBeMarkedForDeletion, toBeMarkedForDeletion) {
+                  doMarkForDeletion(_, delayUntilPermanentDeletion).map(_.widenErrorType)
+                },
+              ifFalse = AccessDenied.asLeft.pure[Txn]
+            )
+        }
 
       override def attemptToRestoreAccount(
         restoringAccount: UserId,
         accountToBeRestored: UserId
       ): F[Either[AccessDenied.type | ActivateAccountError, Account]] =
-        canManageAccount(restoringAccount, accountToBeRestored)
-          .ifM(
-            ifTrue = accessControl.ensureAccess(accountToBeRestored, Owner) {
-              doRestoreAccount(accountToBeRestored).map(_.widenErrorType)
-            },
-            ifFalse = AccessDenied.asLeft.pure[Txn]
-          )
-          .commit()
+        tx.commit {
+          canManageAccount(restoringAccount, accountToBeRestored)
+            .ifM(
+              ifTrue = accessControl.ensureAccess(accountToBeRestored, Owner) {
+                doRestoreAccount(accountToBeRestored).map(_.widenErrorType)
+              },
+              ifFalse = AccessDenied.asLeft.pure[Txn]
+            )
+        }
 
       private def doMarkForDeletion(
         userId: UserId,
         timeUntilPermanentDeletion: Duration
       ): Txn[Either[SoftDeleteAccountError, AccountDeletionEvent.Scheduled]] =
-        store.lift { clock.realTimeInstant }.flatMap { now =>
+        tx.lift { clock.realTimeInstant }.flatMap { now =>
           val permanentDeletionAt = now.plusSeconds(timeUntilPermanentDeletion.toSeconds)
           store
             .fetchAccountWith(userId) {
@@ -112,10 +113,10 @@ object UsersManager:
         }
 
       def restoreAccount(userId: UserId): F[Either[ActivateAccountError, Account]] =
-        doRestoreAccount(userId).commit()
+        tx.commit { doRestoreAccount(userId) }
 
       private def doRestoreAccount(userId: UserId): Txn[Either[ActivateAccountError, Account]] =
-        store.lift { clock.realTimeInstant }.flatMap { now =>
+        tx.lift { clock.realTimeInstant }.flatMap { now =>
           store
             .fetchAccountWith(userId) {
               _.fold(ActivateAccountError.AccountNotFound.asLeft)(AccountState.transitionToActive(_, now))

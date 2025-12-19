@@ -12,6 +12,7 @@ import org.fiume.sketch.shared.domain.testkit.syntax.DocumentSyntax.*
 import org.fiume.sketch.shared.testkit.FileContentContext
 import org.fiume.sketch.shared.testkit.syntax.OptionSyntax.*
 import org.fiume.sketch.storage.documents.postgres.DatabaseCodecs.given
+import org.fiume.sketch.storage.postgres.PostgresTransactionManager
 import org.fiume.sketch.storage.testkit.DockerPostgresSuite
 import org.scalacheck.ShrinkLowPriority
 import org.scalacheck.effect.PropF.forAllF
@@ -29,29 +30,35 @@ class PostgresDocumentsStoreSpec
   override def scalaCheckTestParameters = super.scalaCheckTestParameters.withMinSuccessfulTests(5)
 
   test("fetches metadata of stored document"):
-    forAllF { (document: DocumentWithIdAndStream[IO]) =>
+    forAllF { (doc: DocumentWithIdAndStream[IO]) =>
       will(cleanStorage) {
-        PostgresDocumentsStore.make[IO](transactor()).use { store =>
+        (
+          PostgresDocumentsStore.make[IO](),
+          PostgresTransactionManager.make[IO](transactor())
+        ).tupled.use { case (store, tx) =>
           for
-            uuid <- store.store(document).ccommit
+            uuid <- tx.commit { store.store(doc.bytes, doc) }
 
-            result <- store.fetchDocument(uuid).ccommit
+            result <- tx.commit { store.fetchDocument(uuid) }
 //
-          yield assertEquals(result, document.some)
+          yield assertEquals(result, doc.some)
         }
       }
     }
 
   test("fetches content bytes of stored document"):
-    forAllF { (document: DocumentWithStream[IO]) =>
+    forAllF { (doc: DocumentWithStream[IO]) =>
       will(cleanStorage) {
-        PostgresDocumentsStore.make[IO](transactor()).use { store =>
+        (
+          PostgresDocumentsStore.make[IO](),
+          PostgresTransactionManager.make[IO](transactor())
+        ).tupled.use { case (store, tx) =>
           for
-            uuid <- store.store(document).ccommit
+            uuid <- tx.commit { store.store(doc.bytes, doc) }
 
-            result <- store.documentStream(uuid).ccommitStream.compile.toList
+            result <- tx.commitStream { store.documentStream(uuid) }.compile.toList
 
-            bytes <- document.stream.compile.toList
+            bytes = doc.bytes.toList
           yield assertEquals(result, bytes)
         }
       }
@@ -60,12 +67,20 @@ class PostgresDocumentsStoreSpec
   test("fetches multiple documents"):
     forAllF { (fstDoc: DocumentWithStream[IO], sndDoc: DocumentWithStream[IO]) =>
       will(cleanStorage) {
-        PostgresDocumentsStore.make[IO](transactor()).use { store =>
+        (
+          PostgresDocumentsStore.make[IO](),
+          PostgresTransactionManager.make[IO](transactor())
+        ).tupled.use { case (store, tx) =>
           for
-            fstUuid <- store.store(fstDoc).ccommit
-            sndUuid <- store.store(sndDoc).ccommit
+            fstUuid <- tx.commit { store.store(fstDoc.bytes, fstDoc) }
+            sndUuid <- tx.commit { store.store(sndDoc.bytes, sndDoc) }
 
-            result <- fs2.Stream(fstUuid, sndUuid).through { store.fetchDocuments }.ccommitStream.compile.toList
+            result <- tx
+              .commitStream {
+                fs2.Stream(fstUuid, sndUuid).through { store.fetchDocuments }
+              }
+              .compile
+              .toList
 //
           yield assertEquals(result, List(fstDoc.withUuid(fstUuid), sndDoc.withUuid(sndUuid)))
         }
@@ -75,12 +90,22 @@ class PostgresDocumentsStoreSpec
   test("fetches documents by ownerId"):
     forAllF { (fstDoc: DocumentWithStream[IO], sndDoc: DocumentWithStream[IO]) =>
       will(cleanStorage) {
-        PostgresDocumentsStore.make[IO](transactor()).use { store =>
+        (
+          PostgresDocumentsStore.make[IO](),
+          PostgresTransactionManager.make[IO](transactor())
+        ).tupled.use { case (store, tx) =>
           for
-            _ <- store.store(fstDoc).ccommit
-            _ <- store.store(sndDoc).ccommit
+            _ <- tx.commit {
+              store.store(fstDoc.bytes, fstDoc) *>
+                store.store(sndDoc.bytes, sndDoc)
+            }
 
-            result <- store.fetchDocumentsByOwnerId(sndDoc.metadata.ownerId).ccommitStream.compile.toList
+            result <- tx
+              .commitStream {
+                store.fetchDocumentsByOwnerId(sndDoc.metadata.ownerId)
+              }
+              .compile
+              .toList
 //
           yield assertEquals(result.map(_.metadata.ownerId), List(sndDoc.metadata.ownerId))
         }
@@ -90,15 +115,18 @@ class PostgresDocumentsStoreSpec
   test("deletes stored document"):
     forAllF { (fstDoc: DocumentWithStream[IO], sndDoc: DocumentWithStream[IO]) =>
       will(cleanStorage) {
-        PostgresDocumentsStore.make[IO](transactor()).use { store =>
+        (
+          PostgresDocumentsStore.make[IO](),
+          PostgresTransactionManager.make[IO](transactor())
+        ).tupled.use { case (store, tx) =>
           for
-            fstUuid <- store.store(fstDoc).ccommit
-            sndUuid <- store.store(sndDoc).ccommit
+            fstUuid <- tx.commit { store.store(fstDoc.bytes, fstDoc) }
+            sndUuid <- tx.commit { store.store(sndDoc.bytes, sndDoc) }
 
-            result <- store.delete(fstUuid).ccommit
+            result <- tx.commit { store.delete(fstUuid) }
 
-            fstDocResult <- store.fetchDocument(fstUuid).ccommit
-            sndDocResult <- store.fetchDocument(sndUuid).ccommit
+            fstDocResult <- tx.commit { store.fetchDocument(fstUuid) }
+            sndDocResult <- tx.commit { store.fetchDocument(sndUuid) }
           yield
             assertEquals(result, fstUuid.some)
             assertEquals(fstDocResult, none)
@@ -108,14 +136,17 @@ class PostgresDocumentsStoreSpec
     }
 
   test("timestamps createdAt and updatedAt upon storage"):
-    forAllF { (document: DocumentWithStream[IO]) =>
+    forAllF { (doc: DocumentWithStream[IO]) =>
       will(cleanStorage) {
-        PostgresDocumentsStore.make[IO](transactor()).use { store =>
+        (
+          PostgresDocumentsStore.make[IO](),
+          PostgresTransactionManager.make[IO](transactor())
+        ).tupled.use { case (store, tx) =>
           for
-            uuid <- store.store(document).ccommit
+            uuid <- tx.commit { store.store(doc.bytes, doc) }
 
-            createdAt <- fetchCreatedAt(uuid).ccommit
-            updatedAt <- fetchUpdatedAt(uuid).ccommit
+            createdAt <- tx.commit { fetchCreatedAt(uuid) }
+            updatedAt <- tx.commit { fetchUpdatedAt(uuid) }
 //
           yield assertEquals(createdAt, updatedAt)
         }
@@ -132,16 +163,18 @@ class PostgresDocumentsStoreSpec
     val filename = "mountain-bike-liguria-ponent.jpg"
     IO { bytesFrom[IO](filename) }.flatMap { content =>
       will(cleanStorage) {
-        PostgresDocumentsStore.make[IO](transactor()).use { store =>
-          val docWithStream = Document.make(
-            content,
+        (
+          PostgresDocumentsStore.make[IO](),
+          PostgresTransactionManager.make[IO](transactor())
+        ).tupled.use { case (store, tx) =>
+          val doc = Document(
             Document.Metadata(Name.makeUnsafeFromString(filename), Description(""), UserId(UUID.randomUUID()))
           )
           for
-            uuid <- store.store(docWithStream).ccommit
-            _ <- store
-              .documentStream(uuid)
-              .ccommitStream
+            bytes <- content.compile.to(Array)
+            uuid <- tx.commit { store.store(bytes, doc) }
+            _ <- tx
+              .commitStream { store.documentStream(uuid) }
               .through(fs2.io.file.Files[IO].writeAll(fs2.io.file.Path(filename)))
               .compile
               .drain

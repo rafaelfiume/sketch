@@ -22,6 +22,7 @@ import org.fiume.sketch.shared.testkit.syntax.EitherSyntax.*
 import org.fiume.sketch.shared.testkit.syntax.OptionSyntax.someOrFail
 import org.fiume.sketch.storage.auth.postgres.PostgresUsersStore
 import org.fiume.sketch.storage.documents.postgres.PostgresDocumentsStore
+import org.fiume.sketch.storage.postgres.PostgresTransactionManager
 import org.fiume.sketch.storage.testkit.DockerPostgresSuite
 import org.scalacheck.ShrinkLowPriority
 import org.scalacheck.effect.PropF.forAllF
@@ -43,12 +44,15 @@ class PostgresAccessControlSpec
   test("grants Admin users permission to access all entities"):
     forAllF(userIds, entitiesIds) { (userId, entityId) =>
       will(cleanStorage) {
-        PostgresAccessControl.make[IO](transactor()).use { accessControl =>
+        (
+          PostgresAccessControl.make[IO](),
+          PostgresTransactionManager.make[IO](transactor())
+        ).tupled.use { case (accessControl, tx) =>
           for
-            _ <- accessControl.grantGlobalAccess(userId, Admin).ccommit
+            _ <- tx.commit { accessControl.grantGlobalAccess(userId, Admin) }
 
             // note that it is up to the developer to make sure that a pair of existing userId and entityId are passed
-            grantedAccess <- accessControl.canAccess(userId, entityId).ccommit
+            grantedAccess <- tx.commit { accessControl.canAccess(userId, entityId) }
 //
           yield assert(grantedAccess)
         }
@@ -58,11 +62,14 @@ class PostgresAccessControlSpec
   test("grants Superuser's permission to access all entities except UserEntity"):
     forAllF(userIds, entitiesIds) { (userId, entityId) =>
       will(cleanStorage) {
-        PostgresAccessControl.make[IO](transactor()).use { accessControl =>
+        (
+          PostgresAccessControl.make[IO](),
+          PostgresTransactionManager.make[IO](transactor())
+        ).tupled.use { case (accessControl, tx) =>
           for
-            _ <- accessControl.grantGlobalAccess(userId, Superuser).ccommit
+            _ <- tx.commit { accessControl.grantGlobalAccess(userId, Superuser) }
 
-            grantedAccess <- accessControl.canAccess(userId, entityId).ccommit
+            grantedAccess <- tx.commit { accessControl.canAccess(userId, entityId) }
 //
           yield if entityId.entityType =!= "UserEntity" then assert(grantedAccess) else assert(!grantedAccess)
         }
@@ -80,27 +87,38 @@ class PostgresAccessControlSpec
       ) =>
         will(cleanStorage) {
           (
-            PostgresAccessControl.make[IO](transactor()),
-            PostgresDocumentsStore.make[IO](transactor()),
-            PostgresUsersStore.make[IO](transactor())
-          ).tupled.use { case (accessControl, docStore, usersStore) =>
+            PostgresAccessControl.make[IO](),
+            PostgresDocumentsStore.make[IO](),
+            PostgresUsersStore.make[IO](),
+            PostgresTransactionManager.make[IO](transactor())
+          ).tupled.use { case (accessControl, docStore, usersStore, tx) =>
             for
-              fstUserId <- usersStore
-                .createAccount(fstUser)
-                .flatTap { userId => accessControl.grantAccess(userId, userId, Owner) }
-                .ccommit
-              sndUserId <- usersStore
-                .createAccount(sndUser)
-                .flatTap { userId => accessControl.grantAccess(userId, userId, Owner) }
-                .ccommit
-              fstDocId <- accessControl.ensureAccess_(fstUserId, Owner) { docStore.store(fstDocument) }.ccommit
-              sndDocId <- accessControl.ensureAccess_(sndUserId, Owner) { docStore.store(sndDocument) }.ccommit
-              trdDocId <- accessControl.ensureAccess_(sndUserId, Owner) { docStore.store(trdDocument) }.ccommit
-              _ <- accessControl.grantGlobalAccess(fstUserId, globalRole).ccommit
+              fstUserId <- tx.commit {
+                usersStore
+                  .createAccount(fstUser)
+                  .flatTap { userId => accessControl.grantAccess(userId, userId, Owner) }
+              }
+              sndUserId <- tx.commit {
+                usersStore
+                  .createAccount(sndUser)
+                  .flatTap { userId => accessControl.grantAccess(userId, userId, Owner) }
+              }
+              fstDocId <- tx.commit {
+                accessControl.ensureAccess_(fstUserId, Owner) { docStore.store(fstDocument.bytes, fstDocument) }
+              }
+              sndDocId <- tx.commit {
+                accessControl.ensureAccess_(sndUserId, Owner) { docStore.store(sndDocument.bytes, sndDocument) }
+              }
+              trdDocId <- tx.commit {
+                accessControl.ensureAccess_(sndUserId, Owner) { docStore.store(trdDocument.bytes, trdDocument) }
+              }
+              _ <- tx.commit { accessControl.grantGlobalAccess(fstUserId, globalRole) }
 
-              result <- accessControl
-                .fetchAllAuthorisedEntityIds(fstUserId, "DocumentEntity")
-                .ccommitStream
+              result <- tx
+                .commitStream {
+                  accessControl
+                    .fetchAllAuthorisedEntityIds(fstUserId, "DocumentEntity")
+                }
                 .compile
                 .toList
 //
@@ -114,23 +132,28 @@ class PostgresAccessControlSpec
     forAllF { (fstUser: UserCredentials, globalRole: GlobalRole, sndUser: UserCredentials) =>
       will(cleanStorage) {
         (
-          PostgresAccessControl.make[IO](transactor()),
-          PostgresUsersStore.make[IO](transactor())
-        ).tupled.use { case (accessControl, usersStore) =>
+          PostgresAccessControl.make[IO](),
+          PostgresUsersStore.make[IO](),
+          PostgresTransactionManager.make[IO](transactor())
+        ).tupled.use { case (accessControl, usersStore, tx) =>
           for
-            fstUserId <- usersStore
-              .createAccount(fstUser)
-              .flatTap { userId => accessControl.grantAccess(userId, userId, Owner) }
-              .ccommit
-            sndUserId <- usersStore
-              .createAccount(sndUser)
-              .flatTap { userId => accessControl.grantAccess(userId, userId, Owner) }
-              .ccommit
-            _ <- accessControl.grantGlobalAccess(fstUserId, globalRole).ccommit
+            fstUserId <- tx.commit {
+              usersStore
+                .createAccount(fstUser)
+                .flatTap { userId => accessControl.grantAccess(userId, userId, Owner) }
+            }
+            sndUserId <- tx.commit {
+              usersStore
+                .createAccount(sndUser)
+                .flatTap { userId => accessControl.grantAccess(userId, userId, Owner) }
+            }
+            _ <- tx.commit { accessControl.grantGlobalAccess(fstUserId, globalRole) }
 
-            result: List[UserId] <- accessControl
-              .fetchAllAuthorisedEntityIds(fstUserId, "UserEntity")
-              .ccommitStream
+            result: List[UserId] <- tx
+              .commitStream {
+                accessControl
+                  .fetchAllAuthorisedEntityIds(fstUserId, "UserEntity")
+              }
               .compile
               .toList
 //
@@ -147,11 +170,14 @@ class PostgresAccessControlSpec
   test("grants a user ownership, and thus access, to an entity"):
     forAllF(userIds, entitiesIds) { (userId, entityId) =>
       will(cleanStorage) {
-        PostgresAccessControl.make[IO](transactor()).use { accessControl =>
+        (
+          PostgresAccessControl.make[IO](),
+          PostgresTransactionManager.make[IO](transactor())
+        ).tupled.use { case (accessControl, tx) =>
           for
-            _ <- accessControl.grantAccess(userId, entityId, Owner).ccommit
+            _ <- tx.commit { accessControl.grantAccess(userId, entityId, Owner) }
 
-            result <- accessControl.canAccess(userId, entityId).ccommit
+            result <- tx.commit { accessControl.canAccess(userId, entityId) }
 //
           yield assert(result)
         }
@@ -159,34 +185,44 @@ class PostgresAccessControlSpec
     }
 
   test("stores an entity and ensures that the user is its owner"):
-    forAllF { (userId: UserId, document: DocumentWithIdAndStream[IO], role: ContextualRole) =>
+    forAllF { (userId: UserId, doc: DocumentWithIdAndStream[IO], role: ContextualRole) =>
       will(cleanStorage) {
         (
-          PostgresAccessControl.make[IO](transactor()),
-          PostgresDocumentsStore.make[IO](transactor())
-        ).tupled.use { case (accessControl, docStore) =>
+          PostgresAccessControl.make[IO](),
+          PostgresDocumentsStore.make[IO](),
+          PostgresTransactionManager.make[IO](transactor())
+        ).tupled.use { case (accessControl, docStore, tx) =>
           for
-            docId <- accessControl.ensureAccess_(userId, role) { docStore.store(document) }.ccommit
+            docId <- tx.commit {
+              accessControl.ensureAccess_(userId, role) {
+                docStore.store(doc.bytes, doc)
+              }
+            }
 
-            result <- accessControl.attempt(userId, docId) { docStore.fetchDocument }.ccommit
+            result <- tx.commit {
+              accessControl.attempt(userId, docId) { docStore.fetchDocument }
+            }
 //
-          yield assertEquals(result.rightOrFail, document.some)
+          yield assertEquals(result.rightOrFail, doc.some)
         }
       }
     }
 
   test("does not perform operation on entity if the user is not authorized to access it"):
-    forAllF { (userId: UserId, document: DocumentWithIdAndStream[IO]) =>
+    forAllF { (userId: UserId, doc: DocumentWithIdAndStream[IO]) =>
       will(cleanStorage) {
         (
-          PostgresAccessControl.make[IO](transactor()),
-          PostgresDocumentsStore.make[IO](transactor())
-        ).tupled.use { case (accessControl, docStore) =>
+          PostgresAccessControl.make[IO](),
+          PostgresDocumentsStore.make[IO](),
+          PostgresTransactionManager.make[IO](transactor())
+        ).tupled.use { case (accessControl, docStore, tx) =>
           for
             // no granting access to the user
-            docId <- docStore.store(document).ccommit
+            docId <- tx.commit {
+              docStore.store(doc.bytes, doc)
+            }
 
-            result <- accessControl.attempt(userId, docId) { docStore.fetchDocument }.ccommit
+            result <- tx.commit { accessControl.attempt(userId, docId) { docStore.fetchDocument } }
 //
           yield assertEquals(result.leftOrFail, AccessDenied)
         }
@@ -204,17 +240,26 @@ class PostgresAccessControlSpec
       ) =>
         will(cleanStorage) {
           (
-            PostgresAccessControl.make[IO](transactor()),
-            PostgresDocumentsStore.make[IO](transactor())
-          ).tupled.use { case (accessControl, documentStore) =>
+            PostgresAccessControl.make[IO](),
+            PostgresDocumentsStore.make[IO](),
+            PostgresTransactionManager.make[IO](transactor())
+          ).tupled.use { case (accessControl, documentStore, tx) =>
             for
-              fstDocumentId <- accessControl.ensureAccess_(fstUserId, role) { documentStore.store(fstDocument) }.ccommit
-              sndDocumentId <- accessControl.ensureAccess_(fstUserId, role) { documentStore.store(sndDocument) }.ccommit
-              _ <- accessControl.ensureAccess_(sndUserId, role) { documentStore.store(trdDocument) }.ccommit
+              fstDocumentId <- tx.commit {
+                accessControl.ensureAccess_(fstUserId, role) { documentStore.store(fstDocument.bytes, fstDocument) }
+              }
+              sndDocumentId <- tx.commit {
+                accessControl.ensureAccess_(fstUserId, role) { documentStore.store(sndDocument.bytes, sndDocument) }
+              }
+              _ <- tx.commit {
+                accessControl.ensureAccess_(sndUserId, role) { documentStore.store(trdDocument.bytes, trdDocument) }
+              }
 
-              result <- accessControl
-                .fetchAllAuthorisedEntityIds(fstUserId, "DocumentEntity")
-                .ccommitStream
+              result <- tx
+                .commitStream {
+                  accessControl
+                    .fetchAllAuthorisedEntityIds(fstUserId, "DocumentEntity")
+                }
                 .compile
                 .toList
 //
@@ -227,13 +272,22 @@ class PostgresAccessControlSpec
   test("revokes a user's permission to access an entity"):
     forAllF(userIds, entitiesIds, contextualRoles) { (userId, entityId, contextualRole) =>
       will(cleanStorage) {
-        PostgresAccessControl.make[IO](transactor()).use { accessControl =>
+        (
+          PostgresAccessControl.make[IO](),
+          PostgresTransactionManager.make[IO](transactor())
+        ).tupled.use { case (accessControl, tx) =>
           for
-            _ <- accessControl.grantAccess(userId, entityId, contextualRole).ccommit
+            _ <- tx.commit {
+              accessControl.grantAccess(userId, entityId, contextualRole)
+            }
 
-            _ <- accessControl.revokeContextualAccess(userId, entityId).ccommit
+            _ <- tx.commit {
+              accessControl.revokeContextualAccess(userId, entityId)
+            }
 
-            grantRemoved <- accessControl.canAccess(userId, entityId).map(!_).ccommit
+            grantRemoved <- tx.commit {
+              accessControl.canAccess(userId, entityId).map(!_)
+            }
           yield assert(grantRemoved)
         }
       }
@@ -247,12 +301,17 @@ class PostgresAccessControlSpec
   test("contextual roles takes precedence over global roles"):
     forAllF(userIds, entitiesIds, globalRoles) { (userId, entityId, globalRole) =>
       will(cleanStorage) {
-        PostgresAccessControl.make[IO](transactor()).use { accessControl =>
+        (
+          PostgresAccessControl.make[IO](),
+          PostgresTransactionManager.make[IO](transactor())
+        ).tupled.use { case (accessControl, tx) =>
           for
-            _ <- accessControl.grantGlobalAccess(userId, globalRole).ccommit
-            _ <- accessControl.grantAccess(userId, entityId, Owner).ccommit
+            _ <- tx.commit {
+              accessControl.grantGlobalAccess(userId, globalRole) *>
+                accessControl.grantAccess(userId, entityId, Owner)
+            }
 
-            result <- accessControl.fetchRole(userId, entityId).ccommit
+            result <- tx.commit { accessControl.fetchRole(userId, entityId) }
 //
           yield assertEquals(result.someOrFail, Role.Contextual(Owner))
         }

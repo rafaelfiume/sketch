@@ -6,9 +6,8 @@ import org.fiume.sketch.shared.auth.Passwords.HashedPassword
 import org.fiume.sketch.shared.auth.User.*
 import org.fiume.sketch.shared.auth.UserId
 import org.fiume.sketch.shared.auth.accounts.Account
-import org.fiume.sketch.shared.common.app.Store
 
-trait UsersStore[F[_], Txn[_]: Monad] extends Store[F, Txn]:
+trait UsersStore[Txn[_]: Monad]:
 
   def createAccount(credentials: UserCredentials): Txn[UserId]
 

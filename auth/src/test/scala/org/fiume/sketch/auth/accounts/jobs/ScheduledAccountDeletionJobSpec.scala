@@ -15,6 +15,7 @@ import org.fiume.sketch.shared.auth.testkit.UsersStoreContext
 import org.fiume.sketch.shared.common.config.InMemoryDynamicConfig
 import org.fiume.sketch.shared.common.events.{EventId, Recipient}
 import org.fiume.sketch.shared.common.testkit.EventGens.given
+import org.fiume.sketch.shared.testkit.TransactionManagerContext
 import org.fiume.sketch.shared.testkit.syntax.OptionSyntax.someOrFail
 import org.scalacheck.ShrinkLowPriority
 import org.scalacheck.effect.PropF.forAllF
@@ -27,6 +28,7 @@ class ScheduledAccountDeletionJobSpec
     with EventConsumerContext[ToSchedule]
     with UsersStoreContext
     with ScheduledAccountDeletionJobSpecContext
+    with TransactionManagerContext
     with ShrinkLowPriority:
 
   override def scalaCheckTestParameters = super.scalaCheckTestParameters.withMinSuccessfulTests(10)
@@ -41,9 +43,10 @@ class ScheduledAccountDeletionJobSpec
         eventConsumer <- makeEventConsumer(nextEvent =
           AccountDeletionEvent.scheduled(triggeringEventId, account.uuid, permanentDeletionAt)
         )
-        store <- makeUsersStoreForAccount(account.copy(state = AccountState.SoftDeleted(Instant.now())))
+        (store, txRef) <- makeUsersStoreForAccount(account.copy(state = AccountState.SoftDeleted(Instant.now())))
+        tx = makeTransactionManager(List(txRef))
         notificationProducer <- makeAccountDeletedNotificationProducer()
-        job = ScheduledAccountDeletionJob.make(eventConsumer, notificationProducer, store, dynamicConfig)
+        job = ScheduledAccountDeletionJob.make(eventConsumer, notificationProducer, store, tx, dynamicConfig)
 
         result <- job.run().map(_.someOrFail)
 
@@ -62,13 +65,14 @@ class ScheduledAccountDeletionJobSpec
     forAllF { (recipients: Set[Recipient]) =>
       for
         eventConsumer <- makeEmptyEventConsumer()
-        store <- makeEmptyUsersStore()
+        (store, txRef) <- makeEmptyUsersStore()
+        tx = makeTransactionManager(List(txRef))
         notificationProducer <- makeAccountDeletedNotificationProducer()
         dynamicConfig <- InMemoryDynamicConfig.makeWithKvPair[IO, IO, RecipientsKey.type, Set[Recipient]](
           key = RecipientsKey,
           value = recipients
         )
-        job = ScheduledAccountDeletionJob.make(eventConsumer, notificationProducer, store, dynamicConfig)
+        job = ScheduledAccountDeletionJob.make(eventConsumer, notificationProducer, store, tx, dynamicConfig)
 
         result <- job.run()
 //

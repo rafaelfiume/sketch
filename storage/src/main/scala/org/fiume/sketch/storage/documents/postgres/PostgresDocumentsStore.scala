@@ -1,34 +1,28 @@
 package org.fiume.sketch.storage.documents.postgres
 
 import cats.data.NonEmptyList
-import cats.effect.{Async, Resource}
+import cats.effect.Resource
 import cats.implicits.*
-import cats.~>
 import doobie.*
 import doobie.free.connection.ConnectionIO
 import doobie.implicits.*
 import org.fiume.sketch.shared.auth.UserId
-import org.fiume.sketch.shared.domain.documents.{DocumentId, DocumentWithId, DocumentWithStream}
+import org.fiume.sketch.shared.domain.documents.{Document, DocumentId, DocumentWithId}
 import org.fiume.sketch.shared.domain.documents.Document.Metadata
 import org.fiume.sketch.shared.domain.documents.algebras.DocumentsStore
 import org.fiume.sketch.storage.auth.postgres.DatabaseCodecs.given
 import org.fiume.sketch.storage.documents.postgres.DatabaseCodecs.given
-import org.fiume.sketch.storage.postgres.AbstractPostgresStore
 
 object PostgresDocumentsStore:
-  def make[F[_]: Async](tx: Transactor[F]): Resource[F, DocumentsStore[F, ConnectionIO]] =
-    WeakAsync.liftK[F, ConnectionIO].map(lift => new PostgresDocumentsStore[F](lift, tx))
+  def make[F[_]](): Resource[F, DocumentsStore[ConnectionIO]] =
+    Resource.pure(new PostgresDocumentsStore[F]())
 
-private class PostgresDocumentsStore[F[_]: Async] private (lift: F ~> ConnectionIO, tx: Transactor[F])
-    extends AbstractPostgresStore[F](lift, tx)
-    with DocumentsStore[F, ConnectionIO]:
+private class PostgresDocumentsStore[F[_]] private () extends DocumentsStore[ConnectionIO]:
 
-  override def store(document: DocumentWithStream[F]): ConnectionIO[DocumentId] =
-    for
-      // Avoid reading all bytes into memory by using a large object?
-      // https://typelevel.org/doobie/docs/15-Extensions-PostgreSQL.html
-      bytes <- lift { Async[F].cede *> document.stream.compile.to(Array) <* Async[F].cede }
-      uuid <- Statements
+  // Avoid reading all bytes into memory by using a large object?
+  // https://typelevel.org/doobie/docs/15-Extensions-PostgreSQL.html
+  override def store(bytes: Array[Byte], document: Document): ConnectionIO[DocumentId] =
+    for uuid <- Statements
         .insertDocument(document.metadata, bytes)
         // Move this to Statements?
         .withUniqueGeneratedKeys[DocumentId]("uuid")

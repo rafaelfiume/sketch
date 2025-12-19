@@ -20,7 +20,7 @@ DAO outbound adapters implement [ports](/docs/architecture/domain/Design.md#54-p
 5. [Example - Store Documents](#5-example---store-documents)
 6. [Component Design](#6-component-design)
     - 6.1 [Resource Lifecycle Management](#61-resource-lifecycle-management)
-    - 6.2 [Enable Transaction Boundaries In The Application Layer](#62-enable-transaction-boundaries-in-the-application-layer)
+    - 6.2 [Business Transaction Boundaries In The Application Layer](#62-business-transaction-boundaries-in-the-application-layer)
     - 6.3 [Streaming APIs](#63-streaming-apis)
 7. [Adapter Integration Tests](#7-adapter-integration-tests)
 8. [Pragmatic Compromises](#8-pragmatic-compromises)
@@ -42,9 +42,8 @@ DAO outbound adapters implement [ports](/docs/architecture/domain/Design.md#54-p
 * **Database concerns stay local**:
     - Database-specific details (schema, SQL, connection pools, constraint violation, connection errors) must not leak outside the DAO adapter
     - The domain and application layers interact with it only through ports.
-* **Composable transactional operations**:
-    - DAO adapters must implement ports with support for transaction contexts (e.g. [Store](/shared-components/src/main/scala/org/fiume/sketch/shared/common/app/Store.scala)), enabling the application layer to combine discrete operations into atomic workflows
-    - Application layer defines the transaction boundaries. Adapters commit transactions without exposing low-level database mechanics.
+* **Explicit, type-safe transaction boundaries**:
+    - Components in the Application layer define the transaction boundaries. The infrastructure layer provides a concrete implementation of [TransactionManager](/shared-components/src/main/scala/org/fiume/sketch/shared/common/app/TransactionManager.scala) to commit transactions.
 
 
 ## 3. Keep The Datastore Layer Free From
@@ -76,7 +75,7 @@ Consider using a data transformation library such as [chimney](https://github.co
 The port (algebra) defines the contract the adapter must implement:
 
 ```scala
-trait DocumentsStore[F[_], Txn[_]] extends Store[F, Txn]:
+trait DocumentsStore[Txn[_]]:
   def fetchDocument(uuid: DocumentId): Txn[Option[DocumentWithId]]
 
   . . . // remaining operations
@@ -126,20 +125,16 @@ Wrapping DAOs in `Resource[F, Algebra[F, ConnectionIO]]` provides:
     - Multiple DAOs can be initialised as a single `Resource`, sharing the same lifetime managed connection pool
     - E.g. `AppComponents.make` function returns `Resource[F, AppComponents[F]]` - see [AppComponents.scala](/service/src/main/scala/org/fiume/sketch/app/AppComponents.scala).
 
-### 6.2 Enable Transaction Boundaries In The Application Layer
+### 6.2 Business Transaction Boundaries In The Application Layer
 
-DAOs must fulfill the contract defined by persistence ports in the domain layer.
-
-They must respect the [Store](/shared-components/src/main/scala/org/fiume/sketch/shared/common/app/Store.scala) algebra, which offers support for defining transaction boundaries as first-class operations:
+The infrastructure layer must provide a concrete implementation of [TransactionManager](/shared-components/src/main/scala/org/fiume/sketch/shared/common/app/TransactionManager.scala) algebra, which offers support for defining transaction boundaries as first-class operations:
 
 ```scala
-trait Store[F[_], Txn[_]]:
+trait TransactionManager[F[_], Txn[_]]:
   val lift: [A] => F[A] => Txn[A]
   val commit: [A] => Txn[A] => F[A]
   . . .
 ```
-* `lift` allows pure or effectful (`F[_]`) computations to be embedded in a transaction context `Txn[_]`
-* `commit` executes the composed workflow atomically against a database.
 
 DAO adapters implemented with Doobie and PostgreSQL can extend [AbstractPostgresStore](/storage/src/main/scala/org/fiume/sketch/storage/postgres/AbstractPostgresStore.scala) to inherit the canonical `lift` and `commit` implementations.
 
@@ -147,45 +142,7 @@ This design allows the application layer to **compose discrete operations** into
 
 **Example - Atomic Account Creation Workflow:**
 
-Ports define contracts for discrete transactional operations:
-
-```scala
-trait UsersStore[F[_], Txn[_]: Monad] extends Store[F, Txn]:
-  def createAccount(credentials: UserCredentials): Txn[UserId]
-  . . .
-
-trait AccessControl[F[_], Txn[_]: Monad] extends Store[F, Txn]:
-  def grantGlobalAccess(userId: UserId, role: GlobalRole): Txn[Unit]
-  def grantAccess[T <: Entity](userId: UserId, entityId: EntityId[T], role: ContextualRole): Txn[Unit]
-  . . .
-```
-
-Adapters implementing those ports are injected into application layer components during runtime:
-
-```scala
-object UsersManager:
-  def make[F[_]: Sync, Txn[_]: Monad](. . . /*dependencies*/): UsersManager[F] =
-    . . .
-    new UsersManager[F]:
-      override def createAccount(username: Username, password: PlainPassword, globalRole: Option[GlobalRole]): F[UserId] =
-        // Pure computation
-        val credentials = for
-          salt <- Salt.generate()
-          hashedPassword <- HashedPassword.hashPassword(password, salt)
-        yield UserCredentials(username, hashedPassword, salt)
-
-        // setUpAccount defines an atomic set of operations
-        val setUpAccount = for
-          creds <- store.lift { credentials } // Lifts a pure computation into a Transaction Context
-          userId <- store.createAccount(creds) // Port: Persist the account
-          _ <- accessControl.grantAccess(userId, userId, ContextualRole.Owner) // Port: Grant user access to the account
-          _ <- globalRole.fold(ifEmpty = ().pure[Txn])(accessControl.grantGlobalAccess(userId, _)) // Port: Optionally, provide use global access to system resources
-        yield userId
-
-        setUpAccount.commit() // Execute the transaction if there are no failures/s
-```
-
-See also [Persistence Ports](/docs/architecture/domain/Design.md#541-persistence-ports) for the definition of transaction boundary capabilities in the domain layer.
+Refer to [Encoding Transaction Boundaries as Business Concepts](https://rafaelfiume.blog/2025/12/24/encoding-transaction-boundaries-as-business-concepts/).
 
 ### 6.3 Streaming APIs
 
@@ -194,7 +151,7 @@ Provide support for streaming APIs when:
   * Clients benefit from backpressure.
 
 ```scala
-trait DocumentsStore[F[_], Txn[_]] extends Store[F, Txn]:
+trait DocumentsStore[Txn[_]]:
   // discrete operation
   def fetchDocument(uuid: DocumentId): Txn[Option[DocumentWithId]]
 

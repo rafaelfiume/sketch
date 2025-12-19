@@ -13,7 +13,7 @@ import org.fiume.sketch.shared.auth.accounts.{Account, AccountState}
 import org.fiume.sketch.shared.auth.accounts.AccountState.SoftDeleted
 import org.fiume.sketch.shared.auth.testkit.UserGens.*
 import org.fiume.sketch.shared.auth.testkit.UsersStoreContext
-import org.fiume.sketch.shared.testkit.ClockContext
+import org.fiume.sketch.shared.testkit.{ClockContext, TransactionManagerContext}
 import org.fiume.sketch.shared.testkit.Gens.DateAndTime.shortDurations
 import org.fiume.sketch.shared.testkit.syntax.EitherSyntax.*
 import org.fiume.sketch.shared.testkit.syntax.StringSyntax.*
@@ -30,6 +30,7 @@ class AuthenticatorSpec
     with ClockContext
     with UsersStoreContext
     with AuthenticatorSpecContext
+    with TransactionManagerContext
     with ShrinkLowPriority:
 
   override def scalaCheckTestParameters = super.scalaCheckTestParameters.withMinSuccessfulTests(1)
@@ -39,10 +40,12 @@ class AuthenticatorSpec
   test("valid username and password authentication results in a jwt representing the user"):
     forAllF(validCredentialsWithIdAndPlainPassword, ecKeyPairs, shortDurations) {
       case ((credentials, plainPassword), (privateKey, publicKey), expirationOffset) =>
-        for
-          store <- makeUsersStore(credentials)
 
-          authenticator <- Authenticator.make[IO, IO](makeFrozenClock(), store, privateKey, publicKey, expirationOffset)
+        for
+          (store, txRef) <- makeUsersStore(credentials)
+          tx = makeTransactionManager(List(txRef))
+
+          authenticator <- Authenticator.make[IO, IO](makeFrozenClock(), store, tx, privateKey, publicKey, expirationOffset)
           result <- authenticator.identify(credentials.username, plainPassword)
 
           user = authenticator.verify(result.rightOrFail)
@@ -53,8 +56,9 @@ class AuthenticatorSpec
     forAllF(validCredentialsWithIdAndPlainPassword, ecKeyPairs, shortDurations) {
       case ((credentials, plainPassword), (privateKey, publicKey), expirationOffset) =>
         for
-          store <- makeUsersStore(credentials)
-          authenticator <- Authenticator.make[IO, IO](makeFrozenClock(), store, privateKey, publicKey, expirationOffset)
+          (store, txRef) <- makeUsersStore(credentials)
+          tx = makeTransactionManager(List(txRef))
+          authenticator <- Authenticator.make[IO, IO](makeFrozenClock(), store, tx, privateKey, publicKey, expirationOffset)
 
           result <- authenticator.identify(credentials.username, plainPassword.shuffled)
 //
@@ -65,9 +69,10 @@ class AuthenticatorSpec
     forAllF(validCredentialsWithIdAndPlainPassword, ecKeyPairs, shortDurations) {
       case ((credentials, plainPassword), (privateKey, publicKey), expirationOffset) =>
         for
-          store <- makeUsersStore(credentials)
+          (store, txRef) <- makeUsersStore(credentials)
+          tx = makeTransactionManager(List(txRef))
 
-          authenticator <- Authenticator.make[IO, IO](makeFrozenClock(), store, privateKey, publicKey, expirationOffset)
+          authenticator <- Authenticator.make[IO, IO](makeFrozenClock(), store, tx, privateKey, publicKey, expirationOffset)
           result <- authenticator.identify(credentials.username.shuffled, plainPassword)
 //
         yield assertEquals(result.leftOrFail, UserNotFoundError)
@@ -80,9 +85,10 @@ class AuthenticatorSpec
         // The idea is to check all possible inactive states within the AccountState ADT here
         val userAccount = Account(credentials.uuid, credentials, state = SoftDeleted(deletedAt))
         for
-          store <- makeUsersStoreForAccount(userAccount)
+          (store, txRef) <- makeUsersStoreForAccount(userAccount)
+          tx = makeTransactionManager(List(txRef))
 
-          authenticator <- Authenticator.make[IO, IO](makeFrozenClock(), store, privateKey, publicKey, expirationOffset)
+          authenticator <- Authenticator.make[IO, IO](makeFrozenClock(), store, tx, privateKey, publicKey, expirationOffset)
           result <- authenticator.identify(credentials.username, plainPassword)
 //
         yield assertEquals(result.leftOrFail, AccountNotActiveError)
@@ -93,8 +99,9 @@ class AuthenticatorSpec
       case ((credentials, plainPassword), (privateKey, publicKey), expirationOffset) =>
         val frozenClock = makeFrozenClock(Instant.now().minusSeconds(expirationOffset.toSeconds))
         for
-          store <- makeUsersStore(credentials)
-          authenticator <- Authenticator.make[IO, IO](frozenClock, store, privateKey, publicKey, expirationOffset)
+          (store, txRef) <- makeUsersStore(credentials)
+          tx = makeTransactionManager(List(txRef))
+          authenticator <- Authenticator.make[IO, IO](frozenClock, store, tx, privateKey, publicKey, expirationOffset)
           jwt <- authenticator.identify(credentials.username, plainPassword).map(_.rightOrFail)
 
           result = authenticator.verify(jwt)
@@ -108,8 +115,9 @@ class AuthenticatorSpec
     forAllF(validCredentialsWithIdAndPlainPassword, ecKeyPairs, shortDurations) {
       case ((credentials, plainPassword), (privateKey, publicKey), expirationOffset) =>
         for
-          store <- makeUsersStore(credentials)
-          authenticator <- Authenticator.make[IO, IO](makeFrozenClock(), store, privateKey, publicKey, expirationOffset)
+          (store, txRef) <- makeUsersStore(credentials)
+          tx = makeTransactionManager(List(txRef))
+          authenticator <- Authenticator.make[IO, IO](makeFrozenClock(), store, tx, privateKey, publicKey, expirationOffset)
           jwt <- authenticator.identify(credentials.username, plainPassword).map(_.rightOrFail)
 
           result = authenticator.verify(jwt.tampered)
@@ -124,8 +132,9 @@ class AuthenticatorSpec
     forAllF(validCredentialsWithIdAndPlainPassword, ecKeyPairs, shortDurations) {
       case ((credentials, plainPassword), (privateKey, publicKey), expirationOffset) =>
         for
-          store <- makeUsersStore(credentials)
-          authenticator <- Authenticator.make[IO, IO](makeFrozenClock(), store, privateKey, publicKey, expirationOffset)
+          (store, txRef) <- makeUsersStore(credentials)
+          tx = makeTransactionManager(List(txRef))
+          authenticator <- Authenticator.make[IO, IO](makeFrozenClock(), store, tx, privateKey, publicKey, expirationOffset)
           jwt <- authenticator.identify(credentials.username, plainPassword).map(_.rightOrFail)
 
           result = authenticator.verify(jwt.reversed)
@@ -139,8 +148,15 @@ class AuthenticatorSpec
     forAllF(validCredentialsWithIdAndPlainPassword, ecKeyPairs, ecKeyPairs, shortDurations) {
       case ((credentials, plainPassword), (privateKey, _), (_, strangePublicKey), expirationOffset) =>
         for
-          store <- makeUsersStore(credentials)
-          authenticator <- Authenticator.make[IO, IO](makeFrozenClock(), store, privateKey, strangePublicKey, expirationOffset)
+          (store, txRef) <- makeUsersStore(credentials)
+          tx = makeTransactionManager(List(txRef))
+          authenticator <- Authenticator.make[IO, IO](makeFrozenClock(),
+                                                      store,
+                                                      tx,
+                                                      privateKey,
+                                                      strangePublicKey,
+                                                      expirationOffset
+          )
           jwt <- authenticator.identify(credentials.username, plainPassword).map(_.rightOrFail)
 
           result = authenticator.verify(jwt)

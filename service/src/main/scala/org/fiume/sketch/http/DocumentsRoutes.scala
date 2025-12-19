@@ -2,7 +2,7 @@ package org.fiume.sketch.http
 
 import cats.{FlatMap, MonadThrow}
 import cats.data.EitherT
-import cats.effect.Concurrent
+import cats.effect.{Async, Concurrent}
 import cats.implicits.*
 import fs2.Stream
 import io.circe.syntax.*
@@ -12,7 +12,7 @@ import org.fiume.sketch.http.DocumentsRoutes.Model.json.given
 import org.fiume.sketch.shared.auth.{User, UserId}
 import org.fiume.sketch.shared.authorisation.{AccessControl, ContextualRole}
 import org.fiume.sketch.shared.common.EntityId.given
-import org.fiume.sketch.shared.common.app.syntax.StoreSyntax.*
+import org.fiume.sketch.shared.common.app.TransactionManager
 import org.fiume.sketch.shared.common.http.json.{NewlineDelimitedJson, NewlineDelimitedJsonEncoder}
 import org.fiume.sketch.shared.common.http.json.JsonCodecs.given
 import org.fiume.sketch.shared.common.http.json.NewlineDelimitedJson.{Line, Linebreak}
@@ -20,7 +20,7 @@ import org.fiume.sketch.shared.common.http.middlewares.SemanticInputError
 import org.fiume.sketch.shared.common.troubleshooting.ErrorInfo.ErrorDetails
 import org.fiume.sketch.shared.common.troubleshooting.syntax.ErrorInfoSyntax.*
 import org.fiume.sketch.shared.common.troubleshooting.syntax.InvariantErrorSyntax.asDetails
-import org.fiume.sketch.shared.domain.documents.{Document, DocumentId, DocumentWithId, DocumentWithStream}
+import org.fiume.sketch.shared.domain.documents.{Document, DocumentId, DocumentWithId}
 import org.fiume.sketch.shared.domain.documents.Document.Metadata
 import org.fiume.sketch.shared.domain.documents.Document.Metadata.*
 import org.fiume.sketch.shared.domain.documents.algebras.DocumentsStore
@@ -34,17 +34,15 @@ import org.http4s.server.{AuthMiddleware, Router}
 import org.http4s.server.middleware.EntityLimiter
 import org.typelevel.ci.CIStringSyntax
 
-class DocumentsRoutes[F[_]: Concurrent, Txn[_]: FlatMap](
+class DocumentsRoutes[F[_]: {Async, Concurrent}, Txn[_]: FlatMap](
   authMiddleware: AuthMiddleware[F, User],
   documentBytesSizeLimit: Int,
-  accessControl: AccessControl[F, Txn],
-  store: DocumentsStore[F, Txn]
+  accessControl: AccessControl[Txn],
+  store: DocumentsStore[Txn],
+  tx: TransactionManager[F, Txn]
 ) extends Http4sDsl[F]:
 
   private val prefix = "/"
-
-  // enable Store's syntax
-  given DocumentsStore[F, Txn] = store
 
   def router(): HttpRoutes[F] = Router(
     prefix -> EntityLimiter(authMiddleware(authedRoutes), documentBytesSizeLimit)
@@ -59,31 +57,36 @@ class DocumentsRoutes[F[_]: Concurrent, Txn[_]: FlatMap](
       case cx @ POST -> Root / "documents" as user =>
         cx.req.decode { (uploadRequest: Multipart[F]) =>
           for
-            document <- uploadRequest.validated(forUserWithId = user.uuid).foldF(_.raiseError, _.pure)
-            uuid <- accessControl
-              .ensureAccess_(user.uuid, ContextualRole.Owner) {
-                store.store(document)
-              }
-              .commit()
+            (stream, document) <- uploadRequest.validated(forUserWithId = user.uuid).foldF(_.raiseError, _.pure)
+            bytes <- Async[F].cede *> stream.compile.to(Array) <* Async[F].cede
+            uuid <- tx.commit {
+              accessControl
+                .ensureAccess_(user.uuid, ContextualRole.Owner) {
+                  store.store(bytes, document)
+                }
+            }
             created <- Created(uuid.asResponsePayload)
           yield created
         }
 
       case GET -> Root / "documents" / DocumentIdVar(uuid) / "metadata" as user =>
         for
-          document <- accessControl.attempt(user.uuid, uuid) { store.fetchDocument }.commit()
+          document <- tx.commit {
+            accessControl.attempt(user.uuid, uuid) { store.fetchDocument }
+          }
           res <- document match
             case Right(document) => document.map(_.asResponsePayload).fold(ifEmpty = NotFound())(Ok(_))
             case Left(_)         => Forbidden()
         yield res
 
       case GET -> Root / "documents" / DocumentIdVar(uuid) as user =>
-        for res <- accessControl
-            .canAccess(user.uuid, uuid)
-            .commit()
+        for res <- tx
+            .commit {
+              accessControl.canAccess(user.uuid, uuid)
+            }
             .ifM(
               ifTrue = Ok(
-                store.documentStream(uuid).commitStream(),
+                tx.commitStream { store.documentStream(uuid) },
                 // TODO Content-Disposition("attachment", Map("filename" -> "document.pdf"))
                 `Content-Disposition`("attachment", Map.empty),
                 // TODO Specific MIME type, e.g. `Content-Type`(MediaType.application.pdf)
@@ -94,10 +97,12 @@ class DocumentsRoutes[F[_]: Concurrent, Txn[_]: FlatMap](
         yield res
 
       case GET -> Root / "documents" as user =>
-        val stream = accessControl
-          .fetchAllAuthorisedEntityIds(user.uuid, "DocumentEntity")
-          .through(store.fetchDocuments)
-          .commitStream()
+        val stream = tx
+          .commitStream {
+            accessControl
+              .fetchAllAuthorisedEntityIds(user.uuid, "DocumentEntity")
+              .through(store.fetchDocuments)
+          }
           .map(_.asResponsePayload.asJson)
           .map(Line(_))
           .intersperse(Linebreak)
@@ -105,11 +110,12 @@ class DocumentsRoutes[F[_]: Concurrent, Txn[_]: FlatMap](
 
       case DELETE -> Root / "documents" / DocumentIdVar(uuid) as user =>
         for
-          document <- accessControl
-            .attempt(user.uuid, uuid) { _ =>
-              accessControl.ensureRevoked_(user.uuid, uuid) { store.delete(_).as(uuid) }
-            }
-            .commit()
+          document <- tx.commit {
+            accessControl
+              .attempt(user.uuid, uuid) { _ =>
+                accessControl.ensureRevoked_(user.uuid, uuid) { store.delete(_).as(uuid) }
+              }
+          }
           res <- document match
             case Right(_) => NoContent()
             // TODO Return error info?
@@ -141,7 +147,9 @@ private[http] object DocumentsRoutes:
 
     private val errorCode = "9011".code
     extension [F[_]: {MonadThrow}](m: Multipart[F])
-      def validated(forUserWithId: UserId)(using c: Concurrent[F]): EitherT[F, SemanticInputError, DocumentWithStream[F]] =
+      def validated(
+        forUserWithId: UserId
+      )(using c: Concurrent[F]): EitherT[F, SemanticInputError, (fs2.Stream[F, Byte], Document)] =
         (m.metadata(), m.bytes()).parTupled
           .flatMap { case (part, bytes) =>
             part
@@ -155,7 +163,7 @@ private[http] object DocumentsRoutes:
               EitherT.fromEither(Name.validated(payload.name).leftMap(_.asDetails)),
               EitherT.pure(Description(payload.description)),
               EitherT.pure(stream)
-            ).parMapN((name, description, bytes) => Document.make[F](bytes, Metadata(name, description, ownerId = forUserWithId)))
+            ).parMapN((name, description, stream) => stream -> Document(Metadata(name, description, ownerId = forUserWithId)))
           }
           .leftMap(details => SemanticInputError.make(errorCode, details))
 

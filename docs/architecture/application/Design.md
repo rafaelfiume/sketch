@@ -171,7 +171,7 @@ object UsersManager:
 * **Atomic Operation**: The entire `setUpAccount` block represents one transaction.
 * **Error Handling**: Any failure triggers a rollback of all operations.
 
-> **Transaction Mechanics:** See [Store](/shared-components/src/main/scala/org/fiume/sketch/shared/common/app/Store.scala) documentation to dive deeper on defining transactional boundaries, and how that is done without having low-level infrastructure details leaking into the application layer.
+> **Transaction Boundaries:** See [TransactionManager](/shared-components/src/main/scala/org/fiume/sketch/shared/common/app/TransactionManager.scala) documentation to dive deeper on defining transactional boundaries, and how that is done without having low-level infrastructure details leaking into the application layer.
 
 
 ## 7. Pragmatic Compromises
