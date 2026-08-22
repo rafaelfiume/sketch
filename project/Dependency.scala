@@ -11,7 +11,7 @@ object Dependency {
     val catsEffect            = "3.6.3"
     val circe                 = "0.14.14"
     val ciris                 = "3.9.0"
-    val doobie                = "1.0.0-RC12"
+    val doobie                = "1.0.0-RC13"
     val flyway                = "11.9.1"
     val fs2                   = "3.12.2"
     val http4s                = "1.0.0-M44"
@@ -41,10 +41,10 @@ object Dependency {
   val circeGeneric                = "io.circe"                   %% "circe-generic"                       % Version.circe
   val circeParser                 = "io.circe"                   %% "circe-parser"                        % Version.circe
   val ciris                       = "is.cir"                     %% "ciris"                               % Version.ciris
-  val doobieCirce                 = "org.tpolecat"               %% "doobie-postgres-circe"               % Version.doobie
-  val doobieCore                  = "org.tpolecat"               %% "doobie-core"                         % Version.doobie
-  val doobiePostgres              = "org.tpolecat"               %% "doobie-postgres"                     % Version.doobie
-  val doobieHikari                = "org.tpolecat"               %% "doobie-hikari"                       % Version.doobie
+  val doobieCirce                 = "org.typelevel"               %% "doobie-postgres-circe"               % Version.doobie
+  val doobieCore                  = "org.typelevel"               %% "doobie-core"                         % Version.doobie
+  val doobiePostgres              = "org.typelevel"               %% "doobie-postgres"                     % Version.doobie
+  val doobieHikari                = "org.typelevel"               %% "doobie-hikari"                       % Version.doobie
   val flyway                      = "org.flywaydb"               %  "flyway-core"                         % Version.flyway
   val flywayPostgres              = "org.flywaydb"               %  "flyway-database-postgresql"          % Version.flyway
   val fs2Core                     = "co.fs2"                     %% "fs2-core"                            % Version.fs2
