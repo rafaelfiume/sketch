@@ -16,7 +16,7 @@ object Dependency {
     val fs2                   = "3.12.0"
     val http4s                = "1.0.0-M44"
     val log4cats              = "2.7.1"
-    val logbackJson           = "8.1"
+    val logbackJson           = "9.0"
     val slf4j                 = "2.0.17"
 
     val gatling               = "3.11.5"
