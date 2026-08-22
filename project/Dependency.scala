@@ -13,7 +13,7 @@ object Dependency {
     val ciris                 = "3.9.0"
     val doobie                = "1.0.0-RC9"
     val flyway                = "11.9.1"
-    val fs2                   = "3.12.0"
+    val fs2                   = "3.12.2"
     val http4s                = "1.0.0-M44"
     val log4cats              = "2.7.1"
     val logbackJson           = "8.1"
