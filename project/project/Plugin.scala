@@ -7,7 +7,7 @@ object Plugin {
     val Git                 = "2.1.0"
     val SbtNativePackager   = "1.11.1"
     val Scalafix            = "0.14.3"
-    val ScalaFmt            = "2.5.4"
+    val ScalaFmt            = "2.5.6"
     val Tpolecat            = "0.5.2"
   }
 
