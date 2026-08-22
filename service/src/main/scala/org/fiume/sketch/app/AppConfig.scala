@@ -4,7 +4,7 @@ import cats.effect.{Async, Resource}
 import cats.implicits.*
 import ciris.*
 import com.comcast.ip4s.*
-import doobie.ConnectionIO
+import org.typelevel.doobie.ConnectionIO
 import org.fiume.sketch.auth.KeyStringifier
 import org.fiume.sketch.rustic.RusticClientConfig
 import org.fiume.sketch.shared.auth.accounts.AccountConfig

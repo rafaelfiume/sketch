@@ -2,9 +2,9 @@ package org.fiume.sketch.storage.postgres
 
 import cats.effect.{Async, Resource}
 import cats.effect.syntax.resource.*
-import doobie.hikari.HikariTransactor
-import doobie.util.log.{LogEvent, LogHandler}
-import doobie.util.transactor.Transactor
+import org.typelevel.doobie.hikari.HikariTransactor
+import org.typelevel.doobie.util.log.{LogEvent, LogHandler}
+import org.typelevel.doobie.util.transactor.Transactor
 
 import java.util.concurrent.{Executors, ThreadFactory}
 import java.util.concurrent.atomic.AtomicLong

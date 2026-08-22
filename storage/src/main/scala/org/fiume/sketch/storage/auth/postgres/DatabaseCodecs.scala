@@ -1,8 +1,8 @@
 package org.fiume.sketch.storage.auth.postgres
 
-import doobie.{Meta, Read}
-import doobie.postgres.implicits.*
-import doobie.util.Write
+import org.typelevel.doobie.{Meta, Read}
+import org.typelevel.doobie.postgres.implicits.*
+import org.typelevel.doobie.util.Write
 import org.fiume.sketch.shared.auth.Passwords.{HashedPassword, Salt}
 import org.fiume.sketch.shared.auth.User.*
 import org.fiume.sketch.shared.auth.UserId

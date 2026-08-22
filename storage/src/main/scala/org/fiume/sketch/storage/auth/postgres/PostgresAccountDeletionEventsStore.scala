@@ -2,10 +2,10 @@ package org.fiume.sketch.storage.auth.postgres
 
 import cats.effect.Resource
 import cats.implicits.*
-import doobie.*
-import doobie.free.connection.ConnectionIO
-import doobie.implicits.*
-import doobie.postgres.implicits.*
+import org.typelevel.doobie.*
+import org.typelevel.doobie.free.connection.ConnectionIO
+import org.typelevel.doobie.implicits.*
+import org.typelevel.doobie.postgres.implicits.*
 import org.fiume.sketch.shared.auth.UserId
 import org.fiume.sketch.shared.auth.accounts.{
   AccountDeletionEvent,

@@ -1,7 +1,7 @@
 package org.fiume.sketch.storage.config.postgres
 
 import cats.implicits.*
-import doobie.util.meta.Meta
+import org.typelevel.doobie.util.meta.Meta
 import io.circe.Json
 import org.fiume.sketch.shared.common.config.Namespace
 import org.postgresql.util.PGobject

@@ -4,7 +4,7 @@ import cats.data.Validated
 import cats.effect.{Clock, ExitCode, IO, IOApp}
 import cats.effect.std.Console
 import cats.implicits.*
-import doobie.ConnectionIO
+import org.typelevel.doobie.ConnectionIO
 import org.fiume.sketch.auth.accounts.UsersManager
 import org.fiume.sketch.auth.scripts.UsersScript.Args
 import org.fiume.sketch.shared.auth.Passwords.PlainPassword

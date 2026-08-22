@@ -2,8 +2,8 @@ package org.fiume.sketch.storage.authorisation.postgres
 
 import cats.effect.IO
 import cats.implicits.*
-import doobie.ConnectionIO
-import doobie.implicits.*
+import org.typelevel.doobie.ConnectionIO
+import org.typelevel.doobie.implicits.*
 import munit.{CatsEffectSuite, ScalaCheckEffectSuite}
 import org.fiume.sketch.shared.auth.User.UserCredentials
 import org.fiume.sketch.shared.auth.UserId

@@ -1,7 +1,7 @@
 package org.fiume.sketch.app
 
 import cats.effect.{Async, Clock, Resource, Sync}
-import doobie.ConnectionIO
+import org.typelevel.doobie.ConnectionIO
 import fs2.io.net.Network
 import org.fiume.sketch.app.SketchVersions.VersionFile
 import org.fiume.sketch.auth.Authenticator

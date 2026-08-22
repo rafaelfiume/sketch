@@ -3,9 +3,9 @@ package org.fiume.sketch.storage.documents.postgres
 import cats.data.NonEmptyList
 import cats.effect.Resource
 import cats.implicits.*
-import doobie.*
-import doobie.free.connection.ConnectionIO
-import doobie.implicits.*
+import org.typelevel.doobie.*
+import org.typelevel.doobie.free.connection.ConnectionIO
+import org.typelevel.doobie.implicits.*
 import org.fiume.sketch.shared.auth.UserId
 import org.fiume.sketch.shared.domain.documents.{Document, DocumentId, DocumentWithId}
 import org.fiume.sketch.shared.domain.documents.Document.Metadata

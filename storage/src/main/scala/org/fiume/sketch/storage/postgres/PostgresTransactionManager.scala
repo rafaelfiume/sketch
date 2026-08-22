@@ -2,9 +2,9 @@ package org.fiume.sketch.storage.postgres
 
 import cats.effect.{Async, Concurrent, Resource}
 import cats.~>
-import doobie.{ConnectionIO, Transactor, WeakAsync}
-import doobie.implicits.*
-import doobie.util.transactor.Transactor
+import org.typelevel.doobie.{ConnectionIO, Transactor, WeakAsync}
+import org.typelevel.doobie.implicits.*
+import org.typelevel.doobie.util.transactor.Transactor
 import org.fiume.sketch.shared.common.app.TransactionManager
 
 object PostgresTransactionManager:

@@ -2,8 +2,8 @@ package org.fiume.sketch.storage.postgres
 
 import cats.effect.{Async, Resource}
 import cats.implicits.*
-import doobie.*
-import doobie.implicits.*
+import org.typelevel.doobie.*
+import org.typelevel.doobie.implicits.*
 import org.fiume.sketch.shared.common.app.HealthChecker
 import org.fiume.sketch.shared.common.app.ServiceStatus.{DependencyStatus, Status}
 import org.fiume.sketch.shared.common.app.ServiceStatus.Dependency.*

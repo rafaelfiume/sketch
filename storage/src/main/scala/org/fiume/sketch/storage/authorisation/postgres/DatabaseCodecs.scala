@@ -1,9 +1,9 @@
 package org.fiume.sketch.storage.authorisation.postgres
 
 import cats.implicits.*
-import doobie.{Meta, Read}
-import doobie.postgres.implicits.*
-import doobie.util.Write
+import org.typelevel.doobie.{Meta, Read}
+import org.typelevel.doobie.postgres.implicits.*
+import org.typelevel.doobie.util.Write
 import org.fiume.sketch.shared.authorisation.{ContextualRole, GlobalRole, Role}
 import org.fiume.sketch.shared.authorisation.Role.given
 import org.fiume.sketch.shared.common.{Entity, EntityId}
