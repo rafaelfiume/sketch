@@ -5,7 +5,7 @@ object Dependency {
   private object Version {
     val jbcrypt               = "0.4"
     val jwtCirce              = "11.0.4"
-    val bouncycastle          = "1.81"
+    val bouncycastle          = "1.85.2"
 
     val cats                  = "2.13.0"
     val catsEffect            = "3.6.3"
