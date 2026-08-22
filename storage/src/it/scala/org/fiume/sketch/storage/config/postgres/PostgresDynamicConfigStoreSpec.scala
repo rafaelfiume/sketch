@@ -2,9 +2,9 @@ package org.fiume.sketch.storage.config.postgres
 
 import cats.effect.IO
 import cats.implicits.*
-import doobie.ConnectionIO
-import doobie.implicits.*
-import doobie.util.Write
+import org.typelevel.doobie.ConnectionIO
+import org.typelevel.doobie.implicits.*
+import org.typelevel.doobie.util.Write
 import io.circe.{Decoder, Encoder}
 import io.circe.syntax.*
 import munit.CatsEffectSuite

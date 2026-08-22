@@ -1,9 +1,9 @@
 package org.fiume.sketch.storage.auth.postgres
 
 import cats.effect.Resource
-import doobie.*
-import doobie.free.connection.ConnectionIO
-import doobie.implicits.*
+import org.typelevel.doobie.*
+import org.typelevel.doobie.free.connection.ConnectionIO
+import org.typelevel.doobie.implicits.*
 import org.fiume.sketch.shared.auth.accounts.{
   AccountDeletedNotification,
   AccountDeletedNotificationConsumer,

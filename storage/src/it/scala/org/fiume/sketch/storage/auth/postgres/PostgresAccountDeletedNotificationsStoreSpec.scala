@@ -2,8 +2,8 @@ package org.fiume.sketch.storage.auth.postgres
 
 import cats.effect.IO
 import cats.implicits.*
-import doobie.ConnectionIO
-import doobie.implicits.*
+import org.typelevel.doobie.ConnectionIO
+import org.typelevel.doobie.implicits.*
 import munit.CatsEffectSuite
 import org.fiume.sketch.shared.auth.UserId
 import org.fiume.sketch.shared.auth.accounts.AccountDeletedNotification
@@ -171,7 +171,7 @@ trait PostgresAccountDeletedNotificationStoreSpecContext extends DockerPostgresS
   def fetchPendingEvents(): ConnectionIO[List[AccountDeletedNotification.Notified]] =
     sql"SELECT * FROM auth.account_deleted_notifications".query[AccountDeletedNotification.Notified].to[List]
 
-  import doobie.Read
+  import org.typelevel.doobie.Read
   import org.fiume.sketch.storage.auth.postgres.DatabaseCodecs.given
   given Read[AccountDeletedNotification.Notified] = Read[(EventId, UserId, Recipient)].map { case (eventId, userId, recipient) =>
     AccountDeletedNotification.notified(eventId, userId, recipient)

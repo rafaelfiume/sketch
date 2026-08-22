@@ -1,9 +1,9 @@
 package org.fiume.sketch.storage.config.postgres
 
 import cats.effect.Resource
-import doobie.free.connection.ConnectionIO
-import doobie.implicits.*
-import doobie.util.query.Query0
+import org.typelevel.doobie.free.connection.ConnectionIO
+import org.typelevel.doobie.implicits.*
+import org.typelevel.doobie.util.query.Query0
 import io.circe.{Decoder, Json}
 import io.circe.parser.decode
 import org.fiume.sketch.shared.common.config.{DynamicConfig, Namespace}

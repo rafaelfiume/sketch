@@ -4,7 +4,7 @@ import cats.effect.{Async, Resource}
 import cats.effect.syntax.resource.*
 import cats.implicits.*
 import com.comcast.ip4s.*
-import doobie.ConnectionIO
+import org.typelevel.doobie.ConnectionIO
 import fs2.io.net.Network
 import org.fiume.sketch.auth.accounts.jobs.ScheduledAccountDeletionJob
 import org.fiume.sketch.auth.http.{AuthRoutes, UsersRoutes}
