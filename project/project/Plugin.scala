@@ -8,7 +8,7 @@ object Plugin {
     val SbtNativePackager   = "1.11.7"
     val Scalafix            = "0.14.3"
     val ScalaFmt            = "2.6.2"
-    val Tpolecat            = "0.5.2"
+    val Tpolecat            = "0.5.7"
   }
 
   val Gatling               = "io.gatling"                    % "gatling-sbt"                 % Version.Gatling
