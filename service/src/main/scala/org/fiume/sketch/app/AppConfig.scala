@@ -4,7 +4,6 @@ import cats.effect.{Async, Resource}
 import cats.implicits.*
 import ciris.*
 import com.comcast.ip4s.*
-import org.typelevel.doobie.ConnectionIO
 import org.fiume.sketch.auth.KeyStringifier
 import org.fiume.sketch.rustic.RusticClientConfig
 import org.fiume.sketch.shared.auth.accounts.AccountConfig
@@ -13,6 +12,7 @@ import org.fiume.sketch.shared.common.config.{DynamicConfig, Namespace}
 import org.fiume.sketch.storage.config.postgres.PostgresDynamicConfigStore
 import org.fiume.sketch.storage.postgres.DatabaseConfig
 import org.http4s.headers.Origin
+import org.typelevel.doobie.ConnectionIO
 
 import java.security.interfaces.{ECPrivateKey, ECPublicKey}
 import scala.concurrent.duration.*

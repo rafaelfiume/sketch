@@ -3,15 +3,15 @@ package org.fiume.sketch.storage.documents.postgres
 import cats.data.NonEmptyList
 import cats.effect.Resource
 import cats.implicits.*
-import org.typelevel.doobie.*
-import org.typelevel.doobie.free.connection.ConnectionIO
-import org.typelevel.doobie.implicits.*
 import org.fiume.sketch.shared.auth.UserId
 import org.fiume.sketch.shared.domain.documents.{Document, DocumentId, DocumentWithId}
 import org.fiume.sketch.shared.domain.documents.Document.Metadata
 import org.fiume.sketch.shared.domain.documents.algebras.DocumentsStore
 import org.fiume.sketch.storage.auth.postgres.DatabaseCodecs.given
 import org.fiume.sketch.storage.documents.postgres.DatabaseCodecs.given
+import org.typelevel.doobie.*
+import org.typelevel.doobie.free.connection.ConnectionIO
+import org.typelevel.doobie.implicits.*
 
 object PostgresDocumentsStore:
   def make[F[_]](): Resource[F, DocumentsStore[ConnectionIO]] =

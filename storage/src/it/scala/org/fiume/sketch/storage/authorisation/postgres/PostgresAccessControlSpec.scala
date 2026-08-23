@@ -2,8 +2,6 @@ package org.fiume.sketch.storage.authorisation.postgres
 
 import cats.effect.IO
 import cats.implicits.*
-import org.typelevel.doobie.ConnectionIO
-import org.typelevel.doobie.implicits.*
 import munit.{CatsEffectSuite, ScalaCheckEffectSuite}
 import org.fiume.sketch.shared.auth.User.UserCredentials
 import org.fiume.sketch.shared.auth.UserId
@@ -26,6 +24,8 @@ import org.fiume.sketch.storage.postgres.PostgresTransactionManager
 import org.fiume.sketch.storage.testkit.DockerPostgresSuite
 import org.scalacheck.ShrinkLowPriority
 import org.scalacheck.effect.PropF.forAllF
+import org.typelevel.doobie.ConnectionIO
+import org.typelevel.doobie.implicits.*
 
 class PostgresAccessControlSpec
     extends CatsEffectSuite

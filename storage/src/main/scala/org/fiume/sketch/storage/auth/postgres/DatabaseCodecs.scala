@@ -1,14 +1,14 @@
 package org.fiume.sketch.storage.auth.postgres
 
-import org.typelevel.doobie.{Meta, Read}
-import org.typelevel.doobie.postgres.implicits.*
-import org.typelevel.doobie.util.Write
 import org.fiume.sketch.shared.auth.Passwords.{HashedPassword, Salt}
 import org.fiume.sketch.shared.auth.User.*
 import org.fiume.sketch.shared.auth.UserId
 import org.fiume.sketch.shared.auth.accounts.{Account, AccountDeletedNotification, AccountDeletionEvent, AccountState}
 import org.fiume.sketch.shared.auth.accounts.AccountDeletedNotification.Notified
 import org.fiume.sketch.shared.common.events.{EventId, Recipient}
+import org.typelevel.doobie.{Meta, Read}
+import org.typelevel.doobie.postgres.implicits.*
+import org.typelevel.doobie.util.Write
 
 import java.time.Instant
 import java.util.UUID

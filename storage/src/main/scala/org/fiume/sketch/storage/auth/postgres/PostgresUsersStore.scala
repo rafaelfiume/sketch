@@ -2,10 +2,6 @@ package org.fiume.sketch.storage.auth.postgres
 
 import cats.effect.Resource
 import cats.implicits.*
-import org.typelevel.doobie.*
-import org.typelevel.doobie.free.connection.ConnectionIO
-import org.typelevel.doobie.implicits.*
-import org.typelevel.doobie.postgres.implicits.*
 import org.fiume.sketch.shared.auth.Passwords.{HashedPassword, Salt}
 import org.fiume.sketch.shared.auth.User.*
 import org.fiume.sketch.shared.auth.UserId
@@ -13,6 +9,10 @@ import org.fiume.sketch.shared.auth.accounts.{Account, AccountState}
 import org.fiume.sketch.shared.auth.algebras.UsersStore
 import org.fiume.sketch.storage.auth.postgres.DatabaseCodecs.given
 import org.fiume.sketch.storage.auth.postgres.Statements.*
+import org.typelevel.doobie.*
+import org.typelevel.doobie.free.connection.ConnectionIO
+import org.typelevel.doobie.implicits.*
+import org.typelevel.doobie.postgres.implicits.*
 
 object PostgresUsersStore:
   def make[F[_]](): Resource[F, UsersStore[ConnectionIO]] =

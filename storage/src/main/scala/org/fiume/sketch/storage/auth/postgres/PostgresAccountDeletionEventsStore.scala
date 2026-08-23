@@ -2,10 +2,6 @@ package org.fiume.sketch.storage.auth.postgres
 
 import cats.effect.Resource
 import cats.implicits.*
-import org.typelevel.doobie.*
-import org.typelevel.doobie.free.connection.ConnectionIO
-import org.typelevel.doobie.implicits.*
-import org.typelevel.doobie.postgres.implicits.*
 import org.fiume.sketch.shared.auth.UserId
 import org.fiume.sketch.shared.auth.accounts.{
   AccountDeletionEvent,
@@ -14,6 +10,10 @@ import org.fiume.sketch.shared.auth.accounts.{
 }
 import org.fiume.sketch.shared.auth.accounts.AccountDeletionEvent.{Scheduled, ToSchedule}
 import org.fiume.sketch.storage.auth.postgres.DatabaseCodecs.given
+import org.typelevel.doobie.*
+import org.typelevel.doobie.free.connection.ConnectionIO
+import org.typelevel.doobie.implicits.*
+import org.typelevel.doobie.postgres.implicits.*
 
 object PostgresAccountDeletionEventsStore:
   def make[F[_]]()

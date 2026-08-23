@@ -1,10 +1,10 @@
 package org.fiume.sketch.storage.config.postgres
 
 import cats.implicits.*
-import org.typelevel.doobie.util.meta.Meta
 import io.circe.Json
 import org.fiume.sketch.shared.common.config.Namespace
 import org.postgresql.util.PGobject
+import org.typelevel.doobie.util.meta.Meta
 
 private[storage] object DatabaseCodecs:
 

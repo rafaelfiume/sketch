@@ -4,14 +4,14 @@ import cats.effect.{IO, Resource}
 import cats.~>
 import ciris.Secret
 import com.dimafeng.testcontainers.PostgreSQLContainer
-import org.typelevel.doobie.{ConnectionIO, Transactor, WeakAsync}
-import org.typelevel.doobie.hikari.HikariTransactor
-import org.typelevel.doobie.implicits.*
-import org.typelevel.doobie.util.log.{LogEvent, LogHandler}
 import munit.CatsEffectSuite
 import org.fiume.sketch.storage.postgres.{DatabaseConfig, SchemaMigration}
 import org.testcontainers.containers.PostgreSQLContainer as JavaPostgreSQLContainer
 import org.testcontainers.utility.DockerImageName
+import org.typelevel.doobie.{ConnectionIO, Transactor, WeakAsync}
+import org.typelevel.doobie.hikari.HikariTransactor
+import org.typelevel.doobie.implicits.*
+import org.typelevel.doobie.util.log.{LogEvent, LogHandler}
 
 import java.util.concurrent.Executors
 import scala.concurrent.ExecutionContext

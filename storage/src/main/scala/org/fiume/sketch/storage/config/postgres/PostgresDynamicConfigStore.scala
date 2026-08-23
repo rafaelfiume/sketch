@@ -1,15 +1,15 @@
 package org.fiume.sketch.storage.config.postgres
 
 import cats.effect.Resource
-import org.typelevel.doobie.free.connection.ConnectionIO
-import org.typelevel.doobie.implicits.*
-import org.typelevel.doobie.util.query.Query0
 import io.circe.{Decoder, Json}
 import io.circe.parser.decode
 import org.fiume.sketch.shared.common.config.{DynamicConfig, Namespace}
 import org.fiume.sketch.shared.common.config.DynamicConfig.Key
 import org.fiume.sketch.shared.common.typeclasses.AsString
 import org.fiume.sketch.storage.config.postgres.DatabaseCodecs.given
+import org.typelevel.doobie.free.connection.ConnectionIO
+import org.typelevel.doobie.implicits.*
+import org.typelevel.doobie.util.query.Query0
 
 object PostgresDynamicConfigStore:
   def makeForNamespace[F[_]](namespace: Namespace): Resource[F, DynamicConfig[ConnectionIO]] =

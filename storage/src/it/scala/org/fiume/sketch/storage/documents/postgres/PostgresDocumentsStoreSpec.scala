@@ -2,9 +2,6 @@ package org.fiume.sketch.storage.documents.postgres
 
 import cats.effect.*
 import cats.implicits.*
-import org.typelevel.doobie.{ConnectionIO, *}
-import org.typelevel.doobie.implicits.*
-import org.typelevel.doobie.postgres.implicits.*
 import munit.{CatsEffectSuite, ScalaCheckEffectSuite}
 import org.fiume.sketch.shared.domain.documents.{DocumentId, DocumentWithIdAndStream, DocumentWithStream}
 import org.fiume.sketch.shared.domain.testkit.DocumentsGens.given
@@ -16,6 +13,9 @@ import org.fiume.sketch.storage.postgres.PostgresTransactionManager
 import org.fiume.sketch.storage.testkit.DockerPostgresSuite
 import org.scalacheck.ShrinkLowPriority
 import org.scalacheck.effect.PropF.forAllF
+import org.typelevel.doobie.{ConnectionIO, *}
+import org.typelevel.doobie.implicits.*
+import org.typelevel.doobie.postgres.implicits.*
 
 import java.time.Instant
 

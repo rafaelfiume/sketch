@@ -2,11 +2,11 @@ package org.fiume.sketch.storage.postgres
 
 import cats.effect.{Async, Resource}
 import cats.implicits.*
-import org.typelevel.doobie.*
-import org.typelevel.doobie.implicits.*
 import org.fiume.sketch.shared.common.app.HealthChecker
 import org.fiume.sketch.shared.common.app.ServiceStatus.{DependencyStatus, Status}
 import org.fiume.sketch.shared.common.app.ServiceStatus.Dependency.*
+import org.typelevel.doobie.*
+import org.typelevel.doobie.implicits.*
 
 object PostgresHealthCheck:
   def make[F[_]: Async](tx: Transactor[F]): Resource[F, PostgresHealthCheck[F]] =

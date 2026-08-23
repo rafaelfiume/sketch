@@ -4,7 +4,6 @@ import cats.effect.{Async, Resource}
 import cats.effect.syntax.resource.*
 import cats.implicits.*
 import com.comcast.ip4s.*
-import org.typelevel.doobie.ConnectionIO
 import fs2.io.net.Network
 import org.fiume.sketch.auth.accounts.jobs.ScheduledAccountDeletionJob
 import org.fiume.sketch.auth.http.{AuthRoutes, UsersRoutes}
@@ -18,6 +17,7 @@ import org.http4s.ember.server.EmberServerBuilder
 import org.http4s.implicits.*
 import org.http4s.server.Server
 import org.http4s.server.middleware.*
+import org.typelevel.doobie.ConnectionIO
 import org.typelevel.log4cats.LoggerFactory
 import org.typelevel.log4cats.slf4j.{Slf4jFactory, Slf4jLogger}
 

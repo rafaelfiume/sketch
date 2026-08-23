@@ -2,9 +2,6 @@ package org.fiume.sketch.storage.config.postgres
 
 import cats.effect.IO
 import cats.implicits.*
-import org.typelevel.doobie.ConnectionIO
-import org.typelevel.doobie.implicits.*
-import org.typelevel.doobie.util.Write
 import io.circe.{Decoder, Encoder}
 import io.circe.syntax.*
 import munit.CatsEffectSuite
@@ -16,6 +13,9 @@ import org.fiume.sketch.storage.config.postgres.PostgresDynamicConfigStoreSpecCo
 import org.fiume.sketch.storage.config.postgres.PostgresDynamicConfigStoreSpecContext.given
 import org.fiume.sketch.storage.postgres.PostgresTransactionManager
 import org.fiume.sketch.storage.testkit.DockerPostgresSuite
+import org.typelevel.doobie.ConnectionIO
+import org.typelevel.doobie.implicits.*
+import org.typelevel.doobie.util.Write
 
 class PostgresDynamicConfigStoreSpec extends CatsEffectSuite with PostgresDynamicConfigStoreSpecContext:
 

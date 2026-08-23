@@ -1,7 +1,6 @@
 package org.fiume.sketch.app
 
 import cats.effect.{Async, Clock, Resource, Sync}
-import org.typelevel.doobie.ConnectionIO
 import fs2.io.net.Network
 import org.fiume.sketch.app.SketchVersions.VersionFile
 import org.fiume.sketch.auth.Authenticator
@@ -27,6 +26,7 @@ import org.fiume.sketch.storage.authorisation.postgres.PostgresAccessControl
 import org.fiume.sketch.storage.documents.postgres.PostgresDocumentsStore
 import org.fiume.sketch.storage.postgres.{DbTransactor, PostgresHealthCheck, PostgresTransactionManager}
 import org.http4s.ember.client.EmberClientBuilder
+import org.typelevel.doobie.ConnectionIO
 import org.typelevel.log4cats.LoggerFactory
 import org.typelevel.log4cats.slf4j.Slf4jFactory
 

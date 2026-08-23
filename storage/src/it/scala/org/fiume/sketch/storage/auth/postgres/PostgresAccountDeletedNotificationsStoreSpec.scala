@@ -2,8 +2,6 @@ package org.fiume.sketch.storage.auth.postgres
 
 import cats.effect.IO
 import cats.implicits.*
-import org.typelevel.doobie.ConnectionIO
-import org.typelevel.doobie.implicits.*
 import munit.CatsEffectSuite
 import org.fiume.sketch.shared.auth.UserId
 import org.fiume.sketch.shared.auth.accounts.AccountDeletedNotification
@@ -14,6 +12,8 @@ import org.fiume.sketch.shared.testkit.syntax.OptionSyntax.*
 import org.fiume.sketch.storage.postgres.PostgresTransactionManager
 import org.fiume.sketch.storage.testkit.DockerPostgresSuite
 import org.scalacheck.Gen
+import org.typelevel.doobie.ConnectionIO
+import org.typelevel.doobie.implicits.*
 
 class PostgresAccountDeletedNotificationsStoreSpec
     extends CatsEffectSuite

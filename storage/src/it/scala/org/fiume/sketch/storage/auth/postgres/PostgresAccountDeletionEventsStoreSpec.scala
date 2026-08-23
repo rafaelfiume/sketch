@@ -2,8 +2,6 @@ package org.fiume.sketch.storage.auth.postgres
 
 import cats.effect.IO
 import cats.implicits.*
-import org.typelevel.doobie.ConnectionIO
-import org.typelevel.doobie.implicits.*
 import munit.CatsEffectSuite
 import org.fiume.sketch.shared.auth.UserId
 import org.fiume.sketch.shared.auth.accounts.AccountDeletionEvent
@@ -16,6 +14,8 @@ import org.fiume.sketch.storage.auth.postgres.DatabaseCodecs.given
 import org.fiume.sketch.storage.postgres.PostgresTransactionManager
 import org.fiume.sketch.storage.testkit.DockerPostgresSuite
 import org.scalacheck.effect.PropF.forAllF
+import org.typelevel.doobie.ConnectionIO
+import org.typelevel.doobie.implicits.*
 
 import java.time.Instant
 
