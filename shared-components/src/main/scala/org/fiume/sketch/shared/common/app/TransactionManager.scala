@@ -21,9 +21,10 @@ package org.fiume.sketch.shared.common.app
  *
  * Business logic is expressed as `Txn[A]`, a description of business operations. This keeps the same business logic isolated from
  * the transaction implementation details, allowing it to:
- *   - Run in production against a real database, using a `TransactionManager` that wraps the business logic in a true transactional boundary
- *     (BEGIN, COMMIT, ROLLBACK)
- *   - Run in unit tests, using an in-memory `TransactionManager` implemented with `Ref` and `IO` to simulate stateful, atomic updates.
+ *   - Run in production against a real database, using a `TransactionManager` that wraps the business logic in a true
+ *     transactional boundary (BEGIN, COMMIT, ROLLBACK)
+ *   - Run in unit tests, using an in-memory `TransactionManager` implemented with `Ref` and `IO` to simulate stateful, atomic
+ *     updates.
  *
  * ##### 3. Type Safety
  *

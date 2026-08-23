@@ -14,7 +14,6 @@ import org.fiume.sketch.shared.authorisation.testkit.AccessControlContext
 import org.fiume.sketch.shared.common.app.TransactionManager
 import org.fiume.sketch.shared.common.http.middlewares.{SemanticInputError, SemanticValidationMiddleware}
 import org.fiume.sketch.shared.common.troubleshooting.ErrorInfo
-import org.fiume.sketch.shared.common.troubleshooting.ErrorInfo.{ErrorCode, ErrorMessage}
 import org.fiume.sketch.shared.common.troubleshooting.ErrorInfo.json.given
 import org.fiume.sketch.shared.common.troubleshooting.syntax.ErrorInfoSyntax.*
 import org.fiume.sketch.shared.domain.documents.{Document, DocumentWithIdAndStream}

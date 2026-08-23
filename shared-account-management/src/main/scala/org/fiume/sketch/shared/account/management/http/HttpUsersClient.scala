@@ -30,29 +30,56 @@ object HttpUsersClient:
 class HttpUsersClient[F[_]: Async] private (baseUri: Uri, client: Client[F]):
   given Logger[F] = Slf4jLogger.getLogger[F]
 
-  def markAccountForDeletion(
-    id: UserId,
-    jwt: Jwt
-  ): F[Either[ClientAuthorisationError | AccessDenied.type | SoftDeleteAccountError, AccountDeletionEvent.Scheduled]] =
+  def markAccountForDeletion(id: UserId, jwt: Jwt): F[
+    Either[
+      ClientAuthorisationError | AccessDenied.type | SoftDeleteAccountError,
+      AccountDeletionEvent.Scheduled
+    ]
+  ] =
     for
-      authHeader <- Async[F].delay { Authorization.parse(s"Bearer ${jwt.value}") }
-      request = Request[F](DELETE, baseUri / "users" / id.value).withHeaders(authHeader)
+      authHeader <- Async[F].delay {
+        Authorization.parse(s"Bearer ${jwt.value}")
+      }
+      request =
+        Request[F](DELETE, baseUri / "users" / id.value)
+          .withHeaders(authHeader)
+
       result <- client.run(request).use {
         case Ok(resp) =>
           resp
             .as[ScheduledForPermanentDeletionResponse]
-            .map(p => AccountDeletionEvent.scheduled(p.eventId, p.userId, p.permanentDeletionAt).asRight)
-        case Conflict(_)        => AccountAlreadyPendingDeletion.asLeft[AccountDeletionEvent.Scheduled].pure[F]
-        case NotFound(_)        => SoftDeleteAccountError.AccountNotFound.asLeft.pure[F]
+            .map { p =>
+              AccountDeletionEvent
+                .scheduled(p.eventId, p.userId, p.permanentDeletionAt)
+                .asRight[
+                  ClientAuthorisationError | AccessDenied.type | SoftDeleteAccountError
+                ]
+            }
+
+        case Conflict(_) =>
+          AccountAlreadyPendingDeletion
+            .asLeft[AccountDeletionEvent.Scheduled]
+            .pure[F]
+
+        case NotFound(_) =>
+          SoftDeleteAccountError.AccountNotFound
+            .asLeft[AccountDeletionEvent.Scheduled]
+            .pure[F]
+
         case Unauthorized(resp) =>
-          /* There is a chance an Api gateway will take care of verifying an issued token,
-           * so I'm relaxing the error handling to merely pass a String payload as param to ClientAuthenticationError.
-           * That's to minimise potential changes to this logic.
-           */
           resp.bodyText.compile.string
-            .flatTap { error => warn"Unauthorised to restore account: $error" }
-            .map(_ => ClientAuthorisationError("Invalid credentials").asLeft)
-        case Forbidden(_) => AccessDenied.asLeft.pure[F]
+            .flatTap { error =>
+              warn"Unauthorised to restore account: $error"
+            }
+            .map { _ =>
+              ClientAuthorisationError("Invalid credentials")
+                .asLeft[AccountDeletionEvent.Scheduled]
+            }
+
+        case Forbidden(_) =>
+          AccessDenied
+            .asLeft[AccountDeletionEvent.Scheduled]
+            .pure[F]
       }
     yield result
 

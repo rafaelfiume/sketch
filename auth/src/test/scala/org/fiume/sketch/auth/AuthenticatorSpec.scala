@@ -9,7 +9,7 @@ import org.fiume.sketch.shared.auth.AuthenticationError.*
 import org.fiume.sketch.shared.auth.JwtVerificationError.*
 import org.fiume.sketch.shared.auth.Passwords.PlainPassword
 import org.fiume.sketch.shared.auth.User.Username
-import org.fiume.sketch.shared.auth.accounts.{Account, AccountState}
+import org.fiume.sketch.shared.auth.accounts.Account
 import org.fiume.sketch.shared.auth.accounts.AccountState.SoftDeleted
 import org.fiume.sketch.shared.auth.testkit.UserGens.*
 import org.fiume.sketch.shared.auth.testkit.UsersStoreContext

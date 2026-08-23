@@ -5,7 +5,6 @@ import cats.implicits.*
 import munit.{CatsEffectSuite, ScalaCheckEffectSuite}
 import org.fiume.sketch.auth.config.Dynamic.RecipientsKey
 import org.fiume.sketch.auth.config.Dynamic.given
-import org.fiume.sketch.shared.auth.UserId
 import org.fiume.sketch.shared.auth.accounts.{Account, AccountDeletedNotification, AccountDeletionEvent, AccountState}
 import org.fiume.sketch.shared.auth.accounts.AccountDeletedNotification.ToNotify
 import org.fiume.sketch.shared.auth.accounts.AccountDeletionEvent.ToSchedule
