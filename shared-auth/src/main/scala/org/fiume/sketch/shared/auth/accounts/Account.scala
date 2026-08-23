@@ -46,7 +46,9 @@ sealed trait AccountStateTransitionError
 enum ActivateAccountError extends AccountStateTransitionError:
   case AccountAlreadyActive
   case AccountNotFound
+  case UnexpectedStatus(message: String)
 
 enum SoftDeleteAccountError extends AccountStateTransitionError:
   case AccountAlreadyPendingDeletion
   case AccountNotFound
+  case UnexpectedStatus(message: String)

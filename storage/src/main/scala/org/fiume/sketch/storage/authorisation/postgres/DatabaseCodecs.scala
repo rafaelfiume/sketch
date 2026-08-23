@@ -27,4 +27,5 @@ private[storage] object DatabaseCodecs:
     entityType match
       case "DocumentEntity" => DocumentId(uuid).asInstanceOf[EntityId[T]]
       case "UserEntity"     => UserId(uuid).asInstanceOf[EntityId[T]]
+      case other            => throw new IllegalArgumentException(s"Unknown entity type: $other")
   }

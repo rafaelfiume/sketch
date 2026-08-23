@@ -39,6 +39,7 @@ class UsersRoutes[F[_]: Concurrent, Txn[_]](
                 // The request conflicts with the current state of the account (state machine transition error).
                 case AccountAlreadyPendingDeletion          => Conflict(error.toErrorInfo)
                 case SoftDeleteAccountError.AccountNotFound => NotFound(error.toErrorInfo)
+                case SoftDeleteAccountError.UnexpectedStatus(_) => InternalServerError(error.toErrorInfo)
             case Left(error: AccessDenied.type) => Forbidden(error.toErrorInfo)
           }
 
@@ -51,6 +52,7 @@ class UsersRoutes[F[_]: Concurrent, Txn[_]](
               error match
                 case AccountAlreadyActive                 => Conflict(error.toActivateErrorInfo)
                 case ActivateAccountError.AccountNotFound => NotFound(error.toActivateErrorInfo)
+                case ActivateAccountError.UnexpectedStatus(_) => InternalServerError(error.toActivateErrorInfo)
             case Left(error: AccessDenied.type) => Forbidden(error.toActivateErrorInfo)
           }
     }

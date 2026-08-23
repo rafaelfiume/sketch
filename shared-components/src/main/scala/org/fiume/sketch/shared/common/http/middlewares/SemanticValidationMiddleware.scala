@@ -51,5 +51,7 @@ object SemanticValidationMiddleware:
           case SemanticInputError(code, message, details) =>
             Response[F](UnprocessableEntity)
               .withEntity(ErrorInfo.make(code, message, details))
+
+          case error => throw error
         }
     }

@@ -12,15 +12,17 @@ object AccountStateTransitionErrorSyntax:
   extension (error: AccessDenied.type | SoftDeleteAccountError)
     def toErrorInfo =
       val (errorCode, errorMessage) = error match
-        case AccountAlreadyPendingDeletion          => "1200".code -> "Account already marked for deletion".message
-        case SoftDeleteAccountError.AccountNotFound => "1201".code -> "Account not found".message
-        case AccessDenied                           => "3000".code -> "Unauthorised operation".message
+        case AccountAlreadyPendingDeletion                    => "1200".code -> "Account already marked for deletion".message
+        case SoftDeleteAccountError.AccountNotFound           => "1201".code -> "Account not found".message
+        case AccessDenied                                     => "3000".code -> "Unauthorised operation".message
+        case SoftDeleteAccountError.UnexpectedStatus(message) => "1299".code -> s"${message}".message
       ErrorInfo.make(errorCode, errorMessage)
 
   extension (error: AccessDenied.type | ActivateAccountError)
     def toActivateErrorInfo =
       val (errorCode, errorMessage) = error match
-        case AccountAlreadyActive                 => "1210".code -> "Account is already active".message
-        case ActivateAccountError.AccountNotFound => "1211".code -> "Account not found".message
-        case AccessDenied                         => "3000".code -> "Unauthorised operation".message
+        case AccountAlreadyActive                           => "1210".code -> "Account is already active".message
+        case ActivateAccountError.AccountNotFound           => "1211".code -> "Account not found".message
+        case AccessDenied                                   => "3000".code -> "Unauthorised operation".message
+        case ActivateAccountError.UnexpectedStatus(message) => "1299".code -> s"${message}".message
       ErrorInfo.make(errorCode, errorMessage)

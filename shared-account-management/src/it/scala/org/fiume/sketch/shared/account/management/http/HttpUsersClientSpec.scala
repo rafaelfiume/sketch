@@ -84,6 +84,9 @@ trait HttpUsersClientSpecContext extends CatsEffectSuite with Http4sClientContex
                 Conflict(error.asInstanceOf[AccessDenied.type | SoftDeleteAccountError].toErrorInfo)
               case SoftDeleteAccountError.AccountNotFound =>
                 NotFound(error.asInstanceOf[AccessDenied.type | SoftDeleteAccountError].toErrorInfo)
+              case SoftDeleteAccountError.UnexpectedStatus(_) =>
+                InternalServerError(error.asInstanceOf[AccessDenied.type | SoftDeleteAccountError].toErrorInfo)
+
           case error: AccessDenied.type => Forbidden(error.asInstanceOf[AccessDenied.type | SoftDeleteAccountError].toErrorInfo)
           case unknown                  => throw UnsupportedOperationException(s"unexpected $unknown")
 
@@ -95,6 +98,8 @@ trait HttpUsersClientSpecContext extends CatsEffectSuite with Http4sClientContex
                 Conflict(error.asInstanceOf[AccessDenied.type | ActivateAccountError].toActivateErrorInfo)
               case ActivateAccountError.AccountNotFound =>
                 NotFound(error.asInstanceOf[AccessDenied.type | ActivateAccountError].toActivateErrorInfo)
+              case ActivateAccountError.UnexpectedStatus(_) =>
+                InternalServerError(error.asInstanceOf[AccessDenied.type | ActivateAccountError].toActivateErrorInfo)
           case error: AccessDenied.type =>
             Forbidden(error.asInstanceOf[AccessDenied.type | ActivateAccountError].toActivateErrorInfo)
           case unknown => throw UnsupportedOperationException(s"unexpected $unknown")

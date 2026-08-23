@@ -69,7 +69,7 @@ class HttpUsersClient[F[_]: Async] private (baseUri: Uri, client: Client[F]):
         case Unauthorized(resp) =>
           resp.bodyText.compile.string
             .flatTap { error =>
-              warn"Unauthorised to restore account: $error"
+              warn"Unauthorised to delete account: $error"
             }
             .map { _ =>
               ClientAuthorisationError("Invalid credentials")
@@ -78,6 +78,12 @@ class HttpUsersClient[F[_]: Async] private (baseUri: Uri, client: Client[F]):
 
         case Forbidden(_) =>
           AccessDenied
+            .asLeft[AccountDeletionEvent.Scheduled]
+            .pure[F]
+
+        case response =>
+          SoftDeleteAccountError
+            .UnexpectedStatus(s"Unexpected response status: ${response.status}")
             .asLeft[AccountDeletionEvent.Scheduled]
             .pure[F]
       }
@@ -101,5 +107,10 @@ class HttpUsersClient[F[_]: Async] private (baseUri: Uri, client: Client[F]):
               ClientAuthorisationError("Invalid credentials").asLeft
             )
         case Forbidden(_) => AccessDenied.asLeft.pure[F]
+        case response     =>
+          ActivateAccountError
+            .UnexpectedStatus(s"Unexpected response status: ${response.status}")
+            .asLeft[Unit]
+            .pure[F]
       }
     yield result
