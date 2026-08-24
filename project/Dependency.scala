@@ -24,7 +24,7 @@ object Dependency {
     val munit                 = "1.1.1"
     val munitCatsEffect       = "2.2.0"
     val munitDiscipline       = "2.0.0"
-    val munitScalaCheck       = "1.1.0"
+    val munitScalaCheck       = "1.3.0"
     val munitScalaCheckEffect = "2.1.0"
     val munitTestcontainers   = "0.44.1"
   }
