@@ -1,7 +1,6 @@
 package org.fiume.sketch.shared.testkit
 
 import cats.effect.{Async, Resource, Sync}
-import fs2.io.file.{Files, Path}
 import io.circe.Json
 import io.circe.parser.parse
 import org.fiume.sketch.shared.testkit.syntax.EitherSyntax.*
@@ -22,7 +21,10 @@ trait FileContentContext:
       .evalTap(content => if debug then debugContent(content) else Sync[F].unit)
 
   def bytesFrom[F[_]: Async](path: String): fs2.Stream[F, Byte] =
-    Files.forAsync[F].readAll(Path(getClass.getClassLoader.getResource(path).getPath()))
+    fs2.io.readInputStream(
+      Async[F].delay(getClass.getClassLoader.getResourceAsStream(path)),
+      chunkSize = 8192
+    )
 
   private def debugContent[F[_]: Sync](content: String): F[Unit] = Sync[F].delay {
     println(

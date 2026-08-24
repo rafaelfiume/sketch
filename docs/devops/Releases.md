@@ -38,7 +38,7 @@ The application version (`${app.version}`) is a **unique and traceable identifie
 | Feature branch  | `${branch.name}.${circleci_build_number}`  | `register_user_account_deleted.975` |
 | Local build     | `snapshot`                                 | `snapshot`                          |
 
-> **Note:** This logic exists in both [version.sh](/tools/pipeline/version.sh) and [build.sbt](/build.sbt), with `build.sbt` required for Docker image tagging with `docker:publishLocal` or `docker:publish` via `sbt-native-packager`.
+> **Note:** This logic exists in both [version.sh](/tools/pipeline/version.sh) and [build.sbt](/build.sbt), with `build.sbt` required for Docker image tagging with `Docker/publishLocal` or `Docker/publish` via `sbt-native-packager`.
 
 ### 3.1 Docker Image Tags
 

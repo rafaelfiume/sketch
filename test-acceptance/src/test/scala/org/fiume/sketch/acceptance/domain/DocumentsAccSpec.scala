@@ -7,6 +7,7 @@ import munit.CatsEffectSuite
 import org.fiume.sketch.acceptance.testkit.AccountSetUpAndLoginContext
 import org.fiume.sketch.shared.testkit.{FileContentContext, Http4sClientContext}
 import org.fiume.sketch.shared.testkit.syntax.EitherSyntax.*
+import org.http4s.Entity
 import org.http4s.Status.*
 import org.http4s.circe.*
 import org.http4s.headers.Authorization
@@ -76,11 +77,14 @@ trait DocumentsSpecContext extends Http4sClientContext with FileContentContext:
   import org.http4s.headers.`Content-Type`
 
   def fileUploadRequest(payload: String, pathToFile: String, authHeader: Authorization): Request[IO] =
-    val imageFile = getClass.getClassLoader.getResource(pathToFile)
+    val imageBytes = fs2.io.readInputStream[IO](
+      IO(getClass.getClassLoader.getResourceAsStream(pathToFile)),
+      chunkSize = 8192
+    )
     val multipart = Multipart[IO](
       parts = Vector(
         Part.formData("metadata", payload),
-        Part.fileData("bytes", imageFile, `Content-Type`(MediaType.image.jpeg))
+        Part.fileData("bytes", pathToFile, Entity.stream(imageBytes), `Content-Type`(MediaType.image.jpeg))
       ),
       boundary = Boundary("boundary")
     )

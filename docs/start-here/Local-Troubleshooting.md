@@ -95,7 +95,7 @@ docker system prune
 
 Build and publish the app's Docker image locally:
 ```bash
-sbt docker:publishLocal
+sbt Docker/publishLocal
 ```
 
 Manually build the image:

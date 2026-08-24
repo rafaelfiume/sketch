@@ -33,7 +33,7 @@ jobs:
       - run:
           name: Run linter and tests
           command:
-            sbt "scalafixAll --check; testAcceptance/scalafixAll --check; test:test; it:test"
+            sbt "scalafixAll --check; testAcceptance/scalafixAll --check; Test/test; It/test"
 
       - save_cache:
           paths:

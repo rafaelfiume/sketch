@@ -78,6 +78,7 @@ lazy val service =
     .settings(commonSettings*)
     .configs(IntegrationTests)
     .settings(
+      Docker / packageName := "sketch",
       inConfig(IntegrationTests)(Defaults.testSettings ++ scalafixConfigSettings(IntegrationTests))
     )
     .settings(
@@ -194,6 +195,7 @@ lazy val sharedComponents =
         Dependency.http4sDsl,
         Dependency.log4catsSlf4j,
         Dependency.slf4jSimple,
+        Dependency.catsEffectTestKit % Test,
         Dependency.catsLaws % Test,
         Dependency.munit % Test,
         Dependency.munitCatsEffect % Test,

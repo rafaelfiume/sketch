@@ -1,6 +1,7 @@
 package org.fiume.sketch.shared.common.jobs
 
 import cats.effect.{IO, Ref}
+import cats.effect.testkit.TestControl
 import cats.implicits.*
 import munit.CatsEffectSuite
 import org.fiume.sketch.shared.common.testkit.JobErrorHandlerContext
@@ -25,51 +26,55 @@ class PeriodicJobSpec extends CatsEffectSuite with JobErrorHandlerContext:
         description = "broken job"
       )
     }
-    for
-      (jobsCounter, brokenJob) <- makeBrokenJob()
-      jobErrorTracker <- makeJobErrorTracker()
-      period = 50.millis
-      pipelineDuration = 185.millis // this test can be susceptible to timing issues
+    TestControl.executeEmbed {
+      for
+        (jobsCounter, brokenJob) <- makeBrokenJob()
+        jobErrorTracker <- makeJobErrorTracker()
+        period = 50.millis
+        pipelineDuration = 185.millis // this test can be susceptible to timing issues
 
-      // when
-      result <- org.fiume.sketch.shared.common.jobs.PeriodicJob
-        .make(period, brokenJob, jobErrorTracker)
-        .interruptAfter(pipelineDuration)
-        .compile
-        .toList
+        // when
+        result <- org.fiume.sketch.shared.common.jobs.PeriodicJob
+          .make(period, brokenJob, jobErrorTracker)
+          .interruptAfter(pipelineDuration)
+          .compile
+          .toList
 
-      // then
-      totalJobsRun <- jobsCounter.get
-      expectedTotalJobsRun = (pipelineDuration / period).toInt
-      totalErrorsHandled <- jobErrorTracker.countHandledJobErrors()
-      expectedTotalErrorsHandled = totalJobsRun / 2
-      expectedEmittedOutput = (1 to totalJobsRun by 2).toList
-    yield
-      assert(
-        totalJobsRun == expectedTotalJobsRun,
-        clue = s"Expected $expectedTotalJobsRun jobs to run, but $totalJobsRun ran"
-      )
-      assert(
-        totalErrorsHandled == expectedTotalErrorsHandled,
-        clue = s"Expected $expectedTotalErrorsHandled errors, but $totalErrorsHandled occurred"
-      )
-      assertEquals(result, expectedEmittedOutput)
+        // then
+        totalJobsRun <- jobsCounter.get
+        expectedTotalJobsRun = (pipelineDuration / period).toInt
+        totalErrorsHandled <- jobErrorTracker.countHandledJobErrors()
+        expectedTotalErrorsHandled = totalJobsRun / 2
+        expectedEmittedOutput = (1 to totalJobsRun by 2).toList
+      yield
+        assert(
+          totalJobsRun == expectedTotalJobsRun,
+          clue = s"Expected $expectedTotalJobsRun jobs to run, but $totalJobsRun ran"
+        )
+        assert(
+          totalErrorsHandled == expectedTotalErrorsHandled,
+          clue = s"Expected $expectedTotalErrorsHandled errors, but $totalErrorsHandled occurred"
+        )
+        assertEquals(result, expectedEmittedOutput)
+    }
 
   test("stops running jobs when cancelled"):
-    for
-      jobCounter <- IO.ref(0)
-      job = JobWrapper(jobCounter.update(_ + 1), "increments a counter")
-      fiber <- org.fiume.sketch.shared.common.jobs.PeriodicJob
-        .makeWithDefaultJobErrorHandler(50.millis, job)
-        .interruptAfter(190.millis)
-        .compile
-        .drain
-        .start
-      _ <- IO.sleep(110.millis) // let the jobs run fow a while
+    TestControl.executeEmbed {
+      for
+        jobCounter <- IO.ref(0)
+        job = JobWrapper(jobCounter.update(_ + 1), "increments a counter")
+        fiber <- org.fiume.sketch.shared.common.jobs.PeriodicJob
+          .makeWithDefaultJobErrorHandler(50.millis, job)
+          .interruptAfter(190.millis)
+          .compile
+          .drain
+          .start
+        _ <- IO.sleep(110.millis) // let the jobs run fow a while
 
-      _ <- fiber.cancel
-      _ <- IO.sleep(90.millis)
-      numberOfJobsRun <- jobCounter.get
+        _ <- fiber.cancel
+        _ <- IO.sleep(90.millis)
+        numberOfJobsRun <- jobCounter.get
 
 //
-    yield assert(numberOfJobsRun == 2, clue = s"expected 2 jobs to run, but $numberOfJobsRun ran")
+      yield assert(numberOfJobsRun == 2, clue = s"expected 2 jobs to run, but $numberOfJobsRun ran")
+    }

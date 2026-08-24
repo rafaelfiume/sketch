@@ -3,8 +3,8 @@
 set -Eeuo pipefail
 
 build_docker_image() {
-  # docker:publishLocal will also tag the docker image with 'version'
-  sbt_subproject_run "service" "docker:publishLocal"
+  # Docker/publishLocal will also tag the docker image with 'version'
+  sbt_subproject_run "service" "Docker/publishLocal"
 }
 
 exit_if_version_is_undefined() {

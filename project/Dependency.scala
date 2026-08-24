@@ -41,10 +41,10 @@ object Dependency {
   val circeGeneric                = "io.circe"                   %% "circe-generic"                       % Version.circe
   val circeParser                 = "io.circe"                   %% "circe-parser"                        % Version.circe
   val ciris                       = "is.cir"                     %% "ciris"                               % Version.ciris
-  val doobieCirce                 = "org.typelevel"               %% "doobie-postgres-circe"               % Version.doobie
-  val doobieCore                  = "org.typelevel"               %% "doobie-core"                         % Version.doobie
-  val doobiePostgres              = "org.typelevel"               %% "doobie-postgres"                     % Version.doobie
-  val doobieHikari                = "org.typelevel"               %% "doobie-hikari"                       % Version.doobie
+  val doobieCirce                 = "org.typelevel"              %% "doobie-postgres-circe"               % Version.doobie
+  val doobieCore                  = "org.typelevel"              %% "doobie-core"                         % Version.doobie
+  val doobiePostgres              = "org.typelevel"              %% "doobie-postgres"                     % Version.doobie
+  val doobieHikari                = "org.typelevel"              %% "doobie-hikari"                       % Version.doobie
   val flyway                      = "org.flywaydb"               %  "flyway-core"                         % Version.flyway
   val flywayPostgres              = "org.flywaydb"               %  "flyway-database-postgresql"          % Version.flyway
   val fs2Core                     = "co.fs2"                     %% "fs2-core"                            % Version.fs2
@@ -58,6 +58,7 @@ object Dependency {
   val slf4jSimple                 = "org.slf4j"                  %  "slf4j-simple"                        % Version.slf4j
 
   //// Test Dependencies
+  val catsEffectTestKit           = "org.typelevel"              %% "cats-effect-testkit"                 % Version.catsEffect
   val catsLaws                    = "org.typelevel"              %% "cats-laws"                           % Version.cats
   val gatlingHighcharts           = "io.gatling.highcharts"      %  "gatling-charts-highcharts"           % Version.gatling
   val gatlingTestFramework        = "io.gatling"                 %  "gatling-test-framework"              % Version.gatling
