@@ -8,7 +8,7 @@ object Dependency {
     val bouncycastle          = "1.85.2"
 
     val cats                  = "2.13.0"
-    val catsEffect            = "3.7.0"
+    val catsEffect            = "3.7.1"
     val circe                 = "0.14.14"
     val ciris                 = "3.15.0"
     val doobie                = "1.0.0-RC13"
