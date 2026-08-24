@@ -192,7 +192,7 @@ class DocumentsRoutesSpec
    * Others
    */
 
-  test("semantically invalid upload request results in 422 Unprocessable Entity"):
+  test("semantically invalid upload request results in 422 Unprocessable Content"):
     forAllF(semanticallyInvalidDocumentRequests) { (multipart: Multipart[IO]) =>
       for
         (accessControl, acTxRef) <- makeAccessControl()
@@ -204,7 +204,7 @@ class DocumentsRoutesSpec
         request = POST(uri"/documents").withEntity(multipart).withHeaders(multipart.headers)
         result <- send(request)
           .to(SemanticValidationMiddleware(documentsRoutes.router()))
-          .expectJsonResponseWith[ErrorInfo](Status.UnprocessableEntity)
+          .expectJsonResponseWith[ErrorInfo](Status.UnprocessableContent)
 //
       yield
         assertEquals(result.code, "9011".code)
@@ -217,7 +217,7 @@ class DocumentsRoutesSpec
         )
     }
 
-  test("malformed upload request results in 422 Unprocessable Entity"):
+  test("malformed upload request results in 422 Unprocessable Content"):
     forAllF(malformedDocumentRequests) { (multipart: Multipart[IO]) =>
       for
         (accessControl, acTxRef) <- makeAccessControl()
@@ -229,7 +229,7 @@ class DocumentsRoutesSpec
         request = POST(uri"/documents").withEntity(multipart).withHeaders(multipart.headers)
         result <- send(request)
           .to(SemanticValidationMiddleware(documentsRoutes.router()))
-          .expectJsonResponseWith[ErrorInfo](Status.UnprocessableEntity)
+          .expectJsonResponseWith[ErrorInfo](Status.UnprocessableContent)
 //
       yield assertEquals(
         result,

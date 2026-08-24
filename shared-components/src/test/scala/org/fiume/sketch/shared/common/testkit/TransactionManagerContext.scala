@@ -17,6 +17,6 @@ trait TransactionManagerContext:
               refs.traverse_(_.commit) *> IO.pure(a)
             case Left(e) =>
               refs.traverse_(_.rollback) *> IO.raiseError(e)
-        }
+          }
 
       override val commitStream: [A] => fs2.Stream[IO, A] => fs2.Stream[IO, A] = [A] => (action: fs2.Stream[IO, A]) => action

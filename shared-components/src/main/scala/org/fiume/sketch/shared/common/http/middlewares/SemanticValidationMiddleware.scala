@@ -30,13 +30,13 @@ object SemanticValidationMiddleware:
       routes
         .run(req)
         .semiflatMap { response =>
-          // http4s swallows errors, so we need to transform UnprocessableEntity responses
+          // http4s swallows errors, so we need to transform UnprocessableContent responses
           response.status match
-            case UnprocessableEntity =>
+            case UnprocessableContent =>
               response
                 .as[String]
                 .flatMap { body =>
-                  UnprocessableEntity(
+                  UnprocessableContent(
                     ErrorInfo.make(
                       "9000".code,
                       "The request body could not be processed".message,
@@ -49,7 +49,7 @@ object SemanticValidationMiddleware:
         .handleError {
           // this is raised by validation functions in the app's routes
           case SemanticInputError(code, message, details) =>
-            Response[F](UnprocessableEntity)
+            Response[F](UnprocessableContent)
               .withEntity(ErrorInfo.make(code, message, details))
 
           case error => throw error

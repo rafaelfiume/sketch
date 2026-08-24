@@ -40,7 +40,7 @@ class AuthRoutesSpec
     with ShrinkLowPriority:
 
   test("valid login request results in a jwt"):
-    forAllF(loginRequests, jwts) { case (user -> loginRequest -> jwt) =>
+    forAllF(loginRequests, jwts) { case user -> loginRequest -> jwt =>
       val plainPassword = PlainPassword.makeUnsafeFromString(loginRequest.password)
       for
         authenticator <- makeAuthenticator(
@@ -57,7 +57,7 @@ class AuthRoutesSpec
     }
 
   test("login with wrong password fails with 401 Unauthorized status"):
-    forAllF(loginRequests, jwts) { case (user -> loginRequest -> jwt) =>
+    forAllF(loginRequests, jwts) { case user -> loginRequest -> jwt =>
       val plainPassword = PlainPassword.makeUnsafeFromString(loginRequest.password)
       for
         authenticator <- makeAuthenticator(
@@ -79,7 +79,7 @@ class AuthRoutesSpec
     }
 
   test("login with unknown username fails with 401 Unauthorized status"):
-    forAllF(loginRequests, jwts) { case (user -> loginRequest -> jwt) =>
+    forAllF(loginRequests, jwts) { case user -> loginRequest -> jwt =>
       val plainPassword = PlainPassword.makeUnsafeFromString(loginRequest.password)
       for
         authenticator <- makeAuthenticator(
@@ -100,8 +100,8 @@ class AuthRoutesSpec
       )
     }
 
-  test("login with semantically invalid username or password fails with 422 Unprocessable Entity"):
-    forAllF(invalidInputs, jwts) { case (user -> loginRequest -> jwt) =>
+  test("login with semantically invalid username or password fails with 422 Unprocessable Content"):
+    forAllF(invalidInputs, jwts) { case user -> loginRequest -> jwt =>
       val plainPassword = PlainPassword.makeUnsafeFromString(loginRequest.password)
       for
         authenticator <- makeAuthenticator(
@@ -112,7 +112,7 @@ class AuthRoutesSpec
         request = POST(uri"/login").withEntity(loginRequest)
         result <- send(request)
           .to(SemanticValidationMiddleware(new AuthRoutes[IO](authenticator).router()))
-          .expectJsonResponseWith[ErrorInfo](Status.UnprocessableEntity)
+          .expectJsonResponseWith[ErrorInfo](Status.UnprocessableContent)
 
         _ <- IO {
           assertEquals(result.code, "1000".code)
@@ -126,7 +126,7 @@ class AuthRoutesSpec
       yield ()
     }
 
-  test("login request with malformed body fails with 422 Unprocessable Entity"):
+  test("login request with malformed body fails with 422 Unprocessable Content"):
     forAllF(malformedInputs) { badClientInput =>
       for
         authenticator <- makeFailingAuthenticator()
@@ -134,7 +134,7 @@ class AuthRoutesSpec
         request = POST(uri"/login").withEntity(badClientInput)
         result <- send(request)
           .to(SemanticValidationMiddleware(new AuthRoutes[IO](authenticator).router()))
-          .expectJsonResponseWith[ErrorInfo](Status.UnprocessableEntity)
+          .expectJsonResponseWith[ErrorInfo](Status.UnprocessableContent)
 
 //
       yield
