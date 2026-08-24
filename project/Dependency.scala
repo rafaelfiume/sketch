@@ -9,7 +9,7 @@ object Dependency {
 
     val cats                  = "2.13.0"
     val catsEffect            = "3.7.1"
-    val circe                 = "0.14.14"
+    val circe                 = "0.14.16"
     val ciris                 = "3.15.0"
     val doobie                = "1.0.0-RC13"
     val flyway                = "11.9.2"
