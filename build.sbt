@@ -1,10 +1,8 @@
 import com.typesafe.sbt.packager.docker._
-import sbt.{enablePlugins, IO}
+import sbt.IO
 import scala.util.Properties
 
 val ScalaVersion = "3.8.4"
-
-enablePlugins(GitVersioning)
 
 inThisBuild(
   List(
@@ -46,7 +44,7 @@ lazy val auth =
     .dependsOn(storage)
     .dependsOn(testContracts % "test->test")
     .disablePlugins(plugins.JUnitXmlReportPlugin)
-    .settings(commonSettings: _*)
+    .settings(commonSettings*)
     .settings(
       name := "auth",
       libraryDependencies ++= Seq(
@@ -77,13 +75,13 @@ lazy val service =
     .dependsOn(testContracts % "test->test")
     .enablePlugins(JavaAppPackaging)
     .disablePlugins(plugins.JUnitXmlReportPlugin) // see https://www.scala-sbt.org/1.x/docs/Testing.html
-    .settings(commonSettings: _*)
+    .settings(commonSettings*)
     .configs(IntegrationTests)
     .settings(
       inConfig(IntegrationTests)(Defaults.testSettings ++ scalafixConfigSettings(IntegrationTests))
     )
     .settings(
-      name := "sketch",
+      name := "service",
       libraryDependencies ++= Seq(
         Dependency.catsEffect,
         Dependency.circeGeneric,
@@ -127,7 +125,7 @@ lazy val sharedAccessControl =
     .dependsOn(sharedComponents)
     .dependsOn(sharedTestComponents % Test)
     .disablePlugins(plugins.JUnitXmlReportPlugin)
-    .settings(commonSettings: _*)
+    .settings(commonSettings*)
     .settings(
       name := "shared-access-control",
       libraryDependencies ++= Seq(
@@ -145,7 +143,7 @@ lazy val sharedAuth =
     .dependsOn(sharedComponents)
     .dependsOn(sharedTestComponents % Test)
     .disablePlugins(plugins.JUnitXmlReportPlugin)
-    .settings(commonSettings: _*)
+    .settings(commonSettings*)
     .settings(
       name := "shared-auth",
       libraryDependencies ++= Seq(
@@ -162,7 +160,7 @@ lazy val sharedAccountManagement =
     .dependsOn(sharedAccessControl)
     .dependsOn(sharedAuth % "compile->compile;test->test")
     .disablePlugins(plugins.JUnitXmlReportPlugin)
-    .settings(commonSettings: _*)
+    .settings(commonSettings*)
     .configs(IntegrationTests)
     .settings(
       inConfig(IntegrationTests)(Defaults.testSettings ++ scalafixConfigSettings(IntegrationTests))
@@ -184,7 +182,7 @@ lazy val sharedComponents =
     .dependsOn(sharedTestComponents % Test)
     .dependsOn(testContracts % "test->test")
     .disablePlugins(plugins.JUnitXmlReportPlugin)
-    .settings(commonSettings: _*)
+    .settings(commonSettings*)
     .settings(
       name := "shared-components",
       libraryDependencies ++= Seq(
@@ -212,7 +210,7 @@ lazy val sharedDomain =
     .dependsOn(sharedComponents)
     .dependsOn(sharedTestComponents % Test)
     .disablePlugins(plugins.JUnitXmlReportPlugin)
-    .settings(commonSettings: _*)
+    .settings(commonSettings*)
     .settings(
       name := "shared-domain",
       libraryDependencies ++= Seq(
@@ -229,7 +227,7 @@ lazy val sharedTestComponents =
   project
     .in(file("shared-test-components"))
     .disablePlugins(plugins.JUnitXmlReportPlugin)
-    .settings(commonSettings: _*)
+    .settings(commonSettings*)
     .settings(
       name := "shared-test-components",
       libraryDependencies ++= Seq(
@@ -248,9 +246,8 @@ lazy val sharedTestComponents =
     )
 
 lazy val sketch =
-  project
-    .in(file("."))
-    .settings(commonSettings: _*)
+  rootProject
+    .settings(commonSettings*)
     .aggregate(auth)
     .aggregate(service)
     .aggregate(sharedAccessControl)
@@ -270,7 +267,7 @@ lazy val storage =
     .dependsOn(sharedDomain % "compile->compile;test->test")
     .dependsOn(sharedTestComponents % Test)
     .disablePlugins(plugins.JUnitXmlReportPlugin)
-    .settings(commonSettings: _*)
+    .settings(commonSettings*)
     .configs(IntegrationTests)
     .settings(
       inConfig(IntegrationTests)(Defaults.testSettings ++ scalafixConfigSettings(IntegrationTests))
@@ -305,7 +302,7 @@ lazy val testAcceptance =
     .dependsOn(testContracts % "test->test")
     .disablePlugins(plugins.JUnitXmlReportPlugin)
     .enablePlugins(GatlingPlugin)
-    .settings(commonSettings: _*)
+    .settings(commonSettings*)
     .settings(
       name := "test-acceptance",
       libraryDependencies ++= Seq(
@@ -325,7 +322,7 @@ lazy val testContracts =
   project
     .in(file("test-contracts"))
     .disablePlugins(plugins.JUnitXmlReportPlugin)
-    .settings(commonSettings: _*)
+    .settings(commonSettings*)
     .settings(
       name := "test-contracts"
     )
