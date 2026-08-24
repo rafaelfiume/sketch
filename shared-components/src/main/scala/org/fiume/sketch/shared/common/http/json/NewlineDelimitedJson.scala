@@ -4,8 +4,10 @@ import io.circe.Json
 import org.http4s.{Charset, EntityEncoder, MediaType}
 import org.http4s.headers.`Content-Type`
 
-import NewlineDelimitedJson.Line
-import NewlineDelimitedJson.Linebreak
+import NewlineDelimitedJson.{
+  Line,
+  Linebreak
+}
 
 /*
  * Experimental newline delimited json.
